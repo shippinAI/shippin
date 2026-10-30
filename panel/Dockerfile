@@ -1,11 +1,11 @@
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /app/panel
 
 ARG PANEL_BASE_PATH=/
 ENV PANEL_BASE_PATH=${PANEL_BASE_PATH}
 
-COPY panel/package.json panel/package-lock.json* ./
-RUN npm install
+COPY panel/package.json panel/package-lock.json ./
+RUN npm ci
 
 COPY panel/ ./
 COPY api/openapi /app/api/openapi

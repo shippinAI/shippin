@@ -4,6 +4,19 @@ Shippin is an early-stage, self-hosted infrastructure platform. This repository 
 
 **Status:** The control plane, first-owner setup, remote node enrollment, shared UI configuration and production ISO are not implemented here. The panel is an API workbench, not a production management system. Incus is the first target; Proxmox, OpenTofu and Coder are future integrations.
 
+To try the current panel from a fresh checkout with Docker and Docker Compose:
+
+```sh
+git clone https://github.com/shippinAI/shippin.git
+cd shippin
+docker compose -f panel/docker-compose.yml up -d --build
+```
+
+Open `http://127.0.0.1:8088/console/` for the customer workbench or
+`http://127.0.0.1:8089/ops/` for the operator workbench. These commands start
+only the static panel; they do not install an API, identity provider, host agent or
+Incus. See the panel guide for configuration, updates and stopping the deployment.
+
 - [Panel](panel/README.md)
 - [Primary image development](install/primary-image/README.md)
 - [Source boundaries](docs/source-of-truth.md)

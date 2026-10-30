@@ -1,3 +1,5 @@
+export type AppMode = "customer" | "operator";
+
 export type RuntimeConfig = {
   appName: string;
   environment: string;

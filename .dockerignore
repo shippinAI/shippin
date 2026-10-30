@@ -1,0 +1,6 @@
+.git/
+.ai/
+.cache/
+**/node_modules/
+**/dist/
+*.log

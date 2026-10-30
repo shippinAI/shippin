@@ -13,6 +13,7 @@ src/
   main.tsx                 Browser entrypoint
   app/                     Application composition, routes and global styles
   features/auth/           OIDC interaction
+  features/configuration/  Browser-scoped connection settings
   features/workbench/      API workbench requests
   shared/                  Shared contracts, runtime configuration and generated index
 scripts/                   Build and structure verification
@@ -78,9 +79,10 @@ the boundary checker's regression tests.
 
 ## Deploy with Docker Compose
 
-```bash
-cd panel
-docker compose up -d --build
+From the repository root:
+
+```sh
+docker compose -f panel/docker-compose.yml up -d --build
 ```
 
 Default URLs:
@@ -89,6 +91,22 @@ Default URLs:
 - Operator console: `http://localhost:8089/ops/`
 
 Note: compose builds from the repository root context so the OpenAPI source at [`api/openapi/`](../api/openapi/) is available during image build.
+Both ports bind to loopback by default. Set `SHIPPIN_BIND_ADDRESS`,
+`SHIPPIN_CONSOLE_PORT` or `SHIPPIN_OPS_PORT` before running Compose to choose a
+different bind address or ports. Binding beyond loopback exposes this prototype;
+configure trusted HTTPS and authentication before any remote use.
+
+For an update, pull the desired revision and rebuild from that checkout:
+
+```sh
+git pull --ff-only
+docker compose -f panel/docker-compose.yml up -d --build
+```
+
+Stop this Compose project with `docker compose -f panel/docker-compose.yml down`.
+Images are built locally from the checked-out source; this does not pull a signed
+Shippin release image or create a control plane. Back up your own runtime config
+before updates and use version-controlled release tags when those exist.
 
 ## Runtime config
 

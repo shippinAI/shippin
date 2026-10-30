@@ -1,13 +1,17 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { executeApiRequest, fetchMe } from "../features/workbench/api";
+import { ConnectionPanel } from "../features/workbench/connection-panel";
+import { OperationPanel } from "../features/workbench/operation-panel";
+import { ResultPanel } from "../features/workbench/result-panel";
+import { getCapabilityFromOperation, getPathParameters, hasOperatorRole, isCapabilityAllowed, isOperationAllowedForMode } from "../features/workbench/operations";
 import { completeOidcCodeFlowFromUrl, startOidcLogin } from "../features/auth/oidc";
 import { SettingsForm } from "../features/configuration/settings-form";
 import { applySettings, loadSettings, SETTINGS_KEY, type ConnectionSettings } from "../features/configuration/settings";
 import { loadRuntimeConfig } from "../shared/runtime-config";
 import openApiIndex from "../shared/generated/openapi-index.json";
 import { CONSOLE_ROUTES } from "./routes";
-import type { AppMode } from "./routes";
 import type {
+  AppMode,
   ApiExecutionResult,
   MeIdentity,
   OpenApiIndex,
@@ -18,20 +22,6 @@ import type {
 const API_TOKEN_STORAGE_KEY = "shippin-control-panel-api-token";
 const APP_MODE_STORAGE_KEY = "shippin-control-panel-app-mode";
 const ACTIVE_ROUTE_STORAGE_KEY = "shippin-control-panel-active-route";
-
-function hasOperatorRole(identity: MeIdentity | null): boolean {
-  if (!identity?.platform_roles?.length) {
-    return false;
-  }
-  return identity.platform_roles.some((role) =>
-    ["op_support", "op_admin", "op_superadmin"].includes(role)
-  );
-}
-
-function getPathParameters(path: string): string[] {
-  const matches = path.match(/\{([^}]+)\}/g) ?? [];
-  return matches.map((match) => match.slice(1, -1));
-}
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   const parts = token.split(".");
@@ -54,69 +44,6 @@ function getTokenExpiryEpochMs(token: string): number | null {
     return null;
   }
   return payload.exp * 1000;
-}
-
-function isOperationAllowedForMode(
-  operation: OpenApiOperation,
-  mode: AppMode,
-  identity: MeIdentity | null
-): boolean {
-  const primaryTag = operation.tags[0] ?? "untagged";
-  const customerTags = new Set([
-    "me",
-    "folders",
-    "workspaces",
-    "jobs",
-    "members",
-    "settings",
-    "secrets",
-    "identity",
-    "rrflow",
-    "audit"
-  ]);
-  const operatorTags = new Set(["me", "platform", "tenants", "jobs", "settings", "audit"]);
-  if (mode === "customer") {
-    return customerTags.has(primaryTag);
-  }
-  if (!hasOperatorRole(identity)) {
-    return false;
-  }
-  return operatorTags.has(primaryTag);
-}
-
-function getCapabilityFromOperation(
-  operation: OpenApiOperation,
-  config: RuntimeConfig | null
-): string {
-  const hint = config?.capabilityHints?.[operation.operationId];
-  if (hint) {
-    return hint;
-  }
-  const actionByMethod: Record<string, string> = {
-    GET: "read",
-    POST: "create",
-    PUT: "update",
-    PATCH: "update",
-    DELETE: "delete"
-  };
-  const primaryTag = operation.tags[0] ?? "resource";
-  const action = actionByMethod[operation.method.toUpperCase()] ?? "manage";
-  return `${primaryTag}:${action}`;
-}
-
-function isCapabilityAllowed(
-  operation: OpenApiOperation,
-  config: RuntimeConfig | null,
-  identity: MeIdentity | null
-): boolean {
-  if (!identity?.capabilities) {
-    return true;
-  }
-  const capabilityKey = getCapabilityFromOperation(operation, config);
-  if (!(capabilityKey in identity.capabilities)) {
-    return true;
-  }
-  return Boolean(identity.capabilities[capabilityKey]);
 }
 
 export default function App() {
@@ -536,132 +463,28 @@ export default function App() {
           )}
         </section>
 
-        <section className="panel">
-          <h3>Connection</h3>
-          <div className="field-grid">
-            <label>
-              API base URL
-              <input value={config?.apiBaseUrl ?? ""} readOnly />
-            </label>
-            <label>
-              Tenant ID (used for {"{tenantId}"})
-              <input
-                value={tenantId}
-                onChange={(event) => setTenantId(event.target.value)}
-                placeholder="UUID tenant id"
-              />
-            </label>
-            {identity?.tenants?.length ? (
-              <label>
-                Tenant from /me
-                <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
-                  {identity.tenants.map((tenant) => (
-                    <option key={tenant.tenant_id} value={tenant.tenant_id}>
-                      {tenant.name ? `${tenant.name} (${tenant.tenant_id})` : tenant.tenant_id}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-          </div>
-        </section>
-
-        <section className="panel">
-          <h3>{activeRoute?.label ?? "No visible"} operations</h3>
-          <form onSubmit={onExecute}>
-            <label className="full-width">
-              Operation
-              <select
-                value={selectedOperationId}
-                onChange={(event) => setSelectedOperationId(event.target.value)}
-                disabled={!operationsForRoute.length}
-              >
-                {operationsForRoute.map((operation) => (
-                  <option key={operation.operationId} value={operation.operationId}>
-                    {operation.method} {operation.path} - {operation.summary || operation.operationId}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {pathParameters.length ? (
-              <div className="field-grid">
-                {pathParameters.map((paramName) => (
-                  <label key={paramName}>
-                    {paramName}
-                    <input
-                      value={paramName === "tenantId" ? tenantId : pathParamValues[paramName] ?? ""}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        if (paramName === "tenantId") {
-                          setTenantId(value);
-                          return;
-                        }
-                        setPathParamValues((current) => ({ ...current, [paramName]: value }));
-                      }}
-                      placeholder={`value for ${paramName}`}
-                    />
-                  </label>
-                ))}
-              </div>
-            ) : null}
-
-            {selectedOperation && !["GET", "HEAD"].includes(selectedOperation.method) ? (
-              <label className="full-width">
-                Request body (JSON)
-                <textarea
-                  value={requestBody}
-                  onChange={(event) => setRequestBody(event.target.value)}
-                  rows={6}
-                  placeholder='{"name":"example"}'
-                />
-              </label>
-            ) : null}
-
-            <div className="action-row">
-              <button
-                type="submit"
-                disabled={
-                  isSubmitting || !selectedOperation || operatorModeBlocked || capabilityBlocked
-                }
-              >
-                {isSubmitting ? "Executing..." : "Execute against API"}
-              </button>
-              {selectedOperation ? (
-                <span className="muted">
-                  Status: {selectedOperation.implementationStatus} · Capability: {requiredCapability}
-                </span>
-              ) : (
-                <span className="muted">No operation available for current mode.</span>
-              )}
-            </div>
-          </form>
-          {capabilityBlocked ? (
-            <p className="error-banner">
-              Action blocked: current identity does not allow capability {requiredCapability}.
-            </p>
-          ) : null}
-          {requestError ? <p className="error-banner">{requestError}</p> : null}
-        </section>
-
-        <section className="panel">
-          <h3>Result</h3>
-          {result ? (
-            <div className="result-block">
-              <p>
-                <strong>
-                  {result.response.status} {result.response.statusText}
-                </strong>
-              </p>
-              <p className="muted">
-                {result.request.method} {result.request.url}
-              </p>
-              <pre>{result.response.body || "(empty response body)"}</pre>
-            </div>
-          ) : (
-            <p className="muted">No request executed in this session.</p>
-          )}
-        </section>
+        <ConnectionPanel config={config} tenantId={tenantId} identity={identity} onTenantChange={setTenantId} />
+        <OperationPanel
+          routeLabel={activeRoute?.label ?? "No visible"}
+          operations={operationsForRoute}
+          selectedOperation={selectedOperation}
+          selectedOperationId={selectedOperationId}
+          pathParameters={pathParameters}
+          tenantId={tenantId}
+          pathParamValues={pathParamValues}
+          requestBody={requestBody}
+          isSubmitting={isSubmitting}
+          operatorModeBlocked={operatorModeBlocked}
+          capabilityBlocked={capabilityBlocked}
+          requiredCapability={requiredCapability}
+          requestError={requestError}
+          onSelectOperation={setSelectedOperationId}
+          onTenantChange={setTenantId}
+          onPathParameterChange={(key, value) => setPathParamValues((current) => ({ ...current, [key]: value }))}
+          onRequestBodyChange={setRequestBody}
+          onExecute={onExecute}
+        />
+        <ResultPanel result={result} />
       </main>
     </div>
   );

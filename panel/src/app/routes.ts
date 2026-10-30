@@ -1,4 +1,4 @@
-export type AppMode = "customer" | "operator";
+import type { AppMode } from "../shared/contracts";
 
 export type ConsoleRoute = {
   id: string;
