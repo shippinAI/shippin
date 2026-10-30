@@ -1,0 +1,173 @@
+authzShadow:
+  get:
+    tags: [operator-runtime]
+    operationId: authzShadowGet
+    summary: Read authorization shadow comparison stats
+    description: Operator permission-gated diagnostics. Shadow comparisons do not replace enforced role decisions.
+    x-source: shippin-console/internal/api/authz_stats.go:authzShadowStats
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Operator permission-gated diagnostics. Shadow comparisons do not replace enforced role decisions.
+        content:
+          application/json:
+            schema: &id002 {type: object, additionalProperties: true}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+operatorDiscover:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: &id001 {type: string}
+  - name: workspaceId
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [operator-runtime]
+    operationId: operatorDiscoverGet
+    summary: Discover folders for operator project adoption
+    description: Requires projects.create staff permission, because folder names and remotes are tenant content.
+      Provider errors return 409.
+    x-source: shippin-console/internal/api/op_projects.go:opDiscover
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Requires projects.create staff permission, because folder names and remotes are tenant content.
+          Provider errors return 409.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items: *id002
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+operatorCreateProject:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  post:
+    tags: [operator-runtime]
+    operationId: operatorCreateProjectPost
+    summary: Create an owned project as an operator
+    description: Requires projects.create staff permission and audited owned-project path. owner_sub must be a Nomen
+      member of this tenant; devspace ownership is verified.
+    x-source: shippin-console/internal/api/op_projects.go:opCreateProject
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, path, owner_sub]
+            properties:
+              workspace_id: *id001
+              path: *id001
+              owner_sub: *id001
+              placement: *id001
+              cost_center: *id001
+              limits: *id002
+    responses:
+      '201':
+        description: Requires projects.create staff permission and audited owned-project path. owner_sub must be
+          a Nomen member of this tenant; devspace ownership is verified.
+        content:
+          application/json:
+            schema: *id002
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+operatorWorkspaces:
+  get:
+    tags: [operator-runtime]
+    operationId: operatorWorkspacesGet
+    summary: Read operator workspace inventory
+    description: Requires existing workspaces.read staff permission. Merges recorded workspace state with complete
+      host inventory; observation failure is explicit.
+    x-source: shippin-console/internal/api/operator_workspaces.go:opWorkspaces
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Requires existing workspaces.read staff permission. Merges recorded workspace state with complete
+          host inventory; observation failure is explicit.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    allOf:
+                    - {$ref: ../schemas/workspaces.yaml#/Workspace}
+                    - type: object
+                      properties:
+                        tenant_name: *id001
+                        tenant_status: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+operatorWorkspaceAction:
+  parameters:
+  - name: workspaceId
+    in: path
+    required: true
+    schema: *id001
+  - name: action
+    in: path
+    required: true
+    schema:
+      type: string
+      enum: [start, stop, delete]
+  post:
+    tags: [operator-runtime]
+    operationId: operatorWorkspaceActionPost
+    summary: Queue an operator workspace lifecycle action
+    description: 'Existing staff permission and tenant member-management or active workspace grant checks apply.
+      Actions: start, stop, delete. Delete requires confirm equal to the exact workspace name. Same durable acceptance
+      and completion semantics as the tenant lifecycle route.'
+    x-source: shippin-console/internal/api/operator_workspaces.go:opWorkspaceAction
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              confirm: *id001
+    responses:
+      '202':
+        description: 'Existing staff permission and tenant member-management or active workspace grant checks apply.
+          Actions: start, stop, delete. Delete requires confirm equal to the exact workspace name. Same durable
+          acceptance and completion semantics as the tenant lifecycle route.'
+        content:
+          application/json:
+            schema: {$ref: ../schemas/workspaces.yaml#/WorkspaceActionAccepted}
+        headers:
+          Location:
+            schema: *id001
+            description: /v1/jobs/{jobId}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+      '400': {$ref: ../components/responses.yaml#/ProblemDefault}
+      '403': {$ref: ../components/responses.yaml#/ProblemDefault}
+      '404': {$ref: ../components/responses.yaml#/ProblemDefault}
+      '409': {$ref: ../components/responses.yaml#/ProblemDefault}
+      '422': {$ref: ../components/responses.yaml#/ProblemDefault}
+      '503': {$ref: ../components/responses.yaml#/ProblemDefault}

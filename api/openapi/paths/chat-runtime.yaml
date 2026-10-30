@@ -1,0 +1,223 @@
+chatConfig:
+  get:
+    tags:
+    - chat-runtime
+    operationId: chatConfigGet
+    summary: Read configured chat providers and UI catalog
+    description: Requires enabled console chat and sign-in.
+    x-source: shippin-console/internal/api/chat_routes.go:chatConfig
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Requires enabled console chat and sign-in.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                providers: &id001
+                  type: array
+                  items: &id003
+                    type: object
+                    additionalProperties: true
+                catalog:
+                  type: array
+                  items:
+                    type: string
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault
+chatTips:
+  get:
+    tags:
+    - chat-runtime
+    operationId: chatTipsGet
+    summary: Read contextual chat tips
+    description: Requires enabled console chat and sign-in. Matches configured route prefixes.
+    x-source: shippin-console/internal/api/chat_routes.go:chatTips
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    parameters:
+    - name: route
+      in: query
+      required: false
+      schema: &id002
+        type: string
+    responses:
+      '200':
+        description: Requires enabled console chat and sign-in. Matches configured route prefixes.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items: *id001
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault
+chatSessions:
+  get:
+    tags:
+    - chat-runtime
+    operationId: chatSessionsGet
+    summary: List own chat sessions
+    description: Returns sessions owned by the caller.
+    x-source: shippin-console/internal/api/chat_routes.go:chatList
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Returns sessions owned by the caller.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items: *id001
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault
+  post:
+    tags:
+    - chat-runtime
+    operationId: chatSessionsPost
+    summary: Create a server-backed chat session
+    description: Checks workspace access and configured provider. project_id falls back to the workspace project
+      when omitted.
+    x-source: shippin-console/internal/api/chat_routes.go:chatCreate
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - workspace_id
+            - provider
+            properties:
+              workspace_id: *id002
+              provider: *id002
+              project_id:
+                type:
+                - string
+                - 'null'
+    responses:
+      '200':
+        description: Checks workspace access and configured provider. project_id falls back to the workspace project
+          when omitted.
+        content:
+          application/json:
+            schema: *id003
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault
+chatSession:
+  parameters:
+  - name: id
+    in: path
+    required: true
+    schema: *id002
+  get:
+    tags:
+    - chat-runtime
+    operationId: chatSessionGet
+    summary: Read own chat session and messages
+    description: Owner-scoped session read; message history is returned from the chat store.
+    x-source: shippin-console/internal/api/chat_send.go:chatGet
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Owner-scoped session read; message history is returned from the chat store.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                session: *id003
+                messages: *id001
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault
+chatReady:
+  parameters:
+  - name: id
+    in: path
+    required: true
+    schema: *id002
+  get:
+    tags:
+    - chat-runtime
+    operationId: chatReadyGet
+    summary: Check chat provider readiness
+    description: Rechecks workspace access and runs the configured provider check through hostd. Returns readiness/connect
+      guidance, not a credential.
+    x-source: shippin-console/internal/api/chat_send.go:chatReady
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Rechecks workspace access and runs the configured provider check through hostd. Returns readiness/connect
+          guidance, not a credential.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ready:
+                  type: boolean
+                detail: *id002
+                ui: *id001
+                provider: *id002
+                subscription: *id002
+                connect_href: *id002
+                workspace: *id002
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault
+chatMessages:
+  parameters:
+  - name: id
+    in: path
+    required: true
+    schema: *id002
+  post:
+    tags:
+    - chat-runtime
+    operationId: chatMessagesPost
+    summary: Store a message and stream the reply
+    description: Rechecks workspace access. Streams user, delta, done and error SSE events and stores the reply
+      with validated UI blocks.
+    x-source: shippin-console/internal/api/chat_send.go:chatSend
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - text
+            properties:
+              text: *id002
+    responses:
+      '200':
+        description: Rechecks workspace access. Streams user, delta, done and error SSE events and stores the reply
+          with validated UI blocks.
+        content:
+          text/event-stream:
+            schema: *id002
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault

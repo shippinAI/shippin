@@ -1,0 +1,22 @@
+{
+  "appName": "Shippin Console",
+  "environment": "local",
+  "apiBaseUrl": "http://localhost:8080/v1",
+  "docsUrl": "",
+  "defaultTenantId": "",
+  "appMode": "customer",
+  "capabilityHints": {
+    "createWorkspace": "workspace:create",
+    "listWorkspaces": "workspace:read",
+    "runWorkspaceAction": "workspace:start"
+  },
+  "auth": {
+    "enabled": false,
+    "issuerUrl": "",
+    "clientId": "console-spa",
+    "audience": "",
+    "scopes": "openid profile email",
+    "redirectUri": "",
+    "sessionExpiryWarningSeconds": 120
+  }
+}

@@ -1,0 +1,1344 @@
+{
+  "generatedAt": "2026-10-30T17:00:29.920Z",
+  "sourceFile": "../../api/openapi/openapi.yaml",
+  "operationCount": 131,
+  "tags": [
+    "agents-runtime",
+    "audit",
+    "bridge-runtime",
+    "bundle-runtime",
+    "chat-runtime",
+    "compute-enrollment",
+    "compute-nodes",
+    "connections-runtime",
+    "folders",
+    "github-runtime",
+    "identity",
+    "jobs",
+    "managed-runtime",
+    "me",
+    "members",
+    "operator-runtime",
+    "platform",
+    "projects-runtime",
+    "rrflow",
+    "secrets",
+    "settings",
+    "subscriptions-runtime",
+    "tenants",
+    "workspace-runtime",
+    "workspaces"
+  ],
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/projects/{projectId}/agent",
+      "operationId": "projectAgentGet",
+      "summary": "Read the latest project build",
+      "tags": [
+        "agents-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/projects/{projectId}/agent/start",
+      "operationId": "startAgentPost",
+      "summary": "Accept start or resume of own build",
+      "tags": [
+        "agents-runtime"
+      ],
+      "implementationStatus": "blocked"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/projects/from-prompt",
+      "operationId": "fromPromptPost",
+      "summary": "Accept a prompt project build",
+      "tags": [
+        "agents-runtime"
+      ],
+      "implementationStatus": "blocked"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/prompt/options",
+      "operationId": "promptOptionsGet",
+      "summary": "Read available prompt project options",
+      "tags": [
+        "agents-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/audit",
+      "operationId": "listPlatformAudit",
+      "summary": "The full audit trail (operators)",
+      "tags": [
+        "audit"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/audit",
+      "operationId": "listTenantAudit",
+      "summary": "The tenant's slice of the audit trail (org_owner, org_admin)",
+      "tags": [
+        "audit"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/bridge/device",
+      "operationId": "bridgeDevicePost",
+      "summary": "Start bridge device sign-in",
+      "tags": [
+        "bridge-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/bridge/device/{code}",
+      "operationId": "bridgeDecisionGet",
+      "summary": "Inspect pending bridge authorization",
+      "tags": [
+        "bridge-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/bridge/device/{code}",
+      "operationId": "bridgeDecisionPost",
+      "summary": "Approve or deny bridge sign-in",
+      "tags": [
+        "bridge-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/bridge/me",
+      "operationId": "bridgeMeGet",
+      "summary": "Read bridge account and reachable workspaces",
+      "tags": [
+        "bridge-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/bridge/token",
+      "operationId": "bridgeTokenPost",
+      "summary": "Redeem an approved device code once",
+      "tags": [
+        "bridge-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/bridge/workspaces/{id}/cert",
+      "operationId": "bridgeCertPost",
+      "summary": "Issue an audited workspace SSH certificate",
+      "tags": [
+        "bridge-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/bridge/workspaces/{id}/relay",
+      "operationId": "bridgeRelayGet",
+      "summary": "Upgrade to the workspace SSH relay",
+      "tags": [
+        "bridge-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/me/bridge-sessions",
+      "operationId": "bridgeSessionsGet",
+      "summary": "List own bridge sessions",
+      "tags": [
+        "bridge-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/bridge-sessions/{id}",
+      "operationId": "bridgeRevokeDelete",
+      "summary": "Revoke own bridge session",
+      "tags": [
+        "bridge-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/bundle",
+      "operationId": "bundleGet",
+      "summary": "Read tenant bundled component states",
+      "tags": [
+        "bundle-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/bundle/reconcile",
+      "operationId": "reconcileBundlePost",
+      "summary": "Reconcile supported tenant bundle components",
+      "tags": [
+        "bundle-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/config",
+      "operationId": "chatConfigGet",
+      "summary": "Read configured chat providers and UI catalog",
+      "tags": [
+        "chat-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sessions",
+      "operationId": "chatSessionsGet",
+      "summary": "List own chat sessions",
+      "tags": [
+        "chat-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/chat/sessions",
+      "operationId": "chatSessionsPost",
+      "summary": "Create a server-backed chat session",
+      "tags": [
+        "chat-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sessions/{id}",
+      "operationId": "chatSessionGet",
+      "summary": "Read own chat session and messages",
+      "tags": [
+        "chat-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/chat/sessions/{id}/messages",
+      "operationId": "chatMessagesPost",
+      "summary": "Store a message and stream the reply",
+      "tags": [
+        "chat-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sessions/{id}/ready",
+      "operationId": "chatReadyGet",
+      "summary": "Check chat provider readiness",
+      "tags": [
+        "chat-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/tips",
+      "operationId": "chatTipsGet",
+      "summary": "Read contextual chat tips",
+      "tags": [
+        "chat-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/compute/enroll",
+      "operationId": "redeemComputeEnrollment",
+      "summary": "Exchange an enrollment secret and node-generated CSR for node identity",
+      "tags": [
+        "compute-enrollment"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/compute/enrollments",
+      "operationId": "createComputeEnrollment",
+      "summary": "Create a short-lived, single-node enrollment bundle",
+      "tags": [
+        "compute-nodes"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/compute/enrollments/{enrollmentId}",
+      "operationId": "revokeComputeEnrollment",
+      "summary": "Revoke an unused enrollment",
+      "tags": [
+        "compute-nodes"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/compute/nodes",
+      "operationId": "listComputeNodes",
+      "summary": "List enrolled compute nodes and their readiness",
+      "tags": [
+        "compute-nodes"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/connections",
+      "operationId": "connectionsGet",
+      "summary": "Read workspace provider connections",
+      "tags": [
+        "connections-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}",
+      "operationId": "connectDeleteDelete",
+      "summary": "Disconnect a workspace provider",
+      "tags": [
+        "connections-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/code",
+      "operationId": "connectCodePost",
+      "summary": "Submit provider sign-in code",
+      "tags": [
+        "connections-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/login",
+      "operationId": "connectLoginGet",
+      "summary": "Read provider CLI sign-in state",
+      "tags": [
+        "connections-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/login",
+      "operationId": "connectLoginPost",
+      "summary": "Start provider CLI sign-in",
+      "tags": [
+        "connections-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "PUT",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/token",
+      "operationId": "connectTokenPut",
+      "summary": "Store a workspace provider token",
+      "tags": [
+        "connections-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/terminal",
+      "operationId": "terminalGet",
+      "summary": "Upgrade to workspace terminal WebSocket",
+      "tags": [
+        "connections-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/folders",
+      "operationId": "listFolders",
+      "summary": "List folders (optionally a subtree)",
+      "tags": [
+        "folders"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/folders",
+      "operationId": "createFolder",
+      "summary": "Create a folder",
+      "tags": [
+        "folders"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/folders/{folderId}",
+      "operationId": "deleteFolder",
+      "summary": "Delete an empty folder",
+      "tags": [
+        "folders"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/folders/{folderId}",
+      "operationId": "getFolder",
+      "summary": "Get a folder",
+      "tags": [
+        "folders"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "PATCH",
+      "path": "/tenants/{tenantId}/folders/{folderId}",
+      "operationId": "updateFolder",
+      "summary": "Rename or relabel (DB only)",
+      "tags": [
+        "folders"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/folders/{folderId}/move",
+      "operationId": "moveFolder",
+      "summary": "Move a subtree (DB transaction + async label rewrite job)",
+      "tags": [
+        "folders"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/github/callback",
+      "operationId": "githubCallbackGet",
+      "summary": "Bind a verified GitHub installation",
+      "tags": [
+        "github-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/github/setup",
+      "operationId": "githubSetupGet",
+      "summary": "Bind a verified GitHub installation",
+      "tags": [
+        "github-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/github/webhook",
+      "operationId": "githubWebhookPost",
+      "summary": "Receive signed GitHub installation events",
+      "tags": [
+        "github-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/github/import",
+      "operationId": "githubImportPost",
+      "summary": "Import a repository into own devspace",
+      "tags": [
+        "github-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/github/install",
+      "operationId": "githubInstallGet",
+      "summary": "Begin GitHub App installation",
+      "tags": [
+        "github-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/github/repos",
+      "operationId": "githubReposGet",
+      "summary": "List repositories of tenant installations",
+      "tags": [
+        "github-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/projects/{projectId}/github/publish",
+      "operationId": "githubPublishPost",
+      "summary": "Create or link a private repository and push",
+      "tags": [
+        "github-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/identity/agents",
+      "operationId": "listAgents",
+      "summary": "List agent identities (Zitadel service users)",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/identity/agents",
+      "operationId": "createAgent",
+      "summary": "Create an agent identity; it can never exceed its delegating user",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/identity/apps",
+      "operationId": "listIdentityApps",
+      "summary": "List customer OIDC apps in the tenant's Nomen org (Zitadel proxy)",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/identity/apps",
+      "operationId": "createIdentityApp",
+      "summary": "Register an app; the client secret is stored in Vaultix, never returned in clear",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/identity/apps/{appId}",
+      "operationId": "deleteIdentityApp",
+      "summary": "Delete an app",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/identity/apps/{appId}",
+      "operationId": "getIdentityApp",
+      "summary": "Get an app",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/jobs",
+      "operationId": "listJobs",
+      "summary": "List jobs visible to the caller",
+      "tags": [
+        "jobs"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/jobs/{jobId}",
+      "operationId": "getJob",
+      "summary": "Get job status, steps and toast message",
+      "tags": [
+        "jobs"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/jobs/{jobId}/cancel",
+      "operationId": "cancelJob",
+      "summary": "Request cancellation (steps roll back where possible)",
+      "tags": [
+        "jobs"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/projects/{projectId}/services",
+      "operationId": "servicesGet",
+      "summary": "List managed project services",
+      "tags": [
+        "managed-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/projects/{projectId}/services/{serviceId}/rrflow/{kind}",
+      "operationId": "rrflowStateGet",
+      "summary": "Read rrflow sessions, memory or decisions",
+      "tags": [
+        "managed-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/projects/{projectId}/services/rrflow",
+      "operationId": "attachRRFlowPost",
+      "summary": "Attach rrflow to a project devspace",
+      "tags": [
+        "managed-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "operationId": "getMe",
+      "summary": "Who am I, my tenants, roles and UI capability hints",
+      "tags": [
+        "me"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/me/ssh-keys",
+      "operationId": "listMySSHKeys",
+      "summary": "My SSH public keys (installed on every workspace I own)",
+      "tags": [
+        "me"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/me/ssh-keys",
+      "operationId": "addMySSHKey",
+      "summary": "Add a key; it is pushed to my running workspaces",
+      "tags": [
+        "me"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/ssh-keys/{keyId}",
+      "operationId": "deleteMySSHKey",
+      "summary": "Remove a key from my account and workspaces",
+      "tags": [
+        "me"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/members",
+      "operationId": "listMembers",
+      "summary": "List members (Zitadel org users + roles)",
+      "tags": [
+        "members"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/members",
+      "operationId": "inviteMember",
+      "summary": "Invite a member (Zitadel user + OpenFGA tuples)",
+      "tags": [
+        "members"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/members/{userId}",
+      "operationId": "removeMember",
+      "summary": "Remove a member from the tenant",
+      "tags": [
+        "members"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "PATCH",
+      "path": "/tenants/{tenantId}/members/{userId}",
+      "operationId": "updateMember",
+      "summary": "Change roles or deactivate (an admin cannot demote the owner)",
+      "tags": [
+        "members"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/roles",
+      "operationId": "listRoles",
+      "summary": "Role bundles and their permissions (from config)",
+      "tags": [
+        "members"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/authz-shadow",
+      "operationId": "authzShadowGet",
+      "summary": "Read authorization shadow comparison stats",
+      "tags": [
+        "operator-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenants/{tenantId}/projects",
+      "operationId": "operatorCreateProjectPost",
+      "summary": "Create an owned project as an operator",
+      "tags": [
+        "operator-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenants/{tenantId}/workspaces/{workspaceId}/discover",
+      "operationId": "operatorDiscoverGet",
+      "summary": "Discover folders for operator project adoption",
+      "tags": [
+        "operator-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/workspaces",
+      "operationId": "operatorWorkspacesGet",
+      "summary": "Read operator workspace inventory",
+      "tags": [
+        "operator-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/workspaces/{workspaceId}/{action}",
+      "operationId": "operatorWorkspaceActionPost",
+      "summary": "Queue an operator workspace lifecycle action",
+      "tags": [
+        "operator-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/platform/services",
+      "operationId": "getPlatformServices",
+      "summary": "Live probes of platform services joined with Incus instance state (operators only)",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/sparks",
+      "operationId": "getTenantSparks",
+      "summary": "Spark model API and management destinations for this tenant",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/projects",
+      "operationId": "projectsGet",
+      "summary": "List tenant projects",
+      "tags": [
+        "projects-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/projects",
+      "operationId": "projectsPost",
+      "summary": "Create a project and initial environment",
+      "tags": [
+        "projects-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/projects/{projectId}",
+      "operationId": "projectDelete",
+      "summary": "Mark an unused project for deletion",
+      "tags": [
+        "projects-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/projects/{projectId}",
+      "operationId": "projectGet",
+      "summary": "Read a project",
+      "tags": [
+        "projects-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/projects/{projectId}/environments",
+      "operationId": "environmentPost",
+      "summary": "Add a project environment",
+      "tags": [
+        "projects-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/projects/{projectId}/workspaces",
+      "operationId": "projectWorkspacesGet",
+      "summary": "List project workspace records",
+      "tags": [
+        "projects-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/rrflow/capabilities",
+      "operationId": "getCapabilities",
+      "summary": "Effective rrflow capabilities at a scope (tenant, or a folder via folder_id)",
+      "tags": [
+        "rrflow"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "PUT",
+      "path": "/tenants/{tenantId}/rrflow/capabilities",
+      "operationId": "putCapabilities",
+      "summary": "Set toggles (fail-open only by org_owner, audited)",
+      "tags": [
+        "rrflow"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/rrflow/rulesets",
+      "operationId": "listRulesets",
+      "summary": "List policy rulesets",
+      "tags": [
+        "rrflow"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/rrflow/rulesets",
+      "operationId": "createRuleset",
+      "summary": "Create a ruleset (optionally from a starter pack)",
+      "tags": [
+        "rrflow"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/rrflow/rulesets/{rulesetId}/versions",
+      "operationId": "publishRulesetVersion",
+      "summary": "Publish an immutable new version (dry_run=true tests against the last 7 days)",
+      "tags": [
+        "rrflow"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/secrets/{env}",
+      "operationId": "listSecrets",
+      "summary": "List secret metadata in an environment (Vaultix proxy; values never listed)",
+      "tags": [
+        "secrets"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/secrets/{env}",
+      "operationId": "createSecret",
+      "summary": "Create a secret",
+      "tags": [
+        "secrets"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/secrets/{env}/{secretId}",
+      "operationId": "deleteSecret",
+      "summary": "Delete a secret",
+      "tags": [
+        "secrets"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/secrets/{env}/{secretId}",
+      "operationId": "getSecret",
+      "summary": "Get a secret; the value only with reveal=true (audited)",
+      "tags": [
+        "secrets"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "PUT",
+      "path": "/tenants/{tenantId}/secrets/{env}/{secretId}",
+      "operationId": "updateSecret",
+      "summary": "Set a new value (new version)",
+      "tags": [
+        "secrets"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/settings/domains",
+      "operationId": "listDomains",
+      "summary": "List domains (platform and, for tenant admins, their custom domains)",
+      "tags": [
+        "settings"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/settings/domains",
+      "operationId": "addDomain",
+      "summary": "Add a domain; returns verification records; Caddy routes follow once verified",
+      "tags": [
+        "settings"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "DELETE",
+      "path": "/settings/domains/{domainId}",
+      "operationId": "removeDomain",
+      "summary": "Remove a domain and its routes",
+      "tags": [
+        "settings"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/settings/domains/{domainId}",
+      "operationId": "getDomain",
+      "summary": "Get a domain and its verification status",
+      "tags": [
+        "settings"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/settings/plans",
+      "operationId": "listPlans",
+      "summary": "Plans with limits, snapshot and backup policy",
+      "tags": [
+        "settings"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/settings/platform",
+      "operationId": "getPlatformSettings",
+      "summary": "Platform settings (operator)",
+      "tags": [
+        "settings"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "PUT",
+      "path": "/settings/platform",
+      "operationId": "putPlatformSettings",
+      "summary": "Replace platform settings (op_superadmin)",
+      "tags": [
+        "settings"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/settings",
+      "operationId": "getTenantSettings",
+      "summary": "Tenant settings",
+      "tags": [
+        "settings"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "PUT",
+      "path": "/tenants/{tenantId}/settings",
+      "operationId": "putTenantSettings",
+      "summary": "Replace tenant settings (org_owner, org_admin)",
+      "tags": [
+        "settings"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/me/subscriptions",
+      "operationId": "subscriptionsGet",
+      "summary": "Read own subscription status",
+      "tags": [
+        "subscriptions-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/ai-terminal",
+      "operationId": "closeTerminalDelete",
+      "summary": "Stop own activation terminal",
+      "tags": [
+        "subscriptions-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/ai-terminal/touch",
+      "operationId": "touchTerminalPost",
+      "summary": "Refresh own terminal activity",
+      "tags": [
+        "subscriptions-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/subscriptions/{provider}",
+      "operationId": "disconnectSubscriptionDelete",
+      "summary": "Disconnect own provider subscription",
+      "tags": [
+        "subscriptions-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/subscriptions/{provider}/activate",
+      "operationId": "activatePost",
+      "summary": "Start own activation terminal",
+      "tags": [
+        "subscriptions-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/subscriptions/{provider}/check",
+      "operationId": "checkSubscriptionPost",
+      "summary": "Verify own provider sign-in",
+      "tags": [
+        "subscriptions-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/onboarding",
+      "operationId": "onboard",
+      "summary": "Self-service. A signed-in user with no tenant creates their IdP org (as ORG_OWNER) and its tenant.",
+      "tags": [
+        "tenants"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants",
+      "operationId": "listTenants",
+      "summary": "List tenants visible to the caller (operators see all)",
+      "tags": [
+        "tenants"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants",
+      "operationId": "createTenant",
+      "summary": "Create a tenant (signup or operator). Creates the Zitadel org, dataset, pool, project, network.",
+      "tags": [
+        "tenants"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}",
+      "operationId": "deleteTenant",
+      "summary": "Delete after the grace period (crypto-shred). Needs a typed confirmation.",
+      "tags": [
+        "tenants"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}",
+      "operationId": "getTenant",
+      "summary": "Get a tenant",
+      "tags": [
+        "tenants"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "PATCH",
+      "path": "/tenants/{tenantId}",
+      "operationId": "updateTenant",
+      "summary": "Rename, change plan or labels (a rename never moves data)",
+      "tags": [
+        "tenants"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/provision",
+      "operationId": "retryTenantProvision",
+      "summary": "Re-run idempotent provisioning (owner/admin or operator). Customers get a friendly error; operators the raw cause.",
+      "tags": [
+        "tenants"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/resume",
+      "operationId": "resumeTenant",
+      "summary": "Resume a suspended tenant",
+      "tags": [
+        "tenants"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/suspend",
+      "operationId": "suspendTenant",
+      "summary": "Suspend (operator or owner request)",
+      "tags": [
+        "tenants"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/usage",
+      "operationId": "usageGet",
+      "summary": "Read tenant project usage",
+      "tags": [
+        "workspace-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/adopt",
+      "operationId": "adoptPost",
+      "summary": "Adopt a discovered project folder",
+      "tags": [
+        "workspace-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/discover",
+      "operationId": "discoverGet",
+      "summary": "Discover project folders",
+      "tags": [
+        "workspace-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/site",
+      "operationId": "siteGet",
+      "summary": "Read published site state",
+      "tags": [
+        "workspace-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/site",
+      "operationId": "sitePost",
+      "summary": "Publish, unpublish or roll back a site",
+      "tags": [
+        "workspace-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/workspaces",
+      "operationId": "listWorkspaces",
+      "summary": "List workspaces",
+      "tags": [
+        "workspaces"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/workspaces",
+      "operationId": "createWorkspace",
+      "summary": "Create a workspace (Incus instance + home volume) in the tenant project",
+      "tags": [
+        "workspaces"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}",
+      "operationId": "deleteWorkspace",
+      "summary": "Delete a workspace and its home volume",
+      "tags": [
+        "workspaces"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}",
+      "operationId": "getWorkspace",
+      "summary": "Get a workspace",
+      "tags": [
+        "workspaces"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "PATCH",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}",
+      "operationId": "updateWorkspace",
+      "summary": "Rename, move folder, resize or relabel",
+      "tags": [
+        "workspaces"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/actions/{action}",
+      "operationId": "runWorkspaceAction",
+      "summary": "Lifecycle action (state machine; invalid transitions return 409)",
+      "tags": [
+        "workspaces"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "PUT",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/domains",
+      "operationId": "putWorkspaceDomains",
+      "summary": "Replace custom HTTPS hostnames (org_owner/org_admin)",
+      "tags": [
+        "workspaces"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "PUT",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/firewall",
+      "operationId": "putWorkspaceFirewall",
+      "summary": "Replace inbound firewall rules (org_owner/org_admin)",
+      "tags": [
+        "workspaces"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/snapshots",
+      "operationId": "listSnapshots",
+      "summary": "List home-volume snapshots",
+      "tags": [
+        "workspaces"
+      ],
+      "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/snapshots",
+      "operationId": "createSnapshot",
+      "summary": "Manual checkpoint (restore = new volume + swap, never destructive)",
+      "tags": [
+        "workspaces"
+      ],
+      "implementationStatus": "planned"
+    }
+  ]
+}

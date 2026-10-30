@@ -1,0 +1,15 @@
+me:
+  get:
+    tags: [me]
+    operationId: getMe
+    summary: Who am I, my tenants, roles and UI capability hints
+    responses:
+      "200":
+        description: The caller.
+        content: { application/json: { schema: { $ref: ../schemas/tenants.yaml#/Me } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

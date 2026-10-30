@@ -1,0 +1,8 @@
+zitadel:
+  type: openIdConnect
+  description: |
+    Zitadel OIDC (Nomen later, same contract). Send `Authorization: Bearer <access token>`.
+    The audience separates `console` from `operator`. Fine-grained checks run live in OpenFGA
+    on every request; token claims are coarse only. The discovery URL below is an
+    example and must be configured for the installation's identity provider.
+  openIdConnectUrl: https://identity.example.com/.well-known/openid-configuration

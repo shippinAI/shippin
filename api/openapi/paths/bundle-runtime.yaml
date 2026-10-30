@@ -1,0 +1,61 @@
+bundle:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: &id001 {type: string}
+  get:
+    tags: [bundle-runtime]
+    operationId: bundleGet
+    summary: Read tenant bundled component states
+    description: 'Returns ready, missing or not_available component records. Implementation caveat: starter-db uses
+      EnsureStarterDB even on GET, so this currently can provision the starter database; it is not guaranteed side-effect-free.'
+    x-source: shippin-console/internal/api/bundle.go:bundle
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: 'Returns ready, missing or not_available component records. Implementation caveat: starter-db
+          uses EnsureStarterDB even on GET, so this currently can provision the starter database; it is not guaranteed
+          side-effect-free.'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                release: *id001
+                items: &id002
+                  type: array
+                  items: {type: object, additionalProperties: true}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+reconcileBundle:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  post:
+    tags: [bundle-runtime]
+    operationId: reconcileBundlePost
+    summary: Reconcile supported tenant bundle components
+    description: Tenant manager permission and audit required. Planned components remain not_available; this does
+      not provision every planned component.
+    x-source: shippin-console/internal/api/bundle.go:bundle
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Tenant manager permission and audit required. Planned components remain not_available; this
+          does not provision every planned component.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                release: *id001
+                items: *id002
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}

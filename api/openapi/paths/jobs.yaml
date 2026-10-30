@@ -1,0 +1,56 @@
+jobs:
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [jobs]
+    operationId: listJobs
+    summary: List jobs visible to the caller
+    parameters:
+      - { name: tenant_id, in: query, schema: { $ref: ../schemas/common.yaml#/Uuid } }
+      - { name: status, in: query, schema: { type: string } }
+      - $ref: ../components/parameters.yaml#/PageSize
+      - $ref: ../components/parameters.yaml#/PageToken
+    responses:
+      "200":
+        description: Page of jobs.
+        content: { application/json: { schema: { $ref: ../schemas/jobs.yaml#/JobList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+job:
+  parameters: [ { $ref: ../components/parameters.yaml#/JobId } ]
+  get:
+    tags: [jobs]
+    operationId: getJob
+    summary: Get job status, steps and toast message
+    responses:
+      "200":
+        description: The job.
+        content: { application/json: { schema: { $ref: ../schemas/jobs.yaml#/Job } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+cancel:
+  parameters: [ { $ref: ../components/parameters.yaml#/JobId } ]
+  post:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [jobs]
+    operationId: cancelJob
+    summary: Request cancellation (steps roll back where possible)
+    parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
+    responses:
+      "202": { $ref: ../components/responses.yaml#/Accepted }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

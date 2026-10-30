@@ -1,0 +1,186 @@
+site:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: &id001 {type: string}
+  - name: workspaceId
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [workspace-runtime]
+    operationId: siteGet
+    summary: Read published site state
+    description: Returns published/release state or an explanatory disabled/unavailable note.
+    x-source: shippin-console/internal/api/workspace_site.go:getSite
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    parameters:
+    - name: slug
+      in: query
+      required: false
+      schema: *id001
+    responses:
+      '200':
+        description: Returns published/release state or an explanatory disabled/unavailable note.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                published: &id002 {type: boolean}
+                releases: &id003
+                  type: array
+                  items: &id004 {type: object, additionalProperties: true}
+                note: *id001
+                enabled: *id002
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+  post:
+    tags: [workspace-runtime]
+    operationId: sitePost
+    summary: Publish, unpublish or roll back a site
+    description: Tenant member managers only. Publish requires a running workspace, enabled site feature and an
+      app path under /home/dev; publish/rollback require port 1024-65535. Unpublish remains allowed when the feature
+      is disabled.
+    x-source: shippin-console/internal/api/workspace_site.go:postSite
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [action, slug]
+            properties:
+              action:
+                type: string
+                enum: [publish, unpublish, rollback]
+              slug: *id001
+              path: *id001
+              port: {type: integer}
+              release: *id001
+              dry_run: *id002
+    responses:
+      '200':
+        description: Tenant member managers only. Publish requires a running workspace, enabled site feature and
+          an app path under /home/dev; publish/rollback require port 1024-65535. Unpublish remains allowed when
+          the feature is disabled.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                published: *id002
+                url: *id001
+                current: *id001
+                releases: *id003
+                rrflow_recorded: *id002
+                scan: *id001
+                dry_run: *id002
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+usage:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [workspace-runtime]
+    operationId: usageGet
+    summary: Read tenant project usage
+    description: Reads hostd metrics for the tenant. An unavailable provider returns 503; this is not a billing
+      settlement guarantee.
+    x-source: shippin-console/internal/api/tenant_usage.go:getUsage
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Reads hostd metrics for the tenant. An unavailable provider returns 503; this is not a billing
+          settlement guarantee.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projects: *id003
+                rates: *id004
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+discover:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: workspaceId
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [workspace-runtime]
+    operationId: discoverGet
+    summary: Discover project folders
+    description: Returns discovered folders and adoption metadata. Provider unavailability returns an empty items
+      array with an explanatory note; that is not evidence of no folders.
+    x-source: shippin-console/internal/api/project_adopt.go:discoverProjects
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Returns discovered folders and adoption metadata. Provider unavailability returns an empty
+          items array with an explanatory note; that is not evidence of no folders.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items: *id003
+                note: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+adopt:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: workspaceId
+    in: path
+    required: true
+    schema: *id001
+  post:
+    tags: [workspace-runtime]
+    operationId: adoptPost
+    summary: Adopt a discovered project folder
+    description: Tenant owner/admin; folder must still be discovered and caller must own the devspace. Uses existing
+      owned-project creation and authorization tuple path.
+    x-source: shippin-console/internal/api/project_adopt.go:adoptProject
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [path]
+            properties:
+              path: *id001
+    responses:
+      '201':
+        description: Tenant owner/admin; folder must still be discovered and caller must own the devspace. Uses
+          existing owned-project creation and authorization tuple path.
+        content:
+          application/json:
+            schema: *id004
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}

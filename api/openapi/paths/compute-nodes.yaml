@@ -1,0 +1,119 @@
+nodes:
+  get:
+    tags: [compute-nodes]
+    operationId: listComputeNodes
+    summary: List enrolled compute nodes and their readiness
+    description: Requires operator compute read permission. Offline or unverified nodes are not schedulable.
+    x-implementation-status: planned
+    x-implementation-note: Compute inventory and host agent do not exist in this repository.
+    responses:
+      '200':
+        description: Compute inventory
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items: {$ref: ../schemas/compute-nodes.yaml#/Node}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+enrollments:
+  post:
+    tags: [compute-nodes]
+    operationId: createComputeEnrollment
+    summary: Create a short-lived, single-node enrollment bundle
+    description: |
+      Requires operator compute enrollment permission and an audit record. The primary must
+      be initialized and reachable at the configured HTTPS URL. The response contains a
+      one-time secret; never persist it in browser storage, logs, URLs or audit records.
+      This enrolls a Shippin agent only and never authorizes an Incus cluster join.
+    x-implementation-status: planned
+    x-implementation-note: Enrollment issuer and installer artifact distribution are not implemented.
+    parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: {type: string, format: uuid}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [name, provider]
+            properties:
+              name: {type: string, minLength: 1, maxLength: 63}
+              provider: {type: string, enum: [incus, proxmox]}
+    responses:
+      '201':
+        description: |
+          One-time secret and signed artifact metadata. A replay of the idempotency key
+          returns enrollment metadata without the secret; create a new enrollment if lost.
+        headers:
+          Cache-Control:
+            schema: {type: string, const: no-store}
+        content:
+          application/json:
+            schema: {$ref: ../schemas/compute-nodes.yaml#/EnrollmentBundle}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+enrollment:
+  parameters:
+    - name: enrollmentId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  delete:
+    tags: [compute-nodes]
+    operationId: revokeComputeEnrollment
+    summary: Revoke an unused enrollment
+    description: Requires operator compute enrollment permission and an audit record. Does not revoke an already enrolled node credential.
+    x-implementation-status: planned
+    x-implementation-note: Enrollment issuer is not implemented.
+    responses:
+      '204': {description: Enrollment revoked or already revoked}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+redeem:
+  post:
+    tags: [compute-enrollment]
+    operationId: redeemComputeEnrollment
+    summary: Exchange an enrollment secret and node-generated CSR for node identity
+    description: |
+      No operator session is used. TLS is mandatory. Secret is bound to the enrollment,
+      provider and first accepted public key, expires, and is single-node use. A bounded
+      retry with the same secret and CSR returns the same certificate; a different key
+      must fail. The node remains unschedulable until authenticated readiness checks pass.
+    security: []
+    x-implementation-status: planned
+    x-implementation-note: Node identity issuer and enrollment endpoint are not implemented.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [enrollment_id, secret, csr_pem]
+            properties:
+              enrollment_id: {type: string, format: uuid}
+              secret: {type: string, minLength: 1, writeOnly: true}
+              csr_pem: {type: string, minLength: 1}
+    responses:
+      '200':
+        description: Node identity bound to the CSR. Private key never leaves the node.
+        headers:
+          Cache-Control:
+            schema: {type: string, const: no-store}
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [node_id, certificate_pem, ca_chain_pem, expires_at]
+              properties:
+                node_id: {type: string, format: uuid}
+                certificate_pem: {type: string}
+                ca_chain_pem: {type: string}
+                expires_at: {type: string, format: date-time}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}

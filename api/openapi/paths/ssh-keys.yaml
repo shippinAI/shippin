@@ -1,0 +1,44 @@
+keys:
+  get:
+    tags: [me]
+    operationId: listMySSHKeys
+    summary: My SSH public keys (installed on every workspace I own)
+    responses:
+      "200":
+        description: Keys.
+        content: { application/json: { schema: { $ref: ../schemas/workspaces.yaml#/SSHKeyList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  post:
+    tags: [me]
+    operationId: addMySSHKey
+    summary: Add a key; it is pushed to my running workspaces
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/workspaces.yaml#/SSHKeyCreate } } }
+    responses:
+      "201":
+        description: Added.
+        content: { application/json: { schema: { $ref: ../schemas/workspaces.yaml#/SSHKey } } }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+key:
+  parameters: [ { name: keyId, in: path, required: true, schema: { type: string, format: uuid } } ]
+  delete:
+    tags: [me]
+    operationId: deleteMySSHKey
+    summary: Remove a key from my account and workspaces
+    responses:
+      "204": { description: Removed. }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

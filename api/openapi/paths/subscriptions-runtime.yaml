@@ -1,0 +1,191 @@
+subscriptions:
+  get:
+    tags: [subscriptions-runtime]
+    operationId: subscriptionsGet
+    summary: Read own subscription status
+    description: Lists the caller own AI homes and connections only in tenants where they remain a member. Does
+      not return credentials.
+    x-source: shippin-console/internal/api/subs_routes.go:mySubscriptions
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Lists the caller own AI homes and connections only in tenants where they remain a member. Does
+          not return credentials.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled: {type: boolean}
+                terms_note: &id002 {type: string}
+                touch_seconds: {type: integer}
+                providers: &id001
+                  type: array
+                  items: &id003 {type: object, additionalProperties: true}
+                homes: *id001
+                connections: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+activate:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id002
+  - name: provider
+    in: path
+    required: true
+    schema: *id002
+  post:
+    tags: [subscriptions-runtime]
+    operationId: activatePost
+    summary: Start own activation terminal
+    description: AI-enabled member tenant only. Returns 202 with home, terminal URL and vendor login command. Job
+      is optional when durable jobs are disabled; acceptance does not prove sign-in.
+    x-source: shippin-console/internal/api/subs_activate.go:activateSubscription
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '202':
+        description: AI-enabled member tenant only. Returns 202 with home, terminal URL and vendor login command.
+          Job is optional when durable jobs are disabled; acceptance does not prove sign-in.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                home: *id003
+                provider: *id002
+                terminal_url: *id002
+                login_command: *id002
+                job: {$ref: ../schemas/jobs.yaml#/Job}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+checkSubscription:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id002
+  - name: provider
+    in: path
+    required: true
+    schema: *id002
+  post:
+    tags: [subscriptions-runtime]
+    operationId: checkSubscriptionPost
+    summary: Verify own provider sign-in
+    description: Reads the isolated owner runner status; invalid/stale reports fail closed. May queue builds waiting
+      for this sign-in; their execution remains blocked by the owner-runner integration.
+    x-source: shippin-console/internal/api/subs_check.go:checkSubscription
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Reads the isolated owner runner status; invalid/stale reports fail closed. May queue builds
+          waiting for this sign-in; their execution remains blocked by the owner-runner integration.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connections: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+disconnectSubscription:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id002
+  - name: provider
+    in: path
+    required: true
+    schema: *id002
+  delete:
+    tags: [subscriptions-runtime]
+    operationId: disconnectSubscriptionDelete
+    summary: Disconnect own provider subscription
+    description: Records disconnected status before vendor logout. Returns 200 if absent or signed out, 202 if the
+      isolated terminal must start for logout.
+    x-source: shippin-console/internal/api/subs_terminal.go:disconnectSubscription
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Records disconnected status before vendor logout. Returns 200 if absent or signed out, 202
+          if the isolated terminal must start for logout.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: *id002
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+      '202':
+        description: Logout queued; job may be absent when durable jobs are disabled.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: *id002
+                job: {$ref: ../schemas/jobs.yaml#/Job}
+touchTerminal:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id002
+  post:
+    tags: [subscriptions-runtime]
+    operationId: touchTerminalPost
+    summary: Refresh own terminal activity
+    description: Keeps the caller terminal from the idle-stop policy.
+    x-source: shippin-console/internal/api/subs_terminal.go:touchTerminal
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Keeps the caller terminal from the idle-stop policy.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                utility_state: *id002
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+closeTerminal:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id002
+  delete:
+    tags: [subscriptions-runtime]
+    operationId: closeTerminalDelete
+    summary: Stop own activation terminal
+    description: Stops the caller terminal; the persistent AI home is retained.
+    x-source: shippin-console/internal/api/subs_terminal.go:closeTerminal
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Stops the caller terminal; the persistent AI home is retained.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                utility_state: *id002
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}

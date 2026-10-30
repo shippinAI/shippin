@@ -1,0 +1,29 @@
+Node:
+  type: object
+  required: [id, name, provider, status, schedulable, capabilities]
+  properties:
+    id: {type: string, format: uuid}
+    name: {type: string}
+    provider: {type: string, enum: [incus, proxmox]}
+    status: {type: string, enum: [enrolling, verifying, ready, degraded, offline, revoked]}
+    schedulable: {type: boolean}
+    last_seen_at: {type: [string, 'null'], format: date-time}
+    capabilities:
+      type: array
+      items: {type: string}
+      description: Verified capabilities, not assumptions based on provider name.
+    readiness_reasons:
+      type: array
+      items: {type: string}
+EnrollmentBundle:
+  type: object
+  required: [id, provider, expires_at, primary_url, artifact_url, artifact_sha256, signing_key_fingerprint]
+  properties:
+    id: {type: string, format: uuid}
+    provider: {type: string, enum: [incus, proxmox]}
+    expires_at: {type: string, format: date-time}
+    primary_url: {type: string, format: uri, description: HTTPS enrollment endpoint origin.}
+    artifact_url: {type: string, format: uri, description: HTTPS URL for the versioned installer artifact; contains no credential.}
+    artifact_sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+    signing_key_fingerprint: {type: string, description: Fingerprint of the independently trusted artifact signing key.}
+    secret: {type: string, description: Present only in the initial successful response.}

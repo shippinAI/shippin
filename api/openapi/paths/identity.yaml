@@ -1,0 +1,112 @@
+apps:
+  parameters: [ { $ref: ../components/parameters.yaml#/TenantId } ]
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [identity]
+    operationId: listIdentityApps
+    summary: List customer OIDC apps in the tenant's Nomen org (Zitadel proxy)
+    parameters:
+      - $ref: ../components/parameters.yaml#/PageSize
+      - $ref: ../components/parameters.yaml#/PageToken
+    responses:
+      "200":
+        description: Page of apps.
+        content: { application/json: { schema: { $ref: ../schemas/nomen.yaml#/AppList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  post:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [identity]
+    operationId: createIdentityApp
+    summary: Register an app; the client secret is stored in Vaultix, never returned in clear
+    parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/nomen.yaml#/AppCreate } } }
+    responses:
+      "201":
+        description: Created.
+        content: { application/json: { schema: { $ref: ../schemas/nomen.yaml#/App } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+app:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TenantId
+    - { name: appId, in: path, required: true, schema: { $ref: ../schemas/common.yaml#/Uuid } }
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [identity]
+    operationId: getIdentityApp
+    summary: Get an app
+    responses:
+      "200":
+        description: The app.
+        content: { application/json: { schema: { $ref: ../schemas/nomen.yaml#/App } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  delete:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [identity]
+    operationId: deleteIdentityApp
+    summary: Delete an app
+    responses:
+      "204": { $ref: ../components/responses.yaml#/NoContent }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+agents:
+  parameters: [ { $ref: ../components/parameters.yaml#/TenantId } ]
+  get:
+    tags: [identity]
+    operationId: listAgents
+    summary: List agent identities (Zitadel service users)
+    parameters:
+      - $ref: ../components/parameters.yaml#/PageSize
+      - $ref: ../components/parameters.yaml#/PageToken
+    responses:
+      "200":
+        description: Page of agents.
+        content: { application/json: { schema: { $ref: ../schemas/nomen.yaml#/AgentList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  post:
+    tags: [identity]
+    operationId: createAgent
+    summary: Create an agent identity; it can never exceed its delegating user
+    parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/nomen.yaml#/AgentCreate } } }
+    responses:
+      "201":
+        description: Created.
+        content: { application/json: { schema: { $ref: ../schemas/nomen.yaml#/Agent } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

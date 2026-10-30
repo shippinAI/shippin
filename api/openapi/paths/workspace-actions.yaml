@@ -1,0 +1,69 @@
+action:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TenantId
+    - $ref: ../components/parameters.yaml#/WorkspaceId
+    - name: action
+      in: path
+      required: true
+      schema: { type: string, enum: [start, stop, restart, delete] }
+  post:
+    tags: [workspaces]
+    operationId: runWorkspaceAction
+    summary: Lifecycle action (state machine; invalid transitions return 409)
+    parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
+    responses:
+      "202":
+        description: 'Durable intent recorded; poll the job and refresh inventory. Acceptance is not completion. Interrupted restart/delete operations are not repeated automatically.'
+        headers:
+          Location: { schema: { type: string }, description: '/v1/jobs/{jobId}' }
+        content: { application/json: { schema: { $ref: ../schemas/workspaces.yaml#/WorkspaceActionAccepted } } }
+      "422": { $ref: ../components/responses.yaml#/ProblemDefault }
+      "503":
+        description: 'Durable operations unavailable or acceptance could not be recorded. No action started.'
+        content: { application/problem+json: { schema: { $ref: ../schemas/common.yaml#/Problem } } }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+snapshots:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TenantId
+    - $ref: ../components/parameters.yaml#/WorkspaceId
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [workspaces]
+    operationId: listSnapshots
+    summary: List home-volume snapshots
+    parameters:
+      - $ref: ../components/parameters.yaml#/PageSize
+      - $ref: ../components/parameters.yaml#/PageToken
+    responses:
+      "200":
+        description: Page of snapshots.
+        content: { application/json: { schema: { $ref: ../schemas/workspaces.yaml#/SnapshotList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  post:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [workspaces]
+    operationId: createSnapshot
+    summary: Manual checkpoint (restore = new volume + swap, never destructive)
+    parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
+    responses:
+      "202": { $ref: ../components/responses.yaml#/Accepted }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

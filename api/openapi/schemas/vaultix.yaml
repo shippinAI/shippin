@@ -1,0 +1,26 @@
+Secret:
+  type: object
+  description: Metadata by default. The value is returned only with ?reveal=true and the secret:read permission, and every read is audited.
+  required: [id, key]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    key: { type: string, pattern: '^[A-Z_][A-Z0-9_]{0,127}$' }
+    value: { type: string, writeOnly: false, description: 'Present only when revealed.' }
+    path: { type: string, examples: ['/web'] }
+    version: { type: integer }
+    updated_by: { $ref: common.yaml#/Uuid }
+    updated_at: { $ref: common.yaml#/Timestamp }
+    ai_visible: { type: boolean, default: false, description: 'AI secret firewall flag (planned).' }
+SecretWrite:
+  type: object
+  required: [key, value]
+  properties:
+    key: { type: string, pattern: '^[A-Z_][A-Z0-9_]{0,127}$' }
+    value: { type: string, writeOnly: true }
+    path: { type: string }
+SecretList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/Secret' } }
+    page: { $ref: common.yaml#/PageInfo }

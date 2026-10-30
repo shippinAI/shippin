@@ -1,0 +1,166 @@
+platform:
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [settings]
+    operationId: getPlatformSettings
+    summary: Platform settings (operator)
+    responses:
+      "200":
+        description: Settings.
+        content: { application/json: { schema: { $ref: ../schemas/settings.yaml#/PlatformSettings } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  put:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [settings]
+    operationId: putPlatformSettings
+    summary: Replace platform settings (op_superadmin)
+    parameters: [ { $ref: ../components/parameters.yaml#/IfMatch } ]
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/settings.yaml#/PlatformSettings } } }
+    responses:
+      "200":
+        description: Saved.
+        content: { application/json: { schema: { $ref: ../schemas/settings.yaml#/PlatformSettings } } }
+      "412": { $ref: ../components/responses.yaml#/Problem412 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+domains:
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [settings]
+    operationId: listDomains
+    summary: List domains (platform and, for tenant admins, their custom domains)
+    parameters:
+      - { name: tenant_id, in: query, schema: { $ref: ../schemas/common.yaml#/Uuid } }
+      - $ref: ../components/parameters.yaml#/PageSize
+      - $ref: ../components/parameters.yaml#/PageToken
+    responses:
+      "200":
+        description: Page of domains.
+        content: { application/json: { schema: { $ref: ../schemas/settings.yaml#/DomainList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  post:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [settings]
+    operationId: addDomain
+    summary: Add a domain; returns verification records; Caddy routes follow once verified
+    parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/settings.yaml#/DomainCreate } } }
+    responses:
+      "202": { $ref: ../components/responses.yaml#/Accepted }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+domain:
+  parameters:
+    - { name: domainId, in: path, required: true, schema: { $ref: ../schemas/common.yaml#/Uuid } }
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [settings]
+    operationId: getDomain
+    summary: Get a domain and its verification status
+    responses:
+      "200":
+        description: The domain.
+        content: { application/json: { schema: { $ref: ../schemas/settings.yaml#/Domain } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  delete:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [settings]
+    operationId: removeDomain
+    summary: Remove a domain and its routes
+    parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
+    responses:
+      "202": { $ref: ../components/responses.yaml#/Accepted }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+plans:
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [settings]
+    operationId: listPlans
+    summary: Plans with limits, snapshot and backup policy
+    responses:
+      "200":
+        description: Plans.
+        content: { application/json: { schema: { $ref: ../schemas/settings.yaml#/PlanList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+tenantSettings:
+  parameters: [ { $ref: ../components/parameters.yaml#/TenantId } ]
+  get:
+    tags: [settings]
+    operationId: getTenantSettings
+    summary: Tenant settings
+    responses:
+      "200":
+        description: Settings.
+        content: { application/json: { schema: { $ref: ../schemas/settings.yaml#/TenantSettings } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  put:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [settings]
+    operationId: putTenantSettings
+    summary: Replace tenant settings (org_owner, org_admin)
+    parameters: [ { $ref: ../components/parameters.yaml#/IfMatch } ]
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/settings.yaml#/TenantSettings } } }
+    responses:
+      "200":
+        description: Saved.
+        content: { application/json: { schema: { $ref: ../schemas/settings.yaml#/TenantSettings } } }
+      "412": { $ref: ../components/responses.yaml#/Problem412 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

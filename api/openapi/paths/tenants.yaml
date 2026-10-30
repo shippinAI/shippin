@@ -1,0 +1,159 @@
+tenants:
+  get:
+    tags: [tenants]
+    operationId: listTenants
+    summary: List tenants visible to the caller (operators see all)
+    parameters:
+      - $ref: ../components/parameters.yaml#/PageSize
+      - $ref: ../components/parameters.yaml#/PageToken
+      - { name: status, in: query, schema: { type: string } }
+    responses:
+      "200":
+        description: Page of tenants.
+        content: { application/json: { schema: { $ref: ../schemas/tenants.yaml#/TenantList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  post:
+    tags: [tenants]
+    operationId: createTenant
+    summary: Create a tenant (signup or operator). Creates the Zitadel org, dataset, pool, project, network.
+    parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/tenants.yaml#/TenantCreate } } }
+    responses:
+      "202": { $ref: ../components/responses.yaml#/Accepted }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+tenant:
+  parameters: [ { $ref: ../components/parameters.yaml#/TenantId } ]
+  get:
+    tags: [tenants]
+    operationId: getTenant
+    summary: Get a tenant
+    responses:
+      "200":
+        description: The tenant.
+        headers: { ETag: { schema: { type: string } } }
+        content: { application/json: { schema: { $ref: ../schemas/tenants.yaml#/Tenant } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  patch:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [tenants]
+    operationId: updateTenant
+    summary: Rename, change plan or labels (a rename never moves data)
+    parameters: [ { $ref: ../components/parameters.yaml#/IfMatch } ]
+    requestBody:
+      required: true
+      content: { application/merge-patch+json: { schema: { $ref: ../schemas/tenants.yaml#/TenantUpdate } } }
+    responses:
+      "200":
+        description: Updated.
+        content: { application/json: { schema: { $ref: ../schemas/tenants.yaml#/Tenant } } }
+      "412": { $ref: ../components/responses.yaml#/Problem412 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  delete:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [tenants]
+    operationId: deleteTenant
+    summary: Delete after the grace period (crypto-shred). Needs a typed confirmation.
+    parameters:
+      - $ref: ../components/parameters.yaml#/IdempotencyKey
+      - { name: confirm_name, in: query, required: true, schema: { type: string } }
+    responses:
+      "202": { $ref: ../components/responses.yaml#/Accepted }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+suspend:
+  parameters: [ { $ref: ../components/parameters.yaml#/TenantId } ]
+  post:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [tenants]
+    operationId: suspendTenant
+    summary: Suspend (operator or owner request)
+    parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/tenants.yaml#/SuspendRequest } } }
+    responses:
+      "202": { $ref: ../components/responses.yaml#/Accepted }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+resume:
+  parameters: [ { $ref: ../components/parameters.yaml#/TenantId } ]
+  post:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [tenants]
+    operationId: resumeTenant
+    summary: Resume a suspended tenant
+    parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
+    responses:
+      "202": { $ref: ../components/responses.yaml#/Accepted }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+provision:
+  parameters: [ { $ref: ../components/parameters.yaml#/TenantId } ]
+  post:
+    tags: [tenants]
+    operationId: retryTenantProvision
+    summary: Re-run idempotent provisioning (owner/admin or operator). Customers get a friendly error; operators the raw cause.
+    responses:
+      "200": { description: Active. }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+onboarding:
+  post:
+    tags: [tenants]
+    operationId: onboard
+    summary: Self-service. A signed-in user with no tenant creates their IdP org (as ORG_OWNER) and its tenant.
+    requestBody:
+      required: true
+      content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, minLength: 2, maxLength: 48 } } } } }
+    responses:
+      "201": { description: Tenant created and provisioned. }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

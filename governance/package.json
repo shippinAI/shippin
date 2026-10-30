@@ -1,0 +1,14 @@
+{
+  "name": "shippin-work-contracts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check-records": "node check-records.mjs",
+    "validate": "node validate.mjs",
+    "session": "node session.mjs"
+  },
+  "dependencies": {
+    "ajv": "8.17.1"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shippin.cloud/schemas/agent-session/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "created_at", "objective", "capture_scope"],
+  "properties": {
+    "schema_version": {"const": "1"},
+    "id": {"type": "string", "pattern": "^[0-9]{4}/[0-9]{2}/[0-9a-f-]{36}$"},
+    "created_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+    "objective": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "capture_scope": {"type": "string", "minLength": 1, "maxLength": 2000}
+  }
+}

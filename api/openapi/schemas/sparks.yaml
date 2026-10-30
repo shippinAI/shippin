@@ -1,0 +1,35 @@
+Sparks:
+  type: object
+  required: [nodes]
+  properties:
+    tenant_id: { type: string }
+    model_api: { $ref: '#/SparkEndpoint' }
+    nodes:
+      type: array
+      items:
+        type: object
+        required: [id, name, role, management]
+        properties:
+          id: { type: string }
+          name: { type: string }
+          role: { type: string }
+          management:
+            type: array
+            items: { $ref: '#/SparkEndpoint' }
+SparkEndpoint:
+  oneOf:
+    - type: object
+      required: [name, state, reason]
+      additionalProperties: false
+      properties:
+        name: { type: string }
+        state: { const: blocked }
+        reason: { type: string, minLength: 1 }
+    - type: object
+      required: [name, state, url]
+      additionalProperties: false
+      properties:
+        name: { type: string }
+        state: { const: published }
+        url: { type: string, format: uri, pattern: '^https://' }
+        reason: { type: string }

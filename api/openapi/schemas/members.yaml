@@ -1,0 +1,45 @@
+Member:
+  type: object
+  required: [user_id, roles]
+  properties:
+    user_id: { $ref: common.yaml#/Uuid }
+    email: { type: string, format: email }
+    display_name: { type: string }
+    roles: { type: array, items: { $ref: '#/RoleName' } }
+    status: { type: string, enum: [invited, active, deactivated] }
+    joined_at: { $ref: common.yaml#/Timestamp }
+RoleName:
+  type: string
+  description: Tenant roles from 02a. Bundles are defined in config, not code.
+  enum: [org_owner, org_admin, developer, viewer, billing]
+Invite:
+  type: object
+  required: [email, roles]
+  properties:
+    email: { type: string, format: email }
+    roles: { type: array, minItems: 1, items: { $ref: '#/RoleName' } }
+    folder_grants:
+      type: array
+      description: Optional folder-scoped grants (OpenFGA tuples).
+      items:
+        type: object
+        properties:
+          folder_id: { $ref: common.yaml#/Uuid }
+          relation: { type: string, enum: [editor, viewer] }
+MemberUpdate:
+  type: object
+  properties:
+    roles: { type: array, items: { $ref: '#/RoleName' } }
+    status: { type: string, enum: [active, deactivated] }
+MemberList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/Member' } }
+    page: { $ref: common.yaml#/PageInfo }
+Role:
+  type: object
+  properties:
+    name: { $ref: '#/RoleName' }
+    description: { type: string }
+    permissions: { type: array, items: { type: string, examples: ['workspace:start'] } }

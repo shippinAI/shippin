@@ -1,0 +1,66 @@
+Capability:
+  type: object
+  required: [capability, enabled]
+  properties:
+    capability: { type: string, enum: [state, config, permissions, policy, routing, intent] }
+    enabled: { type: boolean, description: 'state and config are always on.' }
+    fail_mode: { type: string, enum: [fail_closed, fail_open], default: fail_closed }
+    inherited_from: { type: string, readOnly: true, enum: [tenant, folder, workspace] }
+    settings: { type: object, additionalProperties: true }
+CapabilityList:
+  type: object
+  properties:
+    scope_folder_id: { $ref: common.yaml#/Uuid }
+    items: { type: array, items: { $ref: '#/Capability' } }
+Ruleset:
+  type: object
+  required: [id, name, current_version]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    name: { $ref: common.yaml#/Label }
+    scope: { type: object, properties: { type: { type: string, enum: [tenant, folder, workspace] }, id: { $ref: common.yaml#/Uuid } } }
+    current_version: { type: integer }
+RulesetList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/Ruleset' } }
+    page: { $ref: common.yaml#/PageInfo }
+RulesetVersion:
+  type: object
+  required: [rules]
+  properties:
+    version: { type: integer, readOnly: true }
+    rules: { type: array, items: { $ref: '#/Rule' } }
+    published_by: { $ref: common.yaml#/Uuid, readOnly: true }
+    published_at: { $ref: common.yaml#/Timestamp, readOnly: true }
+Rule:
+  type: object
+  required: [action, effect]
+  properties:
+    subject: { type: object, additionalProperties: { type: string } }
+    action: { type: string, enum: [tool.call, model.call, file.write, net.egress] }
+    resource: { type: object, additionalProperties: { type: string } }
+    conditions: { type: string, description: 'CEL expression (⚠ GUESS on CEL), built by the UI.' }
+    effect: { type: string, enum: [allow, deny, require_approval, redact] }
+    priority: { type: integer }
+AuditEvent:
+  type: object
+  required: [id, at, action, decision]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    at: { $ref: common.yaml#/Timestamp }
+    tenant_id: { oneOf: [ { $ref: common.yaml#/Uuid }, { type: 'null' } ] }
+    actor_user_id: { $ref: common.yaml#/Uuid }
+    actor_agent_id: { $ref: common.yaml#/Uuid }
+    resource: { $ref: jobs.yaml#/Target }
+    action: { type: string }
+    decision: { type: string, enum: [allow, deny, hold] }
+    request_id: { $ref: common.yaml#/Uuid }
+    hash: { type: string, description: 'Hash chain link.' }
+AuditList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/AuditEvent' } }
+    page: { $ref: common.yaml#/PageInfo }

@@ -1,0 +1,264 @@
+openapi: 3.1.0
+info:
+  title: Shippin.Cloud control-plane API
+  version: 0.1.0
+  summary: One API for the console, CLI and automation.
+  description: |
+    Draft v0.1 (2026-10-15). The Go control plane wraps Incus, Zitadel (Nomen),
+    Infisical (Vaultix), OVN and Caddy. Clients never call those systems directly.
+    Implementation status is operation-specific: planned methods are retained design intent;
+    registered methods exist in source but are not proof of deployment or provider readiness;
+    blocked methods accept requests but cannot complete the documented downstream workflow.
+    Runtime additions document requests and response envelopes; nested provider/store records
+    remain extensible and carry source references. The conventions below describe design intent,
+    not a claim that every registered endpoint implements pagination, ETags or durable jobs.
+    Conventions:
+    - Every resource id is a UUID. Names are labels only.
+    - Auth: Zitadel OIDC access token as a bearer (JWT). Nomen later, same contract.
+    - Errors: RFC 9457 `application/problem+json` with a `message` for toasts.
+    - Lists: cursor pagination (`page_size`, `page_token` → `next_page_token`).
+    - Mutations: an `Idempotency-Key` header (UUID). A replay returns the first result.
+    - Long-running work returns `202` + a Job. Poll `/jobs/{jobId}` or watch the events stream.
+    - Updates: `ETag` / `If-Match` for optimistic concurrency.
+  contact:
+    name: Shippin.Cloud
+servers:
+  - url: /v1
+    description: Relative to the configured API origin for this installation.
+security:
+  - zitadel: []
+tags:
+  - name: tenants
+    description: Tenant (= Zitadel org) lifecycle. Operator and signup.
+  - name: folders
+    description: Nested folders inside a tenant.
+  - name: workspaces
+    description: Dev workspaces (Incus instances).
+  - name: jobs
+    description: Long-running operations.
+  - name: members
+    description: Members and roles (Zitadel users + OpenFGA tuples).
+  - name: settings
+    description: Platform and tenant settings (domains, brands, plans).
+  - name: secrets
+    description: Vaultix (Infisical) proxied, scoped per tenant.
+  - name: identity
+    description: Nomen (Zitadel) proxied, customer apps and agent service users.
+  - name: rrflow
+    description: AI governance policies.
+  - name: audit
+    description: Append-only audit trail.
+  - name: me
+    description: The calling identity.
+  - name: platform
+    description: Operator views of the platform itself (health, instances).
+  - name: compute-nodes
+    description: Planned operator management of enrolled compute hosts.
+paths:
+  /me:
+    $ref: paths/me.yaml#/me
+  /me/ssh-keys:
+    $ref: paths/ssh-keys.yaml#/keys
+  /me/ssh-keys/{keyId}:
+    $ref: paths/ssh-keys.yaml#/key
+  /tenants:
+    $ref: paths/tenants.yaml#/tenants
+  /tenants/{tenantId}:
+    $ref: paths/tenants.yaml#/tenant
+  /tenants/{tenantId}/provision:
+    $ref: paths/tenants.yaml#/provision
+  /onboarding:
+    $ref: paths/tenants.yaml#/onboarding
+  /tenants/{tenantId}/suspend:
+    $ref: paths/tenants.yaml#/suspend
+  /tenants/{tenantId}/resume:
+    $ref: paths/tenants.yaml#/resume
+  /tenants/{tenantId}/folders:
+    $ref: paths/folders.yaml#/folders
+  /tenants/{tenantId}/folders/{folderId}:
+    $ref: paths/folders.yaml#/folder
+  /tenants/{tenantId}/folders/{folderId}/move:
+    $ref: paths/folders.yaml#/move
+  /tenants/{tenantId}/workspaces:
+    $ref: paths/workspaces.yaml#/workspaces
+  /tenants/{tenantId}/workspaces/{workspaceId}:
+    $ref: paths/workspaces.yaml#/workspace
+  /tenants/{tenantId}/workspaces/{workspaceId}/actions/{action}:
+    $ref: paths/workspace-actions.yaml#/action
+  /tenants/{tenantId}/workspaces/{workspaceId}/firewall:
+    $ref: paths/workspace-access.yaml#/firewall
+  /tenants/{tenantId}/workspaces/{workspaceId}/domains:
+    $ref: paths/workspace-access.yaml#/domains
+  /tenants/{tenantId}/workspaces/{workspaceId}/snapshots:
+    $ref: paths/workspace-actions.yaml#/snapshots
+  /jobs:
+    $ref: paths/jobs.yaml#/jobs
+  /jobs/{jobId}:
+    $ref: paths/jobs.yaml#/job
+  /jobs/{jobId}/cancel:
+    $ref: paths/jobs.yaml#/cancel
+  /tenants/{tenantId}/members:
+    $ref: paths/members.yaml#/members
+  /tenants/{tenantId}/members/{userId}:
+    $ref: paths/members.yaml#/member
+  /tenants/{tenantId}/roles:
+    $ref: paths/members.yaml#/roles
+  /settings/platform:
+    $ref: paths/settings.yaml#/platform
+  /settings/domains:
+    $ref: paths/settings.yaml#/domains
+  /settings/domains/{domainId}:
+    $ref: paths/settings.yaml#/domain
+  /settings/plans:
+    $ref: paths/settings.yaml#/plans
+  /tenants/{tenantId}/settings:
+    $ref: paths/settings.yaml#/tenantSettings
+  /tenants/{tenantId}/sparks:
+    $ref: paths/sparks.yaml#/sparks
+  /tenants/{tenantId}/secrets/{env}:
+    $ref: paths/secrets.yaml#/secrets
+  /tenants/{tenantId}/secrets/{env}/{secretId}:
+    $ref: paths/secrets.yaml#/secret
+  /tenants/{tenantId}/identity/apps:
+    $ref: paths/identity.yaml#/apps
+  /tenants/{tenantId}/identity/apps/{appId}:
+    $ref: paths/identity.yaml#/app
+  /tenants/{tenantId}/identity/agents:
+    $ref: paths/identity.yaml#/agents
+  /tenants/{tenantId}/rrflow/capabilities:
+    $ref: paths/rrflow.yaml#/capabilities
+  /tenants/{tenantId}/rrflow/rulesets:
+    $ref: paths/rrflow.yaml#/rulesets
+  /tenants/{tenantId}/rrflow/rulesets/{rulesetId}/versions:
+    $ref: paths/rrflow.yaml#/versions
+  /tenants/{tenantId}/audit:
+    $ref: paths/audit.yaml#/tenantAudit
+  /audit:
+    $ref: paths/audit.yaml#/platformAudit
+  /platform/services:
+    $ref: paths/platform.yaml#/services
+  /operator/compute/nodes:
+    $ref: paths/compute-nodes.yaml#/nodes
+  /operator/compute/enrollments:
+    $ref: paths/compute-nodes.yaml#/enrollments
+  /operator/compute/enrollments/{enrollmentId}:
+    $ref: paths/compute-nodes.yaml#/enrollment
+  /compute/enroll:
+    $ref: paths/compute-nodes.yaml#/redeem
+  /tenants/{tenantId}/workspaces/{workspaceId}/site:
+    $ref: paths/workspace-runtime.yaml#/site
+  /tenants/{tenantId}/usage:
+    $ref: paths/workspace-runtime.yaml#/usage
+  /tenants/{tenantId}/workspaces/{workspaceId}/discover:
+    $ref: paths/workspace-runtime.yaml#/discover
+  /tenants/{tenantId}/workspaces/{workspaceId}/adopt:
+    $ref: paths/workspace-runtime.yaml#/adopt
+  /tenants/{tenantId}/projects:
+    $ref: paths/projects-runtime.yaml#/projects
+  /tenants/{tenantId}/projects/{projectId}:
+    $ref: paths/projects-runtime.yaml#/project
+  /tenants/{tenantId}/projects/{projectId}/environments:
+    $ref: paths/projects-runtime.yaml#/environment
+  /tenants/{tenantId}/projects/{projectId}/workspaces:
+    $ref: paths/projects-runtime.yaml#/projectWorkspaces
+  /me/subscriptions:
+    $ref: paths/subscriptions-runtime.yaml#/subscriptions
+  /tenants/{tenantId}/subscriptions/{provider}/activate:
+    $ref: paths/subscriptions-runtime.yaml#/activate
+  /tenants/{tenantId}/subscriptions/{provider}/check:
+    $ref: paths/subscriptions-runtime.yaml#/checkSubscription
+  /tenants/{tenantId}/subscriptions/{provider}:
+    $ref: paths/subscriptions-runtime.yaml#/disconnectSubscription
+  /tenants/{tenantId}/ai-terminal/touch:
+    $ref: paths/subscriptions-runtime.yaml#/touchTerminal
+  /tenants/{tenantId}/ai-terminal:
+    $ref: paths/subscriptions-runtime.yaml#/closeTerminal
+  /tenants/{tenantId}/workspaces/{workspaceId}/connections:
+    $ref: paths/connections-runtime.yaml#/connections
+  /tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/login:
+    $ref: paths/connections-runtime.yaml#/connectLogin
+  /tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/code:
+    $ref: paths/connections-runtime.yaml#/connectCode
+  /tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/token:
+    $ref: paths/connections-runtime.yaml#/connectToken
+  /tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}:
+    $ref: paths/connections-runtime.yaml#/connectDelete
+  /tenants/{tenantId}/workspaces/{workspaceId}/terminal:
+    $ref: paths/connections-runtime.yaml#/terminal
+  /tenants/{tenantId}/projects/{projectId}/github/publish:
+    $ref: paths/github-runtime.yaml#/githubPublish
+  /tenants/{tenantId}/github/install:
+    $ref: paths/github-runtime.yaml#/githubInstall
+  /github/setup:
+    $ref: paths/github-runtime.yaml#/githubSetup
+  /github/callback:
+    $ref: paths/github-runtime.yaml#/githubCallback
+  /tenants/{tenantId}/github/repos:
+    $ref: paths/github-runtime.yaml#/githubRepos
+  /tenants/{tenantId}/github/import:
+    $ref: paths/github-runtime.yaml#/githubImport
+  /github/webhook:
+    $ref: paths/github-runtime.yaml#/githubWebhook
+  /tenants/{tenantId}/prompt/options:
+    $ref: paths/agents-runtime.yaml#/promptOptions
+  /tenants/{tenantId}/projects/from-prompt:
+    $ref: paths/agents-runtime.yaml#/fromPrompt
+  /tenants/{tenantId}/projects/{projectId}/agent:
+    $ref: paths/agents-runtime.yaml#/projectAgent
+  /tenants/{tenantId}/projects/{projectId}/agent/start:
+    $ref: paths/agents-runtime.yaml#/startAgent
+  /tenants/{tenantId}/projects/{projectId}/services:
+    $ref: paths/managed-runtime.yaml#/services
+  /tenants/{tenantId}/projects/{projectId}/services/rrflow:
+    $ref: paths/managed-runtime.yaml#/attachRRFlow
+  /tenants/{tenantId}/projects/{projectId}/services/{serviceId}/rrflow/{kind}:
+    $ref: paths/managed-runtime.yaml#/rrflowState
+  /bridge/device:
+    $ref: paths/bridge-runtime.yaml#/bridgeDevice
+  /bridge/token:
+    $ref: paths/bridge-runtime.yaml#/bridgeToken
+  /bridge/device/{code}:
+    $ref: paths/bridge-runtime.yaml#/bridgeDecision
+  /me/bridge-sessions:
+    $ref: paths/bridge-runtime.yaml#/bridgeSessions
+  /me/bridge-sessions/{id}:
+    $ref: paths/bridge-runtime.yaml#/bridgeRevoke
+  /bridge/me:
+    $ref: paths/bridge-runtime.yaml#/bridgeMe
+  /bridge/workspaces/{id}/cert:
+    $ref: paths/bridge-runtime.yaml#/bridgeCert
+  /bridge/workspaces/{id}/relay:
+    $ref: paths/bridge-runtime.yaml#/bridgeRelay
+  /operator/authz-shadow:
+    $ref: paths/operator-runtime.yaml#/authzShadow
+  /tenants/{tenantId}/bundle:
+    $ref: paths/bundle-runtime.yaml#/bundle
+  /tenants/{tenantId}/bundle/reconcile:
+    $ref: paths/bundle-runtime.yaml#/reconcileBundle
+  /chat/config:
+    $ref: paths/chat-runtime.yaml#/chatConfig
+  /chat/tips:
+    $ref: paths/chat-runtime.yaml#/chatTips
+  /chat/sessions:
+    $ref: paths/chat-runtime.yaml#/chatSessions
+  /chat/sessions/{id}:
+    $ref: paths/chat-runtime.yaml#/chatSession
+  /chat/sessions/{id}/ready:
+    $ref: paths/chat-runtime.yaml#/chatReady
+  /chat/sessions/{id}/messages:
+    $ref: paths/chat-runtime.yaml#/chatMessages
+  /operator/tenants/{tenantId}/workspaces/{workspaceId}/discover:
+    $ref: paths/operator-runtime.yaml#/operatorDiscover
+  /operator/tenants/{tenantId}/projects:
+    $ref: paths/operator-runtime.yaml#/operatorCreateProject
+  /operator/workspaces:
+    $ref: paths/operator-runtime.yaml#/operatorWorkspaces
+  /operator/workspaces/{workspaceId}/{action}:
+    $ref: paths/operator-runtime.yaml#/operatorWorkspaceAction
+components:
+  securitySchemes:
+    consoleSession: {type: apiKey, in: cookie, name: shippin_session}
+    bridgeBearer: {type: http, scheme: bearer, description: Account-bound bridge session token.}
+    githubSignature: {type: apiKey, in: header, name: X-Hub-Signature-256, description: HMAC SHA-256 signature over the exact webhook body.}
+    zitadel:
+      $ref: components/security.yaml#/zitadel

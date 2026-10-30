@@ -1,0 +1,40 @@
+firewall:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TenantId
+    - $ref: ../components/parameters.yaml#/WorkspaceId
+  put:
+    tags: [workspaces]
+    operationId: putWorkspaceFirewall
+    summary: Replace inbound firewall rules (org_owner/org_admin)
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/workspaces.yaml#/FirewallUpdate } } }
+    responses:
+      "200":
+        description: Applied.
+        content: { application/json: { schema: { $ref: ../schemas/workspaces.yaml#/WorkspaceAccess } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+domains:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TenantId
+    - $ref: ../components/parameters.yaml#/WorkspaceId
+  put:
+    tags: [workspaces]
+    operationId: putWorkspaceDomains
+    summary: Replace custom HTTPS hostnames (org_owner/org_admin)
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/workspaces.yaml#/DomainsUpdate } } }
+    responses:
+      "200":
+        description: Applied.
+        content: { application/json: { schema: { $ref: ../schemas/workspaces.yaml#/WorkspaceAccess } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

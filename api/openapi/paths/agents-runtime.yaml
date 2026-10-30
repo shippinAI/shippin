@@ -1,0 +1,154 @@
+promptOptions:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: &id001 {type: string}
+  get:
+    tags: [agents-runtime]
+    operationId: promptOptionsGet
+    summary: Read available prompt project options
+    description: Returns configured feature availability, stacks and agent choices.
+    x-source: shippin-console/internal/api/agent_routes.go:promptOptions
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Returns configured feature availability, stacks and agent choices.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled: &id004 {type: boolean}
+                max_bytes: {type: integer}
+                stacks: &id002
+                  type: array
+                  items: &id003 {type: object, additionalProperties: true}
+                default_template: *id001
+                agents: *id002
+                terms_note: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+fromPrompt:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  post:
+    tags: [agents-runtime]
+    operationId: fromPromptPost
+    summary: Accept a prompt project build
+    description: Creates project/run intent and queues provisioning. Member manager only and feature-gated. The
+      current agent step cannot execute through the missing central owner-runner adapter.
+    x-source: shippin-console/internal/api/projects_prompt.go:promptProject
+    x-implementation-status: blocked
+    x-implementation-note: The route is registered, but the central Devagotchi owner-runner adapter is unavailable;
+      accepted builds cannot complete agent execution.
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [prompt, provider]
+            properties:
+              prompt: *id001
+              provider: *id001
+              stack: *id001
+              name: *id001
+    responses:
+      '202':
+        description: Creates project/run intent and queues provisioning. Member manager only and feature-gated.
+          The current agent step cannot execute through the missing central owner-runner adapter.
+        content:
+          application/json:
+            schema: *id003
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+projectAgent:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: projectId
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [agents-runtime]
+    operationId: projectAgentGet
+    summary: Read the latest project build
+    description: Members only. Returns nullable run plus available live status; may record an observed agent exit.
+    x-source: shippin-console/internal/api/agent_routes.go:projectAgent
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Members only. Returns nullable run plus available live status; may record an observed agent
+          exit.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                run:
+                  type: [object, 'null']
+                live: *id003
+                term_url: *id001
+                provider_label: *id001
+                connected: *id004
+                mine: *id004
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+startAgent:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: projectId
+    in: path
+    required: true
+    schema: *id001
+  post:
+    tags: [agents-runtime]
+    operationId: startAgentPost
+    summary: Accept start or resume of own build
+    description: Only the build creator on their own connected subscription may enqueue. Current worker fails after
+      sign-in because the central Devagotchi owner-runner adapter is unavailable; 202 is not execution success.
+    x-source: shippin-console/internal/api/agent_routes.go:startProjectAgent
+    x-implementation-status: blocked
+    x-implementation-note: The route is registered, but the central Devagotchi owner-runner adapter is unavailable;
+      accepted builds cannot complete agent execution.
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              resume: *id004
+    responses:
+      '202':
+        description: Only the build creator on their own connected subscription may enqueue. Current worker fails
+          after sign-in because the central Devagotchi owner-runner adapter is unavailable; 202 is not execution
+          success.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                run: *id003
+                job:
+                  type: [object, 'null']
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}

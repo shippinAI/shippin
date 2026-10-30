@@ -1,0 +1,33 @@
+Folder:
+  allOf:
+    - $ref: common.yaml#/Meta
+    - type: object
+      required: [tenant_id, name, path]
+      properties:
+        tenant_id: { $ref: common.yaml#/Uuid }
+        parent_id: { oneOf: [ { $ref: common.yaml#/Uuid }, { type: 'null' } ] }
+        name: { $ref: common.yaml#/Label }
+        path: { type: array, readOnly: true, items: { $ref: common.yaml#/Uuid }, description: 'Ancestor ids from the root (ltree).' }
+        labels: { $ref: common.yaml#/Labels }
+FolderCreate:
+  type: object
+  required: [name]
+  properties:
+    name: { $ref: common.yaml#/Label }
+    parent_id: { oneOf: [ { $ref: common.yaml#/Uuid }, { type: 'null' } ] }
+FolderUpdate:
+  type: object
+  properties:
+    name: { $ref: common.yaml#/Label }
+    labels: { $ref: common.yaml#/Labels }
+FolderMove:
+  type: object
+  required: [new_parent_id]
+  properties:
+    new_parent_id: { oneOf: [ { $ref: common.yaml#/Uuid }, { type: 'null' } ] }
+FolderList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/Folder' } }
+    page: { $ref: common.yaml#/PageInfo }

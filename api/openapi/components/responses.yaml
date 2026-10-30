@@ -1,0 +1,35 @@
+Problem400:
+  description: Invalid request.
+  content: { application/problem+json: { schema: { $ref: ../schemas/common.yaml#/Problem } } }
+Problem401:
+  description: Missing or invalid bearer token.
+  content: { application/problem+json: { schema: { $ref: ../schemas/common.yaml#/Problem } } }
+Problem403:
+  description: Authenticated, but OpenFGA denies this action.
+  content: { application/problem+json: { schema: { $ref: ../schemas/common.yaml#/Problem } } }
+Problem404:
+  description: Not found, or not visible to the caller.
+  content: { application/problem+json: { schema: { $ref: ../schemas/common.yaml#/Problem } } }
+Problem409:
+  description: Conflict (state, quota, or idempotency key reused with a different body).
+  content: { application/problem+json: { schema: { $ref: ../schemas/common.yaml#/Problem } } }
+Problem412:
+  description: If-Match did not match the current ETag.
+  content: { application/problem+json: { schema: { $ref: ../schemas/common.yaml#/Problem } } }
+Problem429:
+  description: Rate limited. See Retry-After.
+  headers:
+    Retry-After: { schema: { type: integer } }
+  content: { application/problem+json: { schema: { $ref: ../schemas/common.yaml#/Problem } } }
+ProblemDefault:
+  description: Unexpected error.
+  content: { application/problem+json: { schema: { $ref: ../schemas/common.yaml#/Problem } } }
+Accepted:
+  description: Accepted. Work runs as a job.
+  headers:
+    Location:
+      description: URL of the job.
+      schema: { type: string }
+  content: { application/json: { schema: { $ref: ../schemas/jobs.yaml#/Job } } }
+NoContent:
+  description: Done.

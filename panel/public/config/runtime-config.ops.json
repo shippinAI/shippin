@@ -1,0 +1,22 @@
+{
+  "appName": "Shippin Operator Console",
+  "environment": "local",
+  "apiBaseUrl": "http://localhost:8080/v1",
+  "docsUrl": "",
+  "defaultTenantId": "",
+  "appMode": "operator",
+  "capabilityHints": {
+    "listTenants": "tenant:read",
+    "suspendTenant": "tenant:suspend",
+    "resumeTenant": "tenant:resume"
+  },
+  "auth": {
+    "enabled": false,
+    "issuerUrl": "",
+    "clientId": "ops-spa",
+    "audience": "",
+    "scopes": "openid profile email",
+    "redirectUri": "",
+    "sessionExpiryWarningSeconds": 120
+  }
+}

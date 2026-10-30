@@ -1,0 +1,109 @@
+capabilities:
+  parameters: [ { $ref: ../components/parameters.yaml#/TenantId } ]
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [rrflow]
+    operationId: getCapabilities
+    summary: Effective rrflow capabilities at a scope (tenant, or a folder via folder_id)
+    parameters: [ { $ref: ../components/parameters.yaml#/FolderFilter } ]
+    responses:
+      "200":
+        description: Capabilities with inheritance badges.
+        content: { application/json: { schema: { $ref: ../schemas/rrflow.yaml#/CapabilityList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  put:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [rrflow]
+    operationId: putCapabilities
+    summary: Set toggles (fail-open only by org_owner, audited)
+    parameters:
+      - $ref: ../components/parameters.yaml#/FolderFilter
+      - $ref: ../components/parameters.yaml#/IfMatch
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/rrflow.yaml#/CapabilityList } } }
+    responses:
+      "200":
+        description: Saved (new config version).
+        content: { application/json: { schema: { $ref: ../schemas/rrflow.yaml#/CapabilityList } } }
+      "412": { $ref: ../components/responses.yaml#/Problem412 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+rulesets:
+  parameters: [ { $ref: ../components/parameters.yaml#/TenantId } ]
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [rrflow]
+    operationId: listRulesets
+    summary: List policy rulesets
+    parameters:
+      - $ref: ../components/parameters.yaml#/PageSize
+      - $ref: ../components/parameters.yaml#/PageToken
+    responses:
+      "200":
+        description: Page of rulesets.
+        content: { application/json: { schema: { $ref: ../schemas/rrflow.yaml#/RulesetList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  post:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [rrflow]
+    operationId: createRuleset
+    summary: Create a ruleset (optionally from a starter pack)
+    parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/rrflow.yaml#/Ruleset } } }
+    responses:
+      "201":
+        description: Created.
+        content: { application/json: { schema: { $ref: ../schemas/rrflow.yaml#/Ruleset } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+versions:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TenantId
+    - { name: rulesetId, in: path, required: true, schema: { $ref: ../schemas/common.yaml#/Uuid } }
+  post:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [rrflow]
+    operationId: publishRulesetVersion
+    summary: Publish an immutable new version (dry_run=true tests against the last 7 days)
+    parameters:
+      - $ref: ../components/parameters.yaml#/IdempotencyKey
+      - { name: dry_run, in: query, schema: { type: boolean, default: false } }
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/rrflow.yaml#/RulesetVersion } } }
+    responses:
+      "201":
+        description: Published (or a dry-run report).
+        content: { application/json: { schema: { $ref: ../schemas/rrflow.yaml#/RulesetVersion } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

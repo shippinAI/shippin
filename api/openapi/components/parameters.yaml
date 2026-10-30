@@ -1,0 +1,58 @@
+TenantId:
+  name: tenantId
+  in: path
+  required: true
+  schema: { $ref: ../schemas/common.yaml#/Uuid }
+FolderId:
+  name: folderId
+  in: path
+  required: true
+  schema: { $ref: ../schemas/common.yaml#/Uuid }
+WorkspaceId:
+  name: workspaceId
+  in: path
+  required: true
+  schema: { $ref: ../schemas/common.yaml#/Uuid }
+JobId:
+  name: jobId
+  in: path
+  required: true
+  schema: { $ref: ../schemas/common.yaml#/Uuid }
+UserId:
+  name: userId
+  in: path
+  required: true
+  description: Our user UUID (mapped to the IdP subject).
+  schema: { $ref: ../schemas/common.yaml#/Uuid }
+Env:
+  name: env
+  in: path
+  required: true
+  description: Environment slug from tenant settings (e.g. dev, preview, prod).
+  schema: { type: string, pattern: '^[a-z0-9-]{1,32}$' }
+PageSize:
+  name: page_size
+  in: query
+  schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+PageToken:
+  name: page_token
+  in: query
+  description: Opaque cursor from a previous `next_page_token`.
+  schema: { type: string }
+IdempotencyKey:
+  name: Idempotency-Key
+  in: header
+  required: true
+  description: A client-generated UUID. The same key + body within 24 h returns the first response (⚠ GUESS on the window).
+  schema: { $ref: ../schemas/common.yaml#/Uuid }
+IfMatch:
+  name: If-Match
+  in: header
+  required: true
+  description: ETag from the last read. A mismatch returns 412.
+  schema: { type: string }
+FolderFilter:
+  name: folder_id
+  in: query
+  description: Limit to a folder subtree.
+  schema: { $ref: ../schemas/common.yaml#/Uuid }

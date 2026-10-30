@@ -1,0 +1,182 @@
+projects:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: &id001
+      type: string
+  get:
+    tags:
+    - projects-runtime
+    operationId: projectsGet
+    summary: List tenant projects
+    description: Returns the tenant project list from the project store. Boundary details remain hidden.
+    x-source: shippin-console/internal/projects/http.go:Handler.list
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Returns the tenant project list from the project store. Boundary details remain hidden.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault
+  post:
+    tags:
+    - projects-runtime
+    operationId: projectsPost
+    summary: Create a project and initial environment
+    description: Member manager only. Environment defaults to dev. A project may remain pending until placement
+      is ready.
+    x-source: shippin-console/internal/projects/http_write.go:Handler.create
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - name
+            properties:
+              name: *id001
+              environment: *id001
+    responses:
+      '201':
+        description: Member manager only. Environment defaults to dev. A project may remain pending until placement
+          is ready.
+        content:
+          application/json:
+            schema: &id002
+              type: object
+              additionalProperties: true
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault
+project:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: projectId
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags:
+    - projects-runtime
+    operationId: projectGet
+    summary: Read a project
+    description: Tenant-scoped project detail from the existing project store.
+    x-source: shippin-console/internal/projects/http.go:Handler.get
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Tenant-scoped project detail from the existing project store.
+        content:
+          application/json:
+            schema: *id002
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault
+  delete:
+    tags:
+    - projects-runtime
+    operationId: projectDelete
+    summary: Mark an unused project for deletion
+    description: Member manager only. Refuses projects that still have non-deleted workspaces with 409.
+    x-source: shippin-console/internal/projects/http_write.go:Handler.remove
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '204':
+        description: Member manager only. Refuses projects that still have non-deleted workspaces with 409.
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault
+environment:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: projectId
+    in: path
+    required: true
+    schema: *id001
+  post:
+    tags:
+    - projects-runtime
+    operationId: environmentPost
+    summary: Add a project environment
+    description: Member manager only; returns the updated project.
+    x-source: shippin-console/internal/projects/http_write.go:Handler.addEnv
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - name
+            properties:
+              name: *id001
+    responses:
+      '201':
+        description: Member manager only; returns the updated project.
+        content:
+          application/json:
+            schema: *id002
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault
+projectWorkspaces:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: projectId
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags:
+    - projects-runtime
+    operationId: projectWorkspacesGet
+    summary: List project workspace records
+    description: Returns recorded project workspace fields from Postgres. This endpoint does not merge live inventory.
+    x-source: shippin-console/internal/projects/http.go:Handler.workspaces
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Returns recorded project workspace fields from Postgres. This endpoint does not merge live
+          inventory.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+      default:
+        $ref: ../components/responses.yaml#/ProblemDefault

@@ -1,0 +1,25 @@
+sparks:
+  get:
+    tags: [platform]
+    operationId: getTenantSparks
+    summary: Spark model API and management destinations for this tenant
+    description: |
+      Requires a signed-in tenant member with host.admin_tools. Temporary support
+      grants do not grant hardware access. Other tenants receive an empty nodes
+      array. This is configuration, not a live health probe; published means the
+      HTTPS route was configured. Blocked destinations never contain a URL.
+    parameters:
+      - name: tenantId
+        in: path
+        required: true
+        schema: { type: string }
+    responses:
+      "200":
+        description: Private fleet inventory; Cache-Control is no-store.
+        content:
+          application/json:
+            schema: { $ref: ../schemas/sparks.yaml#/Sparks }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

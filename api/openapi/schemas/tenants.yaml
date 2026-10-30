@@ -1,0 +1,75 @@
+Tenant:
+  allOf:
+    - $ref: common.yaml#/Meta
+    - type: object
+      required: [name, status, plan_id]
+      properties:
+        name: { $ref: common.yaml#/Label }
+        status: { type: string, enum: [provisioning, active, suspended, deleting, deleted], readOnly: true }
+        plan_id: { $ref: common.yaml#/Uuid }
+        idp_org_id: { type: string, readOnly: true, description: 'Zitadel organization id.' }
+        labels: { $ref: common.yaml#/Labels }
+        quota: { $ref: '#/Quota' }
+Quota:
+  type: object
+  readOnly: true
+  description: Effective limits from the plan (Incus project + ZFS quota).
+  properties:
+    instances: { type: integer }
+    cpu: { type: integer }
+    memory_bytes: { type: integer }
+    disk_bytes: { type: integer }
+    used: { type: object, additionalProperties: { type: integer } }
+TenantCreate:
+  type: object
+  required: [name]
+  description: 'Either owner (new org) or idp_org_id (map an existing Zitadel org; v0.1 implements only this).'
+  properties:
+    name: { $ref: common.yaml#/Label }
+    idp_org_id: { type: string, description: 'Existing Zitadel org to map to a new tenant UUID (operator only).' }
+    plan_id: { type: string, description: 'Plan id from /settings/plans (v0.1: plan key, e.g. founder).' }
+    owner:
+      type: object
+      description: First org owner. For self-signup, the caller.
+      properties:
+        email: { type: string, format: email }
+        display_name: { $ref: common.yaml#/Label }
+    labels: { $ref: common.yaml#/Labels }
+TenantUpdate:
+  type: object
+  properties:
+    name: { $ref: common.yaml#/Label }
+    plan_id: { $ref: common.yaml#/Uuid }
+    labels: { $ref: common.yaml#/Labels }
+TenantList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/Tenant' } }
+    page: { $ref: common.yaml#/PageInfo }
+SuspendRequest:
+  type: object
+  required: [reason]
+  properties:
+    reason: { type: string, enum: [non_payment, abuse, owner_request, other] }
+    note: { type: string, maxLength: 1000 }
+    unload_key: { type: boolean, default: false, description: 'Unload the tenant ZFS key after the stop.' }
+Me:
+  type: object
+  required: [user_id, tenants]
+  properties:
+    user_id: { $ref: common.yaml#/Uuid }
+    display_name: { type: string }
+    platform_roles: { type: array, items: { type: string, enum: [op_support, op_admin, op_superadmin] } }
+    tenants:
+      type: array
+      items:
+        type: object
+        properties:
+          tenant_id: { $ref: common.yaml#/Uuid }
+          name: { type: string }
+          roles: { type: array, items: { type: string } }
+    capabilities:
+      type: object
+      description: Precomputed UI hints (action → allowed). UX only; the API re-checks.
+      additionalProperties: { type: boolean }

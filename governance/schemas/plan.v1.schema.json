@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shippin.cloud/schemas/work-plan/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "objective", "scope", "context", "sources", "steps", "checks", "unknowns"],
+  "properties": {
+    "schema_version": {"const": "1"},
+    "id": {"type": "string", "minLength": 1},
+    "objective": {"type": "string", "minLength": 1},
+    "scope": {"type": "string", "minLength": 1},
+    "context": {
+      "type": "object", "additionalProperties": false,
+      "required": ["facts", "assumptions", "audience", "response"],
+      "properties": {
+        "facts": {"$ref": "#/$defs/textList"},
+        "assumptions": {"$ref": "#/$defs/textList"},
+        "audience": {"type": "string", "minLength": 1},
+        "response": {"type": "string", "minLength": 1},
+        "style": {"type": "string"}, "tone": {"type": "string"}
+      }
+    },
+    "sources": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "sha256", "observation"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "observation": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "research": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["url", "accessed", "finding"],
+        "properties": {
+          "url": {"type": "string", "pattern": "^https://"},
+          "accessed": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+          "finding": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "steps": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "action", "expected", "failure_action"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "action": {"type": "string", "minLength": 1},
+          "expected": {"type": "string", "minLength": 1},
+          "failure_action": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "checks": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "purpose", "command", "expected", "evidence"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "purpose": {"type": "string", "minLength": 1},
+          "command": {"type": "string", "minLength": 1},
+          "expected": {"type": "string", "minLength": 1},
+          "evidence": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "unknowns": {"$ref": "#/$defs/textList"}
+  },
+  "$defs": {"textList": {"type": "array", "items": {"type": "string", "minLength": 1}}}
+}

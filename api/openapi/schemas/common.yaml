@@ -1,0 +1,50 @@
+Uuid:
+  type: string
+  format: uuid
+Timestamp:
+  type: string
+  format: date-time
+Label:
+  type: string
+  description: Display name. A label only; renaming never moves data.
+  minLength: 1
+  maxLength: 120
+Labels:
+  type: object
+  additionalProperties: { type: string, maxLength: 256 }
+Problem:
+  type: object
+  description: RFC 9457 problem details, extended for the console.
+  required: [type, title, status, message]
+  properties:
+    type: { type: string, format: uri-reference, examples: ['https://docs.example.com/problems/quota-exceeded'] }
+    title: { type: string, description: 'Short, stable summary of the problem type.' }
+    status: { type: integer, minimum: 400, maximum: 599 }
+    detail: { type: string }
+    instance: { type: string, format: uri-reference }
+    message: { type: string, description: 'Human-readable text, safe to show in a toast. Never contains secrets.' }
+    code: { type: string, description: 'Machine code, e.g. quota_exceeded.' }
+    request_id: { $ref: '#/Uuid' }
+    errors:
+      type: array
+      description: Field-level errors for forms.
+      items:
+        type: object
+        required: [pointer, message]
+        properties:
+          pointer: { type: string, description: 'JSON Pointer into the request body.' }
+          message: { type: string }
+PageInfo:
+  type: object
+  properties:
+    next_page_token: { type: [string, 'null'] }
+    total_estimate: { type: [integer, 'null'] }
+Meta:
+  type: object
+  description: Present on every resource.
+  required: [id, created_at, updated_at, etag]
+  properties:
+    id: { $ref: '#/Uuid', readOnly: true }
+    created_at: { $ref: '#/Timestamp', readOnly: true }
+    updated_at: { $ref: '#/Timestamp', readOnly: true }
+    etag: { type: string, readOnly: true }

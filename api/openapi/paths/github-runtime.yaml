@@ -1,0 +1,235 @@
+githubPublish:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: &id001 {type: string}
+  - name: projectId
+    in: path
+    required: true
+    schema: *id001
+  post:
+    tags: [github-runtime]
+    operationId: githubPublishPost
+    summary: Create or link a private repository and push
+    description: Tenant member manager and enabled GitHub integration required. For an adopted folder without a
+      remote. A 502 can occur after repository creation if the first push fails.
+    x-source: shippin-console/internal/api/project_publish.go:publishProject
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [installation_id]
+            properties:
+              installation_id: &id002 {type: integer}
+              repo_id: *id002
+    responses:
+      '200':
+        description: Tenant member manager and enabled GitHub integration required. For an adopted folder without
+          a remote. A 502 can occur after repository creation if the first push fails.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repo: *id001
+                remote: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+githubInstall:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [github-runtime]
+    operationId: githubInstallGet
+    summary: Begin GitHub App installation
+    description: Member manager only; redirects to GitHub with signed tenant/account state.
+    x-source: shippin-console/internal/api/github.go:githubInstall
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '302':
+        description: Member manager only; redirects to GitHub with signed tenant/account state.
+        headers:
+          Location:
+            schema: *id001
+            description: Redirect destination.
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+githubSetup:
+  get:
+    tags: [github-runtime]
+    operationId: githubSetupGet
+    summary: Bind a verified GitHub installation
+    description: Requires console sign-in, valid signed state and user-visible installation proof. Redirects to
+      tenant projects.
+    x-source: shippin-console/internal/api/github.go:githubSetup
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    parameters:
+    - name: state
+      in: query
+      required: false
+      schema: *id001
+    - name: installation_id
+      in: query
+      required: false
+      schema: *id001
+    - name: code
+      in: query
+      required: false
+      schema: *id001
+    responses:
+      '302':
+        description: Requires console sign-in, valid signed state and user-visible installation proof. Redirects
+          to tenant projects.
+        headers:
+          Location:
+            schema: *id001
+            description: Redirect destination.
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+githubCallback:
+  get:
+    tags: [github-runtime]
+    operationId: githubCallbackGet
+    summary: Bind a verified GitHub installation
+    description: Requires console sign-in, valid signed state and user-visible installation proof. Redirects to
+      tenant projects.
+    x-source: shippin-console/internal/api/github.go:githubSetup
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    parameters:
+    - name: state
+      in: query
+      required: false
+      schema: *id001
+    - name: installation_id
+      in: query
+      required: false
+      schema: *id001
+    - name: code
+      in: query
+      required: false
+      schema: *id001
+    responses:
+      '302':
+        description: Requires console sign-in, valid signed state and user-visible installation proof. Redirects
+          to tenant projects.
+        headers:
+          Location:
+            schema: *id001
+            description: Redirect destination.
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+githubRepos:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [github-runtime]
+    operationId: githubReposGet
+    summary: List repositories of tenant installations
+    description: Lists repositories accessible through tenant-bound installations; individual installation failures
+      appear in the response.
+    x-source: shippin-console/internal/api/github_repos.go:githubRepos
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Lists repositories accessible through tenant-bound installations; individual installation failures
+          appear in the response.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                installations:
+                  type: array
+                  items: &id003 {type: object, additionalProperties: true}
+                can_install: {type: boolean}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+githubImport:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  post:
+    tags: [github-runtime]
+    operationId: githubImportPost
+    summary: Import a repository into own devspace
+    description: Member manager only; verifies installation ownership and repository visibility. Requires the caller
+      running devspace. Creates an owned project after cloning.
+    x-source: shippin-console/internal/api/github_import.go:githubImport
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [installation_id, repo_id]
+            properties:
+              installation_id: *id002
+              repo_id: *id002
+              branch: *id001
+    responses:
+      '201':
+        description: Member manager only; verifies installation ownership and repository visibility. Requires the
+          caller running devspace. Creates an owned project after cloning.
+        content:
+          application/json:
+            schema: *id003
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+githubWebhook:
+  post:
+    tags: [github-runtime]
+    operationId: githubWebhookPost
+    summary: Receive signed GitHub installation events
+    description: Verifies HMAC signature and delivery ID; duplicate delivery IDs are acknowledged without reapplying.
+      Disabled integration returns 404. Errors here use text/plain, not the normal Problem envelope.
+    x-source: shippin-console/internal/api/github_hooks.go:githubWebhook
+    x-implementation-status: registered
+    security:
+    - githubSignature: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: *id003
+    responses:
+      '204': {description: 'Verifies HMAC signature and delivery ID; duplicate delivery IDs are acknowledged without
+          reapplying. Disabled integration returns 404. Errors here use text/plain, not the normal Problem envelope.'}
+      default:
+        description: Webhook validation or availability failure.
+        content:
+          text/plain:
+            schema: *id001
+    parameters:
+    - name: X-GitHub-Delivery
+      in: header
+      required: true
+      schema: *id001
+    - name: X-GitHub-Event
+      in: header
+      required: true
+      schema: *id001

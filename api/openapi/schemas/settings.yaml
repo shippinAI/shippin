@@ -1,0 +1,66 @@
+PlatformSettings:
+  type: object
+  description: Operator-only. Every brand and domain value is config, never code.
+  properties:
+    etag: { type: string, readOnly: true }
+    default_domain: { type: string, examples: [example.com] }
+    brands: { type: array, items: { $ref: '#/Brand' } }
+    governance_domains:
+      type: array
+      description: Domains shown on the governance screen (e.g. rrflow.ai, rroflow.ai, shippin.ai).
+      items: { type: string }
+Brand:
+  type: object
+  required: [id, name]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    name: { $ref: common.yaml#/Label }
+    logo_url: { type: string, format: uri }
+    tokens: { type: object, description: 'OKLCH design-token overrides.', additionalProperties: { type: string } }
+Domain:
+  type: object
+  required: [id, name, purpose, status]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    tenant_id: { oneOf: [ { $ref: common.yaml#/Uuid }, { type: 'null' } ] }
+    name: { type: string, examples: [apps.example.com] }
+    purpose: { type: string, enum: [console, api, apps, identity, custom] }
+    status: { type: string, enum: [pending_verification, verified, active, failed], readOnly: true }
+    verification: { type: object, readOnly: true, properties: { txt_name: { type: string }, txt_value: { type: string } } }
+    dns_provider: { type: string, description: 'From settings; used for wildcard DNS-01.' }
+DomainCreate:
+  type: object
+  required: [name, purpose]
+  properties:
+    name: { type: string }
+    purpose: { type: string, enum: [console, api, apps, identity, custom] }
+    tenant_id: { $ref: common.yaml#/Uuid }
+DomainList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/Domain' } }
+    page: { $ref: common.yaml#/PageInfo }
+Plan:
+  type: object
+  required: [id, name]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    name: { $ref: common.yaml#/Label }
+    limits: { type: object, additionalProperties: { type: integer } }
+    snapshot_policy: { type: object, properties: { schedule: { type: string }, expiry: { type: string } } }
+    backup_policy: { type: object, properties: { schedule: { type: string }, retention_days: { type: integer } } }
+    allows_vm: { type: boolean }
+PlanList:
+  type: object
+  properties:
+    items: { type: array, items: { $ref: '#/Plan' } }
+TenantSettings:
+  type: object
+  properties:
+    etag: { type: string, readOnly: true }
+    brand_id: { $ref: common.yaml#/Uuid }
+    environments: { type: array, items: { type: string }, default: [dev, preview, prod] }
+    auto_stop_minutes: { type: integer, minimum: 0 }
+    default_ide: { type: string }
+    preview_default_share: { type: string, enum: [private, tenant, public] }

@@ -1,0 +1,267 @@
+bridgeDevice:
+  post:
+    tags: [bridge-runtime]
+    operationId: bridgeDevicePost
+    summary: Start bridge device sign-in
+    description: Unauthenticated start while bridge is enabled. Optional client_name; returns short-lived device/user
+      codes. No-store.
+    x-source: shippin-console/internal/api/bridge_device.go:bridgeStart
+    x-implementation-status: registered
+    security: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              client_name: &id001 {type: string}
+    responses:
+      '200':
+        description: Unauthenticated start while bridge is enabled. Optional client_name; returns short-lived device/user
+          codes. No-store.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device_code: *id001
+                user_code: *id001
+                verification_uri: *id001
+                verification_uri_complete: *id001
+                expires_in: &id002 {type: integer}
+                interval: *id002
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+bridgeToken:
+  post:
+    tags: [bridge-runtime]
+    operationId: bridgeTokenPost
+    summary: Redeem an approved device code once
+    description: No console session required. Returns an account-bound bridge bearer token once; HTTP 400 uses an
+      OAuth-style error object. No-store.
+    x-source: shippin-console/internal/api/bridge_device.go:bridgeToken
+    x-implementation-status: registered
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [device_code]
+            properties:
+              device_code: {type: string, writeOnly: true}
+    responses:
+      '200':
+        description: No console session required. Returns an account-bound bridge bearer token once; HTTP 400 uses
+          an OAuth-style error object. No-store.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                access_token: *id001
+                token_type: *id001
+                expires_at: *id001
+                account: &id004 {type: object, additionalProperties: true}
+                session_id: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+      '400':
+        description: Pending, denied or expired device authorization.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error: *id001
+bridgeDecision:
+  parameters:
+  - name: code
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [bridge-runtime]
+    operationId: bridgeDecisionGet
+    summary: Inspect pending bridge authorization
+    description: Console sign-in required. Unknown/expired code returns 404.
+    x-source: shippin-console/internal/api/bridge_device.go:bridgePending
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Console sign-in required. Unknown/expired code returns 404.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                client_name: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+  post:
+    tags: [bridge-runtime]
+    operationId: bridgeDecisionPost
+    summary: Approve or deny bridge sign-in
+    description: Console identity is bound to the approved session; approval/denial is audited first. Missing approve
+      defaults to false.
+    x-source: shippin-console/internal/api/bridge_device.go:bridgeDecide
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              approve: &id003 {type: boolean}
+    responses:
+      '200':
+        description: Console identity is bound to the approved session; approval/denial is audited first. Missing
+          approve defaults to false.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                approved: *id003
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+bridgeSessions:
+  get:
+    tags: [bridge-runtime]
+    operationId: bridgeSessionsGet
+    summary: List own bridge sessions
+    description: Only the signed-in account sessions are returned.
+    x-source: shippin-console/internal/api/bridge_session.go:bridgeSessions
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Only the signed-in account sessions are returned.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items: &id005
+                  type: array
+                  items: *id004
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+bridgeRevoke:
+  parameters:
+  - name: id
+    in: path
+    required: true
+    schema: *id001
+  delete:
+    tags: [bridge-runtime]
+    operationId: bridgeRevokeDelete
+    summary: Revoke own bridge session
+    description: Audits first, revokes the session and closes its active relays.
+    x-source: shippin-console/internal/api/bridge_session.go:bridgeRevoke
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Audits first, revokes the session and closes its active relays.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                revoked: *id003
+                relays_closed: *id002
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+bridgeMe:
+  get:
+    tags: [bridge-runtime]
+    operationId: bridgeMeGet
+    summary: Read bridge account and reachable workspaces
+    description: Requires a live unrevoked bridge bearer session. Membership is resolved from the identity snapshot
+      captured at device approval; this is not a fresh Nomen membership read. Workspace fields use ID, Name, State,
+      ProjectID, Tenant, TenantID and recorded state.
+    x-source: shippin-console/internal/api/bridge_session.go:bridgeMe
+    x-implementation-status: registered
+    security: &id006
+    - bridgeBearer: []
+    responses:
+      '200':
+        description: Requires a live unrevoked bridge bearer session. Membership is resolved from the identity snapshot
+          captured at device approval; this is not a fresh Nomen membership read. Workspace fields use ID, Name,
+          State, ProjectID, Tenant, TenantID and recorded state.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                account: *id004
+                session: *id004
+                workspaces: *id005
+                ssh_user: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+bridgeCert:
+  parameters:
+  - name: id
+    in: path
+    required: true
+    schema: *id001
+  post:
+    tags: [bridge-runtime]
+    operationId: bridgeCertPost
+    summary: Issue an audited workspace SSH certificate
+    description: Bridge authorization and workspace-access checks apply. Signs only the supplied ephemeral public
+      key for the configured short TTL.
+    x-source: shippin-console/internal/api/bridge_cert.go:bridgeCert
+    x-implementation-status: registered
+    security: *id006
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [public_key]
+            properties:
+              public_key: *id001
+    responses:
+      '200':
+        description: Bridge authorization and workspace-access checks apply. Signs only the supplied ephemeral public
+          key for the configured short TTL.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                certificate: *id001
+                valid_before: *id001
+                principal: *id001
+                ssh_user: *id001
+                relay_path: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+bridgeRelay:
+  parameters:
+  - name: id
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [bridge-runtime]
+    operationId: bridgeRelayGet
+    summary: Upgrade to the workspace SSH relay
+    description: Requires bridge bearer and workspace access. Successful handshake is WebSocket binary SSH transport,
+      not JSON.
+    x-source: shippin-console/internal/api/bridge_relay.go:bridgeRelay
+    x-implementation-status: registered
+    security: *id006
+    responses:
+      '101': {description: 'Requires bridge bearer and workspace access. Successful handshake is WebSocket binary
+          SSH transport, not JSON.'}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}

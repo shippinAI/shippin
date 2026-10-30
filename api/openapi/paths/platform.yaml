@@ -1,0 +1,12 @@
+services:
+  get:
+    tags: [platform]
+    operationId: getPlatformServices
+    summary: Live probes of platform services joined with Incus instance state (operators only)
+    responses:
+      "200":
+        description: Probe results and instances of the platform project.
+        content: { application/json: { schema: { $ref: ../schemas/platform.yaml#/PlatformServices } } }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

@@ -1,0 +1,46 @@
+App:
+  type: object
+  description: A customer OIDC app in the tenant's Nomen (Zitadel) org.
+  required: [id, name, type]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    name: { $ref: common.yaml#/Label }
+    type: { type: string, enum: [web, spa, native, api] }
+    redirect_uris: { type: array, items: { type: string, format: uri } }
+    client_id: { type: string, readOnly: true }
+    created_at: { $ref: common.yaml#/Timestamp }
+AppCreate:
+  type: object
+  required: [name, type]
+  properties:
+    name: { $ref: common.yaml#/Label }
+    type: { type: string, enum: [web, spa, native, api] }
+    redirect_uris: { type: array, items: { type: string, format: uri } }
+AppList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/App' } }
+    page: { $ref: common.yaml#/PageInfo }
+Agent:
+  type: object
+  description: An agent identity (a Zitadel service user now; Nomen token exchange + act later).
+  required: [id, name]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    name: { $ref: common.yaml#/Label }
+    workspace_id: { $ref: common.yaml#/Uuid }
+    delegating_user_id: { $ref: common.yaml#/Uuid }
+    tool_grants: { type: array, items: { type: string } }
+AgentCreate:
+  type: object
+  required: [name]
+  properties:
+    name: { $ref: common.yaml#/Label }
+    workspace_id: { $ref: common.yaml#/Uuid }
+AgentList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/Agent' } }
+    page: { $ref: common.yaml#/PageInfo }

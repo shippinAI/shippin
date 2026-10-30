@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shippin.cloud/schemas/agent-chat-entry/v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "id", "timestamp", "role", "representation", "content"],
+  "properties": {
+    "schema_version": {"const": "1"},
+    "id": {"type": "string", "pattern": "^[0-9a-f-]{36}$"},
+    "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+    "role": {"enum": ["user", "assistant"]},
+    "representation": {"enum": ["verbatim", "summary"]},
+    "content": {"type": "string", "minLength": 1, "maxLength": 1000000}
+  }
+}

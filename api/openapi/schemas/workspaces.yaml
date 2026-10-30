@@ -1,0 +1,171 @@
+Workspace:
+  allOf:
+    - type: object
+      required: [id, created_at]
+      properties:
+        id: { $ref: common.yaml#/Uuid }
+        created_at: { $ref: common.yaml#/Timestamp }
+    - type: object
+      required: [tenant_id, name, state, recorded_state, observation]
+      properties:
+        tenant_id: { $ref: common.yaml#/Uuid }
+        folder_id: { $ref: common.yaml#/Uuid }
+        owner_id: { $ref: common.yaml#/Uuid }
+        name: { $ref: common.yaml#/Label }
+        state:
+          type: string
+          readOnly: true
+          enum: [pending, provisioning, starting, running, stopping, stopped, updating, deleting, deleted, failed, unknown]
+        recorded_state:
+          type: string
+          readOnly: true
+          description: 'Last durable control-plane state; not evidence of current provider state.'
+        observation:
+          type: string
+          readOnly: true
+          enum: [observed, missing, unavailable]
+          description: 'observed = instance returned in complete inventory; missing = complete inventory omits it; unavailable = failed or partial inventory. Transitional state remains durable intent.'
+        observed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: 'Time this response observed the instance; omitted when not observed.'
+        kind: { type: string, enum: [container, vm], default: container, description: 'VM is phase 2.' }
+        template: { $ref: '#/TemplateRef' }
+        template_id: { $ref: common.yaml#/Uuid }
+        size:
+          type: object
+          properties:
+            cpu: { type: integer }
+            memory_gib: { type: integer }
+            disk_gib: { type: integer }
+        ide_flavor: { type: string, description: 'From template or tenant default (bake-off pending).' }
+        apps:
+          type: array
+          readOnly: true
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              url: { type: string, format: uri }
+              share: { type: string, enum: [private, tenant, public] }
+        last_job_id: { $ref: common.yaml#/Uuid }
+        labels: { $ref: common.yaml#/Labels }
+        instance: { type: string, readOnly: true, description: 'Incus instance name w-<workspace-uuid> in project t-<tenant-uuid>.' }
+        ssh_port: { type: integer, readOnly: true, description: 'Port on the tenant SSH forward address.' }
+        ipv4: { type: string, readOnly: true, description: 'Private address on n-<tenant-uuid>.' }
+        error: { type: string, readOnly: true }
+        connect: { $ref: '#/ConnectInfo' }
+        host: { type: string, readOnly: true, description: 'HTTPS serving host <name>-<short>.<workspaces.base_domain>.' }
+        url: { type: string, format: uri, readOnly: true, description: 'Browser IDE URL (Caddy forward-auth to the console; never exposed directly).' }
+        vscode_url: { type: string, readOnly: true, description: 'vscode:// Remote-SSH deep link (optional path).' }
+        public_ip: { type: string, readOnly: true, description: 'Tenant public endpoint (network forward address).' }
+        region: { type: string, readOnly: true }
+        ide_port: { type: integer, readOnly: true }
+        domains: { type: array, readOnly: true, items: { type: string } }
+        firewall: { type: array, readOnly: true, items: { $ref: '#/FirewallRule' } }
+ConnectInfo:
+  type: object
+  readOnly: true
+  description: 'How to reach the workspace (v0.1 = SSH via the tenant network forward, LAN/tailnet only).'
+  properties:
+    host: { type: string }
+    port: { type: integer }
+    user: { type: string }
+    ssh: { type: string, description: 'Ready-to-run ssh command.' }
+    ssh_config: { type: string, description: '~/.ssh/config entry.' }
+    vscode: { type: string, description: 'VS Code Remote-SSH command.' }
+TemplateRef:
+  type: object
+  required: [template_id, version]
+  properties:
+    template_id: { $ref: common.yaml#/Uuid }
+    version: { type: integer, minimum: 1 }
+WorkspaceCreate:
+  type: object
+  required: [name]
+  description: 'v0.1: template is optional (default dev image from config). SSH keys come from the caller''s account (/me/ssh-keys).'
+  properties:
+    name: { $ref: common.yaml#/Label }
+    folder_id: { $ref: common.yaml#/Uuid }
+    template: { $ref: '#/TemplateRef' }
+    size: { type: string }
+    kind: { type: string, enum: [container, vm], default: container }
+    labels: { $ref: common.yaml#/Labels }
+WorkspaceUpdate:
+  type: object
+  properties:
+    name: { $ref: common.yaml#/Label }
+    folder_id: { $ref: common.yaml#/Uuid }
+    size: { type: string }
+    labels: { $ref: common.yaml#/Labels }
+WorkspaceList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/Workspace' } }
+    page: { $ref: common.yaml#/PageInfo }
+Snapshot:
+  type: object
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    name: { $ref: common.yaml#/Label }
+    created_at: { $ref: common.yaml#/Timestamp }
+    expires_at: { $ref: common.yaml#/Timestamp }
+    reason: { type: string, enum: [scheduled, manual, rrflow_checkpoint] }
+SnapshotList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/Snapshot' } }
+    page: { $ref: common.yaml#/PageInfo }
+FirewallRule:
+  type: object
+  required: [protocol, port, source]
+  description: 'Inbound allow rule, enforced by the tenant network ACL and published on the public endpoint. 22 and the SSH port range are reserved.'
+  properties:
+    protocol: { type: string, enum: [tcp, udp] }
+    port: { type: integer, minimum: 1, maximum: 65535 }
+    source: { type: string, description: 'CIDR, default 0.0.0.0/0.' }
+FirewallUpdate:
+  type: object
+  required: [rules]
+  properties:
+    rules: { type: array, maxItems: 20, items: { $ref: '#/FirewallRule' } }
+DomainsUpdate:
+  type: object
+  required: [domains]
+  properties:
+    domains: { type: array, maxItems: 5, items: { type: string, description: 'Hostname CNAMEd to the default host; HTTPS cert issued by the edge.' } }
+SSHKey:
+  type: object
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    name: { type: string, maxLength: 64 }
+    public_key: { type: string }
+    fingerprint: { type: string, readOnly: true }
+    created_at: { $ref: common.yaml#/Timestamp }
+SSHKeyCreate:
+  type: object
+  required: [name, public_key]
+  properties:
+    name: { type: string, maxLength: 64 }
+    public_key: { type: string, description: 'OpenSSH public key line.' }
+SSHKeyList:
+  type: object
+  required: [items]
+  properties:
+    items: { type: array, items: { $ref: '#/SSHKey' } }
+WorkspaceAccess:
+  type: object
+  properties:
+    firewall: { type: array, items: { $ref: '#/FirewallRule' } }
+    domains: { type: array, items: { type: string } }
+
+WorkspaceActionAccepted:
+  type: object
+  required: [id, state, job]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    state: { type: string, enum: [starting, stopping, deleting] }
+    job: { $ref: jobs.yaml#/Job }

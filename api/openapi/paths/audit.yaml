@@ -1,0 +1,45 @@
+tenantAudit:
+  parameters: [ { $ref: ../components/parameters.yaml#/TenantId } ]
+  get:
+    tags: [audit]
+    operationId: listTenantAudit
+    summary: The tenant's slice of the audit trail (org_owner, org_admin)
+    parameters:
+      - { name: since, in: query, schema: { $ref: ../schemas/common.yaml#/Timestamp } }
+      - { name: action, in: query, schema: { type: string } }
+      - { name: actor_id, in: query, schema: { $ref: ../schemas/common.yaml#/Uuid } }
+      - $ref: ../components/parameters.yaml#/PageSize
+      - $ref: ../components/parameters.yaml#/PageToken
+    responses:
+      "200":
+        description: Page of events.
+        content: { application/json: { schema: { $ref: ../schemas/rrflow.yaml#/AuditList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+platformAudit:
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [audit]
+    operationId: listPlatformAudit
+    summary: The full audit trail (operators)
+    parameters:
+      - { name: tenant_id, in: query, schema: { $ref: ../schemas/common.yaml#/Uuid } }
+      - { name: since, in: query, schema: { $ref: ../schemas/common.yaml#/Timestamp } }
+      - { name: action, in: query, schema: { type: string } }
+      - $ref: ../components/parameters.yaml#/PageSize
+      - $ref: ../components/parameters.yaml#/PageToken
+    responses:
+      "200":
+        description: Page of events.
+        content: { application/json: { schema: { $ref: ../schemas/rrflow.yaml#/AuditList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

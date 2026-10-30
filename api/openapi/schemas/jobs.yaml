@@ -1,0 +1,43 @@
+Job:
+  type: object
+  description: A long-running operation. Every mutation of infrastructure is a job.
+  required: [id, kind, status, created_at]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    tenant_id: { oneOf: [ { $ref: common.yaml#/Uuid }, { type: 'null' } ] }
+    kind: { type: string, examples: [tenant.create, workspace.action, workspace.snapshot] }
+    target: { $ref: '#/Target' }
+    status: { type: string, enum: [queued, running, succeeded, failed, canceling, canceled] }
+    progress: { type: integer, minimum: 0, maximum: 100 }
+    steps:
+      type: array
+      items:
+        type: object
+        required: [name, status]
+        properties:
+          name: { type: string, description: 'e.g. zfs.dataset, incus.pool, ovn.network' }
+          status: { type: string, enum: [pending, running, done, failed, rolled_back] }
+          message: { type: string, description: 'Toast-ready text.' }
+    message: { type: string, description: 'Toast-ready current or final text.' }
+    attempts: { type: integer, minimum: 0 }
+    error:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string }
+        detail: { type: string, description: 'Operator-only failure detail.' }
+    created_by: { type: string, description: 'Opaque Nomen subject id.' }
+    created_at: { $ref: common.yaml#/Timestamp }
+    finished_at: { oneOf: [ { $ref: common.yaml#/Timestamp }, { type: 'null' } ] }
+Target:
+  type: object
+  required: [type, id]
+  properties:
+    type: { type: string, enum: [tenant, folder, workspace, snapshot, domain, secret, app, agent, ruleset] }
+    id: { $ref: common.yaml#/Uuid }
+JobList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/Job' } }
+    page: { $ref: common.yaml#/PageInfo }

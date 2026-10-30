@@ -1,0 +1,250 @@
+connections:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: &id001 {type: string}
+  - name: workspaceId
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [connections-runtime]
+    operationId: connectionsGet
+    summary: Read workspace provider connections
+    description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use this
+      route; staff grants alone do not qualify. Returns status and Vaultix presence metadata, not stored token values.
+    x-source: shippin-console/internal/api/connect_handlers.go:listConnections
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use
+          this route; staff grants alone do not qualify. Returns status and Vaultix presence metadata, not stored
+          token values.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                checked_at: *id001
+                running: {type: boolean}
+                ide_terminal_url: *id001
+                connections:
+                  type: array
+                  items: &id002 {type: object, additionalProperties: true}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+connectLogin:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: workspaceId
+    in: path
+    required: true
+    schema: *id001
+  - name: provider
+    in: path
+    required: true
+    schema: *id001
+  post:
+    tags: [connections-runtime]
+    operationId: connectLoginPost
+    summary: Start provider CLI sign-in
+    description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use this
+      route; staff grants alone do not qualify. Returns the hostd login-state object; provider errors return 409.
+    x-source: shippin-console/internal/api/connect_handlers.go:startConnectLogin
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use
+          this route; staff grants alone do not qualify. Returns the hostd login-state object; provider errors return
+          409.
+        content:
+          application/json:
+            schema: *id002
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+  get:
+    tags: [connections-runtime]
+    operationId: connectLoginGet
+    summary: Read provider CLI sign-in state
+    description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use this
+      route; staff grants alone do not qualify. Returns the hostd login-state object; provider errors return 409.
+    x-source: shippin-console/internal/api/connect_handlers.go:connectLoginState
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use
+          this route; staff grants alone do not qualify. Returns the hostd login-state object; provider errors return
+          409.
+        content:
+          application/json:
+            schema: *id002
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+connectCode:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: workspaceId
+    in: path
+    required: true
+    schema: *id001
+  - name: provider
+    in: path
+    required: true
+    schema: *id001
+  post:
+    tags: [connections-runtime]
+    operationId: connectCodePost
+    summary: Submit provider sign-in code
+    description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use this
+      route; staff grants alone do not qualify.
+    x-source: shippin-console/internal/api/connect_handlers.go:submitConnectCode
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code]
+            properties:
+              code: {type: string, writeOnly: true}
+    responses:
+      '200':
+        description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use
+          this route; staff grants alone do not qualify.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+connectToken:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: workspaceId
+    in: path
+    required: true
+    schema: *id001
+  - name: provider
+    in: path
+    required: true
+    schema: *id001
+  put:
+    tags: [connections-runtime]
+    operationId: connectTokenPut
+    summary: Store a workspace provider token
+    description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use this
+      route; staff grants alone do not qualify. Stores in Vaultix and delivers to a running workspace. A 409 can
+      mean saved in Vaultix but delivery failed; no token is echoed.
+    x-source: shippin-console/internal/api/connect_tokens.go:putConnectToken
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [token]
+            properties:
+              token: {type: string, writeOnly: true}
+              expires_at:
+                type: [string, 'null']
+                format: date-time
+    responses:
+      '200':
+        description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use
+          this route; staff grants alone do not qualify. Stores in Vaultix and delivers to a running workspace.
+          A 409 can mean saved in Vaultix but delivery failed; no token is echoed.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+connectDelete:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: workspaceId
+    in: path
+    required: true
+    schema: *id001
+  - name: provider
+    in: path
+    required: true
+    schema: *id001
+  delete:
+    tags: [connections-runtime]
+    operationId: connectDeleteDelete
+    summary: Disconnect a workspace provider
+    description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use this
+      route; staff grants alone do not qualify. Signs out in the workspace and removes the Vaultix copy.
+    x-source: shippin-console/internal/api/connect_tokens.go:disconnectProvider
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use
+          this route; staff grants alone do not qualify. Signs out in the workspace and removes the Vaultix copy.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: *id001
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+terminal:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: workspaceId
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [connections-runtime]
+    operationId: terminalGet
+    summary: Upgrade to workspace terminal WebSocket
+    description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may use this
+      route; staff grants alone do not qualify. Origin checks apply. Successful handshake switches protocols; this
+      is not a JSON response.
+    x-source: shippin-console/internal/api/terminal_ws.go:terminalSocket
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '101': {description: Feature-gated. Only a tenant member who created the workspace or manages the tenant may
+          use this route; staff grants alone do not qualify. Origin checks apply. Successful handshake switches
+          protocols; this is not a JSON response.}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}

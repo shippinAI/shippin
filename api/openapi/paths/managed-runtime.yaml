@@ -1,0 +1,121 @@
+services:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: &id001 {type: string}
+  - name: projectId
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [managed-runtime]
+    operationId: servicesGet
+    summary: List managed project services
+    description: Tenant members only; reports configured rrflow availability and recorded service instances.
+    x-source: shippin-console/internal/api/managed_routes.go:listServices
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    responses:
+      '200':
+        description: Tenant members only; reports configured rrflow availability and recorded service instances.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rrflow_enabled: &id004 {type: boolean}
+                items: &id003
+                  type: array
+                  items: &id002 {type: object, additionalProperties: true}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+attachRRFlow:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: projectId
+    in: path
+    required: true
+    schema: *id001
+  post:
+    tags: [managed-runtime]
+    operationId: attachRRFlowPost
+    summary: Attach rrflow to a project devspace
+    description: Member manager and enabled tenant feature required. workspace_id may be omitted to select an existing
+      project devspace. Returns recorded instance and nullable job; acceptance does not establish readiness.
+    x-source: shippin-console/internal/api/managed_routes.go:attachRRFlowRoute
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              workspace_id: *id001
+    responses:
+      '202':
+        description: Member manager and enabled tenant feature required. workspace_id may be omitted to select an
+          existing project devspace. Returns recorded instance and nullable job; acceptance does not establish readiness.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                instance: *id002
+                job:
+                  type: [object, 'null']
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+rrflowState:
+  parameters:
+  - name: tenantId
+    in: path
+    required: true
+    schema: *id001
+  - name: projectId
+    in: path
+    required: true
+    schema: *id001
+  - name: serviceId
+    in: path
+    required: true
+    schema: *id001
+  - name: kind
+    in: path
+    required: true
+    schema: *id001
+  get:
+    tags: [managed-runtime]
+    operationId: rrflowStateGet
+    summary: Read rrflow sessions, memory or decisions
+    description: Tenant members only. kind is sessions, memory or decisions; unknown kind returns 404. Provider
+      data is decoded into owned types before returning.
+    x-source: shippin-console/internal/api/managed_state.go:rrflowState
+    x-implementation-status: registered
+    security:
+    - consoleSession: []
+    - zitadel: []
+    parameters:
+    - name: limit
+      in: query
+      required: false
+      schema: *id001
+    responses:
+      '200':
+        description: Tenant members only. kind is sessions, memory or decisions; unknown kind returns 404. Provider
+          data is decoded into owned types before returning.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items: *id003
+                chain_ok: *id004
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}

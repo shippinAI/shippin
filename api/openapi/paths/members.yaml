@@ -1,0 +1,98 @@
+members:
+  parameters: [ { $ref: ../components/parameters.yaml#/TenantId } ]
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [members]
+    operationId: listMembers
+    summary: List members (Zitadel org users + roles)
+    parameters:
+      - $ref: ../components/parameters.yaml#/PageSize
+      - $ref: ../components/parameters.yaml#/PageToken
+    responses:
+      "200":
+        description: Page of members.
+        content: { application/json: { schema: { $ref: ../schemas/members.yaml#/MemberList } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  post:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [members]
+    operationId: inviteMember
+    summary: Invite a member (Zitadel user + OpenFGA tuples)
+    parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/members.yaml#/Invite } } }
+    responses:
+      "201":
+        description: Invited.
+        content: { application/json: { schema: { $ref: ../schemas/members.yaml#/Member } } }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+member:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TenantId
+    - $ref: ../components/parameters.yaml#/UserId
+  patch:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [members]
+    operationId: updateMember
+    summary: Change roles or deactivate (an admin cannot demote the owner)
+    requestBody:
+      required: true
+      content: { application/merge-patch+json: { schema: { $ref: ../schemas/members.yaml#/MemberUpdate } } }
+    responses:
+      "200":
+        description: Updated.
+        content: { application/json: { schema: { $ref: ../schemas/members.yaml#/Member } } }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  delete:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [members]
+    operationId: removeMember
+    summary: Remove a member from the tenant
+    responses:
+      "204": { $ref: ../components/responses.yaml#/NoContent }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+roles:
+  parameters: [ { $ref: ../components/parameters.yaml#/TenantId } ]
+  get:
+    x-implementation-status: planned
+    x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
+    tags: [members]
+    operationId: listRoles
+    summary: Role bundles and their permissions (from config)
+    responses:
+      "200":
+        description: Roles.
+        content: { application/json: { schema: { type: array, items: { $ref: ../schemas/members.yaml#/Role } } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "429": { $ref: ../components/responses.yaml#/Problem429 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

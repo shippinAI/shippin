@@ -1,0 +1,31 @@
+Probe:
+  type: object
+  properties:
+    name: { type: string }
+    kind: { type: string, description: 'zitadel, infisical, caddy, postgres…' }
+    instance: { type: string }
+    healthy: { type: boolean }
+    latency_ms: { type: integer }
+    detail: { type: string }
+PlatformInstance:
+  type: object
+  properties:
+    name: { type: string }
+    status: { type: string }
+    type: { type: string, enum: [container, virtual-machine] }
+    ipv4: { type: string }
+    memory_bytes: { type: integer }
+    processes: { type: integer }
+    image: { type: string }
+    autostart: { type: boolean }
+    created_at: { type: string, format: date-time }
+PlatformServices:
+  type: object
+  required: [probes, instances, checked_at]
+  properties:
+    project: { type: string }
+    host: { type: string }
+    probes: { type: array, items: { $ref: '#/Probe' } }
+    instances: { type: array, items: { $ref: '#/PlatformInstance' } }
+    instances_error: { type: string }
+    checked_at: { type: string, format: date-time }
