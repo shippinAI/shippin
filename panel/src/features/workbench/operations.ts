@@ -28,3 +28,19 @@ export function isCapabilityAllowed(operation: OpenApiOperation, config: Runtime
   const key = getCapabilityFromOperation(operation, config);
   return key in capabilities ? Boolean(capabilities[key]) : true;
 }
+
+/** Resolve each API path placeholder as exactly one unambiguous segment. */
+export function resolveOperationPath(path: string, values: Record<string, string>): string {
+  return path.replace(/\{([^}]+)\}/g, (_, key: string) => {
+    const value = values[key]?.trim();
+    if (!value) throw new Error(`Missing required path parameter: ${key}`);
+    if (value === "." || value === ".." || /[\\/%?#\x00-\x1f\x7f]/.test(value)) {
+      throw new Error(`Invalid path parameter: ${key}. Enter a single unescaped path value.`);
+    }
+    try {
+      return encodeURIComponent(value);
+    } catch {
+      throw new Error(`Invalid path parameter: ${key}.`);
+    }
+  });
+}

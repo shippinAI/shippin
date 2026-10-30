@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getCapabilityFromOperation, getPathParameters, hasOperatorRole, isCapabilityAllowed, isOperationAllowedForMode } from "../src/features/workbench/operations.ts";
+import { getCapabilityFromOperation, getPathParameters, hasOperatorRole, isCapabilityAllowed, isOperationAllowedForMode, resolveOperationPath } from "../src/features/workbench/operations.ts";
 
 const operation = { method: "POST", path: "/tenants/{tenantId}/workspaces/{workspaceId}", operationId: "createWorkspace", tags: ["workspaces"] };
 const operator = { platform_roles: ["op_admin"], tenants: [], capabilities: { "workspace:create": false } };
@@ -22,4 +22,14 @@ test("parameters and capability hints follow the workbench contract", () => {
   assert.equal(isCapabilityAllowed(operation, config, operator), false);
   assert.equal(isCapabilityAllowed(operation, config, null), true);
   assert.equal(getCapabilityFromOperation(operation, null), "workspaces:create");
+});
+
+
+test("path values stay within their own URL segment", () => {
+  const path = "/tenants/{tenantId}/workspaces/{workspaceId}";
+  assert.equal(resolveOperationPath(path, { tenantId: "tenant-1", workspaceId: "my workspace" }), "/tenants/tenant-1/workspaces/my%20workspace");
+  for (const unsafe of [".", "..", "x/y", "x\\y", "%2e%2e", "foo?admin=true", "x#frag", "\u0000"]) {
+    assert.throws(() => resolveOperationPath(path, { tenantId: unsafe, workspaceId: "ok" }), /Invalid path parameter/);
+  }
+  assert.throws(() => resolveOperationPath(path, {tenantId: "tenant-1"}), /Missing required path parameter: workspaceId/);
 });
