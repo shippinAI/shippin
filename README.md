@@ -17,6 +17,8 @@ Open `http://127.0.0.1:8088/console/` for the customer workbench or
 only the static panel; they do not install an API, identity provider, host agent or
 Incus. See the panel guide for configuration, updates and stopping the deployment.
 
+- [Release roadmap](docs/roadmap.md)
+- [Contributing and resuming work](CONTRIBUTING.md)
 - [Panel](panel/README.md)
 - [Primary image development](install/primary-image/README.md)
 - [Source boundaries](docs/source-of-truth.md)
