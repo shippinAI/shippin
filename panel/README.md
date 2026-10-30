@@ -44,7 +44,7 @@ remain documented in [source ownership](../docs/source-of-truth.md).
 - OIDC code+PKCE sign-in support (runtime-configurable for Zitadel)
 - Session expiry handling (JWT exp warning + forced local sign-out on expiry)
 - Capability-level action guard using `/me.capabilities` and config hints
-- A built-in API workbench for authenticated calls to indexed operations
+- A built-in API workbench for authenticated calls to indexed operations; session changes clear prior request inputs and results, and ambiguous path values are rejected
 - An operator-only, read-only infrastructure inventory that uses the planned compute API and shows an error when it is unavailable; enrollment and node management are not implemented
 - Docker image + Compose deployment for one-command hosting
 
@@ -154,3 +154,9 @@ For split deployment, use:
 The compose file mounts those runtime configs into each deployed container, so API/auth targets can be changed without rebuilding.
 
 `capabilityHints` maps OpenAPI `operationId` to the capability key returned by `/me.capabilities`. If a mapped capability is `false`, the action is disabled in UI before request execution.
+
+Changing credentials, signing out, session expiry, or saving connection settings clears
+the workbench's prior result, request body, path values and tenant selection. An
+in-flight browser request is cancelled and its response ignored. Cancellation cannot
+undo an operation that the server already received; the API must enforce authorization
+and provide appropriate mutation and recovery semantics.

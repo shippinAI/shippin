@@ -4,7 +4,7 @@ import { InventoryPanel } from "../features/infrastructure/inventory-panel";
 import { ConnectionPanel } from "../features/workbench/connection-panel";
 import { OperationPanel } from "../features/workbench/operation-panel";
 import { ResultPanel } from "../features/workbench/result-panel";
-import { getCapabilityFromOperation, getPathParameters, hasOperatorRole, isCapabilityAllowed, isOperationAllowedForMode } from "../features/workbench/operations";
+import { getCapabilityFromOperation, getPathParameters, hasOperatorRole, isCapabilityAllowed, isOperationAllowedForMode, resolveOperationPath } from "../features/workbench/operations";
 import { completeOidcCodeFlowFromUrl, startOidcLogin } from "../features/auth/oidc";
 import { SettingsForm } from "../features/configuration/settings-form";
 import { applySettings, loadSettings, SETTINGS_KEY, type ConnectionSettings } from "../features/configuration/settings";
@@ -69,9 +69,28 @@ export default function App() {
   const [identityError, setIdentityError] = useState<string>("");
   const [isLoadingIdentity, setIsLoadingIdentity] = useState<boolean>(false);
   const identityRequestVersion = useRef(0);
+  const operationRequestVersion = useRef(0);
+  const operationController = useRef<AbortController | null>(null);
   const [authMessage, setAuthMessage] = useState<string>("");
   const [tokenExpiryEpochMs, setTokenExpiryEpochMs] = useState<number | null>(null);
   const [nowEpochMs, setNowEpochMs] = useState<number>(() => Date.now());
+
+  function clearWorkbenchSession() {
+    operationRequestVersion.current += 1;
+    operationController.current?.abort();
+    operationController.current = null;
+    setIsSubmitting(false);
+    setResult(null);
+    setRequestError("");
+    setRequestBody("");
+    setPathParamValues({});
+    setTenantId("");
+  }
+
+  useEffect(() => () => {
+    operationRequestVersion.current += 1;
+    operationController.current?.abort();
+  }, []);
 
   useEffect(() => {
     // Remove credentials left by older workbench versions; never persist tokens.
@@ -134,6 +153,8 @@ export default function App() {
       return;
     }
     if (nowEpochMs >= tokenExpiryEpochMs) {
+      identityRequestVersion.current += 1;
+      clearWorkbenchSession();
       setToken("");
       setIdentity(null);
       setIdentityError("Session expired. Sign in again.");
@@ -262,54 +283,45 @@ export default function App() {
     isOperationAllowedForMode(operation, appMode, identity)
   ).length;
 
-  function resolvePath(operation: OpenApiOperation): string {
-    return operation.path.replace(/\{([^}]+)\}/g, (_, key: string) => {
-      if (key === "tenantId" && tenantId.trim().length > 0) {
-        return tenantId.trim();
-      }
-      return pathParamValues[key]?.trim() || `{${key}}`;
-    });
-  }
-
   async function onExecute(event: FormEvent) {
     event.preventDefault();
-    if (!config || !selectedOperation) {
-      return;
-    }
+    if (!config || !selectedOperation || isSubmitting) return;
     if (capabilityBlocked) {
       setRequestError(`Blocked by capability guard: ${requiredCapability}`);
       return;
     }
 
-    const unresolvedParam = pathParameters.find((param) => {
-      if (param === "tenantId") {
-        return tenantId.trim().length === 0;
-      }
-      return !pathParamValues[param] || pathParamValues[param].trim().length === 0;
-    });
-    if (unresolvedParam) {
-      setRequestError(`Missing required path parameter: ${unresolvedParam}`);
+    let fullPath: string;
+    try {
+      fullPath = resolveOperationPath(selectedOperation.path, { ...pathParamValues, tenantId });
+    } catch (error) {
+      setResult(null);
+      setRequestError(error instanceof Error ? error.message : "Invalid path parameters.");
       return;
     }
 
-    const fullPath = resolvePath(selectedOperation);
     const fullUrl = `${config.apiBaseUrl.replace(/\/$/, "")}${fullPath}`;
+    const requestVersion = ++operationRequestVersion.current;
+    const controller = new AbortController();
+    operationController.current = controller;
+    setResult(null);
     setRequestError("");
     setIsSubmitting(true);
     try {
       const executionResult = await executeApiRequest({
-        method: selectedOperation.method,
-        url: fullUrl,
-        token,
-        body: requestBody
+        method: selectedOperation.method, url: fullUrl, token, body: requestBody, signal: controller.signal
       });
-      setResult(executionResult);
+      if (requestVersion === operationRequestVersion.current) setResult(executionResult);
     } catch (error) {
+      if (requestVersion !== operationRequestVersion.current) return;
       const message = error instanceof Error ? error.message : "Unknown API execution error";
       setRequestError(message);
       setResult(null);
     } finally {
-      setIsSubmitting(false);
+      if (requestVersion === operationRequestVersion.current) {
+        operationController.current = null;
+        setIsSubmitting(false);
+      }
     }
   }
 
@@ -326,11 +338,11 @@ export default function App() {
   }
 
   function onSignOutClick() {
+    clearWorkbenchSession();
     identityRequestVersion.current += 1;
     setIsLoadingIdentity(false);
     setToken("");
     setIdentity(null);
-    setTenantId(config?.defaultTenantId ?? "");
     setTokenExpiryEpochMs(null);
     setAuthMessage("Signed out locally.");
   }
@@ -344,6 +356,7 @@ export default function App() {
       return;
     }
     // Do not send a credential issued for the previous endpoint to the new one.
+    clearWorkbenchSession();
     identityRequestVersion.current += 1;
     setIsLoadingIdentity(false);
     setToken("");
@@ -431,7 +444,10 @@ export default function App() {
                 value={token}
                 onChange={(event) => {
                   identityRequestVersion.current += 1;
+                  clearWorkbenchSession();
                   setIdentity(null);
+                  setIdentityError("");
+                  setAuthMessage("");
                   setIsLoadingIdentity(false);
                   setToken(event.target.value);
                 }}

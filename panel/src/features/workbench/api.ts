@@ -13,6 +13,7 @@ export async function executeApiRequest(options: {
   url: string;
   token: string;
   body: string;
+  signal?: AbortSignal;
 }): Promise<ApiExecutionResult> {
   const requestHeaders: Record<string, string> = {
     Accept: "application/json"
@@ -32,7 +33,9 @@ export async function executeApiRequest(options: {
   const response = await fetch(options.url, {
     method: options.method,
     headers: requestHeaders,
-    body: requestBody
+    body: requestBody,
+    signal: options.signal,
+    cache: "no-store"
   });
 
   const rawBody = await response.text();
