@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { executeApiRequest, fetchMe } from "../features/workbench/api";
+import { InventoryPanel } from "../features/infrastructure/inventory-panel";
 import { ConnectionPanel } from "../features/workbench/connection-panel";
 import { OperationPanel } from "../features/workbench/operation-panel";
 import { ResultPanel } from "../features/workbench/result-panel";
@@ -169,11 +170,13 @@ export default function App() {
   useEffect(() => {
     if (!config || !token.trim()) {
       setIdentity(null);
+      setIsLoadingIdentity(false);
       return;
     }
     refreshIdentity().catch(() => {
       // handled by refreshIdentity
     });
+    return () => { identityRequestVersion.current += 1; };
   }, [config, token]);
 
   const availableRoutes = useMemo(
@@ -385,7 +388,7 @@ export default function App() {
               type="button"
             >
               <span>{route.label}</span>
-              <span className="pill">{operationCount}</span>
+              {route.id !== "op-infrastructure" ? <span className="pill">{operationCount}</span> : null}
             </button>
           );
         })}
@@ -426,7 +429,12 @@ export default function App() {
               Bearer token
               <textarea
                 value={token}
-                onChange={(event) => setToken(event.target.value)}
+                onChange={(event) => {
+                  identityRequestVersion.current += 1;
+                  setIdentity(null);
+                  setIsLoadingIdentity(false);
+                  setToken(event.target.value);
+                }}
                 placeholder="Paste an access token"
                 rows={2}
               />
@@ -464,7 +472,9 @@ export default function App() {
         </section>
 
         <ConnectionPanel config={config} tenantId={tenantId} identity={identity} onTenantChange={setTenantId} />
-        <OperationPanel
+        {activeRoute?.id === "op-infrastructure" && config && identity && token.trim() ? (
+          <InventoryPanel apiBaseUrl={config.apiBaseUrl} token={token} />
+        ) : <OperationPanel
           routeLabel={activeRoute?.label ?? "No visible"}
           operations={operationsForRoute}
           selectedOperation={selectedOperation}
@@ -483,8 +493,8 @@ export default function App() {
           onPathParameterChange={(key, value) => setPathParamValues((current) => ({ ...current, [key]: value }))}
           onRequestBodyChange={setRequestBody}
           onExecute={onExecute}
-        />
-        <ResultPanel result={result} />
+        />}
+        {activeRoute?.id !== "op-infrastructure" ? <ResultPanel result={result} /> : null}
       </main>
     </div>
   );

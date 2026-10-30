@@ -7,7 +7,7 @@
     "generate:openapi-index": "node ./scripts/generate-openapi-index.mjs",
     "typecheck": "tsc --noEmit",
     "check:boundaries": "node ./scripts/check-boundaries.mjs",
-    "test": "node --test ./scripts/check-boundaries.test.mjs ./scripts/settings.test.mjs ./scripts/oidc.test.mjs ./scripts/workbench-operations.test.mjs",
+    "test": "node --test ./scripts/check-boundaries.test.mjs ./scripts/settings.test.mjs ./scripts/oidc.test.mjs ./scripts/workbench-operations.test.mjs ./scripts/infrastructure.test.mjs",
     "dev": "npm run generate:openapi-index && vite",
     "build": "npm run typecheck && npm run check:boundaries && npm run generate:openapi-index && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173"

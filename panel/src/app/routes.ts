@@ -45,6 +45,7 @@ export const CONSOLE_ROUTES: ConsoleRoute[] = [
     mode: "operator",
     tags: ["me", "platform"]
   },
+  { id: "op-infrastructure", label: "Infrastructure", mode: "operator", tags: ["compute-nodes"] },
   {
     id: "op-tenants",
     label: "Tenants",

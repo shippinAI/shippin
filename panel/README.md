@@ -44,7 +44,8 @@ remain documented in [source ownership](../docs/source-of-truth.md).
 - OIDC code+PKCE sign-in support (runtime-configurable for Zitadel)
 - Session expiry handling (JWT exp warning + forced local sign-out on expiry)
 - Capability-level action guard using `/me.capabilities` and config hints
-- A built-in API workbench for authenticated calls to any indexed operation
+- A built-in API workbench for authenticated calls to indexed operations
+- An operator-only, read-only infrastructure inventory that uses the planned compute API and shows an error when it is unavailable; enrollment and node management are not implemented
 - Docker image + Compose deployment for one-command hosting
 
 ## Local development
