@@ -19,6 +19,7 @@ Incus. See the panel guide for configuration, updates and stopping the deploymen
 
 - [Release roadmap](docs/roadmap.md)
 - [Contributing and resuming work](CONTRIBUTING.md)
+- [Security reporting](SECURITY.md)
 - [Panel](panel/README.md)
 - [Primary image development](install/primary-image/README.md)
 - [Source boundaries](docs/source-of-truth.md)
