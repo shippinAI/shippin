@@ -24,3 +24,16 @@ explicit, not automatic. Keep credentials and installation-specific private info
 out of records and public commits. Review provenance, license, dependencies and
 security before adopting historical code. Configure services and tenant-specific
 settings rather than hardcoding them.
+
+## Working with the public remote
+
+Clone `https://github.com/shippinAI/shippin.git` and work from a topic branch.
+Push that branch and open a pull request to `main`. GitHub requires the `panel`
+and `governance` checks to pass on an up-to-date branch before merging. No human
+approval is required by the current branch rule. Administrators can bypass the
+rule, so use the checks for ordinary changes and document any emergency bypass.
+After merging, switch to `main` and run `git pull --ff-only`.
+
+Do not repoint a historical checkout with unrelated history at the public repository
+and push it. Review and selectively adopt historical work into the canonical checkout
+after checking provenance, security and licensing. See [security reporting](SECURITY.md).
