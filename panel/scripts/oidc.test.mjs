@@ -35,3 +35,17 @@ test("rejects discovery with the wrong issuer or an insecure endpoint", async ()
     }
   } finally { globalThis.fetch = originalFetch; }
 });
+
+test("accepts an issuer whose registered identifier ends with a slash", async () => {
+  const originalFetch = globalThis.fetch;
+  const slashConfig = { auth: { ...config.auth, issuerUrl: "https://identity.example.com/" } };
+  globalThis.sessionStorage = { setItem: () => {} };
+  globalThis.window = { location: { assign: () => {} } };
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({
+    issuer: slashConfig.auth.issuerUrl,
+    authorization_endpoint: "https://identity.example.com/auth",
+    token_endpoint: "https://identity.example.com/token"
+  }) });
+  try { await startOidcLogin(slashConfig); }
+  finally { globalThis.fetch = originalFetch; delete globalThis.window; delete globalThis.sessionStorage; }
+});

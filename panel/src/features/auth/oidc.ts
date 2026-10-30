@@ -44,8 +44,9 @@ async function discoverOidcEndpoints(config: RuntimeConfig): Promise<{ authoriza
   if (!isSecure(issuer) || issuer.username || issuer.password || issuer.search || issuer.hash) {
     throw new Error("OIDC issuer must be an HTTPS URL without credentials, query or fragment.");
   }
-  const issuerValue = issuer.href.replace(/\/$/, "");
-  const response = await fetch(`${issuerValue}/.well-known/openid-configuration`, { cache: "no-store" });
+  const issuerValue = config.auth.issuerUrl.trim();
+  const discoveryBase = issuerValue.replace(/\/$/, "");
+  const response = await fetch(`${discoveryBase}/.well-known/openid-configuration`, { cache: "no-store" });
   if (!response.ok) throw new Error(`OIDC discovery failed (${response.status}).`);
   const metadata: unknown = await response.json();
   if (!metadata || typeof metadata !== "object") throw new Error("OIDC discovery response is invalid.");
