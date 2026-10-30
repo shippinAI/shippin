@@ -4,9 +4,17 @@ Shippin is an early-stage infrastructure platform. The repository contains a sta
 panel workbench, a draft API contract, governance tooling and an unsigned Debian/Incus
 development image builder. It does not yet provide a deployable management system.
 The public repository is the source of truth for accepted code; historical material
-is a candidate for review, not an implementation dependency.
+is a candidate for review, not an implementation dependency. The [release objective](objective.md)
+defines the desired primary-to-secondary outcome and evidence required to ship.
 
-## Next: prove the primary OS foundation
+## Next: build the primary service and prove the OS foundation
+
+Establish the canonical control-plane and host-agent ownership after reviewing
+candidate code. Build the primary service, durable state, authorization and
+first-owner flow in small, independently verified slices. The current panel is a
+workbench and cannot yet manage real infrastructure.
+
+In parallel, prove the installation foundation:
 
 Complete an unattended test of a **disposable virtual machine** that boots the existing
 development ISO, installs Debian and Incus from a verified package mirror, reboots,
