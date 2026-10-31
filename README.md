@@ -23,6 +23,7 @@ Incus. See the panel guide for configuration, updates and stopping the deploymen
 - [Security reporting](SECURITY.md)
 - [Panel](panel/README.md)
 - [Primary image development](install/primary-image/README.md)
+- [Secondary-node enrollment design](docs/node-enrollment.md)
 - [Source boundaries](docs/source-of-truth.md)
 - [Service contexts](docs/service-contexts.md)
 - [Agent workflow](governance/README.md)
