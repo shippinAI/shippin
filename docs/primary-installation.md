@@ -17,4 +17,5 @@ short-lived bootstrap mechanism over trusted HTTPS, with recovery and backup. It
 not rely on a shared factory password. Node enrollment needs independently revocable
 credentials and must not silently change cluster membership or erase disks.
 
-See the [release roadmap](roadmap.md) and the [next implementation handoff](../install/primary-image/implementation-plan.md).
+See the [node enrollment design](node-enrollment.md), [release roadmap](roadmap.md),
+and [next implementation handoff](../install/primary-image/implementation-plan.md).
