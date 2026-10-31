@@ -24,6 +24,7 @@ Incus. See the panel guide for configuration, updates and stopping the deploymen
 - [Panel](panel/README.md)
 - [Primary image development](install/primary-image/README.md)
 - [Source boundaries](docs/source-of-truth.md)
+- [Service contexts](docs/service-contexts.md)
 - [Agent workflow](governance/README.md)
 
 The current source history begins from a selected public snapshot. Older private development material is maintained separately. No open-source license has been selected yet; public visibility alone is not a license to reuse code.

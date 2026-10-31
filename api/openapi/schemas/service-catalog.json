@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shippin service catalog and attachment contract",
+  "description": "Draft representation only; not an authorization policy, configuration store or live service.",
+  "$defs": {
+    "Key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"
+    },
+    "Scope": {
+      "description": "Explicit ownership context; the server must authorize and verify all referenced relationships.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "platform"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "tenant_id"
+          ],
+          "properties": {
+            "kind": {
+              "const": "tenant"
+            },
+            "tenant_id": {
+              "$ref": "common.yaml#/Uuid"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "tenant_id",
+            "project_id"
+          ],
+          "properties": {
+            "kind": {
+              "const": "project"
+            },
+            "tenant_id": {
+              "$ref": "common.yaml#/Uuid"
+            },
+            "project_id": {
+              "$ref": "common.yaml#/Uuid"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "tenant_id",
+            "workspace_id"
+          ],
+          "properties": {
+            "kind": {
+              "const": "workspace"
+            },
+            "tenant_id": {
+              "$ref": "common.yaml#/Uuid"
+            },
+            "workspace_id": {
+              "$ref": "common.yaml#/Uuid"
+            }
+          }
+        }
+      ]
+    },
+    "ServiceDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "capability",
+        "display_name",
+        "supported_scopes",
+        "availability"
+      ],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "capability": {
+          "$ref": "#/$defs/Key"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "supported_scopes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "platform",
+              "tenant",
+              "project",
+              "workspace"
+            ]
+          }
+        },
+        "availability": {
+          "enum": [
+            "planned",
+            "available",
+            "disabled"
+          ],
+          "description": "Catalog availability only; not runtime health or authorization."
+        }
+      }
+    },
+    "ServiceAttachment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "definition_key",
+        "scope",
+        "desired_state",
+        "observed_state"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.yaml#/Uuid"
+        },
+        "definition_key": {
+          "$ref": "#/$defs/Key"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "desired_state": {
+          "enum": [
+            "enabled",
+            "disabled"
+          ]
+        },
+        "observed_state": {
+          "enum": [
+            "unknown",
+            "provisioning",
+            "ready",
+            "degraded",
+            "offline",
+            "failed"
+          ]
+        },
+        "observed_at": {
+          "$ref": "common.yaml#/Timestamp"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "observed_state": {
+                "not": {
+                  "const": "unknown"
+                }
+              }
+            },
+            "required": [
+              "observed_state"
+            ]
+          },
+          "then": {
+            "required": [
+              "observed_at"
+            ],
+            "properties": {
+              "observed_at": {}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

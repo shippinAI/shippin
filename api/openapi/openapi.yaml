@@ -256,6 +256,9 @@ paths:
   /operator/workspaces/{workspaceId}/{action}:
     $ref: paths/operator-runtime.yaml#/operatorWorkspaceAction
 components:
+  schemas:
+    ServiceDefinition: { $ref: schemas/service-catalog.json#/$defs/ServiceDefinition }
+    ServiceAttachment: { $ref: schemas/service-catalog.json#/$defs/ServiceAttachment }
   securitySchemes:
     consoleSession: {type: apiKey, in: cookie, name: shippin_session}
     bridgeBearer: {type: http, scheme: bearer, description: Account-bound bridge session token.}

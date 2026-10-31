@@ -58,7 +58,9 @@ npm install
 npm run dev
 ```
 
-Default URL: `http://localhost:5173`
+Default URL: `http://localhost:5173`. The development and preview servers bind to loopback by
+default. Exposing either on another interface requires an explicit host setting
+and suitable network protection.
 
 Optional base path while developing a split origin/path build:
 
