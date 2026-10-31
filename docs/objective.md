@@ -51,4 +51,5 @@ Today the repository contains a panel workbench, a draft API, governance tools
 and an unsigned development image builder. It does not yet contain a complete
 primary service, first-owner flow, node enrollment or production release. See the
 [roadmap](roadmap.md) for work order and the [source boundaries](source-of-truth.md)
-for ownership.
+for ownership. The [service context map](service-contexts.md) defines the intended
+managed data, identity, storage, communication and agent boundaries.
