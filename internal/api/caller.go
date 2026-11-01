@@ -29,7 +29,13 @@ type caller struct {
 }
 
 func (a *API) caller(w http.ResponseWriter, r *http.Request) (*caller, bool) {
-	c, err := a.callerFor(r, auth.FromContext(r.Context()))
+	var c *caller
+	var err error
+	if uid := auth.LocalUser(r.Context()); uid != "" && auth.FromContext(r.Context()) == "" {
+		c, err = a.localCaller(r, uid)
+	} else {
+		c, err = a.callerFor(r, auth.FromContext(r.Context()))
+	}
 	if err == errIdP {
 		auth.Problem(w, http.StatusUnauthorized, "Your session expired. Sign in again.")
 		return nil, false

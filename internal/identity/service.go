@@ -108,6 +108,16 @@ func (s *Service) audit(ctx context.Context, actor, action string, detail any) {
 }
 
 // IssueSetup stores a new one-time owner code when no owner exists.
+// HasOwner reports whether the first owner exists. An error reads as true so a database
+// problem never advertises an open setup.
+func (s *Service) HasOwner(ctx context.Context) bool {
+	var n int
+	if err := s.db.QueryRow(ctx, `SELECT count(*) FROM identity_users WHERE role = 'owner'`).Scan(&n); err != nil {
+		return true
+	}
+	return n > 0
+}
+
 func (s *Service) IssueSetup(ctx context.Context) (string, error) {
 	var n int
 	if err := s.db.QueryRow(ctx, `SELECT count(*) FROM identity_users WHERE role = 'owner'`).Scan(&n); err != nil {

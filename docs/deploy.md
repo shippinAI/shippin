@@ -54,7 +54,9 @@ incus config device add <vm> panel proxy nat=true listen=tcp:<host address>:443 
 
 ## First owner
 
-After the health check passes, the installer runs `shippin-console setup` and prints `setup_code=...` while no owner exists. The code is valid for 24 hours. Running the installer again before it is redeemed issues a new code and invalidates the old one; once an owner exists, nothing is issued. Redeem it once with `POST /v1/setup` (`code`, `email`, `name`) from the panel's https origin. That creates the owner and returns eight recovery codes, shown once. See [identity and access](identity-and-access.md).
+After the health check passes, the installer runs `shippin-console setup` and prints `setup_code=...` while no owner exists. The code is valid for 24 hours. Running the installer again before it is redeemed issues a new code and invalidates the old one; once an owner exists, nothing is issued. Open `https://<console host>/setup` and enter the code with your name and email (or `POST /v1/setup` with `code`, `email`, `name` from the panel's https origin). That creates the owner, signs you in, and shows eight recovery codes once. The sign-in page links to `/setup` while no owner exists and offers "Use a recovery code" afterwards.
+
+The owner is the platform admin without any upstream IdP: a local session maps the owner to the `roles.iam` source of `operator.role`, and each directory org to an org membership. Tenant onboarding (`/welcome`) still creates its org through the upstream IdP, so a panel with no IdP client cannot create tenants yet. See [identity and access](identity-and-access.md).
 
 The `--example` install redeems its own code as part of the smoke test.
 

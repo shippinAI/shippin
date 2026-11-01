@@ -74,11 +74,40 @@ export function SignInPage() {
                 <Button type="submit" variant="secondary" size="lg" className="w-full" tooltip="We email a one-time sign-in link. It expires after a few minutes.">Email me a sign-in link</Button>
               </form>
             )}
+            {s?.local_login !== false && (
+              <details className="mt-4 text-sm">
+                <summary className="cursor-pointer text-fg-muted">Use a recovery code</summary>
+                <form
+                  className="mt-2 grid gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const f = new FormData(e.currentTarget);
+                    void fetch("/v1/session/recovery", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({ email: f.get("email"), code: f.get("code") }),
+                    }).then((res) => {
+                      if (res.ok) window.location.assign("/");
+                      else toast.error("Sign-in failed", "That email and recovery code did not match.");
+                    });
+                  }}
+                >
+                  <input name="email" type="email" required autoComplete="username" placeholder="you@example.invalid" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 text-sm" />
+                  <input name="code" required autoComplete="one-time-code" placeholder="Recovery code" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 font-mono text-sm" />
+                  <Button type="submit" variant="secondary" size="lg" className="w-full" tooltip="Each recovery code works once.">Sign in with a recovery code</Button>
+                </form>
+              </details>
+            )}
             <div className="mt-4 flex items-center gap-2 text-xs text-fg-subtle">
               <LockKeyhole className="size-3.5" />
               {s?.idp_name} · OpenID Connect with PKCE via <span className="font-mono text-fg-muted">{idpHost}</span>
             </div>
           </div>
+          {s?.setup_open && (
+            <p className="mt-6 text-sm">
+              New installation? <a className="font-medium underline" href="/setup">Create the owner account</a> with the setup code the installer printed.
+            </p>
+          )}
           <p className="mt-8 text-xs text-fg-subtle">
             Need access? Ask your organization owner for an invite, or join the waitlist at /v1/waitlist.
           </p>

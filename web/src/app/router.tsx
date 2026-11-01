@@ -5,6 +5,7 @@ import { LandingRedirect, RequireAuth } from "./require-auth";
 
 // Everything but the root layout and the auth gate is its own chunk (initial JS budget, CONSOLE-IA).
 const SignInPage = lazy(() => import("../features/auth/ui/sign-in-page").then((m) => ({ default: m.SignInPage })));
+const SetupPage = lazy(() => import("../features/auth/ui/setup-page").then((m) => ({ default: m.SetupPage })));
 const GoPage = lazy(() => import("../features/go/ui/go-page").then((m) => ({ default: m.GoPage })));
 const OverviewPage = lazy(() => import("../features/overview/ui/overview-page").then((m) => ({ default: m.OverviewPage })));
 const AppShell = lazy(() => import("../template/app-shell").then((m) => ({ default: m.AppShell })));
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { path: "/login", element: <Suspense fallback={null}><SignInPage /></Suspense> },
+      { path: "/setup", element: <Suspense fallback={null}><SetupPage /></Suspense> },
       { path: "/device", element: <Suspense fallback={null}><DevicePage /></Suspense> },
       {
         element: <RequireAuth />,

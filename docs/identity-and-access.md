@@ -16,7 +16,7 @@ After that, a person can hold:
 - recovery codes (single use, stored as hashes, shown once at setup).
 - email magic links (single use, hashed, short expiry).
 
-Sessions stay in the existing `sessions` table. A local session sets `uid` on the encrypted payload and uses the same `shippin_session` cookie.
+Sessions stay in the existing `sessions` table. A local session sets `uid` on the encrypted payload and uses the same `shippin_session` cookie. The panel API accepts it like an IdP token: the user's directory orgs become org memberships, and the installation owner holds `operator.role`.
 
 ## This console as an OIDC provider
 
