@@ -17,6 +17,7 @@ import (
 	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/mail"
 	"shippin.cloud/console/internal/spa"
+	"shippin.cloud/console/internal/tlsfile"
 )
 
 func main() {
@@ -56,6 +57,18 @@ func main() {
 	mux.HandleFunc("GET /auth/logout", flow.Logout)
 	mux.Handle("/", byOrigin(flow, spa.Handler(cfg.StaticDir), spa.HandlerFor(cfg.StaticDir, "ops.html")))
 	srv := &http.Server{Addr: cfg.Listen, Handler: api.RequestLog(secure(api.SameOrigin(mux))), ReadHeaderTimeout: 10 * time.Second}
+	if certFile, keyFile := os.Getenv("SHIPPIN_TLS_CERT"), os.Getenv("SHIPPIN_TLS_KEY"); certFile != "" || keyFile != "" {
+		if certFile == "" || keyFile == "" {
+			log.Fatal("tls: set both SHIPPIN_TLS_CERT and SHIPPIN_TLS_KEY")
+		}
+		l, err := tlsfile.New(certFile, keyFile)
+		if err != nil {
+			log.Fatalf("tls: %v", err)
+		}
+		srv.TLSConfig = l.Config()
+		log.Printf("console listening on %s with TLS (domain %s)", cfg.Listen, cfg.Domain)
+		log.Fatal(srv.ListenAndServeTLS("", ""))
+	}
 	log.Printf("console listening on %s (domain %s)", cfg.Listen, cfg.Domain)
 	log.Fatal(srv.ListenAndServe())
 }

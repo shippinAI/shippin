@@ -36,3 +36,24 @@ func TestSameOrigin(t *testing.T) {
 		}
 	}
 }
+
+func TestSameOriginNonDefaultPort(t *testing.T) {
+	ok := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) })
+	h := SameOrigin(ok)
+	for _, c := range []struct {
+		origin string
+		want   int
+	}{
+		{"https://panel.example.invalid:8443", 204},
+		{"https://panel.example.invalid", 403},
+		{"https://panel.example.invalid:9443", 403},
+	} {
+		r := httptest.NewRequest("POST", "https://panel.example.invalid:8443/v1/setup", nil)
+		r.Header.Set("Origin", c.origin)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		if w.Code != c.want {
+			t.Errorf("origin=%q: got %d want %d", c.origin, w.Code, c.want)
+		}
+	}
+}
