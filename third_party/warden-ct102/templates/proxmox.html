@@ -1,0 +1,202 @@
+{{template "header" .}}
+
+<main class="container">
+  <h2 style="font-family:'JetBrains Mono',monospace; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-dim); margin-bottom:1rem;">Proxmox</h2>
+
+  {{if not .Inventory.Configured}}
+  <div class="card" style="padding:1.5rem;">
+    <h3 style="margin-top:0;">Not configured</h3>
+    <p style="color:var(--text-dim);">{{.Inventory.Error}}</p>
+    <p>Set the following in <code>/etc/warden/warden.env</code> and restart the service:</p>
+    <pre style="background:var(--bg-deep);padding:1rem;border-radius:8px;font-size:0.78rem;overflow-x:auto;">PROXMOX_HOST=192.0.2.20
+PROXMOX_PORT=8006
+PROXMOX_NODE=server1
+PROXMOX_TOKEN_ID=user@pve!token-name
+PROXMOX_TOKEN_SECRET=&lt;your token secret&gt;
+PROXMOX_VERIFY_TLS=true</pre>
+  </div>
+  {{else if not .Inventory.Available}}
+  <div class="card" style="padding:1.5rem;">
+    <h3 style="margin-top:0;color:var(--state-down,#e57373);">Connection failed</h3>
+    <p style="color:var(--text-dim);">Host: <code>{{.Inventory.Host}}</code> Node: <code>{{.Inventory.Node}}</code></p>
+    <p>{{.Inventory.Error}}</p>
+  </div>
+  {{else}}
+
+  <!-- node summary -->
+  <div class="card" style="padding:1.25rem;margin-bottom:1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);">Node</div>
+        <div style="font-size:1.4rem;font-weight:700;">{{.Inventory.Status.Node}}</div>
+        <div style="color:var(--text-dim);font-size:0.85rem;">PVE {{.Inventory.Status.PVEVersion}} &middot; {{.Inventory.Host}}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3, minmax(120px, auto));gap:1.25rem;">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);">Uptime</div>
+          <div style="font-weight:600;">{{formatUptime .Inventory.Status.Uptime}}</div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);">CPU</div>
+          <div class="{{cpuClass .Inventory.Status.CPUUsage}}-text" style="font-weight:600;">{{printf "%.1f%%" .Inventory.Status.CPUUsage}}</div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);">Memory</div>
+          <div style="font-weight:600;">{{formatBytes .Inventory.Status.MemUsed}} / {{formatBytes .Inventory.Status.MemTotal}}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VMs table -->
+  <div class="card" style="padding:0;margin-bottom:1rem;overflow:hidden;">
+    <div style="padding:1rem 1.25rem;font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-dim);border-bottom:1px solid var(--border);">
+      VMs &amp; Containers ({{len .Inventory.VMs}})
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-dim);">
+            <th style="padding:0.75rem 1rem;">VMID</th>
+            <th style="padding:0.75rem 1rem;">Type</th>
+            <th style="padding:0.75rem 1rem;">Name</th>
+            <th style="padding:0.75rem 1rem;">Status</th>
+            <th style="padding:0.75rem 1rem;">CPU</th>
+            <th style="padding:0.75rem 1rem;">Memory</th>
+            <th style="padding:0.75rem 1rem;">Pool</th>
+            <th style="padding:0.75rem 1rem;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Inventory.VMs}}
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:0.75rem 1rem;font-family:'JetBrains Mono',monospace;">{{.VMID}}</td>
+            <td style="padding:0.75rem 1rem;">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;background:var(--bg-deep);padding:0.15rem 0.5rem;border-radius:4px;">
+                {{if eq .Type "qemu"}}KVM{{else}}LXC{{end}}{{if eq .Template 1}} TPL{{end}}
+              </span>
+            </td>
+            <td style="padding:0.75rem 1rem;font-weight:600;">{{.Name}}</td>
+            <td style="padding:0.75rem 1rem;">
+              {{if eq .Status "running"}}
+                <span class="state-up">● running</span>
+              {{else if eq .Status "stopped"}}
+                <span class="state-down">○ stopped</span>
+              {{else}}
+                <span class="state-unknown">{{.Status}}</span>
+              {{end}}
+            </td>
+            <td style="padding:0.75rem 1rem;font-family:'JetBrains Mono',monospace;font-size:0.85rem;">
+              {{if eq .Status "running"}}{{printf "%.1f%%" (mulFloat .CPU 100.0)}} / {{.MaxCPU}} cores{{else}}—{{end}}
+            </td>
+            <td style="padding:0.75rem 1rem;font-family:'JetBrains Mono',monospace;font-size:0.85rem;">
+              {{if eq .Status "running"}}{{formatBytes .Mem}} / {{formatBytes .MaxMem}}{{else}}—{{end}}
+            </td>
+            <td style="padding:0.75rem 1rem;color:var(--text-dim);font-size:0.85rem;">{{.Pool}}</td>
+            <td style="padding:0.75rem 1rem;">
+              <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
+                {{$verbPrefix := "vm"}}{{if eq .Type "lxc"}}{{$verbPrefix = "ct"}}{{end}}
+                {{if eq .Status "stopped"}}
+                  <button class="btn btn-sm" onclick="proxmoxAction('{{$verbPrefix}}-start', {{.VMID}}, '{{.Name}}')">Start</button>
+                {{else if eq .Status "running"}}
+                  <button class="btn btn-sm" onclick="proxmoxAction('{{$verbPrefix}}-shutdown', {{.VMID}}, '{{.Name}}')">Shutdown</button>
+                  <button class="btn btn-sm" onclick="proxmoxAction('{{$verbPrefix}}-reboot', {{.VMID}}, '{{.Name}}')">Reboot</button>
+                  <button class="btn btn-sm btn-danger" onclick="proxmoxAction('{{$verbPrefix}}-stop', {{.VMID}}, '{{.Name}}')">Force Stop</button>
+                  {{if eq .Type "qemu"}}
+                  <button class="btn btn-sm" onclick="proxmoxSnapshot({{.VMID}}, '{{.Name}}')">Snapshot</button>
+                  {{end}}
+                {{end}}
+              </div>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Storage table -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:1rem 1.25rem;font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-dim);border-bottom:1px solid var(--border);">
+      Storage ({{len .Inventory.Storage}})
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-dim);">
+            <th style="padding:0.75rem 1rem;">Storage</th>
+            <th style="padding:0.75rem 1rem;">Type</th>
+            <th style="padding:0.75rem 1rem;">Used</th>
+            <th style="padding:0.75rem 1rem;">Total</th>
+            <th style="padding:0.75rem 1rem;">Avail</th>
+            <th style="padding:0.75rem 1rem;">Usage</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Inventory.Storage}}
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:0.75rem 1rem;font-weight:600;">{{.Storage}}</td>
+            <td style="padding:0.75rem 1rem;font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--text-dim);">{{.Type}}</td>
+            <td style="padding:0.75rem 1rem;font-family:'JetBrains Mono',monospace;font-size:0.85rem;">{{formatBytes .Used}}</td>
+            <td style="padding:0.75rem 1rem;font-family:'JetBrains Mono',monospace;font-size:0.85rem;">{{formatBytes .Total}}</td>
+            <td style="padding:0.75rem 1rem;font-family:'JetBrains Mono',monospace;font-size:0.85rem;">{{formatBytes .Avail}}</td>
+            <td style="padding:0.75rem 1rem;width:200px;">
+              <div style="background:var(--bg-deep);height:8px;border-radius:4px;overflow:hidden;">
+                <div class="{{diskClass .UsedPct}}" style="height:100%;width:{{printf "%.1f" .UsedPct}}%;"></div>
+              </div>
+              <div style="font-size:0.75rem;color:var(--text-dim);margin-top:0.2rem;">{{printf "%.1f%%" .UsedPct}}</div>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {{end}}
+</main>
+
+<script>
+async function proxmoxAction(action, vmid, name) {
+  const verbs = {
+    'start': 'Start', 'stop': 'Force-stop', 'shutdown': 'Shutdown', 'reboot': 'Reboot'
+  };
+  const verb = verbs[action.split('-')[1]] || action;
+  if (!confirm(`${verb} ${name} (VMID ${vmid})?`)) return;
+
+  const fd = new FormData();
+  fd.set('action', action);
+  fd.set('vmid', vmid);
+  try {
+    const r = await fetch('/api/proxmox', { method: 'POST', body: fd });
+    const j = await r.json();
+    if (window.toast) toast(j.message, j.success ? 'success' : 'error');
+    else alert(j.message);
+    if (j.success) setTimeout(() => location.reload(), 800);
+  } catch (e) {
+    if (window.toast) toast('Request failed: ' + e.message, 'error');
+    else alert('Request failed: ' + e.message);
+  }
+}
+
+async function proxmoxSnapshot(vmid, name) {
+  const snap = prompt(`Snapshot name for ${name} (VMID ${vmid})?\nLeave blank for auto-generated.`, '');
+  if (snap === null) return;
+
+  const fd = new FormData();
+  fd.set('action', 'vm-snapshot');
+  fd.set('vmid', vmid);
+  if (snap) fd.set('snapname', snap);
+  try {
+    const r = await fetch('/api/proxmox', { method: 'POST', body: fd });
+    const j = await r.json();
+    if (window.toast) toast(j.message, j.success ? 'success' : 'error');
+    else alert(j.message);
+  } catch (e) {
+    if (window.toast) toast('Request failed: ' + e.message, 'error');
+    else alert('Request failed: ' + e.message);
+  }
+}
+</script>
+
+{{template "footer" .}}

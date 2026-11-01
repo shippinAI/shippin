@@ -1,0 +1,45 @@
+{
+  "sparks": {
+    "tenant_id": "00000000-0000-4000-8000-000000000001",
+    "model_api": {
+      "name": "Shared model API",
+      "state": "blocked",
+      "reason": "Connect the model gateway and a healthy inference backend before publishing an HTTPS API."
+    },
+    "nodes": [
+      {
+        "id": "spark-01",
+        "name": "spark-01",
+        "role": "Spark ring coordinator",
+        "management": [
+          { "name": "Pulse", "state": "blocked", "reason": "Management access is not connected." },
+          { "name": "JupyterLab", "state": "blocked", "reason": "The HTTPS edge has no approved connection to this node." }
+        ]
+      },
+      {
+        "id": "spark-02",
+        "name": "spark-02",
+        "role": "Spark ring node",
+        "management": [
+          { "name": "Management", "state": "blocked", "reason": "A management service and its authenticated HTTPS route must be connected." }
+        ]
+      },
+      {
+        "id": "spark-03",
+        "name": "spark-03",
+        "role": "Spark ring node",
+        "management": [
+          { "name": "JupyterLab", "state": "blocked", "reason": "The HTTPS edge has no approved connection to this node." }
+        ]
+      },
+      {
+        "id": "controller",
+        "name": "controller",
+        "role": "Controller (planned)",
+        "management": [
+          { "name": "Management", "state": "blocked", "reason": "Bring the node online, then connect its management service." }
+        ]
+      }
+    ]
+  }
+}

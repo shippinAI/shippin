@@ -1,0 +1,386 @@
+{
+  "socket": "/run/shippin/hostd.sock",
+  "dataset_root": "tank/tenants",
+  "uplink": "UPLINK",
+  "image": "shippin/dev-debian13",
+  "key_store": "/etc/shippin/keys.sops.yaml",
+  "port_min": 22000,
+  "port_max": 22999,
+  "platform_project": "platform",
+  "hidden_pools": [
+    "platform"
+  ],
+  "plans": {
+    "free": {
+      "quota_gib": 40,
+      "instances": 2,
+      "cpu": 2,
+      "memory": "4GiB",
+      "root_gib": 20,
+      "home_gib": 20,
+      "workspace_cpu": 2,
+      "workspace_memory": "4GiB",
+      "boundaries": 0,
+      "cowork": false
+    },
+    "starter": {
+      "quota_gib": 80,
+      "instances": 4,
+      "cpu": 2,
+      "memory": "4GiB",
+      "root_gib": 20,
+      "home_gib": 20,
+      "workspace_cpu": 2,
+      "workspace_memory": "3GiB",
+      "boundaries": 0,
+      "cowork": false,
+      "vm": {
+        "cpu": 2,
+        "memory": "4GiB",
+        "root_gib": 20,
+        "data_gib": 40
+      }
+    },
+    "pro": {
+      "quota_gib": 160,
+      "instances": 7,
+      "cpu": 8,
+      "memory": "16GiB",
+      "root_gib": 20,
+      "home_gib": 40,
+      "workspace_cpu": 4,
+      "workspace_memory": "8GiB",
+      "boundaries": 0,
+      "cowork": true,
+      "vm": {
+        "cpu": 4,
+        "memory": "16GiB",
+        "root_gib": 20,
+        "data_gib": 100
+      }
+    },
+    "business": {
+      "quota_gib": 360,
+      "instances": 17,
+      "cpu": 16,
+      "memory": "32GiB",
+      "root_gib": 20,
+      "home_gib": 80,
+      "workspace_cpu": 8,
+      "workspace_memory": "16GiB",
+      "boundaries": 1,
+      "cowork": true,
+      "vm": {
+        "cpu": 8,
+        "memory": "32GiB",
+        "root_gib": 20,
+        "data_gib": 280
+      }
+    },
+    "founder": {
+      "quota_gib": 450,
+      "instances": 11,
+      "cpu": 16,
+      "memory": "32GiB",
+      "root_gib": 20,
+      "home_gib": 50,
+      "workspace_cpu": 4,
+      "workspace_memory": "8GiB",
+      "boundaries": 1,
+      "cowork": true,
+      "vm": {
+        "cpu": 16,
+        "memory": "32GiB",
+        "root_gib": 20,
+        "data_gib": 300
+      }
+    }
+  },
+  "edge": {
+    "instance": "edge",
+    "ip": "",
+    "platform_network": "platform-net",
+    "console_upstream": "",
+    "ws_base_domain": "ws.example.invalid",
+    "ide_port": 3000,
+    "caddy_server": "srv0",
+    "hub_network": "ws-hub",
+    "hub_ip": "",
+    "hub_iface": "eth1",
+    "public_ip": "",
+    "preview_ports": "1024-65535",
+    "preview_min": 1024,
+    "preview_max": 65535,
+    "image_prefix": "shippin/",
+    "caddy_admin": "http://localhost:2019",
+    "ws_cookie": "shippin_ws",
+    "repo_hosts": [
+      "github.com",
+      "gitlab.com",
+      "codeberg.org"
+    ],
+    "reserved_ports": [
+      22,
+      80,
+      443
+    ],
+    "reserved_domains": [
+      "example.invalid"
+    ]
+  },
+  "transit": "shippin-transit",
+  "tenant_cidr": "198.18.0.0/15",
+  "state_dir": "/var/lib/shippin",
+  "vm_first": true,
+  "tenant_vm_image": "shippin/tenant-vm",
+  "tenant_vm_init": "/usr/local/share/shippin/shippin-tvm-init",
+  "ai": {
+    "home_path": "/home/dev/.ai",
+    "home_gib": 5,
+    "volume_shifted": false,
+    "user": "dev",
+    "uid": 1000,
+    "status_path": "/run/shippin/ai/status.json",
+    "status_unit": "shippin-ai-status.service",
+    "status_max_bytes": 8192,
+    "utility": {
+      "image": "shippin/dev-debian13",
+      "cpu": 1,
+      "memory": "1GiB",
+      "ttyd_port": 7681,
+      "ttyd_iface": "eth0",
+      "ttyd_unit": "shippin-ttyd.service",
+      "ttyd_env_file": "/etc/default/shippin-ttyd"
+    },
+    "logout": {
+      "claude": [
+        "claude",
+        "auth",
+        "logout"
+      ],
+      "codex": [
+        "codex",
+        "logout"
+      ],
+      "grok": [
+        "grok",
+        "logout"
+      ]
+    }
+  },
+  "git": {
+    "token_path": "/run/shippin/git/token",
+    "uid": 1000,
+    "gitleaks": {
+      "version": "8.28.0",
+      "sha256": "5fd1b3b0073269484d40078662e921d07427340ab9e6ed526ccd215a565b3298",
+      "host_path": "/usr/local/lib/shippin/gitleaks",
+      "path": "/usr/local/lib/shippin/gitleaks"
+    }
+  },
+  "agent": {
+    "user": "dev",
+    "uid": 1000,
+    "session": "agent",
+    "prompt_max_bytes": 8192,
+    "term_port": 7682,
+    "term_iface": "eth0",
+    "term_base": "/_term",
+    "session_manager": false,
+    "providers": {
+      "claude": {
+        "run": [
+          "claude"
+        ],
+        "resume": [
+          "claude",
+          "--continue"
+        ]
+      },
+      "codex": {
+        "run": [
+          "codex"
+        ],
+        "resume": [
+          "codex",
+          "resume",
+          "--last"
+        ]
+      },
+      "grok": {
+        "run": [
+          "grok"
+        ],
+        "resume": [
+          "grok",
+          "--resume"
+        ]
+      }
+    }
+  },
+  "services": {
+    "rrflow_state": {
+      "image": "shippin/dev-debian13",
+      "binary": "/usr/local/lib/shippin-hostd/releases/current/rrflow-state",
+      "port": 7710,
+      "cpu": 1,
+      "memory": "512MiB",
+      "data_dir": "/var/lib/rrflow",
+      "ws_user": "dev",
+      "ws_uid": 1000,
+      "migrate": {
+        "enabled": true,
+        "retire_old": false
+      },
+      "allow_delete": false
+    }
+  },
+  "connect": {
+    "env": {
+      "CLAUDE_CONFIG_DIR": "/home/dev/.ai/claude",
+      "CODEX_HOME": "/home/dev/.ai/codex",
+      "GROK_HOME": "/home/dev/.ai/grok",
+      "GH_CONFIG_DIR": "/home/dev/.ai/gh"
+    },
+    "spool_dir": "/run/shippin/connect/in",
+    "store_dir": "/home/dev/.ai/connect",
+    "status_path": "/run/shippin/connect/status.json",
+    "writer_unit": "shippin-credwriter.service",
+    "writer_bin": "/usr/local/lib/shippin-hostd/releases/current/shippin-credwriter",
+    "writer_path": "/home/dev/.ai/bin/shippin-credwriter",
+    "login_seconds": 900,
+    "output_max_bytes": 65536,
+    "status_max_bytes": 4096,
+    "refresh_seconds": 900,
+    "profile_path": "/etc/profile.d/shippin-connect.sh",
+    "providers": {
+      "github": {
+        "label": "GitHub",
+        "login": [
+          "gh",
+          "auth",
+          "login",
+          "--web",
+          "--hostname",
+          "github.com",
+          "--git-protocol",
+          "https",
+          "--skip-ssh-key"
+        ],
+        "logout": [
+          "gh",
+          "auth",
+          "logout",
+          "--hostname",
+          "github.com"
+        ],
+        "status": [
+          "gh",
+          "auth",
+          "status",
+          "--hostname",
+          "github.com"
+        ],
+        "refresh": [],
+        "token_env": "GH_TOKEN",
+        "token_login": [],
+        "token_pattern": "^(gh[pousr]_[A-Za-z0-9_]{20,251}|github_pat_[A-Za-z0-9_]{20,251})$",
+        "url_prefixes": [
+          "https://github.com/login/device"
+        ],
+        "code_pattern": "one-time code: ([A-Z0-9]{4}-[A-Z0-9]{4})",
+        "press_enter": true,
+        "code_input": false
+      },
+      "claude": {
+        "label": "Claude",
+        "login": [
+          "claude",
+          "auth",
+          "login",
+          "--claudeai"
+        ],
+        "logout": [
+          "claude",
+          "auth",
+          "logout"
+        ],
+        "status": [
+          "claude",
+          "auth",
+          "status"
+        ],
+        "refresh": [],
+        "token_env": "CLAUDE_CODE_OAUTH_TOKEN",
+        "token_login": [],
+        "token_pattern": "^sk-ant-oat01-[A-Za-z0-9_-]{20,250}$",
+        "url_prefixes": [
+          "https://claude.com/cai/oauth/authorize",
+          "https://claude.ai/oauth/authorize"
+        ],
+        "code_pattern": "\\A\\z",
+        "press_enter": false,
+        "code_input": true
+      },
+      "codex": {
+        "label": "Codex",
+        "login": [
+          "codex",
+          "login",
+          "--device-auth"
+        ],
+        "logout": [
+          "codex",
+          "logout"
+        ],
+        "status": [
+          "codex",
+          "login",
+          "status"
+        ],
+        "refresh": [],
+        "token_env": "OPENAI_API_KEY",
+        "token_login": [
+          "codex",
+          "login",
+          "--with-api-key"
+        ],
+        "token_pattern": "^sk-[A-Za-z0-9_-]{20,250}$",
+        "url_prefixes": [
+          "https://auth.openai.com/codex/device"
+        ],
+        "code_pattern": "\\b([A-Z0-9]{4}-[A-Z0-9]{5})\\b",
+        "press_enter": false,
+        "code_input": false
+      },
+      "grok": {
+        "label": "Grok",
+        "login": [
+          "grok",
+          "login",
+          "--device-auth"
+        ],
+        "logout": [
+          "grok",
+          "logout"
+        ],
+        "status": [
+          "test",
+          "-s",
+          "/home/dev/.ai/grok/auth.json"
+        ],
+        "refresh": [],
+        "token_env": "XAI_API_KEY",
+        "token_login": [],
+        "token_pattern": "^xai-[A-Za-z0-9]{20,250}$",
+        "url_prefixes": [
+          "https://auth.x.ai/",
+          "https://accounts.x.ai/"
+        ],
+        "code_pattern": "\\b([A-Z0-9]{4}-[A-Z0-9]{4,5})\\b",
+        "press_enter": false,
+        "code_input": false
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{{/* components.toolbar — right-aligned (default) action group.
+     Args: {Actions, Align}.  Align ∈ "right" (default) | "left" | "center".
+     Spec 17 §3.4.
+*/}}
+{{ define "components.toolbar" }}
+{{ $align := .Align }}{{ if not $align }}{{ $align = "right" }}{{ end }}
+<div class="c-toolbar c-toolbar--{{ $align }}">
+    {{ range .Actions }}{{ template "components.action_button" . }}{{ end }}
+</div>
+{{ end }}

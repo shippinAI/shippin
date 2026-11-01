@@ -1,0 +1,16 @@
+{{/* components.confirm_dialog — native <dialog>-backed confirmation.
+     Args: {ID, Title, Message, Confirm, Cancel, Destructive}.
+     Spec 17 §3.11.
+*/}}
+{{ define "components.confirm_dialog" }}
+<dialog id="{{ .ID }}" class="c-confirm{{ if .Destructive }} c-confirm--destructive{{ end }}">
+    <form method="dialog" class="c-confirm__form">
+        <h3 class="c-confirm__title">{{ .Title }}</h3>
+        <p class="c-confirm__message">{{ .Message }}</p>
+        <div class="c-confirm__actions">
+            <button class="c-action-button c-action-button--secondary" value="cancel">{{ if .Cancel }}{{ .Cancel }}{{ else }}Cancel{{ end }}</button>
+            <button class="c-action-button c-action-button--{{ if .Destructive }}destructive{{ else }}primary{{ end }}" value="confirm">{{ if .Confirm }}{{ .Confirm }}{{ else }}Confirm{{ end }}</button>
+        </div>
+    </form>
+</dialog>
+{{ end }}

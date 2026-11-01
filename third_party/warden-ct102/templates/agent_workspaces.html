@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Agent Workspaces</title>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .agent-page {
+            max-width: 1260px;
+            margin: 0 auto;
+            padding: 1rem 2rem 2.5rem;
+        }
+
+        .agent-head {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 1rem;
+            align-items: end;
+            margin-bottom: 1rem;
+        }
+
+        .agent-kicker,
+        .agent-label,
+        .agent-meta,
+        .agent-command-label {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-dim);
+        }
+
+        .agent-kicker {
+            font-size: 0.64rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .agent-title {
+            margin: 0.25rem 0 0;
+            font-size: 1.85rem;
+            line-height: 1.05;
+            letter-spacing: 0;
+        }
+
+        .agent-path {
+            border: 1px solid rgba(108, 138, 255, 0.18);
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+            padding: 0.65rem 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text);
+            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+        }
+
+        .agent-grid,
+        .workspace-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .workspace-grid {
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            margin-bottom: 1.2rem;
+        }
+
+        .agent-grid {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .workspace-tile,
+        .agent-group {
+            border: 1px solid rgba(108, 138, 255, 0.14);
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, color-mix(in srgb, var(--bg-card) 78%, transparent), color-mix(in srgb, var(--bg) 46%, transparent));
+            -webkit-backdrop-filter: blur(18px);
+            backdrop-filter: blur(18px);
+        }
+
+        .workspace-tile {
+            padding: 0.9rem;
+        }
+
+        .workspace-title,
+        .agent-group-title {
+            margin: 0;
+            font-size: 0.96rem;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        .workspace-role {
+            margin: 0.25rem 0 0.7rem;
+            color: var(--text-dim);
+            font-size: 0.78rem;
+        }
+
+        .agent-label {
+            display: block;
+            margin-top: 0.45rem;
+            font-size: 0.58rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .agent-meta {
+            display: block;
+            margin-top: 0.16rem;
+            font-size: 0.7rem;
+            word-break: break-word;
+        }
+
+        .agent-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.34rem;
+            margin-top: 0.7rem;
+            padding: 0.18rem 0.48rem;
+            border-radius: 999px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+        }
+
+        .agent-status::before {
+            content: '';
+            width: 0.38rem;
+            height: 0.38rem;
+            border-radius: 999px;
+            background: currentColor;
+        }
+
+        .agent-status-green { color: var(--green); background: rgba(34, 197, 94, 0.08); }
+        .agent-status-blue { color: var(--blue); background: rgba(96, 165, 250, 0.08); }
+        .agent-status-orange { color: var(--orange); background: rgba(251, 146, 60, 0.08); }
+
+        .agent-group {
+            padding: 1rem;
+        }
+
+        .agent-actions {
+            display: grid;
+            gap: 0.65rem;
+            margin-top: 0.85rem;
+        }
+
+        .agent-action {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 0.85rem;
+            background: rgba(8, 10, 18, 0.36);
+        }
+
+        [data-theme="light"] .agent-action {
+            background: rgba(255, 255, 255, 0.48);
+        }
+
+        .agent-action-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .agent-action-name {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .agent-command-label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-size: 0.58rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .agent-command {
+            display: block;
+            min-height: 2.2rem;
+            padding: 0.55rem 0.65rem;
+            border: 1px solid rgba(108, 138, 255, 0.16);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.24);
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            line-height: 1.35;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .copy-command {
+            border: 1px solid rgba(108, 138, 255, 0.34);
+            border-radius: 8px;
+            background: rgba(108, 138, 255, 0.08);
+            color: var(--text);
+            cursor: pointer;
+            padding: 0.38rem 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+        }
+
+        .copy-command:hover {
+            border-color: rgba(108, 138, 255, 0.68);
+        }
+
+        @media (max-width: 720px) {
+            .agent-page { padding: 1rem 1rem 2rem; }
+            .agent-head { grid-template-columns: 1fr; }
+            .agent-title { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main class="agent-page">
+        <section class="agent-head">
+            <div>
+                <div class="agent-kicker">Warden operator runtime</div>
+                <h2 class="agent-title">Agent Workspaces</h2>
+            </div>
+            <div class="agent-path">{{ .PrimaryPath }}</div>
+        </section>
+
+        <section class="workspace-grid" aria-label="Workspace status">
+            {{ range .Workspaces }}
+            <article class="workspace-tile">
+                <h3 class="workspace-title">{{ .Name }}</h3>
+                <p class="workspace-role">{{ .Role }}</p>
+                <span class="agent-label">Endpoint</span>
+                <span class="agent-meta">{{ .Endpoint }}</span>
+                <span class="agent-label">Working path</span>
+                <span class="agent-meta">{{ .WorkingPath }}</span>
+                <span class="agent-status agent-status-{{ .StatusClass }}">{{ .Status }}</span>
+            </article>
+            {{ end }}
+        </section>
+
+        <section class="agent-grid" aria-label="Agent launchers">
+            {{ range .Groups }}
+            <article class="agent-group">
+                <h3 class="agent-group-title">{{ .Name }}</h3>
+                <div class="agent-actions">
+                    {{ range .Actions }}
+                    <section class="agent-action">
+                        <div class="agent-action-head">
+                            <div>
+                                <h4 class="agent-action-name">{{ .Name }}</h4>
+                                <span class="agent-meta">{{ .Runtime }} / {{ .Target }}</span>
+                            </div>
+                            <span class="agent-status agent-status-{{ .StatusClass }}">{{ .Status }}</span>
+                        </div>
+                        <span class="agent-command-label">Command</span>
+                        <code class="agent-command">{{ .Command }}</code>
+                        <span class="agent-label">Path</span>
+                        <span class="agent-meta">{{ .WorkingPath }}</span>
+                        <button type="button" class="copy-command" data-copy-command>Copy</button>
+                    </section>
+                    {{ end }}
+                </div>
+            </article>
+            {{ end }}
+        </section>
+    </main>
+
+{{ template "scripts" }}
+<script>
+(function(){
+    function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+        }
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        return Promise.resolve();
+    }
+
+    document.querySelectorAll('[data-copy-command]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var command = btn.parentElement.querySelector('.agent-command');
+            if (!command) return;
+            copyText(command.textContent.trim()).then(function() {
+                var old = btn.textContent;
+                btn.textContent = 'Copied';
+                setTimeout(function(){ btn.textContent = old; }, 1200);
+            });
+        });
+    });
+})();
+</script>
+</body>
+</html>

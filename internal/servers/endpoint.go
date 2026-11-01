@@ -1,0 +1,126 @@
+package servers
+
+import (
+	"context"
+	"errors"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+)
+
+// Endpoint is the hypervisor API attached to one server. TokenEnv names the
+// variable that holds the token secret. The secret is not a field.
+type Endpoint struct {
+	ID       string `json:"id"`
+	Slug     string `json:"slug"`
+	Label    string `json:"label"`
+	Kind     string `json:"kind"`
+	BaseURL  string `json:"base_url"`
+	Node     string `json:"node"`
+	TokenID  string `json:"token_id"`
+	TokenEnv string `json:"token_env"`
+	CAFile   string `json:"ca_file,omitempty"`
+}
+
+const epCols = `id, slug, label, coalesce(hv_kind,''), coalesce(hv_api_url,''), coalesce(hv_node,''), coalesce(hv_token_id,''), coalesce(hv_token_env,''), coalesce(hv_ca_file,'')`
+
+func scanEndpoint(row pgx.Row) (Endpoint, error) {
+	var e Endpoint
+	err := row.Scan(&e.ID, &e.Slug, &e.Label, &e.Kind, &e.BaseURL, &e.Node, &e.TokenID, &e.TokenEnv, &e.CAFile)
+	return e, err
+}
+
+// Ref is a server the infra role can attach a hypervisor to. Kind is empty until attached.
+// Token fields are not included.
+type Ref struct {
+	ID    string `json:"id"`
+	Slug  string `json:"slug"`
+	Label string `json:"label"`
+	Site  string `json:"site"`
+	Kind  string `json:"kind,omitempty"`
+}
+
+// Registry lists non-revoked servers so an operator can attach an API without already knowing the id.
+func (s *Store) Registry(ctx context.Context) ([]Ref, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT id, slug, label, site, coalesce(hv_kind,'') FROM servers WHERE state <> 'revoked' ORDER BY slug`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Ref{}
+	for rows.Next() {
+		var r Ref
+		if err := rows.Scan(&r.ID, &r.Slug, &r.Label, &r.Site, &r.Kind); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// Endpoints lists servers that have a hypervisor kind. Rows with a null kind are not included.
+func (s *Store) Endpoints(ctx context.Context) ([]Endpoint, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT `+epCols+` FROM servers WHERE hv_kind IS NOT NULL ORDER BY slug`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Endpoint{}
+	for rows.Next() {
+		e, err := scanEndpoint(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
+// Endpoint returns one server's hypervisor fields. A server with no kind is not found.
+func (s *Store) Endpoint(ctx context.Context, id string) (Endpoint, error) {
+	if uuid.Validate(id) != nil {
+		return Endpoint{}, ErrNotFound
+	}
+	e, err := scanEndpoint(s.Pool.QueryRow(ctx, `SELECT `+epCols+` FROM servers WHERE id=$1 AND hv_kind IS NOT NULL`, id))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Endpoint{}, ErrNotFound
+	}
+	return e, err
+}
+
+// VisibleEndpoint returns the hypervisor on a server this tenant owns or is assigned.
+// An estate row with no assignment is not visible. The token secret is not selected.
+func (s *Store) VisibleEndpoint(ctx context.Context, tenant, id string) (Endpoint, error) {
+	if uuid.Validate(id) != nil || uuid.Validate(tenant) != nil {
+		return Endpoint{}, ErrNotFound
+	}
+	e, err := scanEndpoint(s.Pool.QueryRow(ctx, `SELECT `+epCols+` FROM servers s
+		WHERE s.id=$1 AND s.hv_kind IS NOT NULL AND (
+			s.tenant_id=$2 OR EXISTS (SELECT 1 FROM server_assignments a WHERE a.server_id=s.id AND a.tenant_id=$2)
+		)`, id, tenant))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Endpoint{}, ErrNotFound
+	}
+	return e, err
+}
+
+// SetEndpoint writes hypervisor fields on an existing server. It does not create a row
+// and does not change enrollment state. kind empty clears the attachment.
+func (s *Store) SetEndpoint(ctx context.Context, e Endpoint) error {
+	if uuid.Validate(e.ID) != nil {
+		return ErrNotFound
+	}
+	var kind any
+	if e.Kind != "" {
+		kind = e.Kind
+	}
+	tag, err := s.Pool.Exec(ctx, `UPDATE servers SET hv_kind=$2, hv_api_url=$3, hv_node=$4, hv_token_id=$5, hv_token_env=$6, hv_ca_file=$7 WHERE id=$1`,
+		e.ID, kind, e.BaseURL, e.Node, e.TokenID, e.TokenEnv, e.CAFile)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

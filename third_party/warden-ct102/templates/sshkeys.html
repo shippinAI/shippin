@@ -1,0 +1,171 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - SSH Keys</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        <section class="card">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h2 style="margin:0;padding:0;border:none;">SSH AUTHORISED KEYS</h2>
+                <div class="action-btns">
+                    <form method="get" action="/sshkeys" class="inline-form" style="display:inline-flex;align-items:center;gap:0.5rem;">
+                        <label style="font-size:0.85rem;color:var(--text-dim);">User:</label>
+                        <select name="user" onchange="this.form.submit()" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.35rem 0.5rem;font-size:0.85rem;">
+                            {{ range .Users }}
+                            <option value="{{ . }}" {{ if eq . $.TargetUser }}selected{{ end }}>{{ . }}</option>
+                            {{ end }}
+                        </select>
+                    </form>
+                    <button class="btn btn-primary" onclick="showAddKey()">Add Key</button>
+                </div>
+            </div>
+
+            <!-- Add Key Form -->
+            <div id="key-form" class="cron-form" style="display:none;">
+                <div class="cron-form-header">
+                    <h3>Add SSH Key for <strong>{{ .TargetUser }}</strong></h3>
+                    <button class="btn btn-sm" onclick="hideKeyForm()">Cancel</button>
+                </div>
+                <div class="cron-form-fields">
+                    <div style="margin-bottom:0.75rem;">
+                        <label style="display:block;margin-bottom:0.4rem;font-size:0.85rem;color:var(--text-dim);">Public Key</label>
+                        <textarea id="k-key" rows="4" placeholder="ssh-ed25519 AAAAC3... user@host" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.5rem;font-family:monospace;font-size:0.85rem;resize:vertical;"></textarea>
+                    </div>
+                    <p class="text-dim" style="font-size:0.8rem;margin:0 0 0.75rem;">Paste a full public key line (e.g. from <code>~/.ssh/id_ed25519.pub</code>). Supported types: ssh-rsa, ssh-ed25519, ecdsa-*</p>
+                    <button class="btn btn-primary" onclick="submitKey()">Add Key</button>
+                </div>
+                <div id="key-form-message" class="cron-form-message"></div>
+            </div>
+
+            <!-- Keys Table -->
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>TYPE</th>
+                            <th>FINGERPRINT</th>
+                            <th>COMMENT</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ if not .Keys }}
+                        <tr><td colspan="5" class="text-center text-dim">No authorised keys found for {{ .TargetUser }}.</td></tr>
+                        {{ else }}
+                        {{ range .Keys }}
+                        <tr data-key-line="{{ .Line }}" data-key-comment="{{ .Comment }}" data-key-type="{{ .Type }}">
+                            <td>{{ .Line }}</td>
+                            <td><code>{{ .Type }}</code></td>
+                            <td class="desc-cell"><code style="font-size:0.8rem;">{{ .Fingerprint }}</code></td>
+                            <td class="desc-cell">{{ .Comment }}</td>
+                            <td class="actions-cell">
+                                <button class="btn btn-sm btn-danger" onclick="deleteKey({{ .Line }}, '{{ .Comment }}')" title="Remove key">Del</button>
+                            </td>
+                        </tr>
+                        {{ end }}
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <span>Warden SSH Key Manager</span>
+    </footer>
+
+    <script>
+        var targetUser = '{{ .TargetUser }}';
+
+        function showAddKey() {
+            document.getElementById('key-form').style.display = '';
+            document.getElementById('key-form-message').textContent = '';
+            document.getElementById('k-key').value = '';
+            document.getElementById('k-key').focus();
+        }
+
+        function hideKeyForm() {
+            document.getElementById('key-form').style.display = 'none';
+        }
+
+        function submitKey() {
+            var key = document.getElementById('k-key').value.trim();
+            if (!key) {
+                showMsg('key-form-message', 'Please paste an SSH public key', false);
+                return;
+            }
+
+            var body = 'action=add&user=' + encodeURIComponent(targetUser) +
+                '&key=' + encodeURIComponent(key);
+
+            fetch('/api/sshkeys', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                showMsg('key-form-message', data.message, data.success);
+                if (data.success) {
+                    setTimeout(function() { location.reload(); }, 500);
+                }
+            })
+            .catch(function() {
+                showMsg('key-form-message', 'Request failed', false);
+            });
+        }
+
+        function deleteKey(line, comment) {
+            var label = comment || 'key #' + line;
+            Modal.confirm('Remove SSH key "' + label + '"?', {danger:true}).then(function(ok) {
+                if (!ok) return;
+                doDeleteKey(line);
+            });
+        }
+
+        function doDeleteKey(line) {
+            fetch('/api/sshkeys', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=delete&user=' + encodeURIComponent(targetUser) + '&line=' + line
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                Toast.show(data.message, data.success ? 'ok' : 'err');
+                if (data.success) {
+                    setTimeout(function() { location.reload(); }, 500);
+                }
+            })
+            .catch(function() {
+                Toast.show('Request failed', 'err');
+            });
+        }
+
+        function showMsg(id, msg, success) {
+            var el = document.getElementById(id);
+            el.textContent = msg;
+            el.className = success ? 'cron-form-message cron-msg-ok' : 'cron-form-message cron-msg-error';
+        }
+    </script>
+{{ template "scripts" }}
+<script src="/static/contextmenu.js"></script>
+<script>
+ctxMenu.attach('tr[data-key-line]', function(row) {
+    var line = row.getAttribute('data-key-line');
+    var comment = row.getAttribute('data-key-comment');
+    var type = row.getAttribute('data-key-type');
+    return [
+        {label: type + (comment ? ' (' + comment + ')' : ''), disabled: true},
+        'separator',
+        {label: 'Delete Key', icon: '\ud83d\uddd1', danger: true, action: function() { deleteKey(parseInt(line), comment); }}
+    ];
+});
+</script>
+
+</body>
+</html>

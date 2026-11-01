@@ -1,0 +1,281 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Audit Log</title>
+    <style>
+        .audit-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .audit-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .audit-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text);
+        }
+
+        .audit-controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .audit-filter {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+        }
+
+        .audit-filter:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn-clear-audit {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-clear-audit:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .audit-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .audit-table-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .audit-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .audit-table th {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            background: color-mix(in srgb, var(--bg-card) 90%, var(--accent));
+        }
+
+        .audit-table td {
+            padding: 0.6rem 1rem;
+            font-size: 0.82rem;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        .audit-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .audit-table tr:hover td {
+            background: color-mix(in srgb, var(--bg-card) 95%, var(--accent));
+        }
+
+        .audit-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            white-space: nowrap;
+        }
+
+        .audit-user {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            color: var(--accent);
+        }
+
+        .audit-action {
+            font-weight: 500;
+        }
+
+        .audit-detail {
+            color: var(--text-dim);
+            font-size: 0.78rem;
+            max-width: 350px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .audit-category {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            background: color-mix(in srgb, var(--bg) 80%, var(--accent));
+            color: var(--accent);
+            border: 1px solid color-mix(in srgb, var(--border) 70%, var(--accent));
+        }
+
+        .audit-category[data-cat="auth"] { color: #a78bfa; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.2); }
+        .audit-category[data-cat="service"] { color: #34d399; background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.2); }
+        .audit-category[data-cat="docker"] { color: #60a5fa; background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.2); }
+        .audit-category[data-cat="file"] { color: #fbbf24; background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.2); }
+        .audit-category[data-cat="system"] { color: #f87171; background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.2); }
+        .audit-category[data-cat="firewall"] { color: #fb923c; background: rgba(251,146,60,0.1); border-color: rgba(251,146,60,0.2); }
+        .audit-category[data-cat="cron"] { color: #2dd4bf; background: rgba(45,212,191,0.1); border-color: rgba(45,212,191,0.2); }
+        .audit-category[data-cat="user"] { color: #c084fc; background: rgba(192,132,252,0.1); border-color: rgba(192,132,252,0.2); }
+        .audit-category[data-cat="dns"] { color: #38bdf8; background: rgba(56,189,248,0.1); border-color: rgba(56,189,248,0.2); }
+        .audit-category[data-cat="endpoint"] { color: #4ade80; background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.2); }
+        .audit-category[data-cat="sshkey"] { color: #facc15; background: rgba(250,204,21,0.1); border-color: rgba(250,204,21,0.2); }
+        .audit-category[data-cat="package"] { color: #a3e635; background: rgba(163,230,53,0.1); border-color: rgba(163,230,53,0.2); }
+
+        .audit-ip {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .audit-empty {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .audit-empty svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <div class="audit-container">
+        <div class="audit-header">
+            <span class="audit-title">Audit Log</span>
+            <div class="audit-controls">
+                <span class="audit-count" id="audit-count">{{ len .Entries }} entries</span>
+                <select class="audit-filter" id="cat-filter" onchange="filterAudit()">
+                    <option value="">All categories</option>
+                    <option value="auth">Auth</option>
+                    <option value="service">Service</option>
+                    <option value="docker">Docker</option>
+                    <option value="file">File</option>
+                    <option value="system">System</option>
+                    <option value="firewall">Firewall</option>
+                    <option value="cron">Cron</option>
+                    <option value="user">User</option>
+                    <option value="dns">DNS</option>
+                    <option value="endpoint">Endpoint</option>
+                    <option value="sshkey">SSH Key</option>
+                    <option value="package">Package</option>
+                </select>
+                <button class="btn-clear-audit" data-confirm="Clear the entire audit log? This cannot be undone." onclick="clearAudit()">Clear Log</button>
+            </div>
+        </div>
+
+        <div class="audit-table-wrap">
+            <table class="audit-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>User</th>
+                        <th>Category</th>
+                        <th>Action</th>
+                        <th>Detail</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody id="audit-body">
+                    {{ if .Entries }}
+                    {{ range .Entries }}
+                    <tr data-cat="{{ .Category }}">
+                        <td class="audit-time">{{ .Time }}</td>
+                        <td class="audit-user">{{ .User }}</td>
+                        <td><span class="audit-category" data-cat="{{ .Category }}">{{ .Category }}</span></td>
+                        <td class="audit-action">{{ .Action }}</td>
+                        <td class="audit-detail" title="{{ .Detail }}">{{ .Detail }}</td>
+                        <td class="audit-ip">{{ .IP }}</td>
+                    </tr>
+                    {{ end }}
+                    {{ else }}
+                    <tr>
+                        <td colspan="6" class="audit-empty">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            <div>No audit entries yet</div>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{ template "scripts" }}
+    <script>
+    function filterAudit() {
+        var cat = document.getElementById('cat-filter').value;
+        var rows = document.querySelectorAll('#audit-body tr[data-cat]');
+        var shown = 0;
+        rows.forEach(function(row) {
+            if (!cat || row.getAttribute('data-cat') === cat) {
+                row.style.display = '';
+                shown++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        document.getElementById('audit-count').textContent = shown + ' entries';
+    }
+
+    function clearAudit() {
+        fetch('/api/audit', { method: 'DELETE' }).then(function(r) {
+            return r.json();
+        }).then(function(d) {
+            if (d.success) location.reload();
+        });
+    }
+    </script>
+</body>
+</html>

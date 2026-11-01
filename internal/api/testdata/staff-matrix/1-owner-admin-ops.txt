@@ -1,0 +1,74 @@
+# Hand-written expectations (not generated): for each preset role, the operator routes it may
+# call. Every route not listed under a role must answer 403. "ALL" means every route.
+# Keep this in step with docs/architecture/staff-roles/matrix.md, not with the Go table.
+# The customer catalog routes (/v1/operator/catalog/*, /v1/operator/customers/*) are listed under no
+# role on purpose: deny by default, Owner (ALL) or a direct grant only (see staff_grants_test.go).
+
+[staff.owner]
+ALL
+
+[staff.platform_admin]
+GET /v1/operator/access
+GET /v1/operator/tenants
+GET /v1/operator/tenants/{tenantId}
+GET /v1/operator/tenants/{tenantId}/setup
+GET /v1/operator/staff-mode
+POST /v1/operator/staff-mode
+POST /v1/operator/staff-mode/exit
+POST /v1/operator/tenants/{tenantId}/provision
+POST /v1/operator/tenants/{tenantId}/setup/rrflow
+POST /v1/operator/tenants/{tenantId}/suspend
+POST /v1/operator/tenants/{tenantId}/resume
+DELETE /v1/operator/tenants/{tenantId}
+GET /v1/operator/tenants/{tenantId}/vm
+GET /v1/operator/tenants/{tenantId}/apps
+GET /v1/operator/boundaries
+POST /v1/operator/tenants/{tenantId}/vm
+POST /v1/operator/tenants/{tenantId}/vm/{action}
+POST /v1/operator/tenants/{tenantId}/vm/harden
+POST /v1/operator/tenants/{tenantId}/desktop/prepare
+GET /v1/operator/workspaces
+POST /v1/operator/workspaces/{workspaceId}/{action}
+GET /v1/operator/identity
+GET /v1/operator/templates
+POST /v1/operator/templates
+PUT /v1/operator/templates/{templateId}
+DELETE /v1/operator/templates/{templateId}
+GET /v1/operator/host
+GET /v1/operator/edge
+GET /v1/operator/access-requests
+POST /v1/operator/access-requests
+POST /v1/operator/access-requests/{grantId}/end
+GET /v1/operator/audit
+GET /v1/operator/team
+GET /v1/operator/team/permission-grants
+
+[staff.ops]
+GET /v1/operator/access
+GET /v1/operator/tenants
+GET /v1/operator/tenants/{tenantId}
+GET /v1/operator/tenants/{tenantId}/setup
+GET /v1/operator/staff-mode
+POST /v1/operator/staff-mode
+POST /v1/operator/staff-mode/exit
+POST /v1/operator/tenants/{tenantId}/provision
+POST /v1/operator/tenants/{tenantId}/setup/rrflow
+POST /v1/operator/tenants/{tenantId}/suspend
+POST /v1/operator/tenants/{tenantId}/resume
+GET /v1/operator/tenants/{tenantId}/vm
+GET /v1/operator/tenants/{tenantId}/apps
+GET /v1/operator/boundaries
+POST /v1/operator/tenants/{tenantId}/vm
+POST /v1/operator/tenants/{tenantId}/vm/{action}
+POST /v1/operator/tenants/{tenantId}/vm/harden
+POST /v1/operator/tenants/{tenantId}/desktop/prepare
+GET /v1/operator/workspaces
+POST /v1/operator/workspaces/{workspaceId}/{action}
+GET /v1/operator/identity
+GET /v1/operator/templates
+GET /v1/operator/host
+GET /v1/operator/edge
+GET /v1/operator/access-requests
+POST /v1/operator/access-requests
+POST /v1/operator/access-requests/{grantId}/end
+POST /v1/operator/break-glass

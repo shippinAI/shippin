@@ -1,0 +1,26 @@
+{{/* customer_detail.html — /customers/<slug> overview.
+     Six section cards: Devstation, Bundles, Identity, Secrets, Observability,
+     Network. Each drills further per Spec 17 §4. */}}
+
+{{ define "customer_detail.body" }}
+    {{ template "components.section" (dict
+        "Title" .Customer.DisplayName
+        "Subtitle" (printf "Brand: %s · Tier: %s · %d services" .Customer.BrandFront .Customer.Tier .Customer.ServiceCount)) }}
+
+    {{ $cards := list }}
+    {{ range .Sections }}
+        {{ $cards = append $cards (dict
+            "Icon" .Icon
+            "Title" .Title
+            "Subtitle" .Subtitle
+            "StatusPill" (dict "State" .StatusState "Label" .StatusLabel)
+            "DrillHref" .DrillHref) }}
+    {{ end }}
+
+    {{ template "components.entity_list" (dict
+        "Cards" $cards
+        "Layout" "grid"
+        "Empty" (dict)) }}
+{{ end }}
+
+{{ template "components.shell" . }}

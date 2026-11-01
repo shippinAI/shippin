@@ -1,0 +1,10 @@
+[Unit]
+Description=Shippin AI subscription status (exit codes only, no credentials)
+ConditionPathIsDirectory=/home/dev
+
+[Service]
+Type=oneshot
+User=dev
+WorkingDirectory=/home/dev
+Environment=HOME=/home/dev
+ExecStart=/usr/local/sbin/shippin-ai-status

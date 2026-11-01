@@ -1,0 +1,495 @@
+{
+  "brand": {
+    "name": "Shippin.Cloud",
+    "short": "Shippin",
+    "tagline": "Dev workspaces, identity and secrets on your own metal."
+  },
+  "domain": "example.invalid",
+  "governance_domains": [
+    "example.invalid"
+  ],
+  "console_host": "console.example.invalid",
+  "idp": {
+    "name": "Nomen",
+    "issuer": "https://id.example.invalid",
+    "client_id": "",
+    "dial": "",
+    "ca_file": "",
+    "account_path": "/ui/console/users/me"
+  },
+  "incus": {
+    "hostd_url": "http://127.0.0.1:8444",
+    "project": "platform",
+    "host_label": "primary"
+  },
+  "probes": [
+    {
+      "name": "Nomen",
+      "kind": "nomen",
+      "instance": "zitadel"
+    },
+    {
+      "name": "Vaultix",
+      "kind": "vaultix",
+      "instance": "infisical"
+    },
+    {
+      "name": "Edge",
+      "kind": "caddy",
+      "instance": "edge"
+    },
+    {
+      "name": "Database",
+      "kind": "postgres",
+      "instance": "pg"
+    }
+  ],
+  "plan_name": "Founder",
+  "workspaces": {
+    "user": "dev",
+    "port_min": 22000,
+    "default_plan": "free",
+    "code_dir": "/home/dev/code",
+    "base_domain": "ws.example.invalid",
+    "ide_port": 3000,
+    "template_seed": "/etc/shippin/templates.json",
+    "preview_min": 1024,
+    "preview_max": 65535,
+    "image_prefix": "shippin/",
+    "sizes": [
+      {
+        "id": "small",
+        "label": "Small",
+        "cpu": 2,
+        "memory_gib": 4,
+        "disk_gib": 20
+      },
+      {
+        "id": "medium",
+        "label": "Medium",
+        "cpu": 4,
+        "memory_gib": 8,
+        "disk_gib": 40
+      },
+      {
+        "id": "large",
+        "label": "Large",
+        "cpu": 8,
+        "memory_gib": 16,
+        "disk_gib": 80
+      }
+    ],
+    "port_max": 22999,
+    "repo_hosts": [
+      "github.com",
+      "gitlab.com",
+      "codeberg.org"
+    ],
+    "reserved_ports": [
+      22,
+      80,
+      443
+    ],
+    "reserved_domains": [
+      "example.invalid"
+    ],
+    "template_limits": {
+      "max_cpu": 32,
+      "max_memory_gib": 128,
+      "min_disk_gib": 5,
+      "max_disk_gib": 1024,
+      "max_ports": 10,
+      "max_startup_bytes": 16384
+    }
+  },
+  "onboarding": {
+    "enabled": true,
+    "plan": "free"
+  },
+  "operator": {
+    "role": "op_superadmin",
+    "host": "ops.example.invalid",
+    "client_id": "",
+    "origin_only": false,
+    "member_limit": 200,
+    "platform_org_id": "",
+    "cert_hosts": [
+      "console.example.invalid",
+      "id.example.invalid"
+    ],
+    "admin_hosts": []
+  },
+  "staff": {
+    "project_id": "",
+    "org_id": "",
+    "mode": "",
+    "cache_seconds": 30,
+    "session": {
+      "minutes": 60,
+      "reauth_minutes": 5,
+      "required": true
+    }
+  },
+  "roles": {
+    "iam": [
+      {
+        "from": "IAM_OWNER",
+        "to": "op_superadmin"
+      },
+      {
+        "from": "IAM_ORG_MANAGER",
+        "to": "op_admin"
+      },
+      {
+        "from": "IAM_USER_MANAGER",
+        "to": "op_admin"
+      },
+      {
+        "from": "IAM_INFRA",
+        "to": "op_infra"
+      }
+    ],
+    "iam_default": "op_support",
+    "org": [
+      {
+        "from": "ORG_OWNER",
+        "to": "org_owner"
+      },
+      {
+        "from": "ORG_USER_MANAGER",
+        "to": "org_admin"
+      },
+      {
+        "from": "ORG_ADMIN",
+        "to": "org_admin"
+      }
+    ],
+    "member": "org_member",
+    "owner": "org_owner",
+    "managers": [
+      "org_owner",
+      "org_admin"
+    ],
+    "infra": "op_infra"
+  },
+  "access": {
+    "durations": [
+      "1h",
+      "4h",
+      "24h"
+    ],
+    "reason_min": 10,
+    "reason_max": 500,
+    "sweep_seconds": 30,
+    "log_window": "10m",
+    "break_glass": {
+      "duration": "1h",
+      "reauth_minutes": 10,
+      "justification_min": 20,
+      "notice_hours": 168,
+      "categories": [
+        {
+          "id": "security_incident",
+          "label": "Security incident"
+        },
+        {
+          "id": "legal_abuse",
+          "label": "Legal / abuse report"
+        },
+        {
+          "id": "service_outage",
+          "label": "Service outage"
+        },
+        {
+          "id": "legal_hold",
+          "label": "Legal hold (court order)",
+          "withhold_notice": true,
+          "notice_delay": "720h"
+        }
+      ]
+    }
+  },
+  "mail": {
+    "enabled": false,
+    "host": "",
+    "port": 465,
+    "tls": "implicit",
+    "server_name": "",
+    "ca_file": "",
+    "from": "notices@example.invalid",
+    "from_name": "Shippin",
+    "username": "",
+    "password_env": "SHIPPIN_SMTP_PASSWORD",
+    "max_attempts": 8,
+    "retry_base_seconds": 60,
+    "retry_max_seconds": 3600,
+    "poll_seconds": 10,
+    "batch_size": 20,
+    "timeout_seconds": 20
+  },
+  "jobs": {
+    "enabled": false,
+    "workers": 4,
+    "max_attempts": 5,
+    "lease_seconds": 60,
+    "heartbeat_seconds": 20,
+    "poll_seconds": 2,
+    "backoff_seconds": 10,
+    "backoff_max_seconds": 300,
+    "reconcile_seconds": 60,
+    "drift_seconds": 600,
+    "keep_days": 30,
+    "idempotency_hours": 24,
+    "provision_planned_boundaries": false
+  },
+  "ai": {
+    "enabled": false,
+    "providers": [
+      {
+        "id": "claude",
+        "label": "Claude Code",
+        "vendor": "Anthropic",
+        "login_command": "claude auth login"
+      },
+      {
+        "id": "codex",
+        "label": "Codex",
+        "vendor": "OpenAI",
+        "login_command": "codex login --device-auth",
+        "device_url": "https://auth.openai.com/codex/device"
+      },
+      {
+        "id": "grok",
+        "label": "Grok CLI",
+        "vendor": "xAI",
+        "login_command": "grok login --device-auth"
+      }
+    ],
+    "idle_minutes": 15,
+    "touch_seconds": 60,
+    "tenants": [],
+    "egress_hosts": [
+      "api.anthropic.com",
+      "claude.ai",
+      "console.anthropic.com",
+      "auth.openai.com",
+      "api.openai.com",
+      "chatgpt.com",
+      "auth.x.ai",
+      "cli-chat-proxy.grok.com",
+      "registry.npmjs.org"
+    ],
+    "terms_note": "You sign in with your own subscription; its vendor's terms apply to your use."
+  },
+  "github": {
+    "enabled": false,
+    "app_slug": "shippin",
+    "api_base": "https://api.github.com",
+    "web_base": "https://github.com",
+    "tenants": [],
+    "refresh_minutes": 45,
+    "poll_minutes": 10,
+    "state_minutes": 15,
+    "max_repos": 500,
+    "token_permissions": {
+      "contents": "write",
+      "metadata": "read",
+      "pull_requests": "write",
+      "workflows": "write"
+    }
+  },
+  "prompt": {
+    "enabled": false,
+    "tenants": [],
+    "max_bytes": 8192,
+    "agents": [
+      "claude",
+      "codex"
+    ],
+    "stacks": [
+      {
+        "template": "python",
+        "label": "Python",
+        "keywords": [
+          "python",
+          "flask",
+          "fastapi",
+          "django",
+          "scraper",
+          "notebook",
+          "ml"
+        ]
+      },
+      {
+        "template": "go",
+        "label": "Go",
+        "keywords": [
+          "golang",
+          "in go",
+          "go cli",
+          "go api",
+          "go service",
+          "grpc"
+        ]
+      },
+      {
+        "template": "node-vite",
+        "label": "Web app (Vite)",
+        "keywords": [
+          "web",
+          "website",
+          "app",
+          "react",
+          "vue",
+          "svelte",
+          "frontend",
+          "landing",
+          "dashboard",
+          "todo",
+          "game",
+          "site",
+          "page"
+        ]
+      }
+    ],
+    "default_template": "blank",
+    "term_path": "/_term/",
+    "attach_rrflow": false
+  },
+  "services": {
+    "rrflow": {
+      "enabled": true,
+      "tenants": [],
+      "auto_attach": true,
+      "listed_only": true
+    }
+  },
+  "agents": {
+    "enabled": false,
+    "max_per_tenant": 20,
+    "user_prefix": "agent-"
+  },
+  "connect": {
+    "enabled": false,
+    "vaultix_env": "prod",
+    "vaultix_path": "/workspaces/{workspace}/connect",
+    "ide_folder": "/home/dev/code",
+    "providers": [
+      {
+        "id": "github",
+        "label": "GitHub",
+        "vendor": "GitHub CLI (gh)",
+        "token_label": "Personal access token",
+        "token_hint": "A fine-grained or classic PAT (ghp_\u2026 or github_pat_\u2026).",
+        "token_url": "https://github.com/settings/tokens",
+        "vaultix_key": "GITHUB_TOKEN",
+        "browser_note": "Device code: open github.com/login/device and enter the code."
+      },
+      {
+        "id": "claude",
+        "label": "Claude",
+        "vendor": "Anthropic \u00b7 Claude Code",
+        "token_label": "Claude Code OAuth token",
+        "token_hint": "Run `claude setup-token` on any machine and paste the sk-ant-oat01-\u2026 token.",
+        "token_url": "https://docs.anthropic.com/en/docs/claude-code/setup",
+        "vaultix_key": "CLAUDE_CODE_OAUTH_TOKEN",
+        "browser_note": "Sign in on claude.com, then paste the code it shows back here."
+      },
+      {
+        "id": "codex",
+        "label": "Codex",
+        "vendor": "OpenAI \u00b7 Codex CLI",
+        "token_label": "OpenAI API key",
+        "token_hint": "An sk-\u2026 key from platform.openai.com.",
+        "token_url": "https://platform.openai.com/api-keys",
+        "vaultix_key": "OPENAI_API_KEY",
+        "browser_note": "Device code: open auth.openai.com/codex/device and enter the code."
+      },
+      {
+        "id": "grok",
+        "label": "Grok",
+        "vendor": "xAI \u00b7 Grok Build",
+        "token_label": "xAI API key",
+        "token_hint": "An xai-\u2026 key from console.x.ai.",
+        "token_url": "https://console.x.ai",
+        "vaultix_key": "XAI_API_KEY",
+        "browser_note": "Device code: open the x.ai link and enter the code."
+      }
+    ]
+  },
+  "servers": {
+    "enabled": false,
+    "token_ttl_seconds": 900,
+    "heartbeat_seconds": 15,
+    "missed_beats": 3,
+    "credential_ttl_seconds": 300,
+    "max_per_tenant": 10
+  },
+  "orgs": {
+    "enabled": false,
+    "operations_slug": "operations",
+    "operations_name": "Operations",
+    "operations_nomen_org_id": "",
+    "bootstrap_admin_sub": "",
+    "support_grant_max_seconds": 14400
+  },
+  "approval": {
+    "enabled": true,
+    "board": {
+      "driver": "hub",
+      "base_url": "",
+      "org_id": "",
+      "token_env": "SHIPPIN_HUB_TOKEN"
+    },
+    "rules": [
+      {
+        "id": "gold",
+        "actions": [
+          "gold.ticket",
+          "gold.passkey",
+          "gold.relay",
+          "gold.bypass"
+        ],
+        "hosts": [],
+        "approver_roles": [
+          "founder"
+        ],
+        "approver_subs": [],
+        "approver_emails": [],
+        "needs_approval": true
+      },
+      {
+        "id": "hub-decide",
+        "actions": [
+          "hub.decide"
+        ],
+        "hosts": [],
+        "approver_roles": [
+          "founder"
+        ],
+        "approver_subs": [],
+        "approver_emails": [],
+        "needs_approval": true
+      },
+      {
+        "id": "hv-lifecycle",
+        "actions": [
+          "hv.lifecycle"
+        ],
+        "hosts": [],
+        "approver_roles": [
+          "founder",
+          "op_infra",
+          "org_owner",
+          "org_admin"
+        ],
+        "approver_subs": [],
+        "approver_emails": [],
+        "needs_approval": true
+      }
+    ]
+  },
+  "migrations": {
+    "hold": []
+  }
+}

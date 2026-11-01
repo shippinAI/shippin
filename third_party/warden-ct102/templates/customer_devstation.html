@@ -1,0 +1,41 @@
+{{/* customer_devstation.html — /customers/<slug>/devstation.
+     Lists every service whose host is the customer's devstation, using the
+     components.service_row primitive (the ADR 0037 row shape made real). */}}
+
+{{ define "customer_devstation.body" }}
+    {{ template "components.section" (dict
+        "Title" "Devstation services"
+        "Subtitle" "Runtimes + integrations bound to this customer's devstation host. Click a row to drill into the service detail.") }}
+
+    {{ if .Services }}
+        <div class="c-service-row-list">
+        {{ range .Services }}
+            {{ template "components.service_row" (dict
+                "ServiceID" .ServiceID
+                "DisplayName" .ServiceID
+                "Provider" .AuthOverride.Kind
+                "Host" .Host.HostID
+                "AuthKind" .AuthOverride.Kind
+                "AuthStatus" "active"
+                "LastActivity" "—"
+                "Tiers" .TierEligibility
+                "DrillHref" (printf "/customers/%s/devstation/%s" $.Customer.AccountSlug .ServiceID)
+                "PrimaryAction" (dict
+                    "Label" "Re-authenticate"
+                    "Kind" "primary"
+                    "HxPost" (printf "/api/customer-services/%s/reauth/start" .ServiceID)
+                    "HxTarget" (printf "#row-%s" .ServiceID))
+                "Secondary" (list
+                    (dict "Label" "Settings" "Href" (printf "/customers/%s/devstation/%s" $.Customer.AccountSlug .ServiceID))
+                    (dict "Label" "Revoke" "Kind" "destructive" "StepUp" true "Confirm" "Revoke this service?"))) }}
+        {{ end }}
+        </div>
+    {{ else }}
+        {{ template "components.empty_state" (dict
+            "Icon" "🖥️"
+            "Title" "No devstation services"
+            "Message" "This customer's registry file has no services bound to a devstation host.") }}
+    {{ end }}
+{{ end }}
+
+{{ template "components.shell" . }}

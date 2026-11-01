@@ -1,0 +1,39 @@
+#!/bin/bash
+# shippin-chat-turn PROVIDER SESSION — one Automaton chat turn with the user's OWN CLI (stdin =
+# the prompt; stdout = the CLI's JSON stream). hostd runs it as the workspace user via the named
+# chat commands. With rrflow/state bound (02c-rrflow.md), rrflow keeps this chat's state:
+#   memory chat/<SESSION>/<provider>  the CLI's resumable session id (so history isn't resent)
+#   memory chat/<SESSION>/rrflow      the rrflow session for this chat
+#   decision chat.turn                one per turn, hash-chained
+# Without rrflow (or SESSION "-") it is a plain one-shot turn. No credential is read or printed.
+set -uo pipefail
+prov=${1:?provider}; ses=${2:--}
+[ -r /etc/profile.d/shippin-ai.sh ] && . /etc/profile.d/shippin-ai.sh
+[ -r /etc/profile.d/shippin-rrflow.sh ] && . /etc/profile.d/shippin-rrflow.sh
+rr() { [ "$ses" != - ] && [ -n "${RRFLOW_URL:-}" ] && command -v rrflow >/dev/null && rrflow "$@"; }
+val() { sed -n 's/.*"value":"\([A-Za-z0-9-]*\)".*/\1/p'; }
+umask 077; T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+cat > "$T/prompt"
+prev=$(rr memory get "chat/$ses/$prov" 2>/dev/null | val)
+run() { # $1: resume id or empty
+  case $prov in
+    claude) claude -p --output-format stream-json --verbose ${1:+--resume "$1"} < "$T/prompt" ;;
+    codex) if [ -n "$1" ]; then codex exec --json --skip-git-repo-check resume "$1" - < "$T/prompt"; else codex exec --json --skip-git-repo-check - < "$T/prompt"; fi ;;
+    *) echo "unknown provider $prov" >&2; return 2 ;;
+  esac
+}
+run "$prev" | tee "$T/out"; code=${PIPESTATUS[0]}
+if [ "$code" != 0 ] && [ -n "$prev" ] && ! grep -q '"type":"\(result\|item.completed\)"' "$T/out"; then
+  echo "resume of $prev failed; starting a fresh CLI session" >&2
+  rr memory rm "chat/$ses/$prov" >/dev/null 2>&1; prev=""
+  run "" | tee "$T/out"; code=${PIPESTATUS[0]}
+fi
+id=$(grep -o '"\(session_id\|thread_id\)":"[0-9a-f-]*"' "$T/out" | head -1 | sed 's/.*:"\(.*\)"/\1/')
+if [ "$ses" != - ] && [ -n "${RRFLOW_URL:-}" ]; then
+  rs=$(rr memory get "chat/$ses/rrflow" 2>/dev/null | val)
+  if [ -z "$rs" ]; then rs=$(rr session start --agent "$prov" --mode chat 2>/dev/null) && rr memory put "chat/$ses/rrflow" "$rs" >/dev/null; fi
+  [ -n "$id" ] && [ "$id" != "$prev" ] && rr memory put "chat/$ses/$prov" "$id" >/dev/null
+  eff=allow; [ "$code" = 0 ] || eff=deny
+  rr decision add --action chat.turn --effect $eff --resource "chat/$ses" ${rs:+--session "$rs"} --reason "exit $code" >/dev/null 2>&1
+fi
+exit "$code"

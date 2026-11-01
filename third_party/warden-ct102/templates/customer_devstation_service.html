@@ -1,0 +1,42 @@
+{{/* customer_devstation_service.html — /customers/<slug>/devstation/<svc>.
+     Single-service detail — settings, audit, rotation, revoke. */}}
+
+{{ define "customer_devstation_service.body" }}
+    {{ template "components.section" (dict
+        "Title" .Service.ServiceID
+        "Subtitle" (printf "%s · template: %s · host: %s" .Service.AuthOverride.Kind .Service.TemplateRef .Service.Host.HostID)) }}
+
+    {{ template "components.section" (dict
+        "Title" "Auth state"
+        "Subtitle" "Live status from Plane A customer_service_state — refreshes proactively 5 min before token expiry.") }}
+
+    <div class="c-detail-grid">
+        {{ template "components.entity_card" (dict
+            "Icon" "🔑"
+            "Title" "Credentials"
+            "Subtitle" (printf "Stored at %s" .Service.StorageOverride.InfisicalBasePath)
+            "StatusPill" (dict "State" "active")
+            "Actions" (list
+                (dict "Label" "Rotate now" "Kind" "primary")
+                (dict "Label" "Revoke" "Kind" "destructive" "StepUp" true "Confirm" "Revoke this credential? This logs out every consumer."))) }}
+
+        {{ template "components.entity_card" (dict
+            "Icon" "📋"
+            "Title" "Audit"
+            "Subtitle" "Recent auth events for this service"
+            "DrillHref" (printf "/customers/%s/devstation/%s/audit" .Customer.AccountSlug .Service.ServiceID)) }}
+
+        {{ template "components.entity_card" (dict
+            "Icon" "⚙️"
+            "Title" "Settings"
+            "Subtitle" "Notification prefs · catalog visibility · tier eligibility"
+            "DrillHref" (printf "/customers/%s/devstation/%s/settings" .Customer.AccountSlug .Service.ServiceID)) }}
+    </div>
+
+    {{ if .Service.Notes }}
+        {{ template "components.section" (dict "Title" "Notes") }}
+        <p class="c-prose">{{ .Service.Notes }}</p>
+    {{ end }}
+{{ end }}
+
+{{ template "components.shell" . }}

@@ -1,0 +1,1443 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Backups</title>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(108, 138, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 138, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(rgba(108, 138, 255, 0.012) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 138, 255, 0.012) 1px, transparent 1px);
+            background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+            mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, rgba(0,0,0,0.4) 0%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, rgba(0,0,0,0.4) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        header, main, footer { position: relative; z-index: 1; }
+
+        /* ── Tabs ── */
+        .bk-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            width: fit-content;
+        }
+
+        .bk-tab {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 0.55rem 1.2rem;
+            background: transparent;
+            border: none;
+            border-right: 1px solid var(--border);
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .bk-tab:last-child { border-right: none; }
+        .bk-tab:hover { background: rgba(108, 138, 255, 0.05); color: var(--text); }
+        .bk-tab.active { background: rgba(108, 138, 255, 0.1); color: var(--accent); }
+
+        .bk-panel { display: none; }
+        .bk-panel.active { display: block; }
+
+        .estate-lead {
+            margin: 0 0 1.1rem 0;
+            color: var(--text-dim);
+            font-size: 0.84rem;
+            line-height: 1.45;
+            max-width: 62rem;
+        }
+
+        .estate-banner {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            line-height: 1.45;
+        }
+        .estate-banner.warn { border-color: color-mix(in srgb, var(--orange, #fbbf24) 50%, var(--border)); color: var(--orange, #fbbf24); background: rgba(251, 191, 36, 0.06); }
+        .estate-banner.block { border-color: color-mix(in srgb, var(--red) 50%, var(--border)); color: var(--red); background: rgba(239, 68, 68, 0.06); }
+        .estate-banner.ok { border-color: color-mix(in srgb, var(--green) 45%, var(--border)); color: var(--green); background: rgba(34, 197, 94, 0.06); }
+        .estate-banner + .estate-banner { margin-top: -0.45rem; }
+
+        .dest-card, .target-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .dest-meta, .target-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem 1.1rem;
+            margin-top: 0.7rem;
+        }
+
+        .dest-meta span, .target-meta span {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.04em;
+            color: var(--text-dim);
+        }
+
+        .target-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.8rem;
+        }
+
+        .target-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .target-hint {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 0.2rem;
+        }
+
+        .progress-box {
+            display: none;
+            border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: rgba(108, 138, 255, 0.05);
+        }
+        .progress-box.open { display: block; }
+        .progress-phase {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+        .progress-line {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            margin-top: 0.45rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .progress-bar {
+            height: 6px;
+            border-radius: 99px;
+            background: rgba(108, 138, 255, 0.12);
+            overflow: hidden;
+            margin-top: 0.7rem;
+        }
+        .progress-bar > span {
+            display: block;
+            height: 100%;
+            width: 30%;
+            background: var(--accent);
+            animation: estate-slide 1.4s ease-in-out infinite;
+        }
+        .check-list { display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 1rem; }
+        .check-row {
+            display: grid;
+            grid-template-columns: 1.4rem 1fr;
+            gap: 0.55rem;
+            padding: 0.65rem 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.82rem;
+        }
+        .check-row.pass { border-color: color-mix(in srgb, var(--green) 45%, var(--border)); }
+        .check-row.warn { border-color: color-mix(in srgb, var(--orange, #fbbf24) 45%, var(--border)); }
+        .check-row.fail { border-color: color-mix(in srgb, var(--red) 45%, var(--border)); }
+        .check-mark { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+        .check-title { font-weight: 600; }
+        .check-detail { color: var(--text-dim); font-size: 0.78rem; margin-top: 0.15rem; }
+        .check-fix { color: var(--orange, #fbbf24); font-size: 0.75rem; margin-top: 0.2rem; }
+        .event-log {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            max-height: 14rem;
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.6rem 0.75rem;
+            background: var(--bg-card, var(--bg));
+            margin-top: 0.5rem;
+        }
+        .event-line { margin: 0.2rem 0; color: var(--text-dim); }
+        .event-line.ok { color: var(--green); }
+        .event-line.error { color: var(--red); }
+        .event-line.warn { color: var(--orange, #fbbf24); }
+        [data-tip] { position: relative; cursor: help; }
+        .cov-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin: 0.6rem 0 1.1rem; }
+        .cov-table th {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+            text-align: left;
+            padding: 0.4rem 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .cov-table td { padding: 0.45rem 0.5rem; border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent); vertical-align: top; }
+        .cov-why { color: var(--text-dim); font-size: 0.72rem; }
+        .cov-path { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--text-dim); }
+        .cov-group td {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent);
+            padding-top: 0.9rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .cov-req { color: var(--orange, #fbbf24); font-size: 0.62rem; letter-spacing: 0.04em; }
+        [data-tip]:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            left: 0;
+            top: calc(100% + 0.35rem);
+            z-index: 20;
+            min-width: 16rem;
+            max-width: 22rem;
+            padding: 0.55rem 0.7rem;
+            border-radius: 8px;
+            background: #11151c;
+            color: #e8ecf3;
+            border: 1px solid #3a4050;
+            font-family: Outfit, sans-serif;
+            font-size: 0.75rem;
+            font-weight: 400;
+            letter-spacing: 0;
+            text-transform: none;
+            line-height: 1.35;
+            box-shadow: 0 8px 24px rgba(0,0,0,.45);
+            pointer-events: none;
+        }
+        @keyframes estate-slide {
+            0% { transform: translateX(-120%); }
+            100% { transform: translateX(400%); }
+        }
+
+        .estate-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            align-items: center;
+            margin: 0.4rem 0 1rem;
+        }
+
+        .btn-primary {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.55rem 1.15rem;
+            border-radius: 6px;
+            background: var(--accent);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+        }
+        .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+        .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+
+        /* ── Section headers ── */
+        .sec-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .sec-header h3 {
+            margin: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-dim);
+        }
+
+        .sec-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            opacity: 0.5;
+            margin-left: 0.5rem;
+        }
+
+        .btn-action {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.45rem 1rem;
+            border-radius: 6px;
+            border: 1px dashed rgba(108, 138, 255, 0.25);
+            background: rgba(108, 138, 255, 0.06);
+            color: var(--accent);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover {
+            border-style: solid;
+            border-color: var(--accent);
+            background: rgba(108, 138, 255, 0.12);
+        }
+
+        /* ── Job cards ── */
+        .bk-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .bk-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg);
+            transition: border-color 0.2s;
+        }
+
+        .bk-card:hover {
+            border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+        }
+
+        .bk-card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .bk-card-icon.tar { background: rgba(251, 191, 36, 0.1); color: var(--orange); }
+        .bk-card-icon.rsync { background: rgba(108, 138, 255, 0.1); color: var(--accent); }
+
+        .bk-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bk-card-name {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--text);
+        }
+
+        .bk-card-detail {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            color: var(--text-dim);
+            opacity: 0.6;
+            margin-top: 0.15rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bk-card-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .bk-meta-item {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-dim);
+            opacity: 0.6;
+        }
+
+        .badge-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.2rem 0.55rem;
+            border-radius: 4px;
+        }
+
+        .badge-status.on { background: rgba(34, 197, 94, 0.1); color: var(--green); }
+        .badge-status.off { background: rgba(239, 68, 68, 0.08); color: var(--red); opacity: 0.7; }
+        .badge-status.running { background: rgba(108, 138, 255, 0.12); color: var(--accent); animation: pulse-badge 1.5s ease-in-out infinite; }
+
+        @keyframes pulse-badge {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .bk-card-actions {
+            display: flex;
+            gap: 0.35rem;
+        }
+
+        .btn-sm {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 0.3rem 0.6rem;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-sm.danger:hover { border-color: var(--red); color: var(--red); }
+        .btn-sm.run:hover { border-color: var(--green); color: var(--green); }
+
+        /* ── Form ── */
+        .bk-form-wrap {
+            display: none;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg);
+            overflow: hidden;
+            animation: form-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .bk-form-wrap.open { display: block; }
+
+        @keyframes form-in {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.7rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background: rgba(108, 138, 255, 0.02);
+        }
+
+        .form-bar h4 {
+            margin: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+        }
+
+        .form-body {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 0.7rem;
+        }
+
+        .form-field {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .form-field.wide { flex: 2; }
+
+        .form-field label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            opacity: 0.6;
+        }
+
+        .form-field input,
+        .form-field select {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            padding: 0.45rem 0.65rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-card);
+            color: var(--text);
+            transition: border-color 0.15s;
+        }
+
+        .form-field input:focus,
+        .form-field select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        .form-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+
+        .btn-submit {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.5rem 1.1rem;
+            border-radius: 6px;
+            background: var(--accent);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+
+        .btn-submit:hover { opacity: 0.85; }
+
+        .form-msg {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+        }
+
+        .form-msg.ok { color: var(--green); }
+        .form-msg.err { color: var(--red); }
+
+        /* ── History table ── */
+        .hist-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+        }
+
+        .hist-table th {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            opacity: 0.5;
+            padding: 0.5rem 0.6rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .hist-table td {
+            padding: 0.55rem 0.6rem;
+            border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+            vertical-align: top;
+        }
+
+        .hist-table tr:hover td {
+            background: rgba(108, 138, 255, 0.02);
+        }
+
+        .hist-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            color: var(--text-dim);
+        }
+
+        .hist-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.15rem 0.45rem;
+            border-radius: 3px;
+        }
+
+        .hist-badge.success { background: rgba(34, 197, 94, 0.1); color: var(--green); }
+        .hist-badge.failed { background: rgba(239, 68, 68, 0.1); color: var(--red); }
+        .hist-badge.running { background: rgba(108, 138, 255, 0.12); color: var(--accent); }
+
+        .hist-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .hist-error {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            color: var(--red);
+            opacity: 0.7;
+            margin-top: 0.15rem;
+        }
+
+        .hist-actions {
+            display: flex;
+            gap: 0.3rem;
+        }
+
+        /* ── Empty state ── */
+        .bk-empty {
+            text-align: center;
+            padding: 2.5rem 1.5rem;
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+        }
+
+        .bk-empty-icon {
+            font-size: 1.8rem;
+            opacity: 0.12;
+            margin-bottom: 0.6rem;
+        }
+
+        .bk-empty p {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            opacity: 0.5;
+        }
+
+        footer {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0.35;
+        }
+    </style>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        <section class="card">
+            <div class="bk-tabs">
+                <button class="bk-tab active" data-tab="full" onclick="switchTab('full', this)">Full Backup</button>
+                <button class="bk-tab" data-tab="jobs" onclick="switchTab('jobs', this)">Jobs</button>
+                <button class="bk-tab" data-tab="history" onclick="switchTab('history', this)">History</button>
+            </div>
+
+            <!-- ═══ Full estate backup ═══ -->
+            <div id="panel-full" class="bk-panel active">
+                <div class="sec-header">
+                    <h3>Full Backup<span class="sec-count">guided copy to object storage</span></h3>
+                    <button class="btn-action" onclick="refreshPreflight()">Re-check</button>
+                </div>
+                <p class="estate-lead">The main backup is <strong>Warden Storage</strong> — the 400G share on LXC 117. This 16G panel cannot mount it. Copies stream over SMB. Everything else on this LXC is extra. The activity log records every save, test, skip, refuse, and run.</p>
+
+                <div class="dest-card">
+                    <div class="target-head">
+                        <div>
+                            <div class="target-name">Warden Storage — the main backup</div>
+                            <div class="target-hint">{{ if .Estate.Storage.Message }}{{ .Estate.Storage.Message }}{{ else }}Shared disk at {{ .Estate.Storage.UNC }}. Put site data under this share.{{ end }}</div>
+                        </div>
+                        {{ if .Estate.Storage.CopyReady }}
+                        <span class="badge-status on">{{ if .Estate.Storage.LocalMounted }}Mounted{{ else }}SMB ready{{ end }}</span>
+                        {{ else }}
+                        <span class="badge-status off">Not reachable</span>
+                        {{ end }}
+                    </div>
+                    <div class="dest-meta">
+                        {{ if .Estate.Storage.UNC }}<span>{{ .Estate.Storage.UNC }}</span>{{ end }}
+                        {{ if .Estate.Storage.Mount }}<span>mount {{ .Estate.Storage.Mount }}</span>{{ end }}
+                        {{ if .Estate.Storage.UsedHuman }}<span>used {{ .Estate.Storage.UsedHuman }}</span>{{ end }}
+                        {{ if .Estate.Storage.FreeHuman }}<span>free {{ .Estate.Storage.FreeHuman }}</span>{{ end }}
+                        {{ if .Estate.Storage.LastStatus }}<span>last copy {{ .Estate.Storage.LastStatus }} {{ .Estate.Storage.LastTime }}</span>{{ else }}<span>last copy never</span>{{ end }}
+                    </div>
+                    <div class="estate-actions">
+                        <button class="btn-action" data-tip="Lists the SMB share. A pass means Copy can stream the disk to S3 even though this LXC cannot mount CIFS." onclick="testStorage()">Test Warden Storage</button>
+                        <button class="btn-action" data-tip="Tries a kernel CIFS mount. This unprivileged LXC is expected to refuse. The copy path is SMB stream, not mount." onclick="mountStorage()">Try kernel mount</button>
+                        <button class="btn-primary" data-tip="Streams the whole warden-storage share into the bucket. This is the backup that matters." onclick="runEstate('warden-storage')" {{ if .Estate.Running }}disabled{{ end }}>Copy Warden Storage</button>
+                    </div>
+                </div>
+
+                <h3 class="sec-header"><span>What should be copied</span></h3>
+                {{ if eq .Estate.CoverageSummary.RequiredGaps 0 }}
+                <div class="estate-banner ok">{{ .Estate.CoverageSummary.Headline }}</div>
+                {{ else }}
+                <div class="estate-banner warn">{{ .Estate.CoverageSummary.Headline }}</div>
+                {{ end }}
+                <div class="estate-actions">
+                    <button class="btn-action" data-tip="Puts every required restore item into the copy list and turns it on. Paths that are not on this machine yet are skipped at run time and written to the activity log." onclick="addCoverageRequired()">Add all required items</button>
+                </div>
+                <table class="cov-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>On this machine</th>
+                            <th>In copy list</th>
+                            <th>Last copy</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Estate.Coverage }}
+                        {{ if .ShowGroup }}
+                        <tr class="cov-group"><td colspan="5">{{ .Group }}</td></tr>
+                        {{ end }}
+                        <tr>
+                            <td>
+                                <div class="check-title">{{ .Name }}{{ if .Required }} <span class="cov-req">required</span>{{ end }}</div>
+                                <div class="cov-why">{{ .Why }}</div>
+                                <div class="cov-path">{{ .Path }}</div>
+                            </td>
+                            <td>{{ if .Present }}<span class="badge-status on">Yes</span>{{ else }}<span class="badge-status off">No</span>{{ end }}</td>
+                            <td>{{ if and .InList .Enabled }}<span class="badge-status on">Yes</span>{{ else if .InList }}<span class="badge-status off">Off</span>{{ else }}<span class="badge-status off">Not listed</span>{{ end }}</td>
+                            <td class="cov-path">{{ .StatusLabel }}</td>
+                            <td>
+                                {{ if not .InList }}
+                                <button class="btn-sm" onclick="addCoverage('{{ .ID }}')">Add to list</button>
+                                {{ else if not .Enabled }}
+                                <button class="btn-sm" onclick="addCoverage('{{ .ID }}')">Enable</button>
+                                {{ end }}
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                <p class="estate-lead">Required items restore this panel. Warden Storage is copied over SMB even when it shows as not mounted. Optional rows stay off until you add them.</p>
+
+                <h3 class="sec-header"><span>Activity log</span></h3>
+                <div id="event-log" class="event-log">
+                    {{ if not .Estate.Events }}<div class="event-line">No events yet. Save, test, or start a copy.</div>{{ end }}
+                    {{ range .Estate.Events }}
+                    <div class="event-line {{ .Level }}">{{ .Time }} [{{ .Action }}] {{ .Message }}</div>
+                    {{ end }}
+                </div>
+
+                <div class="check-list">
+                    {{ range .Estate.Checks }}
+                    <div class="check-row {{ .Status }}">
+                        <div class="check-mark">{{ if eq .Status "pass" }}OK{{ else if eq .Status "warn" }}!{{ else }}X{{ end }}</div>
+                        <div>
+                            <div class="check-title">{{ .Title }}</div>
+                            <div class="check-detail">{{ .Detail }}</div>
+                            {{ if and (ne .Status "pass") .Fix }}<div class="check-fix">{{ .Fix }}</div>{{ end }}
+                        </div>
+                    </div>
+                    {{ end }}
+                </div>
+
+                {{ range .Estate.Blocking }}
+                <div class="estate-banner block">{{ . }}</div>
+                {{ end }}
+                {{ if .Estate.LastSuccess }}
+                <div class="estate-banner ok">Last successful copy: {{ .Estate.LastSuccess }}</div>
+                {{ end }}
+
+                <div id="estate-progress" class="progress-box{{ if .Estate.Running }} open{{ end }}">
+                    <div class="progress-phase" id="estate-phase">{{ if .Estate.Progress }}{{ .Estate.Progress.Phase }}{{ else }}running{{ end }}</div>
+                    <div class="progress-line" id="estate-progress-meta">
+                        {{ if .Estate.Progress }}{{ .Estate.Progress.TargetName }} · {{ .Estate.Progress.FilesSeen }} files · {{ .Estate.Progress.SizeHuman }}{{ if .Estate.Progress.DestKind }} · {{ .Estate.Progress.DestKind }}{{ end }}{{ end }}
+                    </div>
+                    <div class="progress-line" id="estate-progress-line">{{ if .Estate.Progress }}{{ .Estate.Progress.LastLine }}{{ end }}</div>
+                    <div class="progress-bar"><span></span></div>
+                </div>
+
+                <h3 class="sec-header" style="margin-top:0.5rem;"><span>Step 1 — Destination</span></h3>
+                <div class="dest-card">
+                    <input type="hidden" id="estate-dest-id" value="{{ .Estate.ActiveDestID }}">
+                    <div class="target-head">
+                        <div>
+                            <div class="target-name">{{ if .Estate.Destination.Name }}{{ .Estate.Destination.Name }}{{ else }}shippinS3 storage{{ end }}</div>
+                            <div class="target-hint">SystemFreaks S3. Paste access key, secret, and bucket here, then Save. Keys stay on this host (mode 0600) and are used for the upload. Leave a key field blank to keep a value already saved.</div>
+                        </div>
+                        {{ if .Estate.Destination.CredsReady }}
+                        <span class="badge-status on">Keys {{ .Estate.Destination.CredsSource }}</span>
+                        {{ else }}
+                        <span class="badge-status off">Keys missing</span>
+                        {{ end }}
+                    </div>
+                    <div class="form-row" style="margin-top:0.75rem;">
+                        <div class="form-field wide">
+                            <label>Endpoint</label>
+                            <input type="text" id="s3-endpoint" value="{{ .Estate.Destination.Endpoint }}" placeholder="https://s3.example.invalid">
+                        </div>
+                        <div class="form-field">
+                            <label>Region</label>
+                            <input type="text" id="s3-region" value="{{ .Estate.Destination.Region }}" placeholder="us-east-1">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>Bucket</label>
+                            <input type="text" id="s3-bucket" value="{{ .Estate.Destination.Bucket }}" placeholder="shippin">
+                        </div>
+                        <div class="form-field wide">
+                            <label>Prefix</label>
+                            <input type="text" id="s3-prefix" value="{{ .Estate.Destination.Prefix }}" placeholder="shippin/estate">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field wide">
+                            <label>Access key</label>
+                            <input type="password" id="s3-access-key" value="" autocomplete="off" placeholder="{{ if .Estate.Destination.HasAccessKey }}saved — paste to replace{{ else }}SystemFreaks access key{{ end }}">
+                        </div>
+                        <div class="form-field wide">
+                            <label>Secret key</label>
+                            <input type="password" id="s3-secret-key" value="" autocomplete="off" placeholder="{{ if .Estate.Destination.HasSecretKey }}saved — paste to replace{{ else }}SystemFreaks secret key{{ end }}">
+                        </div>
+                    </div>
+                    <div class="dest-meta">
+                        {{ if .Estate.Destination.URI }}<span>{{ .Estate.Destination.URI }}</span>{{ end }}
+                        {{ if .Estate.Destination.CredsReady }}<span>ready to upload</span>{{ else }}<span>save keys to unlock Run Full Backup</span>{{ end }}
+                        {{ if .Estate.TotalHuman }}<span>sources {{ .Estate.TotalHuman }}</span>{{ end }}
+                    </div>
+                    <div class="form-row" style="margin-top:0.8rem;">
+                        <label class="form-check">
+                            <input type="checkbox" id="estate-compress" {{ if .Estate.Compress }}checked{{ end }}> gzip compress
+                        </label>
+                    </div>
+                    <div class="estate-actions">
+                        <button class="btn-action" data-tip="Writes endpoint, bucket, prefix, and any new keys to this host. Blank key fields keep the last saved keys." onclick="saveEstate()">Save destination</button>
+                        <button class="btn-action" data-tip="Asks the bucket to list one object. If this fails, the copy will fail too." onclick="testS3()">Test destination</button>
+                    </div>
+                </div>
+
+                <h3 class="sec-header"><span>Step 3 — Folders to copy</span></h3>
+                <div class="estate-actions">
+                    <button class="btn-action" data-tip="Attaches //192.0.2.117/warden-storage at /workspace/warden-storage using Infisical SMB keys stored on this host." onclick="mountStorage()">Mount shared storage</button>
+                </div>
+                {{ range .Estate.Targets }}
+                <div class="target-card" data-target-id="{{ .ID }}">
+                    <div class="target-head">
+                        <div>
+                            <div class="target-name">{{ .Name }}</div>
+                            <div class="target-hint">{{ .Hint }}</div>
+                        </div>
+                        {{ if .ViaSMB }}
+                        <span class="badge-status on">SMB ready</span>
+                        {{ else if .Present }}
+                        <span class="badge-status on">Present</span>
+                        {{ else }}
+                        <span class="badge-status off">Missing</span>
+                        {{ end }}
+                    </div>
+                    <div class="form-row" style="margin-top:0.75rem;">
+                        <div class="form-field">
+                            <label>Name</label>
+                            <input type="text" id="name-{{ .ID }}" value="{{ .Name }}">
+                        </div>
+                        <div class="form-field wide">
+                            <label>Folder path</label>
+                            <input type="text" id="source-{{ .ID }}" value="{{ .Source }}" placeholder="/some/folder">
+                        </div>
+                        <div class="form-field">
+                            <label>Include</label>
+                            <label class="form-check" style="margin-top:0.45rem;">
+                                <input type="checkbox" id="enabled-{{ .ID }}" {{ if .Enabled }}checked{{ end }}> Enabled
+                            </label>
+                        </div>
+                    </div>
+                    <div class="target-meta">
+                        <span>resolved {{ .Resolved }}</span>
+                        {{ if .SizeKnown }}<span>{{ .SizeHuman }}</span>{{ else if .Present }}<span>size pending</span>{{ end }}
+                        {{ if .Error }}<span>{{ .Error }}</span>{{ end }}
+                    </div>
+                    <div class="bk-card-actions" style="margin-top:0.7rem;">
+                        <button class="btn-sm" onclick="moveSource('{{ .ID }}','up')">Up</button>
+                        <button class="btn-sm" onclick="moveSource('{{ .ID }}','down')">Down</button>
+                        <button class="btn-sm" onclick="editSource('{{ .ID }}')">Save folder</button>
+                        <button class="btn-sm run" onclick="runEstate('{{ .ID }}')" {{ if $.Estate.Running }}disabled{{ end }}>Copy this one</button>
+                        <button class="btn-sm danger" onclick="deleteSource('{{ .ID }}')">Remove</button>
+                    </div>
+                </div>
+                {{ end }}
+
+                <div class="dest-card">
+                    <div class="form-bar" style="border:none;padding:0 0 0.7rem 0;background:transparent;">
+                        <h4>Add a folder</h4>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>Name</label>
+                            <input type="text" id="add-source-name" placeholder="Warden config">
+                        </div>
+                        <div class="form-field wide">
+                            <label>Path</label>
+                            <input type="text" id="add-source-path" placeholder="/etc/warden">
+                        </div>
+                    </div>
+                    <div class="estate-actions">
+                        <button class="btn-action" onclick="addSource()">Add folder</button>
+                    </div>
+                </div>
+
+                <h3 class="sec-header"><span>Step 4 — Run</span></h3>
+                <div class="estate-actions">
+                    <button class="btn-action" onclick="saveEstate()">Save everything</button>
+                    <button class="btn-primary" id="estate-run-btn" data-tip="Copies every enabled folder that exists on this machine into the bucket. Missing folders are skipped and logged. If nothing exists, add /etc/warden first." onclick="runEstate('')" {{ if .Estate.Running }}disabled{{ end }}>Start full backup</button>
+                    <span id="estate-form-msg" class="form-msg"></span>
+                </div>
+                <p class="estate-lead">If a folder is missing, the run is refused and the reason is written in the activity log. Add a folder that exists on this machine (try <code>/etc/warden</code>) to prove the copy path.</p>
+
+            </div>
+
+            <!-- ═══ Jobs Panel ═══ -->
+            <div id="panel-jobs" class="bk-panel">
+                <div class="sec-header">
+                    <h3>Backup Jobs<span class="sec-count">{{ len .Jobs }} configured</span></h3>
+                    <button class="btn-action" onclick="showJobForm()">+ Add Job</button>
+                </div>
+
+                <!-- Add/Edit Job Form -->
+                <div id="job-form" class="bk-form-wrap">
+                    <input type="hidden" id="job-edit-id" value="">
+                    <div class="form-bar">
+                        <h4 id="job-form-title">Add Backup Job</h4>
+                        <button class="btn-sm" onclick="hideJobForm()">Cancel</button>
+                    </div>
+                    <div class="form-body">
+                        <div class="form-row">
+                            <div class="form-field wide">
+                                <label>Job Name</label>
+                                <input type="text" id="job-name" placeholder="Nightly /etc backup">
+                            </div>
+                            <div class="form-field">
+                                <label>Type</label>
+                                <select id="job-type">
+                                    <option value="tar">Tar Archive</option>
+                                    <option value="rsync">Rsync Mirror</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-field wide">
+                                <label>Source Path</label>
+                                <input type="text" id="job-source" placeholder="/etc">
+                            </div>
+                            <div class="form-field wide">
+                                <label>Destination Path</label>
+                                <input type="text" id="job-dest" placeholder="/backups/etc">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-field">
+                                <label>Schedule</label>
+                                <select id="job-schedule" onchange="toggleCustomTime()">
+                                    <option value="manual">Manual Only</option>
+                                    <option value="hourly">Hourly</option>
+                                    <option value="daily">Daily (2:00 AM)</option>
+                                    <option value="weekly">Weekly (Sun 2:00 AM)</option>
+                                    <option value="monthly">Monthly (1st 2:00 AM)</option>
+                                    <option value="custom">Custom Time (Daily)</option>
+                                </select>
+                            </div>
+                            <div class="form-field" id="custom-time-field" style="display:none;">
+                                <label>Run At (HH:MM)</label>
+                                <input type="time" id="job-custom-time" value="02:00">
+                            </div>
+                            <div class="form-field wide">
+                                <label>Exclude Patterns (comma-separated)</label>
+                                <input type="text" id="job-exclude" placeholder="*.log, .cache, node_modules">
+                            </div>
+                        </div>
+                        <label class="form-check">
+                            <input type="checkbox" id="job-compress" checked> Compress with gzip (tar only)
+                        </label>
+                        <div class="form-actions">
+                            <button class="btn-submit" id="job-submit-btn" onclick="submitJob()">Save Job</button>
+                            <span id="job-form-msg" class="form-msg"></span>
+                        </div>
+                    </div>
+                </div>
+
+                {{ if not .Jobs }}
+                <div class="bk-empty">
+                    <div class="bk-empty-icon">&#x1F4BE;</div>
+                    <p>No backup jobs configured — add a tar or rsync job to start</p>
+                </div>
+                {{ else }}
+                <div class="bk-grid">
+                    {{ range .Jobs }}
+                    <div class="bk-card" data-job-id="{{ .ID }}" data-job-name="{{ .Name }}" data-job-type="{{ .Type }}" data-job-source="{{ .Source }}" data-job-dest="{{ .Destination }}" data-job-schedule="{{ .Schedule }}" data-job-exclude="{{ .Exclude }}" data-job-compress="{{ .Compress }}">
+                        <div class="bk-card-icon {{ .Type }}">
+                            {{ if eq .Type "tar" }}&#x1F4E6;{{ else }}&#x1F504;{{ end }}
+                        </div>
+                        <div class="bk-card-info">
+                            <div class="bk-card-name">{{ .Name }}</div>
+                            <div class="bk-card-detail">{{ .Source }} &rarr; {{ .Destination }}</div>
+                        </div>
+                        <div class="bk-card-meta">
+                            <span class="bk-meta-item">{{ .Type }}</span>
+                            <span class="bk-meta-item">{{ .Schedule }}</span>
+                            {{ if .Compress }}<span class="bk-meta-item">gzip</span>{{ end }}
+                        </div>
+                        {{ if index $.Running .ID }}
+                        <span class="badge-status running">Running</span>
+                        {{ else if .Enabled }}
+                        <span class="badge-status on">Active</span>
+                        {{ else }}
+                        <span class="badge-status off">Disabled</span>
+                        {{ end }}
+                        <div class="bk-card-actions">
+                            <button class="btn-sm run" onclick="runNow('{{ .ID }}', this)" {{ if index $.Running .ID }}disabled{{ end }}>Run Now</button>
+                            <button class="btn-sm" onclick="editJob('{{ .ID }}')">Edit</button>
+                            <button class="btn-sm" onclick="toggleJob('{{ .ID }}')">{{ if .Enabled }}Disable{{ else }}Enable{{ end }}</button>
+                            <button class="btn-sm danger" onclick="deleteJob('{{ .ID }}')">Del</button>
+                        </div>
+                    </div>
+                    {{ end }}
+                </div>
+                {{ end }}
+            </div>
+
+            <!-- ═══ History Panel ═══ -->
+            <div id="panel-history" class="bk-panel">
+                <div class="sec-header">
+                    <h3>Backup History<span class="sec-count">{{ len .History }} runs</span></h3>
+                    {{ if .History }}
+                    <button class="btn-action" onclick="clearHistory()">Clear History</button>
+                    {{ end }}
+                </div>
+
+                {{ if not .History }}
+                <div class="bk-empty">
+                    <div class="bk-empty-icon">&#x1F4CB;</div>
+                    <p>No backup runs yet — run a job to see history</p>
+                </div>
+                {{ else }}
+                <table class="hist-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Job</th>
+                            <th>Type</th>
+                            <th>Size</th>
+                            <th>Duration</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .History }}
+                        <tr>
+                            <td class="hist-time">{{ .StartTime }}</td>
+                            <td><span class="hist-badge {{ .Status }}">{{ .Status }}</span></td>
+                            <td>
+                                <span style="font-weight: 600; font-size: 0.82rem;">{{ .JobName }}</span>
+                                <div class="hist-path" title="{{ .Source }} → {{ .Dest }}">{{ .Source }} &rarr; {{ .Dest }}</div>
+                                {{ if .Error }}<div class="hist-error">{{ .Error }}</div>{{ end }}
+                            </td>
+                            <td><span class="bk-meta-item">{{ .Type }}</span></td>
+                            <td><span style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;">{{ if .Size }}{{ .Size }}{{ else }}&mdash;{{ end }}</span></td>
+                            <td><span style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;">{{ if .Duration }}{{ .Duration }}{{ else }}&mdash;{{ end }}</span></td>
+                            <td class="hist-actions">
+                                {{ if and (eq .Status "success") (eq .Type "tar") (.FilePath) }}
+                                <button class="btn-sm run" onclick="restoreRun('{{ .ID }}')" title="Restore from this backup">Restore</button>
+                                {{ end }}
+                                <button class="btn-sm danger" onclick="deleteRun('{{ .ID }}')">Del</button>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                {{ end }}
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <span>Warden Backup Manager · shippin estate</span>
+    </footer>
+
+    <script>
+        function switchTab(name, btn) {
+            document.querySelectorAll('.bk-tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.bk-panel').forEach(function(p) { p.classList.remove('active'); });
+            if (btn) {
+                btn.classList.add('active');
+            } else {
+                document.querySelectorAll('.bk-tab').forEach(function(t) {
+                    if (t.getAttribute('data-tab') === name) t.classList.add('active');
+                });
+            }
+            var panel = document.getElementById('panel-' + name);
+            if (panel) panel.classList.add('active');
+        }
+
+        function estateBody() {
+            var destId = document.getElementById('estate-dest-id');
+            var body = 'dest_id=' + encodeURIComponent(destId ? destId.value : 'shippin-s3');
+            var ep = document.getElementById('s3-endpoint');
+            var rg = document.getElementById('s3-region');
+            var bk = document.getElementById('s3-bucket');
+            var px = document.getElementById('s3-prefix');
+            if (ep) body += '&s3_endpoint=' + encodeURIComponent(ep.value);
+            if (rg) body += '&s3_region=' + encodeURIComponent(rg.value);
+            if (bk) body += '&s3_bucket=' + encodeURIComponent(bk.value);
+            if (px) body += '&s3_prefix=' + encodeURIComponent(px.value);
+            var ak = document.getElementById('s3-access-key');
+            var sk = document.getElementById('s3-secret-key');
+            if (ak && ak.value) body += '&s3_access_key=' + encodeURIComponent(ak.value);
+            if (sk && sk.value) body += '&s3_secret_key=' + encodeURIComponent(sk.value);
+            if (document.getElementById('estate-compress').checked) body += '&compress=on';
+            else body += '&compress=off';
+            document.querySelectorAll('[data-target-id]').forEach(function(card) {
+                var id = card.getAttribute('data-target-id');
+                var src = document.getElementById('source-' + id);
+                var en = document.getElementById('enabled-' + id);
+                if (src) body += '&source_' + id + '=' + encodeURIComponent(src.value);
+                if (en) body += '&enabled_' + id + '=' + (en.checked ? 'on' : 'off');
+            });
+            return body;
+        }
+
+        function addSource() {
+            var name = document.getElementById('add-source-name').value;
+            var path = document.getElementById('add-source-path').value;
+            bkPost('action=add_source&name=' + encodeURIComponent(name) + '&source=' + encodeURIComponent(path), 'estate-form-msg');
+        }
+
+        function editSource(id) {
+            var nameEl = document.getElementById('name-' + id);
+            var src = document.getElementById('source-' + id);
+            var en = document.getElementById('enabled-' + id);
+            var body = 'action=edit_source&id=' + encodeURIComponent(id);
+            if (nameEl) body += '&name=' + encodeURIComponent(nameEl.value);
+            if (src) body += '&source=' + encodeURIComponent(src.value);
+            if (en) body += '&enabled=' + (en.checked ? 'on' : 'off');
+            bkPost(body, 'estate-form-msg');
+        }
+
+        function moveSource(id, dir) {
+            bkPost('action=move_source&id=' + encodeURIComponent(id) + '&dir=' + encodeURIComponent(dir), 'estate-form-msg');
+        }
+
+        function testS3() {
+            bkPost('action=test_s3&' + estateBody(), 'estate-form-msg');
+        }
+
+        function mountStorage() {
+            bkPost('action=mount_storage', 'estate-form-msg');
+        }
+
+        function testStorage() {
+            bkPost('action=test_storage', 'estate-form-msg');
+        }
+
+        function addCoverage(id) {
+            bkPost('action=add_coverage&id=' + encodeURIComponent(id), 'estate-form-msg');
+        }
+
+        function addCoverageRequired() {
+            bkPost('action=add_coverage_required', 'estate-form-msg');
+        }
+
+        function deleteSource(id) {
+            Modal.confirm('Remove this folder from the backup list?', {danger: true}).then(function(ok) {
+                if (!ok) return;
+                bkPost('action=delete_source&id=' + encodeURIComponent(id), 'estate-form-msg');
+            });
+        }
+
+        function escLog(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function refreshEvents() {
+            fetch('/api/backups/events').then(function(r){ return r.json(); }).then(function(data){
+                var box = document.getElementById('event-log');
+                if (!box) return;
+                var ev = data.events || [];
+                if (!ev.length) {
+                    box.innerHTML = '<div class="event-line">No events yet. Save, test, or start a copy.</div>';
+                    return;
+                }
+                box.innerHTML = ev.map(function(e){
+                    return '<div class="event-line ' + escLog(e.level || '') + '">' +
+                        escLog(e.time || '') + ' [' + escLog(e.action || '') + '] ' + escLog(e.message || '') + '</div>';
+                }).join('');
+            }).catch(function(){});
+        }
+        setInterval(refreshEvents, 2500);
+        refreshEvents();
+
+        function saveEstate() {
+            bkPost('action=save_estate&' + estateBody(), 'estate-form-msg');
+        }
+
+        function runEstate(target) {
+            var body = 'action=run_estate&' + estateBody();
+            if (target) body += '&target=' + encodeURIComponent(target);
+            var btn = document.getElementById('estate-run-btn');
+            if (btn) btn.disabled = true;
+            fetch('/api/backups', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                refreshEvents();
+                Toast.show(data.message, data.success ? 'ok' : 'err');
+                var msg = document.getElementById('estate-form-msg');
+                if (msg) {
+                    msg.textContent = data.message;
+                    msg.className = data.success ? 'form-msg ok' : 'form-msg err';
+                }
+                if (data.success) {
+                    document.getElementById('estate-progress').classList.add('open');
+                    pollEstateProgress();
+                } else if (btn) {
+                    btn.disabled = false;
+                }
+            })
+            .catch(function() {
+                if (btn) btn.disabled = false;
+                Toast.show('Request failed', 'err');
+            });
+        }
+
+        function refreshPreflight() {
+            fetch('/api/backups/preflight')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                Toast.show(data.ready ? 'Preflight ready' : 'Preflight blocked', data.ready ? 'ok' : 'err');
+                setTimeout(function() { location.reload(); }, 400);
+            })
+            .catch(function() { Toast.show('Preflight failed', 'err'); });
+        }
+
+        var estatePoll = null;
+        function pollEstateProgress() {
+            if (estatePoll) return;
+            estatePoll = setInterval(function() {
+                fetch('/api/backups/progress')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var box = document.getElementById('estate-progress');
+                    var p = data.progress || {};
+                    if (data.running || p.status === 'running') {
+                        box.classList.add('open');
+                        document.getElementById('estate-phase').textContent = p.phase || 'running';
+                        document.getElementById('estate-progress-meta').textContent =
+                            (p.targetName || 'estate') + ' · ' + (p.filesSeen || 0) + ' files · ' + (p.sizeHuman || '') + (p.destKind ? ' · ' + p.destKind : '');
+                        document.getElementById('estate-progress-line').textContent = p.objectKey || p.lastLine || p.error || '';
+                    } else {
+                        clearInterval(estatePoll);
+                        estatePoll = null;
+                        if (p.status === 'success' || p.status === 'failed') {
+                            document.getElementById('estate-phase').textContent = p.status;
+                            document.getElementById('estate-progress-line').textContent = p.lastLine || p.error || '';
+                            setTimeout(function() { location.reload(); }, 800);
+                        }
+                    }
+                })
+                .catch(function() {});
+            }, 1500);
+        }
+        {{ if .Estate.Running }}pollEstateProgress();{{ end }}
+
+        // ── Job form ──
+        function showJobForm() {
+            var f = document.getElementById('job-form');
+            f.classList.add('open');
+            document.getElementById('job-form-title').textContent = 'Add Backup Job';
+            document.getElementById('job-edit-id').value = '';
+            document.getElementById('job-name').value = '';
+            document.getElementById('job-type').value = 'tar';
+            document.getElementById('job-source').value = '';
+            document.getElementById('job-dest').value = '';
+            document.getElementById('job-schedule').value = 'manual';
+            document.getElementById('job-exclude').value = '';
+            document.getElementById('job-compress').checked = true;
+            document.getElementById('job-submit-btn').textContent = 'Save Job';
+            document.getElementById('job-form-msg').textContent = '';
+        }
+
+        function hideJobForm() {
+            document.getElementById('job-form').classList.remove('open');
+        }
+
+        function editJob(id) {
+            var card = document.querySelector('[data-job-id="' + id + '"]');
+            if (!card) return;
+            var f = document.getElementById('job-form');
+            f.classList.add('open');
+            document.getElementById('job-form-title').textContent = 'Edit Backup Job';
+            document.getElementById('job-edit-id').value = id;
+            document.getElementById('job-name').value = card.getAttribute('data-job-name');
+            document.getElementById('job-type').value = card.getAttribute('data-job-type');
+            document.getElementById('job-source').value = card.getAttribute('data-job-source');
+            document.getElementById('job-dest').value = card.getAttribute('data-job-dest');
+            document.getElementById('job-exclude').value = card.getAttribute('data-job-exclude');
+            document.getElementById('job-compress').checked = card.getAttribute('data-job-compress') === 'true';
+            document.getElementById('job-submit-btn').textContent = 'Update Job';
+            document.getElementById('job-form-msg').textContent = '';
+            // Handle custom time schedules (HH:MM format)
+            var sched = card.getAttribute('data-job-schedule');
+            if (/^\d{2}:\d{2}$/.test(sched)) {
+                document.getElementById('job-schedule').value = 'custom';
+                document.getElementById('job-custom-time').value = sched;
+            } else {
+                document.getElementById('job-schedule').value = sched;
+            }
+            toggleCustomTime();
+        }
+
+        function toggleCustomTime() {
+            var sel = document.getElementById('job-schedule').value;
+            document.getElementById('custom-time-field').style.display = sel === 'custom' ? 'flex' : 'none';
+        }
+
+        function submitJob() {
+            var editId = document.getElementById('job-edit-id').value;
+            var action = editId ? 'edit' : 'add';
+            var schedule = document.getElementById('job-schedule').value;
+            if (schedule === 'custom') {
+                schedule = document.getElementById('job-custom-time').value;
+            }
+            var body = 'action=' + action +
+                '&name=' + encodeURIComponent(document.getElementById('job-name').value) +
+                '&type=' + encodeURIComponent(document.getElementById('job-type').value) +
+                '&source=' + encodeURIComponent(document.getElementById('job-source').value) +
+                '&destination=' + encodeURIComponent(document.getElementById('job-dest').value) +
+                '&schedule=' + encodeURIComponent(schedule) +
+                '&exclude=' + encodeURIComponent(document.getElementById('job-exclude').value);
+            if (document.getElementById('job-compress').checked) body += '&compress=on';
+            if (editId) body += '&id=' + encodeURIComponent(editId);
+            bkPost(body, 'job-form-msg');
+        }
+
+        function deleteJob(id) {
+            Modal.confirm('Delete this backup job?', {danger: true}).then(function(ok) {
+                if (!ok) return;
+                bkPost('action=delete&id=' + encodeURIComponent(id), null);
+            });
+        }
+
+        function toggleJob(id) {
+            bkPost('action=toggle&id=' + encodeURIComponent(id), null);
+        }
+
+        function runNow(id, btn) {
+            var orig = btn.textContent;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-spinner"></span>';
+            fetch('/api/backups', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=run_now&id=' + encodeURIComponent(id)
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                btn.disabled = false;
+                btn.textContent = orig;
+                Toast.show(data.message, data.success ? 'ok' : 'err');
+                if (data.success) {
+                    setTimeout(function() { location.reload(); }, 1000);
+                }
+            })
+            .catch(function() {
+                btn.disabled = false;
+                btn.textContent = orig;
+                Toast.show('Request failed', 'err');
+            });
+        }
+
+        // ── History actions ──
+        function restoreRun(runId) {
+            Modal.confirm('Restore from this backup? This will overwrite the original source files.', {danger: true}).then(function(ok) {
+                if (!ok) return;
+                bkPost('action=restore&run_id=' + encodeURIComponent(runId), null);
+            });
+        }
+
+        function deleteRun(runId) {
+            Modal.confirm('Delete this backup run record?', {danger: true}).then(function(ok) {
+                if (!ok) return;
+                bkPost('action=delete_run&run_id=' + encodeURIComponent(runId) + '&delete_file=true', null);
+            });
+        }
+
+        function clearHistory() {
+            Modal.confirm('Clear all backup history?', {danger: true}).then(function(ok) {
+                if (!ok) return;
+                bkPost('action=clear_history', null);
+            });
+        }
+
+        // ── API helper ──
+        function bkPost(body, msgId) {
+            fetch('/api/backups', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                refreshEvents();
+                if (msgId) {
+                    var msg = document.getElementById(msgId);
+                    msg.textContent = data.message;
+                    msg.className = data.success ? 'form-msg ok' : 'form-msg err';
+                }
+                Toast.show(data.message, data.success ? 'ok' : 'err');
+                if (data.success) {
+                    setTimeout(function() { location.reload(); }, 500);
+                }
+            })
+            .catch(function() {
+                if (msgId) {
+                    var el = document.getElementById(msgId);
+                    el.textContent = 'Request failed';
+                    el.className = 'form-msg err';
+                } else {
+                    Toast.show('Request failed', 'err');
+                }
+            });
+        }
+
+        var hasRunning = {{ if .Running }}{{ gt (len .Running) 0 }}{{ else }}false{{ end }};
+        if (hasRunning) {
+            setInterval(function() { location.reload(); }, 5000);
+        }
+    </script>
+    {{ template "scripts" }}
+</body>
+</html>

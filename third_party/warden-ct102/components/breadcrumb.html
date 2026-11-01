@@ -1,0 +1,17 @@
+{{/* components.breadcrumb — drill-down breadcrumb trail.
+     Args: []BreadcrumbCrumb — each {Label, Href, Last}.
+     Spec 17 §3.2.
+*/}}
+{{ define "components.breadcrumb" }}
+<nav class="c-breadcrumb" aria-label="breadcrumb">
+    <a class="c-breadcrumb__link c-breadcrumb__link--home" href="/">Home</a>
+    {{ range . }}
+        <span class="c-breadcrumb__sep" aria-hidden="true">/</span>
+        {{ if .Last }}
+            <span class="c-breadcrumb__current" aria-current="page">{{ .Label }}</span>
+        {{ else }}
+            <a class="c-breadcrumb__link" href="{{ .Href }}">{{ .Label }}</a>
+        {{ end }}
+    {{ end }}
+</nav>
+{{ end }}

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Deployment Detail - Warden</title>
+</head>
+<body>
+    {{ template "header" . }}
+    <main class="container" style="padding:1rem 2rem;">
+        <h2 style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);">Deployment {{ .Deployment.Name }}</h2>
+        <div class="card" style="padding:1rem;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem;">
+                <div><strong>ID</strong><br><code>{{ .Deployment.ID }}</code></div>
+                <div><strong>Template</strong><br>{{ .Deployment.TemplateName }}</div>
+                <div><strong>Status</strong><br><span class="badge">{{ .Deployment.Status }}</span></div>
+                <div><strong>Stage</strong><br><code>{{ .Deployment.Stage }}</code></div>
+                <div><strong>Environment</strong><br>{{ if .Deployment.Estate }}{{ .Deployment.Estate }}{{ else }}prod{{ end }}</div>
+                <div><strong>Visibility</strong><br><span class="badge">{{ if .Deployment.Visibility }}{{ .Deployment.Visibility }}{{ else }}internal{{ end }}</span></div>
+                <div><strong>Substrate</strong><br>{{ .Deployment.ProviderID }}</div>
+                <div><strong>Cluster</strong><br>{{ .Deployment.TargetHost }} / {{ .Deployment.Runtime }}</div>
+                <div><strong>Tenant</strong><br>{{ if .Deployment.CustomerSlug }}{{ .Deployment.CustomerSlug }}{{ else }}Warden Internal{{ end }} {{ if .Deployment.VLAN }}(VLAN {{ .Deployment.VLAN }}){{ end }}</div>
+                <div><strong>URL</strong><br><a href="{{ .Deployment.PublicURL }}" target="_blank">{{ .Deployment.PublicURL }}</a></div>
+                <div><strong>Prod Approval</strong><br>
+                    {{ if .Deployment.Approved }}
+                    <span class="badge">approved by {{ .Deployment.ApprovedBy }}</span>
+                    {{ else }}
+                    <span class="badge">pending</span>
+                    {{ end }}
+                </div>
+            </div>
+            {{ if .Deployment.LastError }}
+            <p style="margin-top:0.75rem;color:var(--red,#e57373);"><strong>Last error:</strong> {{ .Deployment.LastError }}</p>
+            {{ end }}
+            <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+                <a href="/api/deployments/{{ .Deployment.ID }}/review" target="_blank">Review JSON</a>
+                <a href="/api/deployments/{{ .Deployment.ID }}/review?format=shell" target="_blank">Review shell script</a>
+                {{ if and (eq .Deployment.Automation "auto") (not .Deployment.Approved) }}
+                <button id="approve-btn" type="button">Approve For Production Auto-Run</button>
+                {{ end }}
+            </div>
+        </div>
+
+        <div class="card" style="padding:1rem;margin-top:0.75rem;">
+            <h3 style="margin-top:0;">Best practices (May 2026 baseline)</h3>
+            <ul>
+                {{ range .Deployment.BestPractices }}<li>{{ . }}</li>{{ end }}
+            </ul>
+        </div>
+
+        <div class="card" style="padding:1rem;margin-top:0.75rem;">
+            <h3 style="margin-top:0;">Rollout Plan</h3>
+            <ol>
+                {{ range .Deployment.Plan }}
+                <li style="margin-bottom:0.65rem;">
+                    <strong>{{ .Stage }} — {{ .Title }}</strong><br>
+                    {{ if .Command }}<code>{{ .Command }}</code><br>{{ end }}
+                    <span style="color:var(--text-dim);">{{ .Rationale }}</span><br>
+                    <em>{{ .SafetyCheck }}</em>
+                </li>
+                {{ end }}
+            </ol>
+        </div>
+
+        <div class="card" style="padding:1rem;margin-top:0.75rem;">
+            <h3 style="margin-top:0;">Events</h3>
+            <table id="events-table">
+                <thead><tr><th>Time</th><th>Level</th><th>Stage</th><th>Message</th></tr></thead>
+                <tbody>
+                    {{ range .Events }}
+                    <tr><td>{{ .At.Format "2006-01-02 15:04:05" }}</td><td>{{ .Level }}</td><td>{{ .Stage }}</td><td>{{ .Message }}</td></tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </div>
+    </main>
+    {{ template "scripts" }}
+    <script>
+    (function(){
+        var tbody = document.querySelector('#events-table tbody');
+        var es = new EventSource('/api/deployments/{{ .Deployment.ID }}/events?stream=1');
+        es.onmessage = function(ev){
+            try {
+                var e = JSON.parse(ev.data);
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + (e.at || '') + '</td><td>' + (e.level || '') + '</td><td>' + (e.stage || '') + '</td><td>' + (e.message || '') + '</td>';
+                tbody.appendChild(tr);
+            } catch(_) {}
+        };
+
+        var approve = document.getElementById('approve-btn');
+        if (approve) {
+            approve.addEventListener('click', function() {
+                var note = prompt('Approval note (optional):') || '';
+                fetch('/api/deployments/{{ .Deployment.ID }}/action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'approve_production', note: note })
+                }).then(function(r){ return r.json(); })
+                  .then(function(j){
+                    if (j.error) {
+                        alert(j.error);
+                        return;
+                    }
+                    location.reload();
+                  }).catch(function(err){
+                    alert(err.message || 'approval failed');
+                  });
+            });
+        }
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+[Unit]
+Description=rrflow/state (Shippin managed service: sessions, memory, decision log)
+After=network-online.target
+
+[Service]
+User=rrflow
+Group=rrflow
+# shippin-hostd writes RRFLOW_LISTEN, RRFLOW_DATA and RRFLOW_ORG here.
+EnvironmentFile=/etc/default/rrflow-state
+ExecStart=/usr/local/bin/rrflow-state serve
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/rrflow
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,161 @@
+package servers
+
+import (
+	"context"
+	"os"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"shippin.cloud/console/internal/db"
+)
+
+// Needs SHIPPIN_TEST_DATABASE_URL (disposable: the schema is dropped and re-migrated).
+func testStore(t *testing.T) (*Store, context.Context, string) {
+	url := os.Getenv("SHIPPIN_TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("SHIPPIN_TEST_DATABASE_URL not set")
+	}
+	ctx := context.Background()
+	d, err := db.Open(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Pool.Exec(ctx, `DROP SCHEMA public CASCADE; CREATE SCHEMA public`); err != nil {
+		t.Fatal(err)
+	}
+	d.Pool.Close()
+	if d, err = db.Open(ctx, url); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(d.Pool.Close)
+	tid := uuid.NewString()
+	if _, err := d.Pool.Exec(ctx, `INSERT INTO tenants(id,idp_org_id,name,plan) VALUES($1,$2,'operator','founder')`, tid, uuid.NewString()); err != nil {
+		t.Fatal(err)
+	}
+	return &Store{Pool: d.Pool, Clock: Clock{Interval: 15 * time.Second, Missed: 3}}, ctx, tid
+}
+
+// TestEnrollmentLifecycle: pending → token → enroll once → beats → stale → revoked; estate rows
+// are planned and read-only; secrets are only ever stored hashed.
+func TestEnrollmentLifecycle(t *testing.T) {
+	s, ctx, tid := testStore(t)
+	list, _ := s.List(ctx, tid)
+	if len(list) != 3 || list[0].State != Planned || !list[0].Estate {
+		t.Fatalf("seeded estate rows: %+v", list)
+	}
+	if _, err := s.IssueToken(ctx, tid, list[0].ID, "u", time.Hour); err != ErrReadOnly {
+		t.Fatalf("token for estate row: %v", err)
+	}
+	g, err := s.Create(ctx, tid, "gold", "Gold", "gold", "u")
+	if err != nil || g.State != Pending {
+		t.Fatalf("create: %+v %v", g, err)
+	}
+	if _, err := s.Create(ctx, tid, "gold", "Gold 2", "gold", "u"); err != ErrSlugTaken {
+		t.Fatalf("dup slug: %v", err)
+	}
+	old, _ := s.IssueToken(ctx, tid, g.ID, "u", time.Hour)
+	tok, _ := s.IssueToken(ctx, tid, g.ID, "u", time.Hour)
+	if _, err := s.Enroll(ctx, old.Token, "h", "v", time.Minute); err != ErrBadToken {
+		t.Fatalf("a re-issue must void the old token: %v", err)
+	}
+	var clear int
+	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM server_enroll_tokens WHERE token_sha256 IN ($1,$2)`, tok.Token, old.Token).Scan(&clear)
+	if clear != 0 {
+		t.Fatal("a token was stored in clear")
+	}
+	var wg sync.WaitGroup
+	wins := make(chan *Enrolled, 8)
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if e, err := s.Enroll(ctx, tok.Token, "gold", "1", time.Minute); err == nil {
+				wins <- e
+			}
+		}()
+	}
+	wg.Wait()
+	close(wins)
+	if len(wins) != 1 {
+		t.Fatalf("token redeemed %d times, want exactly once", len(wins))
+	}
+	e := <-wins
+	if e.ServerID != g.ID || e.HeartbeatSeconds != 15 {
+		t.Fatalf("enrolled: %+v", e)
+	}
+	got, _ := s.Get(ctx, tid, g.ID)
+	if got.State != Active || got.Hostname != "gold" {
+		t.Fatalf("after enroll: %+v", got)
+	}
+	start := time.Now()
+	s.Now = func() time.Time { return start.Add(46 * time.Second) }
+	if got, _ = s.Get(ctx, tid, g.ID); got.State != Stale {
+		t.Fatalf("3 missed beats must read stale, got %s", got.State)
+	}
+	if _, _, err := s.Beat(ctx, e.Credential, "2", time.Minute); err != nil {
+		t.Fatalf("beat: %v", err)
+	}
+	if got, _ = s.Get(ctx, tid, g.ID); got.State != Active || got.AgentVersion != "2" {
+		t.Fatalf("a beat must bring it back: %+v", got)
+	}
+	s.Now = func() time.Time { return start.Add(5 * time.Minute) }
+	if _, _, err := s.Beat(ctx, e.Credential, "2", time.Minute); err != ErrBadCred {
+		t.Fatalf("an expired credential must be refused: %v", err)
+	}
+	s.Now = nil
+	if err := s.Revoke(ctx, tid, g.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Revoke(ctx, tid, g.ID); err != ErrState {
+		t.Fatalf("revoke twice: %v", err)
+	}
+	if _, err := s.IssueToken(ctx, tid, g.ID, "u", time.Hour); err != ErrState {
+		t.Fatalf("token after revoke: %v", err)
+	}
+	if _, err := s.Get(ctx, uuid.NewString(), g.ID); err != ErrNotFound {
+		t.Fatalf("other tenant sees the server: %v", err)
+	}
+}
+
+// TestExpiredToken: a token past its TTL can't be redeemed.
+func TestExpiredToken(t *testing.T) {
+	s, ctx, tid := testStore(t)
+	g, _ := s.Create(ctx, tid, "gold", "Gold", "gold", "u")
+	tok, _ := s.IssueToken(ctx, tid, g.ID, "u", time.Minute)
+	s.Now = func() time.Time { return time.Now().Add(2 * time.Minute) }
+	if _, err := s.Enroll(ctx, tok.Token, "h", "v", time.Minute); err != ErrBadToken {
+		t.Fatalf("expired token: %v", err)
+	}
+}
+
+func TestHypervisorColumns(t *testing.T) {
+	s, ctx, tid := testStore(t)
+	g, err := s.Create(ctx, tid, "pve", "Cluster", "lab", "u")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Endpoint(ctx, g.ID); err != ErrNotFound {
+		t.Fatalf("unset endpoint: %v", err)
+	}
+	ep := Endpoint{ID: g.ID, Kind: "proxmox", BaseURL: "https://pve.example:8006", Node: "n1", TokenID: "agent@pve!console", TokenEnv: "SHIPPIN_HV_TOKEN"}
+	if err := s.SetEndpoint(ctx, ep); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Endpoint(ctx, g.ID)
+	if err != nil || got.Kind != "proxmox" || got.TokenEnv != "SHIPPIN_HV_TOKEN" || got.Slug != "pve" {
+		t.Fatalf("%+v %v", got, err)
+	}
+	all, err := s.Endpoints(ctx)
+	if err != nil || len(all) != 1 {
+		t.Fatalf("%v %v", all, err)
+	}
+	vis, err := s.VisibleEndpoint(ctx, tid, g.ID)
+	if err != nil || vis.ID != g.ID {
+		t.Fatalf("owner visibility %+v %v", vis, err)
+	}
+	if _, err := s.VisibleEndpoint(ctx, uuid.NewString(), g.ID); err != ErrNotFound {
+		t.Fatalf("another org must not see the server: %v", err)
+	}
+}

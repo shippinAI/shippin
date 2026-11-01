@@ -1,0 +1,17 @@
+# Local proof image for the AI launcher: a devspace-like container with tmux, procps (codex needs ps), both CLIs (same pins
+# as deploy/ai-cli-install.sh, passed in as build args) and the launcher. Build from the repo root
+# after `go build` (CGO_ENABLED=0) and `npm run build`:
+#   podman build -f deploy/ai-launcher/Containerfile --build-arg AI_PKGS="..." -t shippin-ai-launcher .
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+ARG AI_PKGS
+RUN apt-get update && apt-get install -y --no-install-recommends tmux procps ca-certificates git locales \
+ && rm -rf /var/lib/apt/lists/* && npm install -g --no-audit --no-fund ${AI_PKGS} && npm cache clean --force \
+ && useradd -m -s /bin/bash dev
+COPY bin/ai-launcher /usr/local/bin/ai-launcher
+COPY web/dist /opt/ai-launcher/web
+USER dev
+WORKDIR /home/dev
+ENV LANG=C.UTF-8 TERM=xterm-256color
+ENTRYPOINT ["/usr/local/bin/ai-launcher"]
+CMD ["/etc/ai-launcher/launcher.json"]

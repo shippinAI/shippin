@@ -1,0 +1,124 @@
+name: shippin-authz
+model_file: ./model.fga
+tuples:
+  - { user: user:owner, relation: owner, object: tenant:t1 }
+  - { user: user:adm, relation: admin, object: tenant:t1 }
+  - { user: user:dev, relation: member, object: tenant:t1 }
+  - { user: user:staff, relation: grantee, object: tenant:t1 }
+  - { user: user:wsstaff, relation: grantee, object: workspace:w1 }
+  - { user: tenant:t1, relation: tenant, object: workspace:w1 }
+  - { user: tenant:t1, relation: tenant, object: workspace:w2 }
+  - { user: tenant:t1, relation: tenant, object: folder:f1 }
+  - { user: folder:f1, relation: parent, object: folder:f2 }
+  - { user: user:dev, relation: editor, object: folder:f1 }
+  - { user: user:dev, relation: blocked, object: folder:f2 }
+  - { user: tenant:t1, relation: tenant, object: secret_path:p1 }
+  - { user: agent:a1, relation: reader, object: secret_path:p1 }
+  - { user: agent:a1, relation: member, object: tenant:t1 }
+  - { user: agent:a1, relation: allowed, object: tool:shell }
+  - { user: tenant:t1, relation: tenant, object: org:o1 }
+  # R-J1a rev 2: no org owner tuple from a project create; a second folder in the same devspace
+  # (prj2, adopted by another tenant admin) gets no devspace link, so no exec on w1.
+  - { user: org:o1, relation: org, object: project:prj2 }
+  - { user: user:adm2, relation: owner, object: project:prj2 }
+  - { user: project:prj2, relation: project, object: rrflow_namespace:prj2 }
+  - { user: org:o1, relation: org, object: project:prj1 }
+  - { user: tenant:t1, relation: tenant, object: project:prj1 }
+  - { user: user:operator, relation: owner, object: project:prj1 }
+  - { user: project:prj1, relation: project, object: devspace:w1 }
+  - { user: project:prj1, relation: project, object: rrflow_namespace:prj1 }
+  - { user: devspace:w1, relation: devspace, object: rrflow_namespace:prj1 }
+  - { user: user:orgdev, relation: member, object: org:o1 }
+tests:
+  - name: tenant roles
+    check:
+      - user: user:owner
+        object: tenant:t1
+        assertions: { can_manage: true, can_decide: true, member: true }
+      - user: user:adm
+        object: tenant:t1
+        assertions: { can_manage: true, can_decide: true, owner: false }
+      - user: user:dev
+        object: tenant:t1
+        assertions: { can_read: true, can_manage: false, can_decide: false }
+      - user: user:staff
+        object: tenant:t1
+        assertions: { can_read: true, can_manage: true, can_decide: false, member: false }
+      - user: user:nobody
+        object: tenant:t1
+        assertions: { can_read: false, can_manage: false }
+  - name: workspace grants and folders
+    check:
+      - user: user:wsstaff
+        object: workspace:w1
+        assertions: { can_manage: true, can_exec: true }
+      - user: user:wsstaff
+        object: workspace:w2
+        assertions: { can_manage: false, can_read: false }
+      - user: user:staff
+        object: workspace:w2
+        assertions: { can_manage: true }
+      - user: user:dev
+        object: folder:f2
+        assertions: { editor: false, viewer: false }
+      - user: user:adm
+        object: folder:f2
+        assertions: { editor: true }
+  - name: secrets and agents
+    check:
+      - user: agent:a1
+        object: secret_path:p1
+        assertions: { can_read: true, can_write: false }
+      - user: agent:a2
+        object: secret_path:p1
+        assertions: { can_read: false }
+      - user: user:dev
+        object: secret_path:p1
+        assertions: { can_read: true, can_write: false }
+      - user: user:adm
+        object: secret_path:p1
+        assertions: { can_write: true }
+      - user: agent:a1
+        object: tool:shell
+        assertions: { can_use: true }
+  - name: project ownership chain (R-J1a)
+    check:
+      - user: user:operator
+        object: project:prj1
+        assertions: { can_write: true, can_read: true }
+      - user: user:operator
+        object: rrflow_namespace:prj1
+        assertions: { can_write: true, can_read: true }
+      - user: user:operator
+        object: devspace:w1
+        assertions: { can_exec: true }
+      - user: user:orgdev
+        object: project:prj1
+        assertions: { can_write: false, can_read: true }
+      - user: user:orgdev
+        object: rrflow_namespace:prj1
+        assertions: { can_write: false, can_read: true }
+      - user: user:stranger
+        object: project:prj1
+        assertions: { can_write: false, can_read: false }
+      - user: user:stranger
+        object: rrflow_namespace:prj1
+        assertions: { can_read: false }
+      - user: user:adm
+        object: project:prj1
+        assertions: { can_write: true }
+      - user: user:operator
+        object: org:o1
+        assertions: { owner: false }
+      - user: user:adm2
+        object: devspace:w1
+        assertions: { can_exec: false }
+      - user: user:adm2
+        object: project:prj2
+        assertions: { can_write: true }
+      - user: user:adm2
+        object: rrflow_namespace:prj2
+        assertions: { can_write: true }
+      - user: user:adm2
+        object: project:prj1
+        assertions: { can_write: false }

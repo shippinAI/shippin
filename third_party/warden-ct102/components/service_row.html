@@ -1,0 +1,32 @@
+{{/* components.service_row — ADR 0037 customer-service row primitive.
+     Args: {ServiceID, DisplayName, Provider, Host, AuthKind, AuthStatus,
+            LastActivity, Tiers, PrimaryAction, Secondary, DrillHref}.
+     Reads templates/customer-service/ui.yaml as its data contract.
+     Spec 17 §3.7.
+*/}}
+{{ define "components.service_row" }}
+<article id="row-{{ .ServiceID }}" class="c-service-row" data-service-id="{{ .ServiceID }}">
+    <a class="c-service-row__hit" href="{{ .DrillHref }}" aria-label="Open {{ .DisplayName }}"></a>
+    <div class="c-service-row__col c-service-row__col--name">
+        <div class="c-service-row__name">{{ .DisplayName }}</div>
+        <div class="c-service-row__sub">
+            <span class="c-service-row__provider">{{ .Provider }}</span>
+            <span class="c-service-row__sep" aria-hidden="true">·</span>
+            <span class="c-service-row__host">{{ .Host }}</span>
+        </div>
+    </div>
+    <div class="c-service-row__col c-service-row__col--tiers">
+        {{ range .Tiers }}<span class="c-tier-badge c-tier-badge--{{ . | lower }}">{{ . }}</span>{{ end }}
+    </div>
+    <div class="c-service-row__col c-service-row__col--status">
+        {{ template "components.status_pill" (dict "State" .AuthStatus) }}
+    </div>
+    <div class="c-service-row__col c-service-row__col--last">
+        <span class="c-service-row__last" title="{{ .LastActivity }}">{{ .LastActivity }}</span>
+    </div>
+    <div class="c-service-row__col c-service-row__col--actions">
+        {{ if .PrimaryAction.Label }}{{ template "components.action_button" .PrimaryAction }}{{ end }}
+        {{ range .Secondary }}{{ template "components.action_button" . }}{{ end }}
+    </div>
+</article>
+{{ end }}

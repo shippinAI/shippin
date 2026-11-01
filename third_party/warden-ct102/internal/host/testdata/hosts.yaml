@@ -1,0 +1,19 @@
+# Top-level host index (test fixture).
+#
+# The Go-loadable host registry expects this shape:
+#   version: <int>
+#   hosts:
+#     - name: <slug>
+#
+# Per-host detail lives at testdata/hosts/<name>/host.yaml. Production
+# layout is identical, rooted at /etc/warden/ instead of testdata/.
+#
+# Note: this is distinct from registry/hosts.yaml at the repo root,
+# which is a descriptive operator inventory (map keyed by name) used
+# for documentation, not Go-loaded.
+
+version: 1
+
+hosts:
+  - name: server1
+  - name: server2

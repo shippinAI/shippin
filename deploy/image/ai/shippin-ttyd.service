@@ -1,0 +1,16 @@
+[Unit]
+Description=Shippin AI activation terminal (the user signs in to their own subscriptions)
+ConditionPathExists=/etc/default/shippin-ttyd
+After=network-online.target
+
+[Service]
+User=dev
+WorkingDirectory=/home/dev
+Environment=HOME=/home/dev
+# shippin-hostd writes TTYD_PORT and TTYD_IFACE here before enabling the unit.
+EnvironmentFile=/etc/default/shippin-ttyd
+ExecStart=/usr/bin/ttyd -W -i ${TTYD_IFACE} -p ${TTYD_PORT} tmux new -A -s login
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

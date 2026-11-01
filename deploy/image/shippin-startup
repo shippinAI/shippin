@@ -1,0 +1,4 @@
+#!/bin/bash -l
+# Runs the template startup script as dev in the project directory; output goes to ~/.shippin/startup.log.
+cd "$(cat "$HOME/.shippin/project_dir" 2>/dev/null || echo "$HOME/code")" || cd "$HOME/code"
+exec bash "$HOME/.shippin/startup.sh" >> "$HOME/.shippin/startup.log" 2>&1

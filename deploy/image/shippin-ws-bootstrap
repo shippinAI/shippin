@@ -1,0 +1,36 @@
+#!/bin/sh
+# Baked into Shippin template images. Called by shippin-hostd (as root) after shippin-ws-init.
+# stdin: the template startup script (may be empty). env SHIPPIN_REPO: an https git URL, or
+# github:<owner>/<repo>[@<branch>] for a GitHub App import (credentials via shippin-git-cred), both
+# validated by hostd. Clones once into ~/code/<repo>, then (re)starts shippin-startup.service.
+set -eu
+U=dev; H=/home/$U; S=$H/.shippin
+mkdir -p "$S" "$H/code"
+cat > "$S/startup.sh"
+D=$H/code
+URL=${SHIPPIN_REPO:-}; BRANCH=""; DEPTH="--depth 1"
+case "$URL" in
+  github:*)
+    R=${URL#github:}; case "$R" in *@*) BRANCH=${R#*@}; R=${R%%@*} ;; esac
+    URL=https://github.com/$R.git
+    DEPTH="--filter=blob:none" # full history (push, log, blame) without downloading every blob
+    ;;
+esac
+if [ -n "$URL" ]; then
+  N=$(basename "$URL" .git)
+  D=$H/code/$N
+  if [ ! -d "$D/.git" ]; then
+    echo "cloning ${URL#https://}" > "$S/progress"
+    chown -R $U:$U "$H/code"
+    runuser -u $U -- git clone $DEPTH -- "$URL" "$D"
+    if [ -n "$BRANCH" ]; then runuser -u $U -- git -C "$D" checkout "$BRANCH" --; fi
+  fi
+fi
+printf '%s\n' "$D" > "$S/project_dir"
+chown -R $U:$U "$S" "$H/code"
+if [ -s "$S/startup.sh" ]; then
+  systemctl enable shippin-startup.service >/dev/null 2>&1
+  systemctl restart shippin-startup.service
+else
+  systemctl disable --now shippin-startup.service >/dev/null 2>&1 || true
+fi

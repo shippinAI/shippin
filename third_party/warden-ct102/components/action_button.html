@@ -1,0 +1,23 @@
+{{/* components.action_button — primary / secondary / destructive button.
+     Args: {Label, Kind, Href, HxPost, HxTarget, HxSwap, Confirm, StepUp, Disabled}.
+     Spec 17 §3.10.
+*/}}
+{{ define "components.action_button" }}
+{{ $kind := .Kind }}{{ if not $kind }}{{ $kind = "secondary" }}{{ end }}
+{{ if .Href }}
+    <a class="c-action-button c-action-button--{{ $kind }}{{ if .StepUp }} c-action-button--stepup{{ end }}"
+       href="{{ .Href }}"
+       {{ if .Disabled }}aria-disabled="true"{{ end }}>
+        {{ .Label }}{{ if .StepUp }} <span class="c-action-button__stepup-mark" title="step-up auth required">↑</span>{{ end }}
+    </a>
+{{ else }}
+    <button class="c-action-button c-action-button--{{ $kind }}{{ if .StepUp }} c-action-button--stepup{{ end }}"
+            {{ if .HxPost }}hx-post="{{ .HxPost }}"{{ end }}
+            {{ if .HxTarget }}hx-target="{{ .HxTarget }}"{{ end }}
+            {{ if .HxSwap }}hx-swap="{{ .HxSwap }}"{{ else }}hx-swap="outerHTML"{{ end }}
+            {{ if .Confirm }}data-confirm="{{ .Confirm }}"{{ end }}
+            {{ if .Disabled }}disabled{{ end }}>
+        {{ .Label }}{{ if .StepUp }} <span class="c-action-button__stepup-mark" title="step-up auth required">↑</span>{{ end }}
+    </button>
+{{ end }}
+{{ end }}
