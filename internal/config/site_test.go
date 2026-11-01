@@ -18,3 +18,19 @@ func TestSiteDefaultsOff(t *testing.T) {
 		t.Fatal("site.enabled:true must switch it on")
 	}
 }
+
+// idp.dialect is one short lowercase word; anything else fails closed.
+func TestIDPDialectCheck(t *testing.T) {
+	if got := (IDP{}).URN("org:project:roles"); got != "urn:nomen:iam:org:project:roles" {
+		t.Fatalf("default spelling %q", got)
+	}
+	z := IDP{Dialect: "zitadel"}
+	if z.APIAudience() != "urn:zitadel:iam:org:project:id:zitadel:aud" || z.OrgHeader() != "x-zitadel-orgid" {
+		t.Fatalf("zitadel spelling %q %q", z.APIAudience(), z.OrgHeader())
+	}
+	for _, bad := range []string{"Zitadel", "urn:x", "a b", "x-y"} {
+		if dialectRE.MatchString(bad) {
+			t.Errorf("%q should be rejected", bad)
+		}
+	}
+}

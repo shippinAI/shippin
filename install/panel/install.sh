@@ -167,6 +167,18 @@ set_if("SHIPPIN_IDP_ISSUER", idp, "issuer")
 set_if("SHIPPIN_IDP_NAME", idp, "name")
 if os.environ.get("SHIPPIN_OIDC_CLIENT_ID"):
     idp["client_id"] = os.environ["SHIPPIN_OIDC_CLIENT_ID"]
+set_if("SHIPPIN_IDP_DIALECT", idp, "dialect")
+# Upstream sign-in buttons the IdP offers: id:Label:idp_id, comma separated.
+providers = os.environ.get("SHIPPIN_IDP_PROVIDERS", "").strip()
+if providers:
+    idp["providers"] = []
+    for item in providers.split(","):
+        parts = [p.strip() for p in item.split(":")]
+        if len(parts) != 3 or not all(parts):
+            sys.exit("SHIPPIN_IDP_PROVIDERS entries must be id:Label:idp_id")
+        idp["providers"].append({"id": parts[0], "label": parts[1], "idp_id": parts[2]})
+set_if("SHIPPIN_OPERATOR_PLATFORM_ORG_ID", op, "platform_org_id")
+set_if("SHIPPIN_STAFF_PROJECT_ID", cfg.setdefault("staff", {}), "project_id")
 dr = cfg.setdefault("directory", {})
 signup = os.environ.get("SHIPPIN_SIGNUP", "")
 if signup:
@@ -239,6 +251,18 @@ if [ -n "$SHIPPIN_TLS_CERT$SHIPPIN_TLS_KEY" ]; then
   done
 fi
 
+# Secrets that only live in console.env (IdP machine tokens, client and SMTP secrets) survive a
+# re-run: a value the site file leaves unset keeps the one already installed.
+keep_secrets="SHIPPIN_IDP_SERVICE_TOKEN SHIPPIN_IDP_READ_TOKEN SHIPPIN_IDP_TEAM_TOKEN SHIPPIN_OIDC_CLIENT_SECRET SHIPPIN_SMTP_PASSWORD SHIPPIN_CAPTCHA_SECRET"
+if [ -f /etc/shippin/console.env ]; then
+  for k in $keep_secrets; do
+    if [ -z "${!k:-}" ]; then
+      v=$(sed -n "s/^${k}=//p" /etc/shippin/console.env | tail -n1)
+      if [ -n "$v" ]; then printf -v "$k" '%s' "$v"; fi
+    fi
+  done
+fi
+
 umask 077
 cat > /etc/shippin/console.env <<EOF
 SHIPPIN_CONFIG=/etc/shippin/shippin.json
@@ -255,6 +279,9 @@ SHIPPIN_TLS_KEY=${SHIPPIN_TLS_KEY}
 SHIPPIN_CAPTCHA_SECRET=${SHIPPIN_CAPTCHA_SECRET:-}
 SHIPPIN_OIDC_CLIENT_SECRET=${SHIPPIN_OIDC_CLIENT_SECRET:-}
 SHIPPIN_NOMEN_ISSUER=${SHIPPIN_NOMEN_ISSUER:-}
+SHIPPIN_IDP_SERVICE_TOKEN=${SHIPPIN_IDP_SERVICE_TOKEN:-}
+SHIPPIN_IDP_READ_TOKEN=${SHIPPIN_IDP_READ_TOKEN:-}
+SHIPPIN_IDP_TEAM_TOKEN=${SHIPPIN_IDP_TEAM_TOKEN:-}
 EOF
 chmod 600 /etc/shippin/console.env
 

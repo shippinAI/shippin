@@ -77,6 +77,12 @@ sudo ./install/panel/install.sh --example
 | `SHIPPIN_OPERATOR_HOST` | when the operator UI is separate | Operator hostname |
 | `SHIPPIN_IDP_ISSUER` | before sign-in works | OIDC issuer URL |
 | `SHIPPIN_OIDC_CLIENT_ID` | before sign-in works | OIDC client id. Empty leaves login disabled |
+| `SHIPPIN_IDP_DIALECT` | when the issuer is upstream Zitadel | `zitadel` spells scopes, claims and the org header the upstream way. Default `nomen`. Sets `idp.dialect` |
+| `SHIPPIN_IDP_PROVIDERS` | for Google, GitHub... buttons | `id:Label:idp_id`, comma separated. Sets `idp.providers` |
+| `SHIPPIN_OPERATOR_PLATFORM_ORG_ID` | for operator and founder roles | IdP org that runs the platform. Sets `operator.platform_org_id` |
+| `SHIPPIN_STAFF_PROJECT_ID` | for staff and founder roles | IdP project whose roles count. Sets `staff.project_id` |
+| `SHIPPIN_IDP_SERVICE_TOKEN` | for tenant and workspace creation | Machine token that can create IdP orgs. Kept in `console.env` across re-runs |
+| `SHIPPIN_IDP_READ_TOKEN`, `SHIPPIN_IDP_TEAM_TOKEN` | for operator pages and the Team page | Read-only and staff machine tokens. Kept in `console.env` across re-runs |
 | `SHIPPIN_LISTEN` | no | Bind address. Default `127.0.0.1:8080` |
 | `SHIPPIN_TLS_CERT`, `SHIPPIN_TLS_KEY` | no | Serve TLS from this pair. Both or neither |
 | `SHIPPIN_TLS` | no | `self-signed` generates a pair for `SHIPPIN_CONSOLE_HOST` |

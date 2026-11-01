@@ -38,8 +38,7 @@ func oauthApp(cfg *config.Config, clientID, host string) oauth2.Config {
 		Endpoint:    oauth2.Endpoint{AuthURL: iss + "/oauth/v2/authorize", TokenURL: iss + "/oauth/v2/token", AuthStyle: oauth2.AuthStyleInParams},
 		RedirectURL: "https://" + host + "/auth/callback",
 		Scopes: []string{"openid", "profile", "email",
-			"urn:nomen:iam:user:resourceowner", "urn:nomen:iam:org:project:id:nomen:aud",
-			"urn:nomen:iam:org:project:roles"},
+			cfg.IDP.URN("user:resourceowner"), cfg.IDP.APIAudience(), cfg.IDP.URN("org:project:roles")},
 	}
 }
 
@@ -76,7 +75,7 @@ func (f *Flow) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	if prov.IdPID != "" {
 		// Zitadel skips its own login page and redirects to the upstream provider.
-		opts = append(opts, oauth2.SetAuthURLParam("scope", idpScope(oa.Scopes, prov.IdPID)))
+		opts = append(opts, oauth2.SetAuthURLParam("scope", idpScope(oa.Scopes, f.cfg.IDP.URN("org:idp:id:"+prov.IdPID))))
 	}
 	if hint := r.URL.Query().Get("login_hint"); hint != "" {
 		opts = append(opts, oauth2.SetAuthURLParam("login_hint", hint))
@@ -126,8 +125,8 @@ func setCookie(w http.ResponseWriter, name, val string, maxAge int) {
 		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
 }
 
-// idpScope is the app's scopes plus Nomen's IdP hint, which sends the user straight to that
+// idpScope is the app's scopes plus the IdP hint scope, which sends the user straight to that
 // upstream provider (Google, GitHub...) instead of the IdP's own login page.
-func idpScope(base []string, idpID string) string {
-	return strings.Join(append(append([]string{}, base...), "urn:nomen:iam:org:idp:id:"+idpID), " ")
+func idpScope(base []string, hint string) string {
+	return strings.Join(append(append([]string{}, base...), hint), " ")
 }

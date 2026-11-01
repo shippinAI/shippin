@@ -35,7 +35,7 @@ func (f *Flow) call(ctx context.Context, method, path, tok string, body []byte, 
 	return f.callOrg(ctx, method, path, tok, "", body, out)
 }
 
-// callOrg is call in the context of one IdP org (x-nomen-orgid); org "" = the token's own.
+// callOrg is call in the context of one IdP org (idp.OrgHeader); org "" = the token's own.
 func (f *Flow) callOrg(ctx context.Context, method, path, tok, org string, body []byte, out any) error {
 	url := strings.TrimRight(f.cfg.IDP.Issuer, "/") + path
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
@@ -45,7 +45,7 @@ func (f *Flow) callOrg(ctx context.Context, method, path, tok, org string, body 
 	req.Header.Set("Authorization", "Bearer "+tok)
 	req.Header.Set("Content-Type", "application/json")
 	if org != "" {
-		req.Header.Set("x-nomen-orgid", org)
+		req.Header.Set(f.cfg.IDP.OrgHeader(), org)
 	}
 	res, err := f.Client.Do(req)
 	if err != nil {
@@ -77,7 +77,7 @@ func (f *Flow) whoami(ctx context.Context, tok string) (*Identity, error) {
 	}
 	s := func(k string) string { v, _ := ui[k].(string); return v }
 	id := &Identity{Sub: s("sub"), Name: s("name"), Email: s("email"),
-		OrgID: s("urn:nomen:iam:user:resourceowner:id"), OrgName: s("urn:nomen:iam:user:resourceowner:name")}
+		OrgID: s(f.cfg.IDP.URN("user:resourceowner:id")), OrgName: s(f.cfg.IDP.URN("user:resourceowner:name"))}
 	id.EmailVerified, _ = ui["email_verified"].(bool)
 	if id.Name == "" {
 		id.Name = s("preferred_username")
