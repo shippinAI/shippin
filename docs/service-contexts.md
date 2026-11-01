@@ -79,10 +79,10 @@ verify callers and update the authoritative OpenAPI path and tests together.
 
 Place an API shape under `api/openapi/`, panel features under their owning
 `panel/src/features/<context>/`, and operational records under the owning service.
-Establish control-plane and host-agent source directories only when real reviewed
-implementation is adopted; do not create empty service folders or duplicate a
-provider's database or event store. Use lowercase kebab-case for directories and
-files, snake_case for API fields, and stable lowercase dotted or hyphenated keys
+The `agent/` module owns the current local Incus diagnostic; an enrolled host
+agent and control plane remain to be established. Do not create empty service
+folders or duplicate a provider's database or event store. Use lowercase kebab-case
+for directories and files, snake_case for API fields, and stable lowercase dotted or hyphenated keys
 for service definitions. Display names and endpoints are configuration, not IDs.
 Bounded contexts define ownership; they do not by themselves mandate separate
 processes. [Domain analysis](https://learn.microsoft.com/azure/architecture/microservices/model/domain-analysis).

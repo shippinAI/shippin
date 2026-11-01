@@ -8,10 +8,11 @@ merging current public branches does not adopt that private history.
 
 `api/openapi/` owns the draft API contract. `panel/` is an API-workbench prototype.
 `install/primary-image/` owns the development image builder. `governance/` owns the
-local plan and journal tooling. A canonical deployable control plane and remote host
-agent remain to be established. No candidate code is accepted merely by being present
-in another repository; review source provenance, ownership, dependencies and tests
-before adopting it.
+local plan and journal tooling. `agent/` owns the new host-side provider code; it
+currently supplies only a local Incus diagnostic. A canonical deployable control
+plane and enrolled remote host agent remain to be established. No candidate code
+is accepted merely by being present in another repository; review source provenance,
+ownership, dependencies and tests before adopting it.
 
 The draft service-definition and attachment shapes live in
 `api/openapi/schemas/service-catalog.json`, registered in the OpenAPI document.
