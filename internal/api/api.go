@@ -174,6 +174,7 @@ func (a *API) publicSettings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{
 		"brand": brand, "domain": a.cfg.Domain,
 		"local_login": !a.cfg.Directory.UpstreamRequired, "signup": a.cfg.Directory.Signup,
+		"setup_open": a.directory != nil && !a.directory.HasOwner(r.Context()),
 		"governance_domains": a.cfg.GovernanceDomains,
 		"idp_host":           a.cfg.IDP.Issuer, "idp_account_url": a.idpAccountURL(r.Context()), "idp_name": a.cfg.IDP.Name, "login_ready": ready, "app": app,
 		"console_url": "https://" + a.cfg.ConsoleHost, "operator_url": a.operatorURL(),

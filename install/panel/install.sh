@@ -340,7 +340,7 @@ code=${code%%$'\n'*}
 if [ -n "$code" ]; then
   printf 'setup_code=%s\n' "$code"
   if [ "$example" -eq 0 ]; then
-    echo "Redeem it once to create the owner: POST /v1/setup with code, email and name over https (docs/identity-and-access.md)."
+    echo "Redeem it once at https://<console host>/setup to create the owner (docs/deploy.md, First owner)."
   fi
 else
   echo "an owner already exists; no setup code issued"
