@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"regexp"
 
 	"shippin.cloud/console/internal/approval"
 )
@@ -30,7 +31,30 @@ type IDP struct {
 	// Providers are upstream sign-in buttons (Google, GitHub...) configured as IdPs inside the
 	// IdP. /auth/login?idp=<ID> asks the IdP to jump straight to that provider.
 	Providers []IdPProvider `json:"providers"`
+	// Dialect is the IdP's spelling of its reserved scopes, claims and org header:
+	// urn:<dialect>:iam:... and x-<dialect>-orgid. Empty means "nomen". An issuer running the
+	// upstream build that Nomen is based on uses "zitadel".
+	Dialect string `json:"dialect"`
 }
+
+// Spelling is the IdP dialect, "nomen" unless the site set one.
+func (i IDP) Spelling() string {
+	if i.Dialect == "" {
+		return "nomen"
+	}
+	return i.Dialect
+}
+
+// URN is one of the IdP's reserved names, e.g. URN("org:project:roles").
+func (i IDP) URN(rest string) string { return "urn:" + i.Spelling() + ":iam:" + rest }
+
+// APIAudience is the scope that adds the IdP's own API to the token audience.
+func (i IDP) APIAudience() string { return i.URN("org:project:id:" + i.Spelling() + ":aud") }
+
+// OrgHeader scopes an IdP API call to one org.
+func (i IDP) OrgHeader() string { return "x-" + i.Spelling() + "-orgid" }
+
+var dialectRE = regexp.MustCompile(`^[a-z][a-z0-9]{0,31}$`)
 
 // IdPProvider is one upstream login offered on the sign-in page.
 type IdPProvider struct {
@@ -187,6 +211,9 @@ func (c *Config) Check() error {
 	c.DirectoryDefaults()
 	if err := c.Directory.Check(c.IDP.ClientID); err != nil {
 		return err
+	}
+	if c.IDP.Dialect != "" && !dialectRE.MatchString(c.IDP.Dialect) {
+		return errors.New("idp.dialect must be a short lowercase word such as nomen or zitadel")
 	}
 	if c.IDP.Name == "" {
 		return errors.New("idp.name is required (the identity product name users see)")

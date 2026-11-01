@@ -15,7 +15,8 @@
     "client_id": "",
     "dial": "",
     "ca_file": "",
-    "account_path": "/ui/console/users/me"
+    "account_path": "/ui/console/users/me",
+    "dialect": ""
   },
   "incus": {
     "hostd_url": "http://127.0.0.1:8444",

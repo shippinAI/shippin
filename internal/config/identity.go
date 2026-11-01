@@ -13,7 +13,8 @@ type Identity struct {
 	FounderRole string `json:"founder_role"`
 	AdminRole   string `json:"admin_role"`
 	UserRole    string `json:"user_role"`
-	// TenantClaim is the claim carrying the caller's tenant (Nomen org id by default).
+	// TenantClaim is the claim carrying the caller's tenant (the IdP org id by default).
+	// Unset claim names follow idp.dialect.
 	TenantClaim string `json:"tenant_claim"`
 }
 
@@ -21,7 +22,7 @@ type Identity struct {
 func (c *Config) IdentityDefaults() {
 	i := &c.Identity
 	if len(i.RoleClaims) == 0 {
-		i.RoleClaims = []string{"urn:nomen:iam:org:project:{project}:roles", "urn:nomen:iam:org:project:roles"}
+		i.RoleClaims = []string{c.IDP.URN("org:project:{project}:roles"), c.IDP.URN("org:project:roles")}
 	}
 	if i.FounderRole == "" {
 		i.FounderRole = "founder"
@@ -33,6 +34,6 @@ func (c *Config) IdentityDefaults() {
 		i.UserRole = "user"
 	}
 	if i.TenantClaim == "" {
-		i.TenantClaim = "urn:nomen:iam:user:resourceowner:id"
+		i.TenantClaim = c.IDP.URN("user:resourceowner:id")
 	}
 }

@@ -30,7 +30,7 @@ func TestProviderLookup(t *testing.T) {
 // The hint keeps every base scope and adds exactly one IdP scope.
 func TestIdPScope(t *testing.T) {
 	_, oa := NewFlow(providerCfg(), nil).app(httptest.NewRequest(http.MethodGet, "/", nil))
-	got := strings.Fields(idpScope(oa.Scopes, "111"))
+	got := strings.Fields(idpScope(oa.Scopes, "urn:nomen:iam:org:idp:id:111"))
 	if len(got) != len(oa.Scopes)+1 || got[len(got)-1] != "urn:nomen:iam:org:idp:id:111" {
 		t.Fatalf("scope %v", got)
 	}

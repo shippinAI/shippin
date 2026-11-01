@@ -10,7 +10,7 @@ import (
 )
 
 // IdPRead performs a read-only Nomen API call (search endpoints are POST) with the
-// console's read-only operator token. org scopes management calls (x-nomen-orgid).
+// console's read-only operator token. org scopes management calls (idp.OrgHeader).
 func (f *Flow) IdPRead(ctx context.Context, tok, method, path, org string, body any, out any) error {
 	if tok == "" {
 		return fmt.Errorf("no IdP read token configured")
@@ -26,7 +26,7 @@ func (f *Flow) IdPRead(ctx context.Context, tok, method, path, org string, body 
 	req.Header.Set("Authorization", "Bearer "+tok)
 	req.Header.Set("Content-Type", "application/json")
 	if org != "" {
-		req.Header.Set("x-nomen-orgid", org)
+		req.Header.Set(f.cfg.IDP.OrgHeader(), org)
 	}
 	res, err := f.Client.Do(req)
 	if err != nil {
