@@ -142,6 +142,10 @@ fi
 SHIPPIN_LISTEN=${SHIPPIN_LISTEN:-127.0.0.1:8080}
 
 install -d -m 0755 /etc/shippin /var/lib/shippin
+# Workspace templates seed (workspaces.template_seed). Keep a site's own copy if it has one.
+if [ ! -f /etc/shippin/templates.json ]; then
+  install -m 0644 "$root/config/templates.json" /etc/shippin/templates.json
+fi
 python3 - "$root" <<'PY'
 import json, os, sys
 root = sys.argv[1]

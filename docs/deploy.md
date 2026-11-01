@@ -3,6 +3,10 @@
 One command installs the panel on a fresh Debian or Ubuntu machine (Debian 13 is tested). It installs Postgres, fetches the Go and Node.js toolchains the build needs when the machine does not already have new enough ones, builds the control plane and the web UI, writes a root-only env file, starts the process, checks `GET /healthz`, and prints the one-time setup code for the first owner.
 
 ```sh
+sudo apt-get install -y git
+git clone https://github.com/shippinAI/shippin && cd shippin
+sudo install -d -m 0700 /etc/shippin
+sudo install -m 0600 config/site.env.example /etc/shippin/site.env   # then edit it
 sudo ./install/panel/install.sh --site /etc/shippin/site.env
 ```
 
@@ -12,6 +16,7 @@ The installer writes:
 
 - `/etc/shippin/shippin.json`, from [config/shippin.example.json](../config/shippin.example.json), with domain and identity fields taken from the site file
 - `/etc/shippin/console.env` (mode 0600) with `SHIPPIN_DATABASE_URL` and `SHIPPIN_SESSION_KEY`
+- `/etc/shippin/templates.json`, from [config/templates.json](../config/templates.json), when the site does not already have one
 - `/usr/local/bin/shippin-console`
 
 When systemd is running and the command is not `--example`, it enables `shippin-console.service`. Otherwise it starts the binary in the background and records the pid in `/var/lib/shippin/console.pid`.
