@@ -1,0 +1,88 @@
+#!/bin/bash
+# Runs inside a tenant VM (invoked by shippin-hostd through the Incus agent, never over the network).
+# Usage: shippin-tvm-init <inner-gateway-cidr> <mtu>. Idempotent: initialises Incus once with a btrfs
+# pool on the "data" disk, the routed inner bridge and the restricted "ws" project.
+set -euo pipefail
+# `shippin-tvm-init grow [tenant]` resizes the root filesystem and the inner btrfs
+# (the org data volume) up to the block devices Incus already grew. It does not touch
+# any pool outside this VM.
+grow_disks() {
+  local src base fstype dev
+  src=$(findmnt -n -o SOURCE / 2>/dev/null || true)
+  if [[ -n $src ]]; then
+    base=${src%%[0-9]*}
+    if command -v growpart >/dev/null 2>&1 && [[ -b $base ]]; then
+      growpart "$base" "${src#"$base"}" || true
+    fi
+    fstype=$(findmnt -n -o FSTYPE / 2>/dev/null || true)
+    case $fstype in
+      btrfs) btrfs filesystem resize max / || true ;;
+      ext4) resize2fs "$src" || true ;;
+    esac
+  fi
+  dev=$(readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_data 2>/dev/null || true)
+  if [[ -n $dev && -e /sys/class/block/$(basename "$dev")/device/rescan ]]; then
+    echo 1 >"/sys/class/block/$(basename "$dev")/device/rescan" || true
+  fi
+  btrfs filesystem resize max /var/lib/incus/storage-pools/default >/dev/null 2>&1 || true
+}
+label_pool() {
+  local id=$1
+  [[ $id =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "bad tenant" >&2; exit 2; }
+  # Best-effort: the zvol tvd-* already carries user.shippin.tenant. A pool that rejects the
+  # key must not fail VM init.
+  incus storage set default user.shippin.tenant="$id" || echo "pool label not set" >&2
+}
+if [[ ${1:-} == grow ]]; then
+  grow_disks
+  if [[ -n ${2:-} ]]; then label_pool "$2"; fi
+  echo ok
+  exit 0
+fi
+GW=${1:?gateway cidr}; MTU=${2:?mtu}
+[[ $GW =~ ^10\.[0-9]{1,3}\.[0-9]{1,3}\.1/24$ ]] || { echo "bad gateway" >&2; exit 2; }
+[[ $MTU =~ ^[0-9]{3,4}$ ]] || { echo "bad mtu" >&2; exit 2; }
+DISK=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_data
+# Pin the uplink MTU to the tenant OVN network's (passed by hostd), persistently.
+D=/etc/systemd/network/10-cloud-init-enp5s0.network.d
+mkdir -p $D && printf "[Link]\nMTUBytes=%s\n[DHCPv4]\nUseMTU=yes\n" "$MTU" > $D/mtu.conf
+ip link set enp5s0 mtu "$MTU"
+# No LLMNR responder on the tenant network or the inner bridge.
+mkdir -p /etc/systemd/resolved.conf.d && printf "[Resolve]\nLLMNR=no\nMulticastDNS=no\n" > /etc/systemd/resolved.conf.d/shippin.conf
+systemctl try-restart systemd-resolved || true
+for i in $(seq 60); do incus info >/dev/null 2>&1 && break; sleep 1; done
+if ! incus storage show default >/dev/null 2>&1; then
+  incus admin init --preseed <<YAML
+config: {}
+storage_pools:
+- name: default
+  driver: btrfs
+  config: {source: $DISK}
+networks:
+- name: incusbr0
+  type: bridge
+  config: {ipv4.address: $GW, ipv4.nat: "true", ipv6.address: none, bridge.mtu: "$MTU"}
+profiles:
+- name: default
+  devices:
+    root: {type: disk, path: /, pool: default}
+    eth0: {type: nic, network: incusbr0, name: eth0}
+YAML
+fi
+incus network set incusbr0 ipv4.address=$GW bridge.mtu=$MTU
+if ! incus project show ws >/dev/null 2>&1; then
+  incus project create ws -c features.images=false -c features.profiles=true -c features.storage.volumes=true
+  incus profile device add default root disk path=/ pool=default --project ws
+  incus profile device add default eth0 nic network=incusbr0 name=eth0 --project ws
+fi
+# Keep in sync with internal/hostd/inner_restrict.go (the pj-<uuid> projects get the same set).
+incus project set ws restricted=true restricted.containers.privilege=isolated \
+  restricted.containers.nesting=block restricted.containers.lowlevel=block restricted.containers.interception=block \
+  restricted.devices.disk=managed restricted.devices.nic=managed restricted.devices.proxy=block \
+  restricted.devices.gpu=block restricted.devices.pci=block restricted.devices.usb=block \
+  restricted.devices.unix-char=block restricted.devices.unix-block=block restricted.devices.unix-hotplug=block \
+  restricted.virtual-machines.lowlevel=block limits.virtual-machines=0 restricted.networks.access=incusbr0
+incus profile set default security.idmap.isolated=true --project ws
+grow_disks
+if [[ -n ${3:-} ]]; then label_pool "$3"; fi
+echo ok

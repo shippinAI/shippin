@@ -1,0 +1,177 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Logs</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        <section class="card">
+            <div class="card-header">
+                <h2>LOG VIEWER</h2>
+            </div>
+
+            <div class="log-controls">
+                <div class="log-controls-row">
+                    <div class="log-control-group">
+                        <label>Source</label>
+                        <select id="log-source" onchange="toggleSource()">
+                            <option value="journal">Systemd Journal</option>
+                            <option value="file">Log File</option>
+                        </select>
+                    </div>
+
+                    <div class="log-control-group" id="unit-group">
+                        <label>Unit</label>
+                        <select id="log-unit">
+                            <option value="">All units</option>
+                            {{ range .Units }}
+                            <option value="{{ . }}">{{ . }}</option>
+                            {{ end }}
+                        </select>
+                    </div>
+
+                    <div class="log-control-group" id="file-group" style="display:none;">
+                        <label>File</label>
+                        <select id="log-file">
+                            {{ range .LogFiles }}
+                            <option value="{{ . }}">{{ . }}</option>
+                            {{ end }}
+                        </select>
+                    </div>
+
+                    <div class="log-control-group" id="priority-group">
+                        <label>Priority</label>
+                        <select id="log-priority">
+                            <option value="">All</option>
+                            <option value="0">Emergency</option>
+                            <option value="1">Alert</option>
+                            <option value="2">Critical</option>
+                            <option value="3">Error</option>
+                            <option value="4">Warning</option>
+                            <option value="5">Notice</option>
+                            <option value="6">Info</option>
+                            <option value="7">Debug</option>
+                        </select>
+                    </div>
+
+                    <div class="log-control-group">
+                        <label>Lines</label>
+                        <select id="log-lines">
+                            <option value="50">50</option>
+                            <option value="100" selected>100</option>
+                            <option value="250">250</option>
+                            <option value="500">500</option>
+                            <option value="1000">1000</option>
+                        </select>
+                    </div>
+
+                    <div class="log-control-group">
+                        <label>Filter</label>
+                        <input type="text" id="log-filter" placeholder="Search text..." class="log-filter-input">
+                    </div>
+
+                    <div class="log-control-group log-control-buttons">
+                        <label>&nbsp;</label>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="fetchLogs()">Load</button>
+                            <button class="btn" onclick="clearLogs()">Clear</button>
+                            <button class="btn" id="auto-refresh-btn" onclick="toggleAutoRefresh()">Auto</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="log-status" class="log-status"></div>
+            <pre id="log-output" class="log-output"><span class="text-dim">Select a source and click Load to view logs.</span></pre>
+        </section>
+    </main>
+
+    <footer>
+        <span>Warden Log Viewer</span>
+    </footer>
+
+    <script>
+        var autoRefreshInterval = null;
+
+        function toggleSource() {
+            var source = document.getElementById('log-source').value;
+            document.getElementById('unit-group').style.display = source === 'journal' ? '' : 'none';
+            document.getElementById('priority-group').style.display = source === 'journal' ? '' : 'none';
+            document.getElementById('file-group').style.display = source === 'file' ? '' : 'none';
+        }
+
+        function fetchLogs() {
+            var source = document.getElementById('log-source').value;
+            var lines = document.getElementById('log-lines').value;
+            var filter = document.getElementById('log-filter').value;
+            var status = document.getElementById('log-status');
+            var output = document.getElementById('log-output');
+
+            var params = 'source=' + source + '&lines=' + lines;
+            if (filter) params += '&filter=' + encodeURIComponent(filter);
+
+            if (source === 'journal') {
+                var unit = document.getElementById('log-unit').value;
+                var priority = document.getElementById('log-priority').value;
+                if (unit) params += '&unit=' + encodeURIComponent(unit);
+                if (priority) params += '&priority=' + encodeURIComponent(priority);
+            } else {
+                var file = document.getElementById('log-file').value;
+                if (file) params += '&file=' + encodeURIComponent(file);
+            }
+
+            status.textContent = 'Loading...';
+            status.className = 'log-status';
+
+            fetch('/api/logs?' + params)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        output.textContent = data.logs || '(no output)';
+                        var lineCount = (data.logs || '').split('\n').filter(function(l) { return l.length > 0; }).length;
+                        status.textContent = lineCount + ' lines loaded';
+                        status.className = 'log-status log-status-ok';
+                        // Auto-scroll to bottom
+                        output.scrollTop = output.scrollHeight;
+                    } else {
+                        status.textContent = 'Error: ' + data.error;
+                        status.className = 'log-status log-status-error';
+                    }
+                })
+                .catch(function(err) {
+                    status.textContent = 'Failed to fetch logs';
+                    status.className = 'log-status log-status-error';
+                });
+        }
+
+        function clearLogs() {
+            document.getElementById('log-output').innerHTML = '<span class="text-dim">Cleared.</span>';
+            document.getElementById('log-status').textContent = '';
+        }
+
+        function toggleAutoRefresh() {
+            var btn = document.getElementById('auto-refresh-btn');
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                btn.classList.remove('btn-primary');
+                btn.textContent = 'Auto';
+            } else {
+                fetchLogs();
+                autoRefreshInterval = setInterval(fetchLogs, 3000);
+                btn.classList.add('btn-primary');
+                btn.textContent = 'Stop';
+            }
+        }
+
+        // Load on enter key in filter
+        document.getElementById('log-filter').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') fetchLogs();
+        });
+    </script>
+{{ template "scripts" }}
+</body>
+</html>

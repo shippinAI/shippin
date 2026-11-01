@@ -1,0 +1,11 @@
+capabilities:
+  - host.read
+  - host.write
+  - deploy.read
+  - deploy.run
+  - memory.read
+  - memory.write
+  - memory.search.global   # premium-only
+
+hosts_allowed:
+  - server2

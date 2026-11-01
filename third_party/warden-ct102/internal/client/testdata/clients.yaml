@@ -1,0 +1,8 @@
+# Top-level client (tenant) index (test fixture). Per-client detail
+# lives at testdata/clients/<slug>/client.yaml.
+
+version: 1
+
+clients:
+  - slug: acme-corp
+  - slug: example-tenant

@@ -1,0 +1,189 @@
+# Hand-written expectations (not generated): for each preset role, the operator routes it may
+# call. Every route not listed under a role must answer 403. "ALL" means every route.
+# Keep this in step with docs/architecture/staff-roles/matrix.md, not with the Go table.
+
+[staff.owner]
+ALL
+
+[staff.platform_admin]
+GET /v1/operator/access
+GET /v1/operator/tenants
+POST /v1/operator/tenants/{tenantId}/provision
+POST /v1/operator/tenants/{tenantId}/setup/rrflow
+POST /v1/operator/tenants/{tenantId}/suspend
+POST /v1/operator/tenants/{tenantId}/resume
+DELETE /v1/operator/tenants/{tenantId}
+GET /v1/operator/tenants/{tenantId}/vm
+POST /v1/operator/tenants/{tenantId}/vm
+POST /v1/operator/tenants/{tenantId}/vm/{action}
+GET /v1/operator/workspaces
+POST /v1/operator/workspaces/{workspaceId}/{action}
+GET /v1/operator/identity
+GET /v1/operator/templates
+POST /v1/operator/templates
+PUT /v1/operator/templates/{templateId}
+DELETE /v1/operator/templates/{templateId}
+GET /v1/operator/host
+GET /v1/operator/edge
+GET /v1/operator/access-requests
+POST /v1/operator/access-requests
+POST /v1/operator/access-requests/{grantId}/end
+GET /v1/operator/audit
+GET /v1/operator/team
+# customer catalog (internal/catalog)
+GET /v1/operator/catalog/plans
+GET /v1/operator/catalog/plans/{id}
+GET /v1/operator/catalog/services
+GET /v1/operator/catalog/services/{id}
+GET /v1/operator/catalog/plan-services
+GET /v1/operator/catalog/defaults
+GET /v1/operator/customers
+POST /v1/operator/customers
+GET /v1/operator/customers/{id}
+PUT /v1/operator/customers/{id}
+DELETE /v1/operator/customers/{id}
+GET /v1/operator/customers/{id}/services
+PUT /v1/operator/customers/{id}/services/{service}
+DELETE /v1/operator/customers/{id}/services/{service}
+GET /v1/operator/customers/{id}/effective-config
+GET /v1/operator/customers/{id}/provision-intents
+POST /v1/operator/customers/{id}/provision-intent
+
+[staff.ops]
+GET /v1/operator/access
+GET /v1/operator/tenants
+POST /v1/operator/tenants/{tenantId}/provision
+POST /v1/operator/tenants/{tenantId}/setup/rrflow
+POST /v1/operator/tenants/{tenantId}/suspend
+POST /v1/operator/tenants/{tenantId}/resume
+GET /v1/operator/tenants/{tenantId}/vm
+POST /v1/operator/tenants/{tenantId}/vm
+POST /v1/operator/tenants/{tenantId}/vm/{action}
+GET /v1/operator/workspaces
+POST /v1/operator/workspaces/{workspaceId}/{action}
+GET /v1/operator/identity
+GET /v1/operator/templates
+GET /v1/operator/host
+GET /v1/operator/edge
+GET /v1/operator/access-requests
+POST /v1/operator/access-requests
+POST /v1/operator/access-requests/{grantId}/end
+POST /v1/operator/break-glass
+# customer catalog (internal/catalog)
+GET /v1/operator/catalog/plans
+GET /v1/operator/catalog/plans/{id}
+GET /v1/operator/catalog/services
+GET /v1/operator/catalog/services/{id}
+GET /v1/operator/catalog/plan-services
+GET /v1/operator/catalog/defaults
+GET /v1/operator/customers
+POST /v1/operator/customers
+GET /v1/operator/customers/{id}
+PUT /v1/operator/customers/{id}
+DELETE /v1/operator/customers/{id}
+GET /v1/operator/customers/{id}/services
+PUT /v1/operator/customers/{id}/services/{service}
+DELETE /v1/operator/customers/{id}/services/{service}
+GET /v1/operator/customers/{id}/effective-config
+GET /v1/operator/customers/{id}/provision-intents
+POST /v1/operator/customers/{id}/provision-intent
+
+[staff.support]
+GET /v1/operator/access
+GET /v1/operator/tenants
+GET /v1/operator/tenants/{tenantId}/vm
+GET /v1/operator/workspaces
+GET /v1/operator/identity
+GET /v1/operator/templates
+GET /v1/operator/access-requests
+POST /v1/operator/access-requests
+POST /v1/operator/access-requests/{grantId}/end
+# customer catalog (internal/catalog)
+GET /v1/operator/catalog/plans
+GET /v1/operator/catalog/plans/{id}
+GET /v1/operator/catalog/services
+GET /v1/operator/catalog/services/{id}
+GET /v1/operator/catalog/plan-services
+GET /v1/operator/catalog/defaults
+GET /v1/operator/customers
+GET /v1/operator/customers/{id}
+GET /v1/operator/customers/{id}/services
+GET /v1/operator/customers/{id}/effective-config
+GET /v1/operator/customers/{id}/provision-intents
+
+[staff.billing]
+GET /v1/operator/access
+GET /v1/operator/tenants
+GET /v1/operator/tenants/{tenantId}/vm
+# customer catalog (internal/catalog)
+GET /v1/operator/catalog/plans
+POST /v1/operator/catalog/plans
+GET /v1/operator/catalog/plans/{id}
+PUT /v1/operator/catalog/plans/{id}
+DELETE /v1/operator/catalog/plans/{id}
+GET /v1/operator/catalog/services
+POST /v1/operator/catalog/services
+GET /v1/operator/catalog/services/{id}
+PUT /v1/operator/catalog/services/{id}
+DELETE /v1/operator/catalog/services/{id}
+GET /v1/operator/catalog/plan-services
+PUT /v1/operator/catalog/plan-services/{plan}/{service}
+DELETE /v1/operator/catalog/plan-services/{plan}/{service}
+GET /v1/operator/catalog/defaults
+PUT /v1/operator/catalog/defaults
+DELETE /v1/operator/catalog/defaults/{layer}/{key}
+GET /v1/operator/customers
+GET /v1/operator/customers/{id}
+GET /v1/operator/customers/{id}/services
+GET /v1/operator/customers/{id}/effective-config
+GET /v1/operator/customers/{id}/provision-intents
+
+[staff.security]
+GET /v1/operator/access
+GET /v1/operator/tenants
+GET /v1/operator/tenants/{tenantId}/vm
+GET /v1/operator/workspaces
+GET /v1/operator/identity
+GET /v1/operator/templates
+GET /v1/operator/host
+GET /v1/operator/edge
+GET /v1/operator/break-glass/pending
+POST /v1/operator/break-glass/{grantId}/{decision}
+GET /v1/operator/audit
+GET /v1/operator/team
+# customer catalog (internal/catalog)
+GET /v1/operator/catalog/plans
+GET /v1/operator/catalog/plans/{id}
+GET /v1/operator/catalog/services
+GET /v1/operator/catalog/services/{id}
+GET /v1/operator/catalog/plan-services
+GET /v1/operator/catalog/defaults
+GET /v1/operator/customers
+GET /v1/operator/customers/{id}
+GET /v1/operator/customers/{id}/services
+GET /v1/operator/customers/{id}/effective-config
+GET /v1/operator/customers/{id}/provision-intents
+
+[staff.auditor]
+GET /v1/operator/access
+GET /v1/operator/tenants
+GET /v1/operator/tenants/{tenantId}/vm
+GET /v1/operator/workspaces
+GET /v1/operator/templates
+GET /v1/operator/host
+GET /v1/operator/edge
+GET /v1/operator/audit
+GET /v1/operator/team
+# customer catalog (internal/catalog)
+GET /v1/operator/catalog/plans
+GET /v1/operator/catalog/plans/{id}
+GET /v1/operator/catalog/services
+GET /v1/operator/catalog/services/{id}
+GET /v1/operator/catalog/plan-services
+GET /v1/operator/catalog/defaults
+GET /v1/operator/customers
+GET /v1/operator/customers/{id}
+GET /v1/operator/customers/{id}/services
+GET /v1/operator/customers/{id}/effective-config
+GET /v1/operator/customers/{id}/provision-intents
+

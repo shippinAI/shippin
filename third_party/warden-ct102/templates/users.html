@@ -1,0 +1,455 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Users & Groups</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        <section class="card">
+            <div class="pkg-tabs">
+                <button class="btn pkg-tab-active" id="tab-users" onclick="switchTab('users')">Users</button>
+                <button class="btn" id="tab-groups" onclick="switchTab('groups')">Groups</button>
+            </div>
+
+            <!-- USERS TAB -->
+            <div id="panel-users">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                    <h2 style="margin:0;padding:0;border:none;">USERS</h2>
+                    <button class="btn btn-primary" onclick="showAddUser()">Add User</button>
+                </div>
+
+                <!-- Add/Edit User Form -->
+                <div id="user-form" class="cron-form" style="display:none;">
+                    <div class="cron-form-header">
+                        <h3 id="user-form-title">Add User</h3>
+                        <button class="btn btn-sm" onclick="hideUserForm()">Cancel</button>
+                    </div>
+                    <div class="cron-form-fields">
+                        <div class="cron-schedule-row">
+                            <div class="cron-field" style="flex:2;">
+                                <label>Username</label>
+                                <input type="text" id="u-username" placeholder="newuser" style="text-align:left;">
+                            </div>
+                            <div class="cron-field" style="flex:2;">
+                                <label>Full Name</label>
+                                <input type="text" id="u-comment" placeholder="John Doe" style="text-align:left;">
+                            </div>
+                            <div class="cron-field" style="flex:2;">
+                                <label>Shell</label>
+                                <select id="u-shell" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.4rem 0.5rem;font-size:0.9rem;">
+                                    {{ range .Shells }}
+                                    <option value="{{ . }}">{{ . }}</option>
+                                    {{ end }}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="cron-schedule-row">
+                            <div class="cron-field" style="flex:2;">
+                                <label>Home Directory</label>
+                                <input type="text" id="u-home" placeholder="/home/newuser" style="text-align:left;">
+                            </div>
+                            <div class="cron-field" style="flex:2;">
+                                <label>Password</label>
+                                <input type="password" id="u-password" placeholder="Password" style="text-align:left;">
+                            </div>
+                            <div class="cron-field" style="flex:1;">
+                                <label>Create Home</label>
+                                <label style="display:flex;align-items:center;gap:0.5rem;padding-top:0.3rem;">
+                                    <input type="checkbox" id="u-create-home" checked> Yes
+                                </label>
+                            </div>
+                        </div>
+                        <div id="u-groups-row" class="cron-command-row" style="display:none;">
+                            <label>Supplementary Groups (comma-separated)</label>
+                            <input type="text" id="u-groups" placeholder="sudo,docker,www-data" class="cron-command-input">
+                        </div>
+                        <input type="hidden" id="u-action" value="add_user">
+                        <button class="btn btn-primary" id="user-form-submit" onclick="submitUserForm()">Add User</button>
+                    </div>
+                    <div id="user-form-message" class="cron-form-message"></div>
+                </div>
+
+                <!-- Password Change Form -->
+                <div id="password-form" class="cron-form" style="display:none;">
+                    <div class="cron-form-header">
+                        <h3>Change Password — <span id="pw-username"></span></h3>
+                        <button class="btn btn-sm" onclick="hidePasswordForm()">Cancel</button>
+                    </div>
+                    <div class="cron-form-fields">
+                        <div class="cron-schedule-row">
+                            <div class="cron-field" style="flex:1;">
+                                <label>New Password</label>
+                                <input type="password" id="pw-password" placeholder="New password" style="text-align:left;">
+                            </div>
+                            <div class="cron-field" style="flex:1;">
+                                <label>Confirm Password</label>
+                                <input type="password" id="pw-confirm" placeholder="Confirm password" style="text-align:left;">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="submitPasswordChange()">Change Password</button>
+                    </div>
+                    <div id="pw-form-message" class="cron-form-message"></div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>USERNAME</th>
+                                <th>UID</th>
+                                <th>COMMENT</th>
+                                <th>HOME</th>
+                                <th>SHELL</th>
+                                <th>GROUPS</th>
+                                <th>STATUS</th>
+                                <th>ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ if not .Users }}
+                            <tr><td colspan="8" class="text-center text-dim">No users found. {{ if not .SudoEnabled }}Enable sudo for full access.{{ end }}</td></tr>
+                            {{ else }}
+                            {{ range .Users }}
+                            <tr data-user="{{ .Username }}" data-user-comment="{{ .Comment }}" data-user-shell="{{ .Shell }}" data-user-groups="{{ .Groups }}" data-user-locked="{{ .Locked }}">
+                                <td><strong>{{ .Username }}</strong></td>
+                                <td>{{ .UID }}</td>
+                                <td class="desc-cell">{{ .Comment }}</td>
+                                <td><code>{{ .Home }}</code></td>
+                                <td><code>{{ .Shell }}</code></td>
+                                <td class="desc-cell" title="{{ .Groups }}">{{ .Groups }}</td>
+                                <td>
+                                    {{ if .Locked }}
+                                    <span class="badge state-down">Locked</span>
+                                    {{ else }}
+                                    <span class="badge state-up">Active</span>
+                                    {{ end }}
+                                </td>
+                                <td class="actions-cell">
+                                    <div class="action-btns">
+                                        <button class="btn btn-sm btn-action" onclick="editUser('{{ .Username }}','{{ .Comment }}','{{ .Shell }}','{{ .Groups }}')" title="Edit">Edit</button>
+                                        <button class="btn btn-sm" onclick="showPasswordForm('{{ .Username }}')" title="Change Password">Pass</button>
+                                        <button class="btn btn-sm btn-warn" onclick="toggleLock('{{ .Username }}', {{ .Locked }})" title="{{ if .Locked }}Unlock{{ else }}Lock{{ end }}">{{ if .Locked }}Unlock{{ else }}Lock{{ end }}</button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteUser('{{ .Username }}')" title="Delete">Del</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {{ end }}
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- GROUPS TAB -->
+            <div id="panel-groups" style="display:none;">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                    <h2 style="margin:0;padding:0;border:none;">GROUPS</h2>
+                    <button class="btn btn-primary" onclick="showAddGroup()">Add Group</button>
+                </div>
+
+                <!-- Add Group Form -->
+                <div id="group-form" class="cron-form" style="display:none;">
+                    <div class="cron-form-header">
+                        <h3 id="group-form-title">Add Group</h3>
+                        <button class="btn btn-sm" onclick="hideGroupForm()">Cancel</button>
+                    </div>
+                    <div class="cron-form-fields">
+                        <div class="cron-schedule-row">
+                            <div class="cron-field" style="flex:2;">
+                                <label>Group Name</label>
+                                <input type="text" id="g-name" placeholder="mygroup" style="text-align:left;">
+                            </div>
+                            <div class="cron-field" style="flex:1;">
+                                <label>GID (optional)</label>
+                                <input type="text" id="g-gid" placeholder="Auto" style="text-align:left;">
+                            </div>
+                        </div>
+                        <div id="g-members-row" class="cron-command-row" style="display:none;">
+                            <label>Members (comma-separated usernames)</label>
+                            <input type="text" id="g-members" placeholder="user1,user2" class="cron-command-input">
+                        </div>
+                        <input type="hidden" id="g-action" value="add_group">
+                        <button class="btn btn-primary" id="group-form-submit" onclick="submitGroupForm()">Add Group</button>
+                    </div>
+                    <div id="group-form-message" class="cron-form-message"></div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>GROUP NAME</th>
+                                <th>GID</th>
+                                <th>MEMBERS</th>
+                                <th>ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ if not .Groups }}
+                            <tr><td colspan="4" class="text-center text-dim">No groups found.</td></tr>
+                            {{ else }}
+                            {{ range .Groups }}
+                            <tr data-group="{{ .Name }}" data-group-members="{{ range $i, $m := .Members }}{{ if $i }},{{ end }}{{ $m }}{{ end }}">
+                                <td><strong>{{ .Name }}</strong></td>
+                                <td>{{ .GID }}</td>
+                                <td class="desc-cell" title="{{ range $i, $m := .Members }}{{ if $i }}, {{ end }}{{ $m }}{{ end }}">{{ range $i, $m := .Members }}{{ if $i }}, {{ end }}{{ $m }}{{ end }}</td>
+                                <td class="actions-cell">
+                                    <div class="action-btns">
+                                        <button class="btn btn-sm btn-action" onclick="editGroup('{{ .Name }}','{{ range $i, $m := .Members }}{{ if $i }},{{ end }}{{ $m }}{{ end }}')" title="Edit Members">Edit</button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteGroup('{{ .Name }}')" title="Delete">Del</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {{ end }}
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <span>Warden User & Group Management</span>
+    </footer>
+
+    <script>
+        function switchTab(tab) {
+            document.getElementById('panel-users').style.display = tab === 'users' ? '' : 'none';
+            document.getElementById('panel-groups').style.display = tab === 'groups' ? '' : 'none';
+            document.getElementById('tab-users').className = tab === 'users' ? 'btn pkg-tab-active' : 'btn';
+            document.getElementById('tab-groups').className = tab === 'groups' ? 'btn pkg-tab-active' : 'btn';
+        }
+
+        // USER FUNCTIONS
+        function showAddUser() {
+            document.getElementById('user-form').style.display = '';
+            document.getElementById('user-form-title').textContent = 'Add User';
+            document.getElementById('user-form-submit').textContent = 'Add User';
+            document.getElementById('u-action').value = 'add_user';
+            document.getElementById('u-username').value = '';
+            document.getElementById('u-username').readOnly = false;
+            document.getElementById('u-comment').value = '';
+            document.getElementById('u-home').value = '';
+            document.getElementById('u-password').value = '';
+            document.getElementById('u-create-home').checked = true;
+            document.getElementById('u-groups-row').style.display = 'none';
+            document.getElementById('user-form-message').textContent = '';
+            hidePasswordForm();
+        }
+
+        function hideUserForm() {
+            document.getElementById('user-form').style.display = 'none';
+        }
+
+        function editUser(username, comment, shell, groups) {
+            document.getElementById('user-form').style.display = '';
+            document.getElementById('user-form-title').textContent = 'Edit User — ' + username;
+            document.getElementById('user-form-submit').textContent = 'Save Changes';
+            document.getElementById('u-action').value = 'modify_user';
+            document.getElementById('u-username').value = username;
+            document.getElementById('u-username').readOnly = true;
+            document.getElementById('u-comment').value = comment;
+            document.getElementById('u-home').value = '';
+            document.getElementById('u-password').value = '';
+            document.getElementById('u-groups-row').style.display = '';
+            document.getElementById('u-groups').value = groups;
+            document.getElementById('user-form-message').textContent = '';
+
+            // Set shell dropdown
+            var shellSelect = document.getElementById('u-shell');
+            for (var i = 0; i < shellSelect.options.length; i++) {
+                if (shellSelect.options[i].value === shell) {
+                    shellSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+
+        function submitUserForm() {
+            var action = document.getElementById('u-action').value;
+            var body = 'action=' + action +
+                '&username=' + encodeURIComponent(document.getElementById('u-username').value) +
+                '&comment=' + encodeURIComponent(document.getElementById('u-comment').value) +
+                '&shell=' + encodeURIComponent(document.getElementById('u-shell').value) +
+                '&home=' + encodeURIComponent(document.getElementById('u-home').value) +
+                '&password=' + encodeURIComponent(document.getElementById('u-password').value);
+
+            if (action === 'add_user') {
+                body += '&create_home=' + (document.getElementById('u-create-home').checked ? 'on' : 'off');
+            } else {
+                body += '&groups=' + encodeURIComponent(document.getElementById('u-groups').value);
+            }
+
+            apiCall(body, 'user-form-message');
+        }
+
+        function deleteUser(username) {
+            Modal.confirmWithOption('Delete user "' + username + '"?\n\nThis cannot be undone.', 'Also remove home directory').then(function(res) {
+                if (!res.confirmed) return;
+                var body = 'action=delete_user&username=' + encodeURIComponent(username);
+                if (res.option) body += '&remove_home=on';
+                apiCall(body, null, true);
+            });
+        }
+
+        function toggleLock(username, isLocked) {
+            var body = 'action=toggle_lock&username=' + encodeURIComponent(username) +
+                '&locked=' + isLocked;
+            apiCall(body, null, true);
+        }
+
+        // PASSWORD FUNCTIONS
+        function showPasswordForm(username) {
+            document.getElementById('password-form').style.display = '';
+            document.getElementById('pw-username').textContent = username;
+            document.getElementById('pw-password').value = '';
+            document.getElementById('pw-confirm').value = '';
+            document.getElementById('pw-form-message').textContent = '';
+            hideUserForm();
+        }
+
+        function hidePasswordForm() {
+            document.getElementById('password-form').style.display = 'none';
+        }
+
+        function submitPasswordChange() {
+            var username = document.getElementById('pw-username').textContent;
+            var pw = document.getElementById('pw-password').value;
+            var confirm = document.getElementById('pw-confirm').value;
+
+            if (pw !== confirm) {
+                var msg = document.getElementById('pw-form-message');
+                msg.textContent = 'Passwords do not match';
+                msg.className = 'cron-form-message cron-msg-error';
+                return;
+            }
+            if (pw.length < 1) {
+                var msg = document.getElementById('pw-form-message');
+                msg.textContent = 'Password is required';
+                msg.className = 'cron-form-message cron-msg-error';
+                return;
+            }
+
+            var body = 'action=change_password&username=' + encodeURIComponent(username) +
+                '&password=' + encodeURIComponent(pw);
+            apiCall(body, 'pw-form-message');
+        }
+
+        // GROUP FUNCTIONS
+        function showAddGroup() {
+            document.getElementById('group-form').style.display = '';
+            document.getElementById('group-form-title').textContent = 'Add Group';
+            document.getElementById('group-form-submit').textContent = 'Add Group';
+            document.getElementById('g-action').value = 'add_group';
+            document.getElementById('g-name').value = '';
+            document.getElementById('g-name').readOnly = false;
+            document.getElementById('g-gid').value = '';
+            document.getElementById('g-members-row').style.display = 'none';
+            document.getElementById('group-form-message').textContent = '';
+        }
+
+        function hideGroupForm() {
+            document.getElementById('group-form').style.display = 'none';
+        }
+
+        function editGroup(name, members) {
+            document.getElementById('group-form').style.display = '';
+            document.getElementById('group-form-title').textContent = 'Edit Group — ' + name;
+            document.getElementById('group-form-submit').textContent = 'Save Changes';
+            document.getElementById('g-action').value = 'modify_group';
+            document.getElementById('g-name').value = name;
+            document.getElementById('g-name').readOnly = true;
+            document.getElementById('g-gid').value = '';
+            document.getElementById('g-members-row').style.display = '';
+            document.getElementById('g-members').value = members;
+            document.getElementById('group-form-message').textContent = '';
+        }
+
+        function submitGroupForm() {
+            var action = document.getElementById('g-action').value;
+            var body = 'action=' + action +
+                '&groupname=' + encodeURIComponent(document.getElementById('g-name').value);
+
+            if (action === 'add_group') {
+                var gid = document.getElementById('g-gid').value;
+                if (gid) body += '&gid=' + encodeURIComponent(gid);
+            } else {
+                body += '&members=' + encodeURIComponent(document.getElementById('g-members').value);
+            }
+
+            apiCall(body, 'group-form-message');
+        }
+
+        function deleteGroup(name) {
+            Modal.confirm('Delete group "' + name + '"?', {danger:true}).then(function(ok) {
+                if (!ok) return;
+                apiCall('action=delete_group&groupname=' + encodeURIComponent(name), null, true);
+            });
+        }
+
+        // SHARED API CALL
+        function apiCall(body, msgId, reloadImmediately) {
+            fetch('/api/users', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (msgId) {
+                    var msg = document.getElementById(msgId);
+                    msg.textContent = data.message;
+                    msg.className = data.success ? 'cron-form-message cron-msg-ok' : 'cron-form-message cron-msg-error';
+                }
+                if (data.success) {
+                    setTimeout(function() { location.reload(); }, reloadImmediately ? 100 : 500);
+                } else if (!msgId) {
+                    alert('Failed: ' + data.message);
+                }
+            })
+            .catch(function() {
+                if (msgId) {
+                    var msg = document.getElementById(msgId);
+                    msg.textContent = 'Request failed';
+                    msg.className = 'cron-form-message cron-msg-error';
+                } else {
+                    alert('Request failed');
+                }
+            });
+        }
+    </script>
+{{ template "scripts" }}
+<script src="/static/contextmenu.js"></script>
+<script>
+ctxMenu.attach('tr[data-user]', function(row) {
+    var uname = row.getAttribute('data-user');
+    var comment = row.getAttribute('data-user-comment');
+    var shell = row.getAttribute('data-user-shell');
+    var groups = row.getAttribute('data-user-groups');
+    var locked = row.getAttribute('data-user-locked') === 'true';
+    return [
+        {label: 'Edit User', icon: '\u270e', action: function() { editUser(uname, comment, shell, groups); }},
+        {label: 'Change Password', icon: '\ud83d\udd11', action: function() { showPasswordForm(uname); }},
+        'separator',
+        {label: locked ? 'Unlock Account' : 'Lock Account', icon: locked ? '\ud83d\udd13' : '\ud83d\udd12', action: function() { toggleLock(uname, locked); }},
+        'separator',
+        {label: 'Delete User', icon: '\ud83d\uddd1', danger: true, action: function() { deleteUser(uname); }}
+    ];
+});
+ctxMenu.attach('tr[data-group]', function(row) {
+    var name = row.getAttribute('data-group');
+    var members = row.getAttribute('data-group-members');
+    return [
+        {label: 'Edit Members', icon: '\u270e', action: function() { editGroup(name, members); }},
+        'separator',
+        {label: 'Delete Group', icon: '\ud83d\uddd1', danger: true, action: function() { deleteGroup(name); }}
+    ];
+});
+</script>
+
+</body>
+</html>

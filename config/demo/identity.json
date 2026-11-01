@@ -1,0 +1,10 @@
+{
+  "me": {"user_id": "demo", "display_name": "the operator (demo)", "platform_roles": ["op_superadmin"], "tenants": [],
+         "capabilities": {"operator.view": true}},
+  "access": {"role": "op_superadmin", "name": "the operator (demo)", "user_id": "demo",
+    "staff": {"mode": "enforce", "roles": ["staff.owner"], "mfa": true, "mfa_required": false, "legacy_fallback": false,
+      "permissions": ["tenants.read", "tenants.lifecycle", "billing.read", "billing.write", "workspaces.read", "templates.read", "team.read"]}},
+  "public": {"brand": {"name": "Shippin.Cloud", "short": "Shippin", "tagline": "Demo"}, "domain": "localhost",
+             "governance_domains": [], "idp_host": "", "login_ready": false},
+  "empty": {"items": []}
+}

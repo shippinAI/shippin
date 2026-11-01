@@ -1,0 +1,34 @@
+# Per-host detail (test fixture). Schema documented in
+# warden/internal/host/host.go (struct Host).
+
+name: server1
+kind: proxmox
+os: "Debian 12"
+
+addresses:
+  - role: api
+    host: 192.0.2.20
+    port: 8006
+    verify: true
+    network: public
+  - role: ssh
+    host: 192.0.2.20
+    port: 22
+    verify: true
+    network: public
+  - role: internal
+    host: 192.0.2.1
+    port: 8006
+    verify: true
+    network: internal
+
+owner_client: ""    # empty -> system-owned (operator's own infra)
+
+credentials:
+  api_token: platforms/proxmox/api.token
+  ssh_key:   ssh/warden-to-lxc.key
+
+tags:
+  - edge
+  - control-plane
+  - production

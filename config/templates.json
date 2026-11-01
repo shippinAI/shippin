@@ -1,0 +1,84 @@
+[
+  {
+    "slug": "node-vite",
+    "name": "Node \u00b7 Vite + React",
+    "description": "Node.js with npm and pnpm. Runs your Vite dev server with hot reload, or scaffolds a React + TypeScript app.",
+    "icon": "react",
+    "image": "shippin/tpl-node",
+    "toolchain": [
+      "Node.js",
+      "npm",
+      "pnpm",
+      "Vite"
+    ],
+    "cpu": 2,
+    "memory_gib": 4,
+    "disk_gib": 20,
+    "startup": "# Node/Vite: install deps with the repo's package manager, then run the dev server on 0.0.0.0:5173 (scaffolds React if no repo).\nexport CI=1\nif [ ! -f package.json ]; then\n  [ -d app ] || npm create -y vite@latest app -- --template react-ts --no-interactive </dev/null\n  cd app\nfi\nif [ -f pnpm-lock.yaml ]; then pm=pnpm; pnpm install --config.dangerously-allow-all-builds=true || exit 1\nelif [ -f yarn.lock ]; then pm=\"corepack yarn\"; $pm install || exit 1\nelse pm=npm; npm install --no-audit --no-fund || npm install --no-audit --no-fund --legacy-peer-deps || exit 1\nfi\n[ \"$pm\" = npm ] && set -- --; exec $pm run dev \"$@\" --host 0.0.0.0 --port 5173 --strictPort\n",
+    "ports": [
+      5173
+    ],
+    "enabled": true,
+    "sort": 10
+  },
+  {
+    "slug": "python",
+    "name": "Python",
+    "description": "Python 3 with venv, pip and pipx. Installs requirements.txt into .venv.",
+    "icon": "python",
+    "image": "shippin/tpl-python",
+    "toolchain": [
+      "Python 3",
+      "venv",
+      "pip",
+      "pipx"
+    ],
+    "cpu": 2,
+    "memory_gib": 4,
+    "disk_gib": 20,
+    "startup": "# Python: venv + requirements; serves the project directory on :8000 until you replace this.\npython3 -m venv .venv\n. .venv/bin/activate\n[ -f requirements.txt ] && pip install -q -r requirements.txt\nexec python3 -m http.server 8000 --bind 0.0.0.0\n",
+    "ports": [
+      8000
+    ],
+    "enabled": true,
+    "sort": 20
+  },
+  {
+    "slug": "go",
+    "name": "Go",
+    "description": "Latest Go toolchain. Runs the main package of your module.",
+    "icon": "go",
+    "image": "shippin/tpl-go",
+    "toolchain": [
+      "Go"
+    ],
+    "cpu": 2,
+    "memory_gib": 4,
+    "disk_gib": 20,
+    "startup": "# Go: fetch modules and run the main package (expects it to listen on :8080).\n[ -f go.mod ] || exit 0\ngo mod download\nexec go run .\n",
+    "ports": [
+      8080
+    ],
+    "enabled": true,
+    "sort": 30
+  },
+  {
+    "slug": "blank",
+    "name": "Blank Debian 13",
+    "description": "Debian 13 with git, build tools and the browser IDE. Bring your own stack.",
+    "icon": "debian",
+    "image": "shippin/tpl-blank",
+    "toolchain": [
+      "Debian 13",
+      "git",
+      "build-essential"
+    ],
+    "cpu": 2,
+    "memory_gib": 4,
+    "disk_gib": 20,
+    "startup": "",
+    "ports": [],
+    "enabled": true,
+    "sort": 40
+  }
+]

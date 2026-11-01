@@ -1,0 +1,16 @@
+{
+  "source": "SHIPPIN-CLOUD/console/CONSOLE-IA.md performance budgets",
+  "entries": [
+    "index.html",
+    "ops.html"
+  ],
+  "initial_js_gz_kb": 90,
+  "route_chunk_gz_kb": 50,
+  "chunk_overrides": [
+    {
+      "match": "assets/xterm-",
+      "gz_kb": 75,
+      "reason": "xterm.js for the Terminal view; loaded only when a terminal opens"
+    }
+  ]
+}

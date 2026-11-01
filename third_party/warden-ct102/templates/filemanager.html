@@ -1,0 +1,754 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Files</title>
+    <style>
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            position: relative;
+        }
+
+        /* Blueprint grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(108, 138, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 138, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(rgba(108, 138, 255, 0.012) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 138, 255, 0.012) 1px, transparent 1px);
+            background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+            mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, rgba(0,0,0,0.4) 0%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, rgba(0,0,0,0.4) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        [data-theme="light"] body::before {
+            background-image:
+                linear-gradient(rgba(79, 109, 245, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 109, 245, 0.05) 1px, transparent 1px),
+                linear-gradient(rgba(79, 109, 245, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 109, 245, 0.02) 1px, transparent 1px);
+        }
+
+        header, main, footer { position: relative; z-index: 1; }
+        header h1 { font-weight: 800; letter-spacing: -0.03em; }
+        .version-info { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+
+        /* ── Toolbar ── */
+        .f-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .f-path-form {
+            display: flex;
+            gap: 0.4rem;
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .f-path-input {
+            flex: 1;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            padding: 0.4rem 0.7rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            transition: border-color 0.15s;
+        }
+
+        .f-path-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .f-go-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .f-go-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        .f-actions {
+            display: flex;
+            gap: 0.3rem;
+        }
+
+        .f-act-btn {
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: transparent;
+            cursor: pointer;
+            color: var(--text-dim);
+            transition: all 0.15s;
+            padding: 0;
+        }
+
+        .f-act-btn svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .f-act-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .f-act-btn[title="Upload"]:hover { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, transparent); }
+
+        /* ── Breadcrumb ── */
+        .f-crumbs {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            overflow-x: auto;
+        }
+
+        .f-crumb {
+            color: var(--accent);
+            text-decoration: none;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            transition: background 0.12s;
+            white-space: nowrap;
+        }
+
+        .f-crumb:hover { background: rgba(108, 138, 255, 0.06); }
+
+        .f-crumb-sep {
+            color: var(--border);
+            padding: 0 0.15rem;
+            opacity: 0.6;
+            user-select: none;
+        }
+
+        /* ── File table ── */
+        .f-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .f-table thead th {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            padding: 0.5rem 0.6rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            opacity: 0.6;
+        }
+
+        .f-table tbody tr {
+            border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+            transition: background 0.1s;
+        }
+
+        .f-table tbody tr:last-child { border-bottom: none; }
+        .f-table tbody tr:hover { background: rgba(108, 138, 255, 0.02); }
+
+        .f-table tbody tr.f-dir-row { background: rgba(108, 138, 255, 0.015); }
+        .f-table tbody tr.f-dir-row:hover { background: rgba(108, 138, 255, 0.035); }
+        [data-theme="light"] .f-table tbody tr.f-dir-row { background: rgba(79, 109, 245, 0.02); }
+
+        .f-table td {
+            padding: 0.4rem 0.6rem;
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Column widths */
+        .f-col-icon { width: 32px; }
+        .f-col-name { width: 35%; }
+        .f-col-size { width: 10%; }
+        .f-col-perm { width: 12%; }
+        .f-col-owner { width: 10%; }
+        .f-col-mod { width: 15%; }
+        .f-col-act { width: 18%; }
+
+        /* Icon cell */
+        .f-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+        }
+
+        .f-icon svg {
+            width: 15px;
+            height: 15px;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .f-icon-dir svg { stroke: var(--accent); fill: rgba(108, 138, 255, 0.1); }
+        .f-icon-file svg { stroke: var(--text-dim); fill: none; opacity: 0.5; }
+
+        /* Name links */
+        .f-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.84rem;
+        }
+
+        .f-link:hover { text-decoration: underline; }
+
+        .f-fname {
+            font-weight: 500;
+            font-size: 0.84rem;
+        }
+
+        .f-size {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+        }
+
+        .f-perm {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            opacity: 0.7;
+        }
+
+        .f-owner {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+        }
+
+        .f-date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            opacity: 0.6;
+        }
+
+        /* Row action buttons — icon style */
+        .f-row-acts {
+            display: flex;
+            gap: 0.2rem;
+            align-items: center;
+        }
+
+        .f-row-btn {
+            width: 26px;
+            height: 26px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 0;
+            opacity: 0.45;
+            transition: all 0.15s;
+        }
+
+        .f-row-btn svg {
+            width: 13px;
+            height: 13px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .f-row-btn:hover { opacity: 1; }
+
+        .f-btn-edit { color: var(--accent); }
+        .f-btn-download { color: var(--green); }
+        .f-btn-rename { color: var(--orange); }
+        .f-btn-delete { color: var(--red); }
+
+        .f-row-sep {
+            width: 1px;
+            height: 14px;
+            background: var(--border);
+            opacity: 0.3;
+            margin: 0 0.1rem;
+        }
+
+        /* ── Footer ── */
+        .f-footer {
+            padding: 0.5rem 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            opacity: 0.4;
+            letter-spacing: 0.06em;
+        }
+
+        /* ── Editor ── */
+        .f-editor-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .f-editor-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            word-break: break-all;
+        }
+
+        .f-editor {
+            width: 100%;
+            min-height: 60vh;
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            line-height: 1.6;
+            resize: vertical;
+            tab-size: 4;
+        }
+
+        .f-editor:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .f-editor-actions {
+            display: flex;
+            gap: 0.4rem;
+            margin-top: 0.6rem;
+        }
+
+        .f-save-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.45rem 1rem;
+            border-radius: 6px;
+            background: var(--accent);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+
+        .f-save-btn:hover { opacity: 0.85; }
+
+        .f-cancel-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.45rem 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-dim);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .f-cancel-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+        /* ── Modals ── */
+        .f-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        [data-theme="light"] .f-modal { background: rgba(0, 0, 0, 0.25); }
+
+        .f-modal-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.4rem;
+            min-width: 360px;
+            max-width: 90vw;
+            animation: f-modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes f-modal-in {
+            from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .f-modal-card h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            margin-bottom: 0.9rem;
+        }
+
+        .f-modal-input {
+            width: 100%;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            padding: 0.45rem 0.65rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            margin-bottom: 0.9rem;
+            transition: border-color 0.15s;
+        }
+
+        .f-modal-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .f-modal-actions {
+            display: flex;
+            gap: 0.4rem;
+            justify-content: flex-end;
+        }
+
+        footer {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0.35;
+        }
+    </style>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main class="fm-main">
+        {{ if .Message }}
+        <div class="alert {{ if contains .Message "success" }}alert-ok{{ else if contains .Message "created" }}alert-ok{{ else if contains .Message "saved" }}alert-ok{{ else if contains .Message "Deleted" }}alert-ok{{ else if contains .Message "Renamed" }}alert-ok{{ else if contains .Message "Uploaded" }}alert-ok{{ else }}alert-err{{ end }}">
+            {{ .Message }}
+        </div>
+        {{ end }}
+
+        {{ if .EditPath }}
+        <!-- File Editor -->
+        <section class="card">
+            <div class="f-editor-bar">
+                <span class="f-editor-path">{{ .EditPath }}</span>
+                <a href="/files?dir={{ .Dir }}" class="f-cancel-btn">Back</a>
+            </div>
+            <form method="post" action="/api/files?action=save&dir={{ .Dir }}">
+                <input type="hidden" name="path" value="{{ .EditPath }}">
+                <textarea name="content" class="f-editor" spellcheck="false">{{ .EditContent }}</textarea>
+                <div class="f-editor-actions">
+                    <button type="submit" class="f-save-btn">Save</button>
+                    <a href="/files?dir={{ .Dir }}" class="f-cancel-btn">Cancel</a>
+                </div>
+            </form>
+        </section>
+        {{ else }}
+        <!-- File Browser -->
+        <section class="card">
+            <div class="f-toolbar">
+                <form method="get" action="/files" class="f-path-form">
+                    <input type="text" name="dir" value="{{ .Dir }}" class="f-path-input">
+                    <button type="submit" class="f-go-btn">Go</button>
+                </form>
+                <div class="f-actions">
+                    <button class="f-act-btn" onclick="showModal('mkdir-modal')" title="New Folder">
+                        <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                    </button>
+                    <button class="f-act-btn" onclick="showModal('create-modal')" title="New File">
+                        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                    </button>
+                    <button class="f-act-btn" onclick="showModal('upload-modal')" title="Upload">
+                        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Breadcrumb -->
+            <div class="f-crumbs">
+                {{ range $i, $crumb := breadcrumbs .Dir }}
+                {{ if $i }}<span class="f-crumb-sep">/</span>{{ end }}
+                <a href="/files?dir={{ $crumb.Path }}" class="f-crumb">{{ $crumb.Name }}</a>
+                {{ end }}
+            </div>
+
+            {{ if .Error }}
+            <p class="no-data">{{ .Error }}</p>
+            {{ else }}
+
+            <div class="table-wrap">
+                <table class="f-table">
+                    <thead>
+                        <tr>
+                            <th class="f-col-icon"></th>
+                            <th class="sortable f-col-name" data-col="1" data-type="text">Name</th>
+                            <th class="sortable f-col-size" data-col="2" data-type="text">Size</th>
+                            <th class="sortable f-col-perm" data-col="3" data-type="text">Perms</th>
+                            <th class="sortable f-col-owner" data-col="4" data-type="text">Owner</th>
+                            <th class="sortable f-col-mod" data-col="5" data-type="text">Modified</th>
+                            <th class="f-col-act">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Entries }}
+                        <tr class="{{ if .IsDir }}f-dir-row{{ end }}" data-fname="{{ .Name }}" data-fdir="{{ .IsDir }}" data-fpath="{{ $.Dir }}/{{ .Name }}">
+                            <td>
+                                {{ if .IsDir }}
+                                <span class="f-icon f-icon-dir"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+                                {{ else }}
+                                <span class="f-icon f-icon-file"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+                                {{ end }}
+                            </td>
+                            <td>
+                                {{ if .IsDir }}
+                                {{ if eq .Name ".." }}
+                                <a href="/files?dir={{ $.ParentDir }}" class="f-link">..</a>
+                                {{ else }}
+                                <a href="/files?dir={{ $.Dir }}/{{ .Name }}" class="f-link">{{ .Name }}</a>
+                                {{ end }}
+                                {{ else }}
+                                <span class="f-fname">{{ .Name }}</span>
+                                {{ end }}
+                            </td>
+                            <td><span class="f-size">{{ if not .IsDir }}{{ formatFileSize .Size }}{{ else }}-{{ end }}</span></td>
+                            <td><span class="f-perm">{{ .Mode }}</span></td>
+                            <td><span class="f-owner">{{ .Owner }}</span></td>
+                            <td><span class="f-date">{{ .ModTime }}</span></td>
+                            <td>
+                                {{ if ne .Name ".." }}
+                                <div class="f-row-acts">
+                                    {{ if not .IsDir }}
+                                    {{ if isTextFile .Name }}
+                                    <a href="/files?dir={{ $.Dir }}&edit={{ $.Dir }}/{{ .Name }}" class="f-row-btn f-btn-edit" title="Edit">
+                                        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    </a>
+                                    {{ end }}
+                                    <a href="/api/files/download?path={{ $.Dir }}/{{ .Name }}" class="f-row-btn f-btn-download" title="Download">
+                                        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    </a>
+                                    {{ end }}
+                                    <button class="f-row-btn f-btn-rename" onclick="renameItem('{{ $.Dir }}/{{ .Name }}', '{{ .Name }}')" title="Rename">
+                                        <svg viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                                    </button>
+                                    <span class="f-row-sep"></span>
+                                    <form method="post" action="/api/files?action=delete&dir={{ $.Dir }}" class="inline-form" data-confirm="Delete {{ .Name }}?" data-confirm-danger>
+                                        <input type="hidden" name="target" value="{{ $.Dir }}/{{ .Name }}">
+                                        <button type="submit" class="f-row-btn f-btn-delete" title="Delete">
+                                            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                        </button>
+                                    </form>
+                                </div>
+                                {{ end }}
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            <div class="f-footer">{{ len .Entries }} items in {{ .Dir }}</div>
+            {{ end }}
+        </section>
+        {{ end }}
+    </main>
+
+    <!-- Mkdir Modal -->
+    <div id="mkdir-modal" class="f-modal" style="display:none">
+        <div class="f-modal-card">
+            <h3>New Folder</h3>
+            <form method="post" action="/api/files?action=mkdir&dir={{ .Dir }}">
+                <input type="text" name="name" placeholder="Folder name" class="f-modal-input" required autofocus>
+                <div class="f-modal-actions">
+                    <button type="button" class="f-cancel-btn" onclick="hideModal('mkdir-modal')">Cancel</button>
+                    <button type="submit" class="f-save-btn">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create File Modal -->
+    <div id="create-modal" class="f-modal" style="display:none">
+        <div class="f-modal-card">
+            <h3>New File</h3>
+            <form method="post" action="/api/files?action=create&dir={{ .Dir }}">
+                <input type="text" name="name" placeholder="File name" class="f-modal-input" required>
+                <div class="f-modal-actions">
+                    <button type="button" class="f-cancel-btn" onclick="hideModal('create-modal')">Cancel</button>
+                    <button type="submit" class="f-save-btn">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="f-modal" style="display:none">
+        <div class="f-modal-card">
+            <h3>Upload File</h3>
+            <form method="post" action="/api/files?action=upload&dir={{ .Dir }}" enctype="multipart/form-data">
+                <input type="file" name="file" class="f-modal-input" required>
+                <div class="f-modal-actions">
+                    <button type="button" class="f-cancel-btn" onclick="hideModal('upload-modal')">Cancel</button>
+                    <button type="submit" class="f-save-btn">Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rename Modal -->
+    <div id="rename-modal" class="f-modal" style="display:none">
+        <div class="f-modal-card">
+            <h3>Rename</h3>
+            <form method="post" action="/api/files?action=rename&dir={{ .Dir }}">
+                <input type="hidden" name="old" id="rename-old" value="">
+                <input type="text" name="new" id="rename-new" placeholder="New name" class="f-modal-input" required>
+                <div class="f-modal-actions">
+                    <button type="button" class="f-cancel-btn" onclick="hideModal('rename-modal')">Cancel</button>
+                    <button type="submit" class="f-save-btn">Rename</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    function showModal(id) {
+        document.getElementById(id).style.display = 'flex';
+        var input = document.querySelector('#' + id + ' input[type="text"], #' + id + ' input[type="file"]');
+        if (input) setTimeout(function() { input.focus(); }, 100);
+    }
+    function hideModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+    function renameItem(oldPath, oldName) {
+        document.getElementById('rename-old').value = oldPath;
+        document.getElementById('rename-new').value = oldName;
+        showModal('rename-modal');
+    }
+
+    // Close modals on backdrop click
+    document.querySelectorAll('.f-modal').forEach(function(modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+    });
+
+    // Sortable table
+    (function() {
+        var table = document.querySelector('.f-table');
+        if (!table) return;
+        var tbody = table.querySelector('tbody');
+        var headers = table.querySelectorAll('th.sortable');
+        var sortCol = -1, sortAsc = true;
+
+        headers.forEach(function(th) {
+            th.addEventListener('click', function() {
+                var col = parseInt(this.dataset.col);
+                if (sortCol === col) {
+                    sortAsc = !sortAsc;
+                } else {
+                    sortCol = col;
+                    sortAsc = true;
+                }
+                headers.forEach(function(h) { h.classList.remove('sort-asc', 'sort-desc'); });
+                this.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+
+                var rows = Array.from(tbody.querySelectorAll('tr'));
+                rows.sort(function(a, b) {
+                    var aText = (a.children[col] ? a.children[col].textContent : '').trim().toLowerCase();
+                    var bText = (b.children[col] ? b.children[col].textContent : '').trim().toLowerCase();
+                    if (aText < bText) return sortAsc ? -1 : 1;
+                    if (aText > bText) return sortAsc ? 1 : -1;
+                    return 0;
+                });
+                rows.forEach(function(r) { tbody.appendChild(r); });
+            });
+        });
+    })();
+    </script>
+{{ template "scripts" }}
+<script src="/static/contextmenu.js"></script>
+<script>
+ctxMenu.attach('tr[data-fname]', function(row) {
+    var name = row.getAttribute('data-fname');
+    var isDir = row.getAttribute('data-fdir') === 'true';
+    var fpath = row.getAttribute('data-fpath');
+    var dir = new URLSearchParams(window.location.search).get('dir') || '/';
+    if (name === '..') return [];
+    var items = [];
+    if (isDir) {
+        items.push({label: 'Open Folder', icon: '\ud83d\udcc2', action: function() { window.location = '/files?dir=' + encodeURIComponent(fpath); }});
+    } else {
+        var ext = name.split('.').pop().toLowerCase();
+        var textExts = ['txt','log','conf','cfg','ini','sh','bash','py','js','json','xml','html','css','md','yml','yaml','toml','env','service','go','rs','c','h','cpp','java','rb','php','sql','csv'];
+        if (textExts.indexOf(ext) >= 0 || name.indexOf('.') === -1) {
+            items.push({label: 'Edit', icon: '\u270e', action: function() { window.location = '/files?dir=' + encodeURIComponent(dir) + '&edit=' + encodeURIComponent(fpath); }});
+        }
+        items.push({label: 'Download', icon: '\u2b07', action: function() { window.location = '/api/files/download?path=' + encodeURIComponent(fpath); }});
+    }
+    items.push('separator');
+    items.push({label: 'Rename', icon: '\u270e', action: function() { renameItem(fpath, name); }});
+    items.push({label: 'Delete', icon: '\ud83d\uddd1', danger: true, action: function() {
+        Modal.confirm('Delete ' + name + '?', {danger:true}).then(function(ok) {
+            if (!ok) return;
+            var form = document.createElement('form');
+            form.method = 'post';
+            form.action = '/api/files?action=delete&dir=' + encodeURIComponent(dir);
+            var t = document.createElement('input'); t.type='hidden'; t.name='target'; t.value=fpath; form.appendChild(t);
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }});
+    return items;
+});
+</script>
+
+</body>
+</html>

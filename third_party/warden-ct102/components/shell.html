@@ -1,0 +1,33 @@
+{{/* components.shell — page wrapper. Replaces hand-coded <!DOCTYPE html> in every page template.
+     Args: .Shell.PageTitle, .Shell.Breadcrumb, .Shell.BodyClass, .Shell.BodyTemplate
+           + the embedded HeaderData fields that header.html already needs.
+     Spec 17 §3.1 + ADR 0038 §5.
+*/}}
+{{ define "shell_body" }}{{ end }}
+
+{{ define "components.shell" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>{{ .Shell.PageTitle }} — Warden</title>
+    <link rel="stylesheet" href="/static/wardenui.css">
+</head>
+<body class="c-shell">
+    {{ template "header" .Shell.HeaderData }}
+    {{ if .Shell.Breadcrumb }}
+        {{ template "components.breadcrumb" .Shell.Breadcrumb }}
+    {{ end }}
+    <main class="c-shell-main {{ .Shell.BodyClass }}">
+        {{ if .Shell.BodyTemplate }}
+            {{ renderShellBody .Shell.BodyTemplate . }}
+        {{ else }}
+            {{ template "shell_body" . }}
+        {{ end }}
+    </main>
+    {{ template "scripts" }}
+    <script src="/static/htmx.min.js" defer></script>
+    <script src="/static/wardenui.js" defer></script>
+</body>
+</html>
+{{ end }}

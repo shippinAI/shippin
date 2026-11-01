@@ -1,0 +1,9 @@
+[Unit]
+Description=Refresh Shippin AI subscription status
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=2min
+
+[Install]
+WantedBy=timers.target

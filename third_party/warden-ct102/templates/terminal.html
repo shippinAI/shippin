@@ -1,0 +1,141 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Terminal</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main class="terminal-main">
+        <div id="terminal"></div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5/lib/xterm.js"></script>
+    <script>
+    (function() {
+        var container = document.getElementById('terminal');
+
+        // Measure character size using a hidden probe element
+        var probe = document.createElement('span');
+        probe.style.cssText = 'position:absolute;visibility:hidden;font-family:"SF Mono","Fira Code","Fira Mono",Menlo,Consolas,monospace;font-size:14px;white-space:pre;';
+        probe.textContent = 'MMMMMMMMMM';
+        document.body.appendChild(probe);
+        var charWidth = probe.offsetWidth / 10;
+        var charHeight = probe.offsetHeight || 17;
+        document.body.removeChild(probe);
+
+        function calcSize() {
+            // Account for container padding (0.75rem ~12px each side)
+            var padding = 24;
+            var scrollbar = 14;
+            var w = container.clientWidth - padding - scrollbar;
+            var h = container.clientHeight - padding;
+            var cols = Math.max(10, Math.floor(w / charWidth));
+            var rows = Math.max(5, Math.floor(h / charHeight));
+            return { cols: cols, rows: rows };
+        }
+
+        var size = calcSize();
+
+        var term = new Terminal({
+            cols: size.cols,
+            rows: size.rows,
+            cursorBlink: true,
+            fontSize: 14,
+            fontFamily: '"SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace',
+            theme: {
+                background: '#0f1117',
+                foreground: '#e1e4ed',
+                cursor: '#6c8aff',
+                selectionBackground: 'rgba(108, 138, 255, 0.3)',
+                black: '#1a1d27',
+                brightBlack: '#8b8fa3',
+                red: '#f87171',
+                brightRed: '#f87171',
+                green: '#4ade80',
+                brightGreen: '#4ade80',
+                yellow: '#facc15',
+                brightYellow: '#facc15',
+                blue: '#60a5fa',
+                brightBlue: '#60a5fa',
+                magenta: '#c084fc',
+                brightMagenta: '#c084fc',
+                cyan: '#22d3ee',
+                brightCyan: '#22d3ee',
+                white: '#e1e4ed',
+                brightWhite: '#ffffff'
+            }
+        });
+
+        term.open(container);
+
+        var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        var ws = new WebSocket(proto + '//' + location.host + '/ws/terminal');
+        ws.binaryType = 'arraybuffer';
+        var connected = false;
+
+        function sendResize() {
+            if (ws.readyState === WebSocket.OPEN) {
+                var payload = JSON.stringify({type: 'resize', cols: term.cols, rows: term.rows});
+                var encoded = new TextEncoder().encode(payload);
+                var msg = new Uint8Array(1 + encoded.length);
+                msg[0] = 1;
+                msg.set(encoded, 1);
+                ws.send(msg);
+            }
+        }
+
+        function fitTerminal() {
+            var s = calcSize();
+            if (s.cols !== term.cols || s.rows !== term.rows) {
+                term.resize(s.cols, s.rows);
+            }
+        }
+
+        ws.onopen = function() {
+            connected = true;
+            sendResize();
+        };
+
+        ws.onmessage = function(ev) {
+            if (ev.data instanceof ArrayBuffer) {
+                term.write(new Uint8Array(ev.data));
+            } else {
+                term.write(ev.data);
+            }
+        };
+
+        ws.onclose = function() {
+            if (connected) {
+                term.write('\r\n\x1b[31mConnection closed.\x1b[0m\r\n');
+            }
+            connected = false;
+        };
+
+        ws.onerror = function() {
+            term.write('\r\n\x1b[31mWebSocket error.\x1b[0m\r\n');
+        };
+
+        term.onData(function(data) {
+            if (ws.readyState === WebSocket.OPEN) {
+                var bytes = new TextEncoder().encode(data);
+                var msg = new Uint8Array(1 + bytes.length);
+                msg[0] = 0;
+                msg.set(bytes, 1);
+                ws.send(msg);
+            }
+        });
+
+        term.onResize(function() {
+            sendResize();
+        });
+
+        window.addEventListener('resize', function() {
+            fitTerminal();
+        });
+    })();
+    </script>
+{{ template "scripts" }}
+</body>
+</html>

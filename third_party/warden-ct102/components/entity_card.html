@@ -1,0 +1,32 @@
+{{/* components.entity_card — drill-into card primitive.
+     Args: {Icon, Title, Subtitle, StatusPill, TierBadges, DrillHref, Metrics, Actions}.
+     Spec 17 §3.5.
+*/}}
+{{ define "components.entity_card" }}
+<article class="c-entity-card" data-drill="{{ .DrillHref }}">
+    <a class="c-entity-card__hit" href="{{ .DrillHref }}" aria-label="Open {{ .Title }}"></a>
+    <div class="c-entity-card__icon" aria-hidden="true">{{ .Icon }}</div>
+    <div class="c-entity-card__body">
+        <header class="c-entity-card__head">
+            <h3 class="c-entity-card__title">{{ .Title }}</h3>
+            {{ if .StatusPill }}{{ template "components.status_pill" .StatusPill }}{{ end }}
+        </header>
+        {{ if .Subtitle }}<p class="c-entity-card__subtitle">{{ .Subtitle }}</p>{{ end }}
+        {{ if .TierBadges }}
+            <div class="c-entity-card__tiers">
+                {{ range .TierBadges }}<span class="c-tier-badge c-tier-badge--{{ . | lower }}">{{ . }}</span>{{ end }}
+            </div>
+        {{ end }}
+        {{ if .Metrics }}
+            <div class="c-entity-card__metrics">
+                {{ range .Metrics }}{{ template "components.metric_spark" . }}{{ end }}
+            </div>
+        {{ end }}
+    </div>
+    {{ if .Actions }}
+        <div class="c-entity-card__actions">
+            {{ range .Actions }}{{ template "components.action_button" . }}{{ end }}
+        </div>
+    {{ end }}
+</article>
+{{ end }}

@@ -1,0 +1,119 @@
+package api
+
+import (
+	"errors"
+	"net/http"
+	"slices"
+
+	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/db"
+)
+
+// tenantView is a tenant as the caller sees it: through org membership (Roles), or, for a
+// platform admin with no membership, only through active access grants.
+type tenantView struct {
+	db.Tenant
+	Roles  []string   `json:"roles"`
+	grants []db.Grant // non-empty only for non-members
+}
+
+// caller is the authenticated identity plus the tenants it may see.
+type caller struct {
+	id       *auth.Identity
+	op       string
+	tenants  []tenantView
+	managers []string
+	staff    *staffView // resolved lazily by staffOf
+	founder  bool       // Nomen founder role from the token claims: passes every check
+	fga      shadowCtx  // N2: OpenFGA shadow of every role decision (no-op when off)
+}
+
+func (a *API) caller(w http.ResponseWriter, r *http.Request) (*caller, bool) {
+	c, err := a.callerFor(r, auth.FromContext(r.Context()))
+	if err == errIdP {
+		auth.Problem(w, http.StatusUnauthorized, "Your session expired. Sign in again.")
+		return nil, false
+	}
+	if err != nil {
+		auth.Problem(w, http.StatusServiceUnavailable, "The tenant store is unavailable.")
+		return nil, false
+	}
+	return c, true
+}
+
+var errIdP = errors.New("idp")
+
+// callerFor resolves a token into identity, operator role and visible tenants. Staff roles
+// never reveal tenants by themselves: staff see a non-member tenant only while they hold an
+// approved (or break-glass) grant for it.
+func (a *API) callerFor(r *http.Request, tok string) (*caller, error) {
+	id, err := a.flow.Whoami(r.Context(), tok)
+	if err != nil {
+		return nil, errIdP
+	}
+	return a.callerFromIdentity(r, id)
+}
+
+// callerFromIdentity resolves an identity (from the IdP, or a bridge session's snapshot) into
+// operator role and visible tenants.
+func (a *API) callerFromIdentity(r *http.Request, id *auth.Identity) (*caller, error) {
+	noteCaller(r.Context(), id.Sub)
+	c := &caller{id: id, managers: a.cfg.Roles.Managers, fga: shadowCtx{a.n2.fga, r.Context(), a.cfg.Roles}}
+	c.founder = a.claimRole(id, a.cfg.Identity.FounderRole)
+	if c.founder {
+		c.op = a.cfg.Operator.Role
+	}
+	roles := map[string][]string{}
+	for _, m := range id.Memberships {
+		if m.IAM {
+			if !c.founder {
+				c.op = a.opRole(m.Roles)
+			}
+			continue
+		}
+		for _, ro := range m.Roles {
+			roles[m.OrgID] = append(roles[m.OrgID], a.orgRole(ro))
+		}
+	}
+	if id.OrgID != "" && roles[id.OrgID] == nil {
+		roles[id.OrgID] = []string{a.cfg.Roles.Member}
+	}
+	orgs := []string{}
+	for o := range roles {
+		orgs = append(orgs, o)
+	}
+	ts, err := a.db.TenantsByOrgs(r.Context(), orgs)
+	if err != nil {
+		return nil, err
+	}
+	for _, t := range ts {
+		c.tenants = append(c.tenants, tenantView{Tenant: t, Roles: roles[t.IdpOrgID]})
+	}
+	// Staff who may hold grants see the granted tenants (only those, only while active).
+	if a.decideQuiet(r, c, "access.request") || a.decideQuiet(r, c, "access.breakglass") {
+		if err := a.addGrantedTenants(r, c); err != nil {
+			return nil, err
+		}
+	}
+	owner := a.cfg.Roles.Owner
+	slices.SortStableFunc(c.tenants, func(x, y tenantView) int { return rank(x, owner) - rank(y, owner) })
+	a.syncAccount(r.Context(), c)
+	return c, nil
+}
+
+func (c *caller) tenant(w http.ResponseWriter, id string) (*tenantView, bool) {
+	for i := range c.tenants {
+		if c.tenants[i].ID == id {
+			return &c.tenants[i], true
+		}
+	}
+	auth.Problem(w, http.StatusNotFound, "Tenant not found.")
+	return nil, false
+}
+
+func rank(t tenantView, owner string) int {
+	if slices.Contains(t.Roles, owner) {
+		return 0
+	}
+	return 1
+}

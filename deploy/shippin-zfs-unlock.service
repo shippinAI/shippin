@@ -1,0 +1,12 @@
+[Unit]
+Description=Unlock per-tenant ZFS encryption roots for Shippin
+After=zfs-import.target
+Before=incus.service shippin-hostd.service
+
+[Service]
+Type=oneshot
+Environment=SOPS_AGE_KEY_FILE=/root/.config/sops/age/keys.txt
+ExecStart=/usr/local/sbin/shippin-zfs-unlock
+
+[Install]
+WantedBy=multi-user.target

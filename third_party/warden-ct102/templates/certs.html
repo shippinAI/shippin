@@ -1,0 +1,601 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Certificates</title>
+    <style>
+        .certs-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .certs-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .certs-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text);
+        }
+
+        .certs-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        /* Certbot status badge */
+        .certbot-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 0.3rem 0.7rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+        }
+
+        .certbot-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        .certbot-badge .dot.active {
+            background: #22c55e;
+        }
+
+        /* Cert cards */
+        .cert-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 1rem;
+        }
+
+        .cert-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            transition: border-color 0.2s;
+        }
+
+        .cert-card:hover {
+            border-color: color-mix(in srgb, var(--border) 60%, var(--accent));
+        }
+
+        .cert-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .cert-domain {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text);
+            word-break: break-all;
+        }
+
+        .cert-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .cert-status.valid { color: #22c55e; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); }
+        .cert-status.expiring { color: #f59e0b; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); }
+        .cert-status.expired { color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); }
+
+        .cert-meta {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.3rem 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .cert-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-dim);
+        }
+
+        .cert-value {
+            font-size: 0.8rem;
+            color: var(--text);
+        }
+
+        .cert-value.mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        /* Expiry bar */
+        .expiry-bar-wrap {
+            margin-bottom: 0.75rem;
+        }
+
+        .expiry-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-bottom: 0.3rem;
+        }
+
+        .expiry-bar {
+            height: 6px;
+            background: var(--bg);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .expiry-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s;
+        }
+
+        .expiry-bar-fill.valid { background: linear-gradient(90deg, #22c55e, #4ade80); }
+        .expiry-bar-fill.expiring { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .expiry-bar-fill.expired { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+        /* SANs */
+        .cert-sans {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .san-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            background: color-mix(in srgb, var(--bg) 80%, var(--accent));
+            color: var(--accent);
+            border: 1px solid color-mix(in srgb, var(--border) 70%, var(--accent));
+        }
+
+        .cert-card-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn-cert {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 0.35rem 0.7rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-cert:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-cert.renew:hover {
+            border-color: #22c55e;
+            color: #22c55e;
+        }
+
+        .le-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            background: rgba(34,197,94,0.1);
+            color: #22c55e;
+            border: 1px solid rgba(34,197,94,0.2);
+            margin-left: 0.5rem;
+        }
+
+        /* Empty state */
+        .certs-empty {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .certs-empty svg {
+            width: 56px;
+            height: 56px;
+            margin-bottom: 1rem;
+            opacity: 0.25;
+            color: var(--text-dim);
+        }
+
+        .certs-empty-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .certs-empty-text {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        /* Request form panel */
+        .request-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .request-panel.open {
+            display: block;
+        }
+
+        .request-panel h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+
+        .request-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .request-form .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .request-form .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .request-form label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .request-form input,
+        .request-form select {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.55rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .request-form input:focus,
+        .request-form select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .request-form-actions {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            padding-top: 0.5rem;
+        }
+
+        .btn-request {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 0.55rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-request:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-cancel-req {
+            background: transparent;
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+            padding: 0.55rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+        }
+
+        /* Output panel */
+        .output-panel {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <div class="certs-container">
+        <div class="certs-header">
+            <span class="certs-title">SSL/TLS Certificates</span>
+            <div class="certs-actions">
+                {{ if .Certbot.Available }}
+                <span class="certbot-badge">
+                    <span class="dot {{ if .Certbot.TimerActive }}active{{ end }}"></span>
+                    {{ .Certbot.Version }}
+                    {{ if .Certbot.TimerActive }}— auto-renew active{{ else }}— timer {{ .Certbot.TimerStatus }}{{ end }}
+                </span>
+                <button class="btn-cert renew" data-confirm="Renew all Let's Encrypt certificates?" onclick="renewAll()">Renew All</button>
+                <button class="btn-cert" onclick="toggleRequestPanel()">Request Certificate</button>
+                {{ else }}
+                <span class="certbot-badge">
+                    <span class="dot"></span>
+                    certbot not installed
+                </span>
+                {{ end }}
+            </div>
+        </div>
+
+        {{ if .Certbot.Available }}
+        <div class="request-panel" id="request-panel">
+            <h3>Request New Certificate (Let's Encrypt)</h3>
+            <div class="request-form">
+                <div class="form-group">
+                    <label>Domain(s)</label>
+                    <input type="text" id="req-domain" placeholder="example.com, www.example.com" />
+                </div>
+                <div class="form-group">
+                    <label>Email (optional)</label>
+                    <input type="email" id="req-email" placeholder="admin@example.com" />
+                </div>
+                <div class="form-group">
+                    <label>Challenge Method</label>
+                    <select id="req-method" onchange="toggleWebroot()">
+                        <option value="standalone">Standalone (port 80 must be free)</option>
+                        <option value="webroot">Webroot (use existing web server)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="webroot-group" style="display:none;">
+                    <label>Webroot Path</label>
+                    <input type="text" id="req-webroot" placeholder="/var/www/html" />
+                </div>
+                <div class="request-form-actions">
+                    <button class="btn-cancel-req" onclick="toggleRequestPanel()">Cancel</button>
+                    <button class="btn-request" onclick="requestCert()">Request Certificate</button>
+                </div>
+            </div>
+            <div class="output-panel" id="request-output"></div>
+        </div>
+        {{ end }}
+
+        {{ if .Certs }}
+        <div class="cert-grid">
+            {{ range .Certs }}
+            <div class="cert-card">
+                <div class="cert-card-header">
+                    <div>
+                        <span class="cert-domain">{{ .Domain }}</span>
+                        {{ if .IsLE }}<span class="le-badge">Let's Encrypt</span>{{ end }}
+                    </div>
+                    <span class="cert-status {{ .Status }}">
+                        {{ if eq .Status "valid" }}✓ Valid{{ end }}
+                        {{ if eq .Status "expiring" }}⚠ Expiring{{ end }}
+                        {{ if eq .Status "expired" }}✕ Expired{{ end }}
+                    </span>
+                </div>
+
+                <div class="expiry-bar-wrap">
+                    <div class="expiry-bar-label">
+                        <span>{{ if gt .DaysLeft 0 }}{{ .DaysLeft }} days left{{ else }}Expired{{ end }}</span>
+                        <span>{{ .NotAfter }}</span>
+                    </div>
+                    <div class="expiry-bar">
+                        <div class="expiry-bar-fill {{ .Status }}" style="width: {{ .BarWidth }}%"></div>
+                    </div>
+                </div>
+
+                {{ if gt (len .SANs) 1 }}
+                <div class="cert-sans">
+                    {{ range .SANs }}
+                    <span class="san-tag">{{ . }}</span>
+                    {{ end }}
+                </div>
+                {{ end }}
+
+                <div class="cert-meta">
+                    <span class="cert-label">Issuer</span>
+                    <span class="cert-value">{{ .Issuer }}</span>
+                    <span class="cert-label">Valid From</span>
+                    <span class="cert-value mono">{{ .NotBefore }}</span>
+                    <span class="cert-label">Path</span>
+                    <span class="cert-value mono" style="font-size:0.7rem; word-break:break-all;">{{ .Path }}</span>
+                </div>
+
+                {{ if .IsLE }}
+                <div class="cert-card-actions">
+                    <button class="btn-cert renew" data-confirm="Renew certificate for {{ .Domain }}?" onclick="renewCert('{{ .LECertName }}')">Renew</button>
+                    <button class="btn-cert" onclick="showCertDetails('{{ .LECertName }}')">Details</button>
+                </div>
+                {{ end }}
+            </div>
+            {{ end }}
+        </div>
+        {{ else }}
+        <div class="certs-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <div class="certs-empty-title">No certificates found</div>
+            <div class="certs-empty-text">No SSL/TLS certificates were detected in common locations.<br>
+            {{ if .Certbot.Available }}Use the "Request Certificate" button to obtain one from Let's Encrypt.{{ else }}Install certbot to request certificates from Let's Encrypt.{{ end }}</div>
+        </div>
+        {{ end }}
+
+        <div class="output-panel" id="action-output"></div>
+    </div>
+
+    {{ template "scripts" }}
+    <script>
+    function toggleRequestPanel() {
+        document.getElementById('request-panel').classList.toggle('open');
+    }
+
+    function toggleWebroot() {
+        var m = document.getElementById('req-method').value;
+        document.getElementById('webroot-group').style.display = m === 'webroot' ? '' : 'none';
+    }
+
+    function showOutput(el, text) {
+        el.style.display = 'block';
+        el.textContent = text;
+    }
+
+    function renewCert(certName) {
+        var out = document.getElementById('action-output');
+        out.style.display = 'block';
+        out.textContent = 'Renewing ' + certName + '...';
+        fetch('/api/certs?action=renew', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'certName=' + encodeURIComponent(certName)
+        }).then(function(r){ return r.json(); }).then(function(d){
+            if (d.success) {
+                showOutput(out, d.output || d.message);
+                if (window.showToast) showToast(d.message, 'success');
+                setTimeout(function(){ location.reload(); }, 2000);
+            } else {
+                showOutput(out, d.error || 'Renewal failed');
+                if (window.showToast) showToast(d.error, 'error');
+            }
+        }).catch(function(e){
+            showOutput(out, 'Error: ' + e.message);
+        });
+    }
+
+    function renewAll() {
+        var out = document.getElementById('action-output');
+        out.style.display = 'block';
+        out.textContent = 'Renewing all certificates...';
+        fetch('/api/certs?action=renew-all', {
+            method: 'POST'
+        }).then(function(r){ return r.json(); }).then(function(d){
+            if (d.success) {
+                showOutput(out, d.output || d.message);
+                if (window.showToast) showToast(d.message, 'success');
+                setTimeout(function(){ location.reload(); }, 2000);
+            } else {
+                showOutput(out, d.error || 'Renewal failed');
+                if (window.showToast) showToast(d.error, 'error');
+            }
+        }).catch(function(e){
+            showOutput(out, 'Error: ' + e.message);
+        });
+    }
+
+    function requestCert() {
+        var domain = document.getElementById('req-domain').value.trim();
+        if (!domain) { if (window.showToast) showToast('Domain required', 'error'); return; }
+        var email = document.getElementById('req-email').value.trim();
+        var method = document.getElementById('req-method').value;
+        var webroot = document.getElementById('req-webroot') ? document.getElementById('req-webroot').value.trim() : '';
+
+        var out = document.getElementById('request-output');
+        out.style.display = 'block';
+        out.textContent = 'Requesting certificate for ' + domain + '...';
+
+        var body = 'domain=' + encodeURIComponent(domain) + '&method=' + encodeURIComponent(method);
+        if (email) body += '&email=' + encodeURIComponent(email);
+        if (webroot) body += '&webroot=' + encodeURIComponent(webroot);
+
+        fetch('/api/certs?action=request', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: body
+        }).then(function(r){ return r.json(); }).then(function(d){
+            if (d.success) {
+                showOutput(out, d.output || d.message);
+                if (window.showToast) showToast(d.message, 'success');
+                setTimeout(function(){ location.reload(); }, 3000);
+            } else {
+                showOutput(out, d.error || 'Request failed');
+                if (window.showToast) showToast(d.error, 'error');
+            }
+        }).catch(function(e){
+            showOutput(out, 'Error: ' + e.message);
+        });
+    }
+
+    function showCertDetails(certName) {
+        var out = document.getElementById('action-output');
+        out.style.display = 'block';
+        out.textContent = 'Loading details...';
+        fetch('/api/certs?action=certbot-certs').then(function(r){ return r.json(); }).then(function(d){
+            if (d.success) {
+                showOutput(out, d.output);
+            } else {
+                showOutput(out, d.error || 'Failed to load details');
+            }
+        });
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+PASS anonymous caller refused - 401
+PASS unknown bearer refused by IdP - 401
+PASS agent is signed in and is not owner - agent-claude
+PASS tasks created
+PASS codex claims t1 under a lease
+PASS live lease blocks a second agent - 409
+PASS non-holder cannot post progress - 409
+PASS expired lease is reclaimed by another agent
+PASS holder posts progress
+PASS holder requests approval
+PASS agent cannot approve - 403
+PASS owner signed in through OIDC (PKCE code flow, session cookie) - /
+PASS board shows the live stream connected
+PASS Approve button on the card for the owner
+PASS agent progress appears without reload (SSE)
+PASS Approve moves the card to Approved
+PASS agent completes the approved task
+PASS history shows every step incl. owner approval - 7 events
+history: agent-claude created: Wire remote MCP behind the gate | agent-claude claimed | agent-claude claimed | agent-claude progress: route + tests green | agent-claude approval_requested: Ready: /mcp behind the gate, 12 tests | u-operator approved | agent-claude done
+18/18 passed

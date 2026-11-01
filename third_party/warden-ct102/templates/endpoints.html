@@ -1,0 +1,757 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Endpoint Checks</title>
+    <style>
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            position: relative;
+        }
+
+        /* Blueprint grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(108, 138, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 138, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(rgba(108, 138, 255, 0.012) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 138, 255, 0.012) 1px, transparent 1px);
+            background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+            mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, rgba(0,0,0,0.4) 0%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, rgba(0,0,0,0.4) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        [data-theme="light"] body::before {
+            background-image:
+                linear-gradient(rgba(79, 109, 245, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 109, 245, 0.05) 1px, transparent 1px),
+                linear-gradient(rgba(79, 109, 245, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 109, 245, 0.02) 1px, transparent 1px);
+        }
+
+        header, main, footer { position: relative; z-index: 1; }
+
+        header h1 { font-weight: 800; letter-spacing: -0.03em; }
+        .version-info { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+
+        /* ── Page header ── */
+        .ep-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .ep-header h2 {
+            margin: 0;
+            padding: 0;
+            border: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--text-dim);
+        }
+
+        .ep-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            color: var(--text-dim);
+            opacity: 0.5;
+            margin-left: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-add-ep {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.5rem 1.1rem;
+            border-radius: 8px;
+            background: rgba(108, 138, 255, 0.08);
+            border: 1px dashed rgba(108, 138, 255, 0.25);
+            color: var(--accent);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-add-ep:hover {
+            background: rgba(108, 138, 255, 0.14);
+            border-style: solid;
+            border-color: var(--accent);
+        }
+
+        /* ── Form ── */
+        .ep-form-wrap {
+            display: none;
+            margin-bottom: 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg);
+            overflow: hidden;
+            animation: ep-form-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .ep-form-wrap.open { display: block; }
+
+        @keyframes ep-form-in {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ep-form-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1.1rem;
+            border-bottom: 1px solid var(--border);
+            background: rgba(108, 138, 255, 0.02);
+        }
+
+        .ep-form-bar h3 {
+            margin: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+        }
+
+        .ep-form-body {
+            padding: 1.1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+        }
+
+        .ep-form-row {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .ep-field {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .ep-field.wide { flex: 2; }
+
+        .ep-field label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent);
+            opacity: 0.6;
+        }
+
+        .ep-field input {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            padding: 0.5rem 0.7rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-card);
+            color: var(--text);
+            transition: border-color 0.15s;
+        }
+
+        .ep-field input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .ep-presets {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .ep-presets-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            opacity: 0.5;
+            margin-right: 0.3rem;
+        }
+
+        .ep-preset-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            padding: 0.25rem 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ep-preset-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(108, 138, 255, 0.05);
+        }
+
+        .ep-form-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn-submit-ep {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.5rem 1.2rem;
+            border-radius: 6px;
+            background: var(--accent);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-submit-ep:hover {
+            opacity: 0.85;
+        }
+
+        .ep-form-msg {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+        }
+
+        .ep-form-msg.ok { color: var(--green); }
+        .ep-form-msg.err { color: var(--red); }
+
+        /* ── Endpoint cards ── */
+        .ep-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .ep-card {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            grid-template-rows: auto auto;
+            gap: 0 1rem;
+            align-items: center;
+            padding: 0.9rem 1.1rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg);
+            transition: all 0.2s;
+        }
+
+        .ep-card:hover {
+            border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+        }
+
+        /* Status indicator column */
+        .ep-status-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            min-width: 42px;
+        }
+
+        .ep-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .ep-dot.up {
+            background: var(--green);
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+        }
+
+        .ep-dot.down {
+            background: var(--red);
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+            animation: ep-pulse 2s ease-in-out infinite;
+        }
+
+        .ep-dot.pending {
+            background: var(--border);
+            opacity: 0.5;
+        }
+
+        @keyframes ep-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .ep-status-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.52rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+        }
+
+        /* Info column */
+        .ep-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 0;
+        }
+
+        .ep-info-top {
+            display: flex;
+            align-items: baseline;
+            gap: 0.6rem;
+        }
+
+        .ep-name {
+            font-weight: 600;
+            font-size: 0.92rem;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ep-host-port {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            opacity: 0.6;
+        }
+
+        .ep-meta {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+
+        .ep-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .ep-meta-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            opacity: 0.5;
+        }
+
+        .ep-meta-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .ep-meta-val.good { color: var(--green); }
+        .ep-meta-val.warn { color: var(--orange); }
+        .ep-meta-val.bad { color: var(--red); }
+
+        /* Uptime bar — full width row */
+        .ep-uptime-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+        }
+
+        .ep-uptime-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            opacity: 0.5;
+            white-space: nowrap;
+            min-width: 2rem;
+        }
+
+        .ep-uptime-bar {
+            display: flex;
+            gap: 1px;
+            align-items: center;
+            height: 24px;
+            flex: 1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .ep-uptime-bar .seg {
+            flex: 1;
+            height: 100%;
+            min-width: 1px;
+            border-radius: 1px;
+            transition: all 0.15s;
+        }
+
+        .ep-uptime-bar .seg-up { background: var(--green); opacity: 0.6; }
+        .ep-uptime-bar .seg-up:hover { opacity: 1; transform: scaleY(1.15); }
+        .ep-uptime-bar .seg-down { background: var(--red); opacity: 0.8; }
+        .ep-uptime-bar .seg-down:hover { opacity: 1; transform: scaleY(1.15); }
+        .ep-uptime-bar .seg-none { background: var(--border); opacity: 0.2; }
+
+        /* Actions column */
+        .ep-actions {
+            display: flex;
+            gap: 0.4rem;
+            align-items: center;
+        }
+
+        .ep-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 0.35rem 0.7rem;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ep-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .ep-btn-check:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+        }
+
+        .ep-btn-danger:hover {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        /* Empty state */
+        .ep-empty {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+        }
+
+        .ep-empty-icon {
+            font-size: 2rem;
+            opacity: 0.15;
+            margin-bottom: 0.75rem;
+        }
+
+        .ep-empty p {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            opacity: 0.5;
+            letter-spacing: 0.03em;
+        }
+
+        /* ── Footer ── */
+        footer {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0.35;
+        }
+    </style>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        <section class="card">
+            <div class="ep-header">
+                <h2>Endpoint Checks<span class="ep-count">{{ len .Endpoints }} monitored</span></h2>
+                <button class="btn-add-ep" onclick="showAddForm()">+ Add Endpoint</button>
+            </div>
+
+            <!-- Add/Edit Form -->
+            <div id="ep-form" class="ep-form-wrap">
+                <input type="hidden" id="ep-edit-id" value="">
+                <div class="ep-form-bar">
+                    <h3 id="ep-form-title">Add Endpoint</h3>
+                    <button class="ep-btn" onclick="hideForm()">Cancel</button>
+                </div>
+                <div class="ep-form-body">
+                    <div class="ep-form-row">
+                        <div class="ep-field wide">
+                            <label>Host</label>
+                            <input type="text" id="ep-host" placeholder="192.0.2.1 or example.com">
+                        </div>
+                        <div class="ep-field">
+                            <label>Port</label>
+                            <input type="number" id="ep-port" placeholder="443" min="1" max="65535">
+                        </div>
+                        <div class="ep-field">
+                            <label>Interval (min)</label>
+                            <input type="number" id="ep-interval" value="5" min="1" max="1440">
+                        </div>
+                        <div class="ep-field">
+                            <label>Label</label>
+                            <input type="text" id="ep-label" placeholder="My Server">
+                        </div>
+                    </div>
+                    <div class="ep-presets">
+                        <span class="ep-presets-label">Presets</span>
+                        <button class="ep-preset-btn" onclick="setPreset(80,'HTTP')">HTTP :80</button>
+                        <button class="ep-preset-btn" onclick="setPreset(443,'HTTPS')">HTTPS :443</button>
+                        <button class="ep-preset-btn" onclick="setPreset(22,'SSH')">SSH :22</button>
+                        <button class="ep-preset-btn" onclick="setPreset(3306,'MySQL')">MySQL :3306</button>
+                        <button class="ep-preset-btn" onclick="setPreset(5432,'Postgres')">Postgres :5432</button>
+                        <button class="ep-preset-btn" onclick="setPreset(6379,'Redis')">Redis :6379</button>
+                    </div>
+                    <div class="ep-form-actions">
+                        <button class="btn-submit-ep" id="ep-submit-btn" onclick="submitForm()">Save Endpoint</button>
+                        <span id="ep-form-message" class="ep-form-msg"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Endpoints List -->
+            {{ if not .Endpoints }}
+            <div class="ep-empty">
+                <div class="ep-empty-icon">◇</div>
+                <p>No endpoints configured — click "Add Endpoint" to start monitoring</p>
+            </div>
+            {{ else }}
+            <div class="ep-grid">
+                {{ range .Endpoints }}
+                {{ $s := index $.Statuses .ID }}
+                <div class="ep-card" data-endpoint-id="{{ .ID }}" data-endpoint-host="{{ .Host }}" data-endpoint-port="{{ .Port }}" data-endpoint-label="{{ .Label }}" data-endpoint-interval="{{ .Interval }}">
+                    <div class="ep-status-col">
+                        {{ if $s }}
+                            {{ if $s.Up }}
+                            <div class="ep-dot up"></div>
+                            <span class="ep-status-text">Up</span>
+                            {{ else if gt $s.TotalChecks 0 }}
+                            <div class="ep-dot down"></div>
+                            <span class="ep-status-text">Down</span>
+                            {{ else }}
+                            <div class="ep-dot pending"></div>
+                            <span class="ep-status-text">Wait</span>
+                            {{ end }}
+                        {{ else }}
+                        <div class="ep-dot pending"></div>
+                        <span class="ep-status-text">Wait</span>
+                        {{ end }}
+                    </div>
+
+                    <div class="ep-info">
+                        <div class="ep-info-top">
+                            <span class="ep-name">{{ .Label }}</span>
+                            {{ if ne .Label (printf "%s:%d" .Host .Port) }}
+                            <span class="ep-host-port">{{ .Host }}:{{ .Port }}</span>
+                            {{ end }}
+                        </div>
+                        <div class="ep-meta">
+                            <div class="ep-meta-item">
+                                <span class="ep-meta-label">Latency</span>
+                                {{ if and $s (gt $s.TotalChecks 0) }}
+                                <span class="ep-meta-val {{ if le $s.ResponseMs 100 }}good{{ else if le $s.ResponseMs 500 }}warn{{ else }}bad{{ end }}">{{ $s.ResponseMs }}ms</span>
+                                {{ else }}
+                                <span class="ep-meta-val">—</span>
+                                {{ end }}
+                            </div>
+                            <div class="ep-meta-item">
+                                <span class="ep-meta-label">Uptime</span>
+                                {{ if and $s (gt $s.TotalChecks 0) }}
+                                <span class="ep-meta-val {{ if ge (divFloat (mulInt $s.SuccessCount 100) $s.TotalChecks) 99.0 }}good{{ else if ge (divFloat (mulInt $s.SuccessCount 100) $s.TotalChecks) 90.0 }}warn{{ else }}bad{{ end }}">{{ printf "%.1f" (divFloat (mulInt $s.SuccessCount 100) $s.TotalChecks) }}%</span>
+                                {{ else }}
+                                <span class="ep-meta-val">—</span>
+                                {{ end }}
+                            </div>
+                            <div class="ep-meta-item">
+                                <span class="ep-meta-label">Every</span>
+                                <span class="ep-meta-val">{{ .Interval }}m</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ep-actions">
+                        <button class="ep-btn ep-btn-check" onclick="checkNow('{{ .ID }}')" title="Check now">Check</button>
+                        <button class="ep-btn" onclick="editEndpoint('{{ .ID }}')" title="Edit">Edit</button>
+                        <button class="ep-btn ep-btn-danger" onclick="deleteEndpoint('{{ .ID }}')" title="Delete">Del</button>
+                    </div>
+
+                    {{ $bar := index $.UptimeBars .ID }}
+                    {{ if $bar }}
+                    <div class="ep-uptime-row" style="grid-column: 1 / -1;">
+                        <span class="ep-uptime-label">12h</span>
+                        <div class="ep-uptime-bar" title="Last 12 hours — each segment is 5 minutes">
+                            {{ range $bar }}<span class="seg {{ if eq . 1 }}seg-up{{ else if eq . 0 }}seg-down{{ else }}seg-none{{ end }}"></span>{{ end }}
+                        </div>
+                    </div>
+                    {{ end }}
+                </div>
+                {{ end }}
+            </div>
+            {{ end }}
+        </section>
+    </main>
+
+    <footer>
+        <span>Warden Endpoint Monitoring</span>
+    </footer>
+
+    <script>
+        function showAddForm() {
+            var form = document.getElementById('ep-form');
+            form.classList.add('open');
+            document.getElementById('ep-form-title').textContent = 'Add Endpoint';
+            document.getElementById('ep-form-message').textContent = '';
+            document.getElementById('ep-edit-id').value = '';
+            document.getElementById('ep-host').value = '';
+            document.getElementById('ep-port').value = '';
+            document.getElementById('ep-interval').value = '5';
+            document.getElementById('ep-label').value = '';
+            document.getElementById('ep-submit-btn').textContent = 'Save Endpoint';
+            document.getElementById('ep-host').focus();
+        }
+
+        function hideForm() {
+            document.getElementById('ep-form').classList.remove('open');
+        }
+
+        function editEndpoint(id) {
+            var card = document.querySelector('[data-endpoint-id="' + id + '"]');
+            if (!card) return;
+            var form = document.getElementById('ep-form');
+            form.classList.add('open');
+            document.getElementById('ep-form-title').textContent = 'Edit Endpoint';
+            document.getElementById('ep-form-message').textContent = '';
+            document.getElementById('ep-edit-id').value = id;
+            document.getElementById('ep-host').value = card.getAttribute('data-endpoint-host');
+            document.getElementById('ep-port').value = card.getAttribute('data-endpoint-port');
+            document.getElementById('ep-interval').value = card.getAttribute('data-endpoint-interval');
+            document.getElementById('ep-label').value = card.getAttribute('data-endpoint-label');
+            document.getElementById('ep-submit-btn').textContent = 'Update Endpoint';
+            document.getElementById('ep-host').focus();
+        }
+
+        function setPreset(port, label) {
+            document.getElementById('ep-port').value = port;
+            if (!document.getElementById('ep-label').value) {
+                document.getElementById('ep-label').value = label;
+            }
+        }
+
+        function submitForm() {
+            var editId = document.getElementById('ep-edit-id').value;
+            var action = editId ? 'edit' : 'add';
+            var body = 'action=' + action +
+                '&host=' + encodeURIComponent(document.getElementById('ep-host').value) +
+                '&port=' + encodeURIComponent(document.getElementById('ep-port').value) +
+                '&interval=' + encodeURIComponent(document.getElementById('ep-interval').value) +
+                '&label=' + encodeURIComponent(document.getElementById('ep-label').value);
+            if (editId) {
+                body += '&id=' + encodeURIComponent(editId);
+            }
+            epPost(body, 'ep-form-message');
+        }
+
+        function deleteEndpoint(id) {
+            Modal.confirm('Delete this endpoint check?', {danger:true}).then(function(ok) {
+                if (!ok) return;
+                epPost('action=delete&id=' + encodeURIComponent(id), null);
+            });
+        }
+
+        function checkNow(id) {
+            var btn = event.target;
+            var origText = btn.textContent;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-spinner"></span>';
+            fetch('/api/endpoints', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=check_now&id=' + encodeURIComponent(id)
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                btn.disabled = false;
+                btn.textContent = origText;
+                setTimeout(function() { location.reload(); }, 300);
+            })
+            .catch(function() {
+                btn.disabled = false;
+                btn.textContent = origText;
+            });
+        }
+
+        function epPost(body, msgId) {
+            fetch('/api/endpoints', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (msgId) {
+                    var msg = document.getElementById(msgId);
+                    msg.textContent = data.message;
+                    msg.className = data.success ? 'ep-form-msg ok' : 'ep-form-msg err';
+                }
+                if (data.success) {
+                    setTimeout(function() { location.reload(); }, 500);
+                } else if (!msgId) {
+                    Toast.show('Failed: ' + data.message, 'err');
+                }
+            })
+            .catch(function() {
+                if (msgId) {
+                    var el = document.getElementById(msgId);
+                    el.textContent = 'Request failed';
+                    el.className = 'ep-form-msg err';
+                } else {
+                    Toast.show('Request failed', 'err');
+                }
+            });
+        }
+
+        // Auto-refresh every 30s
+        setInterval(function() { location.reload(); }, 30000);
+    </script>
+{{ template "scripts" }}
+<script src="/static/contextmenu.js"></script>
+<script>
+ctxMenu.attach('.ep-card[data-endpoint-id]', function(el) {
+    var id = el.getAttribute('data-endpoint-id');
+    var host = el.getAttribute('data-endpoint-host');
+    var port = el.getAttribute('data-endpoint-port');
+    return [
+        {label: host + ':' + port, disabled: true},
+        'separator',
+        {label: 'Check Now', icon: '\u{1F50D}', action: function() { checkNow(id); }},
+        {label: 'Edit', icon: '\u270F', action: function() { editEndpoint(id); }},
+        {label: 'Delete', icon: '\u{1F5D1}', danger: true, action: function() { deleteEndpoint(id); }}
+    ];
+});
+</script>
+
+</body>
+</html>

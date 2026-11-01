@@ -1,0 +1,14 @@
+{{/* components.entity_list — vertical / grid list of entity_cards.
+     Args: {Cards, Layout, Empty}.  Layout ∈ "grid" | "list" | "table".
+     Spec 17 §3.6.
+*/}}
+{{ define "components.entity_list" }}
+{{ $layout := .Layout }}{{ if not $layout }}{{ $layout = "grid" }}{{ end }}
+{{ if .Cards }}
+    <div class="c-entity-list c-entity-list--{{ $layout }}">
+        {{ range .Cards }}{{ template "components.entity_card" . }}{{ end }}
+    </div>
+{{ else }}
+    {{ template "components.empty_state" .Empty }}
+{{ end }}
+{{ end }}

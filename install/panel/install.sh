@@ -1,0 +1,210 @@
+#!/bin/bash
+# Install the Shippin panel on a Debian or Ubuntu machine.
+#
+#   sudo ./install/panel/install.sh --site /etc/shippin/site.env
+#
+# --example uses config/shippin.example.json and a generated local database.
+# It is for a disposable machine and a smoke test, not a production site.
+set -euo pipefail
+
+root=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
+site=""
+example=0
+listen=""
+skip_web="${SHIPPIN_SKIP_WEB:-}"
+prefix=/usr/local/bin
+
+usage() {
+  echo "usage: sudo $0 --site /etc/shippin/site.env | --example [--listen host:port]" >&2
+  exit 2
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --site) site=${2:?}; shift 2 ;;
+    --example) example=1; shift ;;
+    --listen) listen=${2:?}; shift 2 ;;
+    --skip-web) skip_web=1; shift ;;
+    -h|--help) usage ;;
+    *) echo "unknown argument: $1" >&2; usage ;;
+  esac
+done
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo "run as root" >&2
+  exit 1
+fi
+if [ -n "$site" ] && [ "$example" -eq 1 ]; then
+  echo "pass either --site or --example" >&2
+  exit 1
+fi
+if [ -z "$site" ] && [ "$example" -eq 0 ]; then
+  usage
+fi
+if [ -n "$site" ] && [ ! -f "$site" ]; then
+  echo "site config not found: $site" >&2
+  exit 1
+fi
+
+. /etc/os-release
+case "${ID:-}" in
+  debian|ubuntu) ;;
+  *) echo "this installer supports Debian and Ubuntu (found ${ID:-unknown})" >&2; exit 1 ;;
+esac
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq
+apt-get install -y -qq postgresql postgresql-client curl ca-certificates openssl python3 >/dev/null
+if ! pg_isready -q; then
+  ver=$(pg_lsclusters --no-header | awk 'NR==1 {print $1}')
+  name=$(pg_lsclusters --no-header | awk 'NR==1 {print $2}')
+  pg_ctlcluster "$ver" "$name" start
+fi
+
+if ! command -v go >/dev/null 2>&1; then
+  echo "Go is required to build the panel" >&2
+  exit 1
+fi
+cd "$root"
+
+set -a
+if [ -n "$site" ]; then
+  # shellcheck disable=SC1090
+  . "$site"
+fi
+set +a
+
+if [ -n "$listen" ]; then
+  SHIPPIN_LISTEN=$listen
+fi
+SHIPPIN_LISTEN=${SHIPPIN_LISTEN:-127.0.0.1:8080}
+
+install -d -m 0755 /etc/shippin /var/lib/shippin
+python3 - "$root" <<'PY'
+import json, os, sys
+root = sys.argv[1]
+src = os.environ.get("SHIPPIN_CONFIG_TEMPLATE") or os.path.join(root, "config", "shippin.example.json")
+with open(src) as f:
+    cfg = json.load(f)
+def set_if(env, obj, key):
+    if os.environ.get(env):
+        obj[key] = os.environ[env]
+set_if("SHIPPIN_DOMAIN", cfg, "domain")
+if os.environ.get("SHIPPIN_DOMAIN"):
+    cfg["governance_domains"] = [os.environ["SHIPPIN_DOMAIN"]]
+    cfg.setdefault("workspaces", {})["reserved_domains"] = [os.environ["SHIPPIN_DOMAIN"]]
+set_if("SHIPPIN_CONSOLE_HOST", cfg, "console_host")
+op = cfg.setdefault("operator", {})
+set_if("SHIPPIN_OPERATOR_HOST", op, "host")
+idp = cfg.setdefault("idp", {})
+set_if("SHIPPIN_IDP_ISSUER", idp, "issuer")
+set_if("SHIPPIN_IDP_NAME", idp, "name")
+if os.environ.get("SHIPPIN_OIDC_CLIENT_ID"):
+    idp["client_id"] = os.environ["SHIPPIN_OIDC_CLIENT_ID"]
+dest = "/etc/shippin/shippin.json"
+with open(dest, "w") as f:
+    json.dump(cfg, f, indent=2)
+    f.write("\n")
+os.chmod(dest, 0o644)
+PY
+
+if [ -z "${SHIPPIN_DATABASE_URL:-}" ]; then
+  db_pass=$(openssl rand -hex 24)
+  sudo -u postgres psql -v ON_ERROR_STOP=1 <<SQL
+DO \$\$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'shippin') THEN
+    CREATE ROLE shippin LOGIN PASSWORD '${db_pass}';
+  ELSE
+    ALTER ROLE shippin PASSWORD '${db_pass}';
+  END IF;
+END
+\$\$;
+SQL
+  sudo -u postgres psql -v ON_ERROR_STOP=1 -tc "SELECT 1 FROM pg_database WHERE datname = 'shippin'" | grep -q 1 \
+    || sudo -u postgres createdb -O shippin shippin
+  SHIPPIN_DATABASE_URL="postgres://shippin:${db_pass}@127.0.0.1:5432/shippin?sslmode=disable"
+fi
+if [ -z "${SHIPPIN_SESSION_KEY:-}" ]; then
+  SHIPPIN_SESSION_KEY=$(openssl rand -hex 32)
+fi
+
+umask 077
+cat > /etc/shippin/console.env <<EOF
+SHIPPIN_CONFIG=/etc/shippin/shippin.json
+SHIPPIN_STATIC=${root}/web/dist
+SHIPPIN_LISTEN=${SHIPPIN_LISTEN}
+SHIPPIN_DATABASE_URL=${SHIPPIN_DATABASE_URL}
+SHIPPIN_SESSION_KEY=${SHIPPIN_SESSION_KEY}
+SHIPPIN_OIDC_CLIENT_ID=${SHIPPIN_OIDC_CLIENT_ID:-}
+SHIPPIN_OPS_OIDC_CLIENT_ID=${SHIPPIN_OPS_OIDC_CLIENT_ID:-}
+SHIPPIN_SMTP_PASSWORD=${SHIPPIN_SMTP_PASSWORD:-}
+EOF
+chmod 600 /etc/shippin/console.env
+
+if [ "$skip_web" != 1 ]; then
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "npm is required to build the panel UI" >&2
+    exit 1
+  fi
+  (cd "$root/web" && npm ci && npm run build)
+fi
+if [ ! -d "$root/web/dist" ]; then
+  install -d "$root/web/dist"
+  printf '<!doctype html><title>Shippin</title><p>Panel API is up. Build web/ to serve the UI.</p>\n' > "$root/web/dist/index.html"
+fi
+
+(cd "$root" && go build -o "$prefix/shippin-console" ./cmd/console)
+
+if [ -d /run/systemd/system ] && [ "$example" -eq 0 ]; then
+  cat > /etc/systemd/system/shippin-console.service <<'UNIT'
+[Unit]
+Description=Shippin panel
+After=network.target postgresql.service
+
+[Service]
+EnvironmentFile=/etc/shippin/console.env
+ExecStart=/usr/local/bin/shippin-console
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  systemctl daemon-reload
+  systemctl enable --now shippin-console.service
+else
+  if [ -f /var/lib/shippin/console.pid ] && kill -0 "$(cat /var/lib/shippin/console.pid)" 2>/dev/null; then
+    kill "$(cat /var/lib/shippin/console.pid)" || true
+    sleep 1
+  fi
+  set -a
+  # shellcheck disable=SC1091
+  . /etc/shippin/console.env
+  set +a
+  nohup "$prefix/shippin-console" >/var/lib/shippin/console.log 2>&1 &
+  echo $! > /var/lib/shippin/console.pid
+fi
+
+host=${SHIPPIN_LISTEN%%:*}
+port=${SHIPPIN_LISTEN##*:}
+if [ "$host" = "0.0.0.0" ] || [ "$host" = "" ]; then
+  host=127.0.0.1
+fi
+url="http://${host}:${port}/healthz"
+ok=0
+for _ in $(seq 1 40); do
+  if body=$(curl -fsS "$url" 2>/dev/null); then
+    printf '%s\n' "$body"
+    printf '%s\n' "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("status")=="ok" and d.get("db") is True'
+    ok=1
+    break
+  fi
+  sleep 0.5
+done
+if [ "$ok" -ne 1 ]; then
+  echo "health check failed: $url" >&2
+  tail -n 80 /var/lib/shippin/console.log 2>/dev/null || journalctl -u shippin-console -n 80 --no-pager || true
+  exit 1
+fi
+echo "panel health ok at $url"

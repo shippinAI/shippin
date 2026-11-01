@@ -1,0 +1,35 @@
+{{/* components.workspace_card - one independent workspace boundary.
+Expected data: ManagedWorkspace from managed_workspaces.go.
+*/}}
+
+{{ define "components.workspace_card" }}
+<article class="c-workspace-card">
+    <header class="c-workspace-card__head">
+        <div>
+            <p class="c-workspace-card__eyebrow">{{ .WorkspaceKind }}</p>
+            <h3 class="c-workspace-card__title">{{ .WorkspaceName }}</h3>
+            <p class="c-workspace-card__slug">{{ .WorkspaceSlug }}</p>
+        </div>
+        {{ template "components.status_pill" (dict "State" .Status "Label" .Status) }}
+    </header>
+    <p class="c-workspace-card__role">{{ .Role }}</p>
+    <dl class="c-workspace-card__meta">
+        <div><dt>MCP</dt><dd>{{ .MCPRoot }}</dd></div>
+        <div><dt>Policy</dt><dd>{{ .PolicyRoot }}</dd></div>
+        <div><dt>Projects</dt><dd>{{ .ProjectCount }}</dd></div>
+        <div><dt>Edges</dt><dd>{{ .ConnectionCount }}</dd></div>
+    </dl>
+    {{ if .BaselineFor }}
+    <div class="c-workspace-card__chips" aria-label="Baseline roles">
+        {{ range .BaselineFor }}<span class="c-workspace-chip">{{ . }}</span>{{ end }}
+    </div>
+    {{ end }}
+    {{ if .ContributesToPlanes }}
+    <div class="c-workspace-card__planes" aria-label="Shared planes">
+        {{ range .ContributesToPlanes }}
+        <span class="c-workspace-plane">{{ .Plane }} <code>{{ .SurrealNS }}/{{ .SurrealDB }}</code></span>
+        {{ end }}
+    </div>
+    {{ end }}
+</article>
+{{ end }}

@@ -1,0 +1,34 @@
+#!/bin/bash -l
+# shippin-agent <provider> [--resume]  (M4, installed by shippin-hostd; runs as the dev user in tmux)
+# Runs the user's OWN signed-in AI CLI (their login lives on their AI home, ~/.ai) on the prompt in
+# ~/.shippin/prompt.md. The prompt never appears on shippin-hostd's command line: this wrapper reads
+# the file itself. The command per provider comes from /etc/shippin/agent/<provider>.<run|resume>
+# (one argv word per line, written by shippin-hostd from its config). Trust prompts stay interactive.
+set -u
+P=${1:-}; MODE=run
+[ "${2:-}" = --resume ] && MODE=resume
+case "$P" in ''|*[!a-z0-9-]*) echo "shippin-agent: bad provider" >&2; exit 2 ;; esac
+S=$HOME/.shippin; mkdir -p "$S"
+DIR=$(cat "$S/project_dir" 2>/dev/null || echo "$HOME/code")
+cd "$DIR" 2>/dev/null || cd "$HOME/code" 2>/dev/null || cd "$HOME"
+mapfile -t CMD < "/etc/shippin/agent/$P.$MODE" 2>/dev/null
+if [ ${#CMD[@]} -eq 0 ]; then echo "shippin-agent: $P is not configured" >&2; exec bash -l; fi
+rm -f "$S/agent.exit"
+printf '%s %s %s\n' "$P" "$MODE" "$(date -u +%FT%TZ)" > "$S/agent.state"
+SID=""
+if command -v rrflow >/dev/null 2>&1 && [ -n "${RRFLOW_URL:-}" ]; then
+  SID=$(rrflow session start --agent "$P" --mode "$MODE" 2>/dev/null || true)
+fi
+echo "Shippin: starting ${CMD[0]} in $PWD (your own sign-in). Type here any time to steer it."
+if [ "$MODE" = run ]; then
+  if [ ! -s "$S/prompt.md" ]; then echo "shippin-agent: no prompt" >&2; exec bash -l; fi
+  "${CMD[@]}" "$(cat "$S/prompt.md")"
+else
+  "${CMD[@]}"
+fi
+rc=$?
+printf 'exited %s %s\n' "$rc" "$(date -u +%FT%TZ)" > "$S/agent.exit"
+[ -n "$SID" ] && rrflow session end --id "$SID" --status "exit-$rc" >/dev/null 2>&1
+echo
+echo "Shippin: the agent finished (exit $rc). Run 'shippin-agent $P --resume' to continue the conversation."
+exec bash -l

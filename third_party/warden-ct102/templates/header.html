@@ -1,0 +1,174 @@
+﻿{{ define "header" }}
+    <header>
+        <div class="header-top">
+            <div class="header-left">
+                <a href="/" class="header-brand">
+                    <svg class="header-Warden-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="28" height="28">
+                        <defs>
+                            <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#8ba4ff"/>
+                                <stop offset="100%" stop-color="#4f6df5"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 38 L20 24 L44 24 L52 38 Z" fill="url(#ag)"/>
+                        <rect x="22" y="16" width="20" height="8" rx="2" fill="url(#ag)"/>
+                        <path d="M22 20 L10 18 L10 22 L22 24 Z" fill="url(#ag)"/>
+                        <rect x="8" y="38" width="48" height="6" rx="2" fill="url(#ag)"/>
+                        <rect x="14" y="44" width="36" height="4" rx="1" fill="url(#ag)"/>
+                    </svg>
+                    <h1>Warden</h1>
+                </a>
+                <span class="version-info">
+                    v{{ .Version.Current }}
+                    {{ if .Version.UpdateAvail }}
+                        <a href="{{ .Version.ReleaseURL }}" target="_blank" class="update-badge">v{{ .Version.Latest }} available</a>
+                    {{ end }}
+                </span>
+                {{ if .PageTitle }}
+                <nav class="header-breadcrumb">
+                    <span class="breadcrumb-sep">/</span>
+                    <a href="/" class="breadcrumb-link">Home</a>
+                    <span class="breadcrumb-sep">/</span>
+                    <span class="breadcrumb-page">{{ .PageTitle }}</span>
+                </nav>
+                {{ end }}
+            </div>
+            <div class="header-info">
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#x2600;</button>
+                <form class="sudo-toggle" method="post" action="/sudo/toggle">
+                    <label class="switch">
+                        <input type="checkbox" onchange="this.form.requestSubmit()" {{ if .SudoEnabled }}checked{{ end }}>
+                        <span class="slider"></span>
+                    </label>
+                    <label {{ if .SudoEnabled }}class="sudo-label-on"{{ end }} onclick="this.parentElement.querySelector('input').click()">sudo</label>
+                </form>
+                <div class="user-info">
+                    <span class="user-name">{{ .Username }}</span>
+                    <form method="POST" action="/logout" style="display:inline">
+                        <button type="submit" class="btn-logout">Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="header-telemetry">
+        <div class="header-telemetry-inner">
+            <span id="refresh-indicator" class="refresh-indicator" title="Connected"><span id="conn-dot" class="conn-dot conn-ok"></span></span>
+            <div class="tele-item">
+                <span id="tele-cpu" class="tele-val {{ levelTextClass .CPU.UsagePerc }}">{{ printf "%.0f" .CPU.UsagePerc }}%</span>
+                <span class="tele-label">CPU</span>
+            </div>
+            <span class="tele-sep">—</span>
+            <div class="tele-item">
+                <span id="tele-mem" class="tele-val {{ levelTextClass .Memory.UsedPerc }}">{{ printf "%.0f" .Memory.UsedPerc }}%</span>
+                <span class="tele-label">Memory</span>
+            </div>
+            <span class="tele-sep">—</span>
+            <div class="tele-item">
+                {{ $diskPerc := totalDiskPerc .Disks }}
+                <span id="tele-disk" class="tele-val {{ levelTextClass $diskPerc }}">{{ printf "%.0f" $diskPerc }}%</span>
+                <span class="tele-label">Disk</span>
+            </div>
+            <span class="tele-sep">—</span>
+            <div class="tele-item">
+                <span id="tele-uptime" class="tele-val" style="color: var(--text);">{{ .UptimeFmt }}</span>
+                <span class="tele-label">Uptime</span>
+            </div>
+            <span class="tele-sep">—</span>
+            <div class="tele-item">
+                <span class="tele-val" style="color: var(--text);">{{ .InfraProviders }}/{{ .InfraCustomers }}/{{ .InfraResources }}</span>
+                <span class="tele-label">P/C/R</span>
+            </div>
+            <span class="tele-host">◇ {{ .Hostname }}</span>
+        </div>
+    </div>
+
+    {{ if .SudoEnabled }}
+    <div class="sudo-banner">Elevated privileges active — commands will run with sudo</div>
+    {{ end }}
+{{ end }}
+
+{{ define "scripts" }}
+<script src="/static/modal.js"></script>
+<script src="/static/quicknav.js"></script>
+<script src="/static/toast.js"></script>
+<script>
+function toggleTheme(){var h=document.documentElement;var c=h.getAttribute('data-theme')==='light'?'':'light';if(c)h.setAttribute('data-theme',c);else h.removeAttribute('data-theme');localStorage.setItem('Warden-theme',c);document.querySelectorAll('.theme-toggle').forEach(function(b){b.textContent=c==='light'?'\u263E':'\u2600';});}
+document.querySelectorAll('.theme-toggle').forEach(function(b){b.textContent=document.documentElement.getAttribute('data-theme')==='light'?'\u263E':'\u2600';});
+// Connection health check — updates dot on all pages
+(function(){
+    var dot=document.getElementById('conn-dot');
+    var ind=document.getElementById('refresh-indicator');
+    if(!dot)return;
+    function check(){
+        var ctrl=new AbortController();
+        var t=setTimeout(function(){ctrl.abort();},3000);
+        fetch('/api/stats',{method:'HEAD',signal:ctrl.signal}).then(function(r){
+            clearTimeout(t);
+            if(!r.ok)throw new Error();
+            dot.className='conn-dot conn-ok';
+            if(ind)ind.title='Connected';
+        }).catch(function(){
+            clearTimeout(t);
+            dot.className='conn-dot conn-lost';
+            if(ind)ind.title='Connection lost';
+        });
+    }
+    setInterval(check,4000);
+})();
+// Session idle timeout — warn at 25min, logout at 30min
+(function(){
+    var WARN_AT = 25*60*1000, LOGOUT_AT = 30*60*1000;
+    var lastActivity = Date.now();
+    var warned = false;
+    var overlay = null;
+
+    function touch(){ lastActivity = Date.now(); if(warned && overlay){ overlay.remove(); overlay=null; warned=false; } }
+    ['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(function(e){
+        document.addEventListener(e, touch, {passive:true});
+    });
+
+    function showWarning(secsLeft){
+        if(overlay) return;
+        warned = true;
+        overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);';
+        var box = document.createElement('div');
+        box.style.cssText = 'background:var(--bg-card,#1e1e2e);border:1px solid var(--border,#333);border-radius:12px;padding:2rem;text-align:center;max-width:360px;font-family:Outfit,sans-serif;color:var(--text,#e0e0e0);';
+        box.innerHTML = '<div style="font-size:1.5rem;margin-bottom:0.5rem;">Session Expiring</div>'
+            + '<div style="color:var(--text-dim,#999);margin-bottom:1.5rem;">You will be logged out in <span id="idle-countdown" style="font-family:JetBrains Mono,monospace;color:var(--accent,#6c8aff);">' + secsLeft + '</span> seconds due to inactivity.</div>'
+            + '<button onclick="this.closest(\'div[style]\').parentElement.remove();" style="background:var(--accent,#6c8aff);color:#fff;border:none;padding:0.6rem 1.5rem;border-radius:8px;font-size:0.9rem;cursor:pointer;font-family:Outfit,sans-serif;">Stay Logged In</button>';
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        overlay.querySelector('button').addEventListener('click', function(){ warned=false; overlay=null; touch(); });
+    }
+
+    setInterval(function(){
+        var idle = Date.now() - lastActivity;
+        if(idle >= LOGOUT_AT){ var f=document.createElement('form'); f.method='POST'; f.action='/logout'; document.body.appendChild(f); f.submit(); return; }
+        if(idle >= WARN_AT && !warned){
+            showWarning(Math.ceil((LOGOUT_AT - idle)/1000));
+        }
+        if(warned){
+            var el = document.getElementById('idle-countdown');
+            if(el) el.textContent = Math.max(0, Math.ceil((LOGOUT_AT - (Date.now()-lastActivity))/1000));
+        }
+    }, 1000);
+})();
+</script>
+{{ end }}
+
+{{ define "head" }}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/wardenui.css">
+    <script>
+        (function(){var t=localStorage.getItem('Warden-theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');})();
+    </script>
+{{ end }}

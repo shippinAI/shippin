@@ -1,0 +1,33 @@
+#!/bin/bash
+# shippin-sessions boot — installed by shippin-hostd, run as the workspace user.
+# Recreates the tmux session and one window per provider id in
+# $SHIPPIN_SESSIONS_DIR/providers (one id per line, written by hostd). Does not start a
+# vendor CLI: conversation resume is the CLI's own flag, launched later by shippin-agent.
+# A container stop ends the tmux server; this unit brings the windows back on boot.
+set -u
+cmd=${1:-}
+[ "$cmd" = boot ] || { echo "usage: shippin-sessions boot" >&2; exit 2; }
+SESSION=${SESSION:-}
+if ! [[ $SESSION =~ ^[a-z][a-z0-9-]{0,31}$ ]]; then
+  echo "shippin-sessions: bad session" >&2
+  exit 2
+fi
+DIR=${SHIPPIN_SESSIONS_DIR:-/etc/shippin/sessions}
+PROV=$DIR/providers
+if ! tmux has-session -t "$SESSION" 2>/dev/null; then
+  tmux new-session -d -s "$SESSION" -n shell -x 220 -y 50
+fi
+has_window() { tmux list-windows -t "$SESSION" -F '#{window_name}' 2>/dev/null | grep -Fxq -- "$1"; }
+if ! has_window shell; then
+  tmux new-window -d -t "$SESSION:" -n shell
+fi
+if [ -r "$PROV" ]; then
+  while IFS= read -r p || [ -n "${p:-}" ]; do
+    [[ $p =~ ^[a-z][a-z0-9-]{1,31}$ ]] || continue
+    has_window "$p" && continue
+    tmux new-window -d -t "$SESSION:" -n "$p"
+  done < "$PROV"
+fi
+tmux select-window -t "$SESSION:shell" 2>/dev/null || true
+mkdir -p "${HOME:-/tmp}/.shippin"
+printf '{"manager":"tmux","session":"%s","ready":true}\n' "$SESSION" > "${HOME:-/tmp}/.shippin/sessions.json"

@@ -1,0 +1,16 @@
+[Unit]
+Description=Shippin browser IDE (openvscode-server)
+After=network-online.target home.mount
+Wants=network-online.target
+
+[Service]
+User=dev
+WorkingDirectory=/home/dev
+Environment=HOME=/home/dev
+Environment=SHIPPIN_IDE_PORT=3000
+ExecStart=/usr/local/sbin/shippin-ide
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

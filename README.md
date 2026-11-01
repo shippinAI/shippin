@@ -1,31 +1,31 @@
 # Shippin
 
-Shippin is an early-stage, self-hosted infrastructure platform. This repository contains a panel prototype, a draft API contract, agent-workflow tooling and a Debian/Incus development image builder.
+Shippin is a self-hosted infrastructure panel. This repository is the control plane, the web UI, the host agent, and the installer.
 
-**Status:** The control plane, first-owner setup, remote node enrollment, shared UI configuration and production ISO are not implemented here. The panel is an API workbench, not a production management system. Incus is the first target; Proxmox, OpenTofu and Coder are future integrations.
-
-To try the current panel from a fresh checkout with Docker and Docker Compose:
+Clone it, copy the site example, and install on a fresh Debian or Ubuntu machine:
 
 ```sh
 git clone https://github.com/shippinAI/shippin.git
 cd shippin
-docker compose -f panel/docker-compose.yml up -d --build
+sudo install -d -m 0755 /etc/shippin
+sudo cp config/site.env.example /etc/shippin/site.env
+sudo chmod 600 /etc/shippin/site.env
+# Edit /etc/shippin/site.env for this installation.
+sudo ./install/panel/install.sh --site /etc/shippin/site.env
 ```
 
-Open `http://127.0.0.1:8088/console/` for the customer workbench or
-`http://127.0.0.1:8089/ops/` for the operator workbench. These commands start
-only the static panel; they do not install an API, identity provider, host agent or
-Incus. See the panel guide for configuration, updates and stopping the deployment.
+A passing install prints the `GET /healthz` body with `"status":"ok"` and `"db":true`. See [docs/deploy.md](docs/deploy.md).
 
+On a disposable machine, `sudo ./install/panel/install.sh --example` does the same with the committed example config and a generated local database.
+
+- [Deploy](docs/deploy.md)
+- [What came from shippin-console](docs/merge-from-shippin-console.md)
 - [Release objective](docs/objective.md)
-- [Release roadmap](docs/roadmap.md)
-- [Contributing and resuming work](CONTRIBUTING.md)
-- [Security reporting](SECURITY.md)
-- [Panel](panel/README.md)
-- [Primary image development](install/primary-image/README.md)
-- [Secondary-node enrollment design](docs/node-enrollment.md)
 - [Source boundaries](docs/source-of-truth.md)
-- [Service contexts](docs/service-contexts.md)
-- [Agent workflow](governance/README.md)
+- [API contract](api/openapi/openapi.yaml)
+- [API workbench](panel/README.md) (not the installed panel)
+- [Contributing](CONTRIBUTING.md)
 
-The current source history begins from a selected public snapshot. Older private development material is maintained separately. No open-source license has been selected yet; public visibility alone is not a license to reuse code.
+`web/` is the panel. `cmd/console` is the control plane. `cmd/shippin-hostd` is the host agent. `third_party/warden-ct102` is the Proxmox panel. `panel/` is the older API workbench. Site names, addresses, and secrets belong in `/etc/shippin/site.env`, not in git.
+
+No open-source license has been selected yet. Public visibility is not a license to reuse this code.
