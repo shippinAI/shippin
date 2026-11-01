@@ -37,7 +37,8 @@ func (f *Flow) cookieSession(r *http.Request) *Session {
 	if err != nil {
 		return nil
 	}
-	if s := f.Store.Get(r.Context(), c.Value); s.Console() && s.Aud == f.Audience(r) {
+	s := f.Store.Get(r.Context(), c.Value)
+	if s != nil && s.Aud == f.Audience(r) && (s.Console() || s.UserID != "") {
 		return s
 	}
 	return nil

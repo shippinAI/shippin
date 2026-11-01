@@ -128,6 +128,9 @@ fi
 if [ -z "${SHIPPIN_SESSION_KEY:-}" ]; then
   SHIPPIN_SESSION_KEY=$(openssl rand -hex 32)
 fi
+if [ "$example" -eq 1 ] && [ -z "${SHIPPIN_MAIL_SINK:-}" ]; then
+  SHIPPIN_MAIL_SINK=/var/lib/shippin/mail-sink.log
+fi
 
 umask 077
 cat > /etc/shippin/console.env <<EOF
@@ -139,6 +142,7 @@ SHIPPIN_SESSION_KEY=${SHIPPIN_SESSION_KEY}
 SHIPPIN_OIDC_CLIENT_ID=${SHIPPIN_OIDC_CLIENT_ID:-}
 SHIPPIN_OPS_OIDC_CLIENT_ID=${SHIPPIN_OPS_OIDC_CLIENT_ID:-}
 SHIPPIN_SMTP_PASSWORD=${SHIPPIN_SMTP_PASSWORD:-}
+SHIPPIN_MAIL_SINK=${SHIPPIN_MAIL_SINK:-}
 EOF
 chmod 600 /etc/shippin/console.env
 
@@ -208,3 +212,21 @@ if [ "$ok" -ne 1 ]; then
   exit 1
 fi
 echo "panel health ok at $url"
+if [ "$example" -eq 1 ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . /etc/shippin/console.env
+  set +a
+  setup_out=$("$prefix/shippin-console" setup)
+  printf '%s\n' "$setup_out"
+  code=${setup_out#setup_code=}
+  code=${code%%$'\n'*}
+  base="http://${host}:${port}"
+  setup_json=$(curl -fsS -H 'content-type: application/json' -d "{\"code\":\"${code}\",\"email\":\"owner@example.invalid\",\"name\":\"Owner\"}" "$base/v1/setup")
+  printf '%s\n' "$setup_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["user_id"] and len(d["recovery_codes"])==8; print("setup_ok")'
+  sid=$(printf '%s\n' "$setup_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["session"])')
+  curl -fsS -H 'content-type: application/json' -d '{"email":"wait@example.invalid","name":"Wait","company":"Example"}' "$base/v1/waitlist" >/dev/null
+  token=$(python3 -c 'import json; print(json.load(open("/var/lib/shippin/mail-sink.log"))["body"].split()[-1])')
+  curl -fsS -H 'content-type: application/json' -d "{\"token\":\"${token}\"}" "$base/v1/waitlist/confirm" >/dev/null
+  curl -fsS -H "Cookie: shippin_session=${sid}" "$base/v1/admin/waitlist.csv" | python3 -c 'import sys; body=sys.stdin.read(); assert "wait@example.invalid" in body and "confirmed" in body; print(body.strip())'
+fi

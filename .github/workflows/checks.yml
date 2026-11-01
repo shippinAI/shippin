@@ -64,6 +64,29 @@ jobs:
       - run: go vet ./...
       - run: go build -o /tmp/shippin-console ./cmd/console
       - run: go build -o /tmp/shippin-hostd ./cmd/shippin-hostd
+  identity:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: shippin
+          POSTGRES_PASSWORD: shippin
+          POSTGRES_DB: shippin
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: '1.26.x'
+          cache: false
+      - run: SHIPPIN_TEST_DATABASE_URL=postgres://shippin:shippin@127.0.0.1:5432/shippin?sslmode=disable go test -p 1 -count=1 ./internal/identity -run TestStore
   console-web:
     runs-on: ubuntu-latest
     defaults:

@@ -54,6 +54,9 @@ func (a *API) enrollServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("server %s enrolled from %s", e.ServerID, clientIP(r))
+	if a.directory != nil {
+		a.directory.EmitHostEnrolled(r.Context(), e.ServerID, short(in.Hostname))
+	}
 	writeStatus(w, http.StatusCreated, e)
 }
 

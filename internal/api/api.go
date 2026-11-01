@@ -13,6 +13,7 @@ import (
 	"shippin.cloud/console/internal/gh"
 	"shippin.cloud/console/internal/hostclient"
 	"shippin.cloud/console/internal/hv/proxmox"
+	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/jobs"
 	"shippin.cloud/console/internal/mail"
 	"shippin.cloud/console/internal/managed"
@@ -33,6 +34,8 @@ type API struct {
 	resolveCaller func(http.ResponseWriter, *http.Request) (*caller, bool)
 	// notify queues e-mail notices; nil when mail is disabled.
 	notify *mail.Notifier
+	// directory is the local account service. Nil when the process has not wired it.
+	directory *identity.Service
 	// Test-only overrides: recipient lookups and synchronous notices.
 	lookupManagers func(ctx context.Context, org string) ([]string, error)
 	orgOfUser      func(ctx context.Context, sub string) (string, error) // test seam for orgMember
@@ -138,6 +141,7 @@ func (a *API) Register(mux Router) {
 	a.databaseRoutes(mux)
 	a.appsRoutes(mux)
 	a.registerOperator(mux)
+	a.registerDirectory(mux)
 	a.infraRoutes(mux)
 	mux.HandleFunc("GET /auth/ws-check", a.wsCheck)
 	mux.HandleFunc("GET /auth/ws-login", a.wsLogin)
@@ -146,6 +150,9 @@ func (a *API) Register(mux Router) {
 	mux.HandleFunc("GET /_shippin/popup", a.wsPopup)
 	mux.HandleFunc("GET /_shippin/done", a.wsDone)
 }
+
+// SetDirectory wires the local account service.
+func (a *API) SetDirectory(s *identity.Service) { a.directory = s }
 
 func (a *API) health(w http.ResponseWriter, r *http.Request) {
 	dbOK := a.db.Pool.Ping(r.Context()) == nil
@@ -158,8 +165,15 @@ func (a *API) publicSettings(w http.ResponseWriter, r *http.Request) {
 	if a.cfg.Operator.Host != "" && a.flow.IsOperatorOrigin(r) {
 		app, ready = "operator", a.cfg.Operator.ClientID != ""
 	}
+	brand := a.cfg.Brand
+	if a.directory != nil {
+		if over, ok := a.directory.Branding(r.Context()); ok {
+			brand = mergeBrand(brand, over)
+		}
+	}
 	writeJSON(w, map[string]any{
-		"brand": a.cfg.Brand, "domain": a.cfg.Domain,
+		"brand": brand, "domain": a.cfg.Domain,
+		"local_login": !a.cfg.Directory.UpstreamRequired, "signup": a.cfg.Directory.Signup,
 		"governance_domains": a.cfg.GovernanceDomains,
 		"idp_host":           a.cfg.IDP.Issuer, "idp_account_url": a.idpAccountURL(r.Context()), "idp_name": a.cfg.IDP.Name, "login_ready": ready, "app": app,
 		"console_url": "https://" + a.cfg.ConsoleHost, "operator_url": a.operatorURL(),

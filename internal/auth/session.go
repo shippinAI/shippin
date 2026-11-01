@@ -25,6 +25,8 @@ type Session struct {
 	AuthAt time.Time `json:"a,omitempty"`
 	// Aud is the app the session was signed in through: "" = console, AudOperator = ops origin.
 	Aud string `json:"au,omitempty"`
+	// UserID is set for a local directory session. Empty means an external-issuer session.
+	UserID string `json:"uid,omitempty"`
 }
 
 // Store persists sessions in Postgres, AES-256-GCM encrypted (key from SHIPPIN_SESSION_KEY).
