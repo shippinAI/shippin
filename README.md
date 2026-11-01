@@ -22,6 +22,7 @@ Incus. See the panel guide for configuration, updates and stopping the deploymen
 - [Contributing and resuming work](CONTRIBUTING.md)
 - [Security reporting](SECURITY.md)
 - [Panel](panel/README.md)
+- [Host-side Incus diagnostic](agent/README.md)
 - [Primary image development](install/primary-image/README.md)
 - [Secondary-node enrollment design](docs/node-enrollment.md)
 - [Source boundaries](docs/source-of-truth.md)
