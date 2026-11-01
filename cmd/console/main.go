@@ -3,19 +3,27 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"shippin.cloud/console/internal/api"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/mail"
 	"shippin.cloud/console/internal/spa"
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "setup" {
+		runSetup()
+		return
+	}
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("config: %v", err)
@@ -33,6 +41,7 @@ func main() {
 	flow := auth.NewFlow(cfg, store)
 	mux := http.NewServeMux()
 	consoleAPI := api.New(cfg, flow, database)
+	consoleAPI.SetDirectory(identity.New(database.Pool, cfg, mailSender(cfg), captcha(cfg)))
 	consoleAPI.StartJobs(ctx)
 	consoleAPI.SeedTemplates(ctx)
 	consoleAPI.SyncStaff(ctx)
@@ -89,4 +98,57 @@ func startMail(ctx context.Context, cfg *config.Config, d *db.DB, a *api.API) {
 	a.SetNotifier(&mail.Notifier{R: r, Q: d, Brand: cfg.Brand.Name, Footer: footer})
 	go mail.NewWorker(d, t, cfg.Mail).Run(ctx)
 	log.Printf("mail: notices via %s:%d (%s) from %s", cfg.Mail.Host, cfg.Mail.Port, cfg.Mail.TLS, cfg.Mail.From)
+}
+
+func runSetup() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("config: %v", err)
+	}
+	ctx := context.Background()
+	database, err := db.OpenHolding(ctx, cfg.DatabaseURL, cfg.Migrations.Hold)
+	if err != nil {
+		log.Fatalf("db: %v", err)
+	}
+	defer database.Pool.Close()
+	code, err := identity.New(database.Pool, cfg, nil, nil).IssueSetup(ctx)
+	if errors.Is(err, identity.ErrOwnerExists) {
+		fmt.Println("setup_code=")
+		return
+	}
+	if err != nil {
+		log.Fatalf("setup: %v", err)
+	}
+	fmt.Println("setup_code=" + code)
+}
+
+func mailSender(cfg *config.Config) identity.Sender {
+	if path := os.Getenv("SHIPPIN_MAIL_SINK"); path != "" {
+		return identity.FileSender{Path: path}
+	}
+	if !cfg.Mail.Enabled {
+		return nil
+	}
+	t, err := mail.NewSMTP(cfg.Mail)
+	if err != nil {
+		log.Fatalf("mail: %v", err)
+	}
+	return smtpSender{t: t, from: cfg.Mail.From}
+}
+
+type smtpSender struct {
+	t    *mail.SMTP
+	from string
+}
+
+func (s smtpSender) Send(ctx context.Context, to, subject, body string) error {
+	raw := []byte("Subject: " + subject + "\r\nTo: " + to + "\r\n\r\n" + body)
+	return s.t.Send(ctx, s.from, to, raw)
+}
+
+func captcha(cfg *config.Config) identity.Captcha {
+	if cfg.Directory.Captcha.Provider == "turnstile" {
+		return identity.Turnstile{Secret: os.Getenv(cfg.Directory.Captcha.SecretEnv)}
+	}
+	return identity.NoneCaptcha{}
 }

@@ -57,7 +57,7 @@ func TestRRFlowPerVM(t *testing.T) {
 	oldJob := newUUID()
 	exec(`INSERT INTO jobs(id,tenant_id,kind,target_type,target_id,created_by) VALUES($1,$2,'service.provision','service_instance',$3,'u')`,
 		oldJob, tn.ID, old[p1])
-	_, err1 := a.svcs.MigrateTenant(ctx, tn.ID, "u") // the operator setup route's per-tenant move
+	_, err1 := a.svcs.MigrateTenant(ctx, tn.ID, "u")                                  // the operator setup route's per-tenant move
 	if _, err2 := a.svcs.MigrateTenant(ctx, tn.ID, "u"); err1 != nil || err2 != nil { // idempotent
 		t.Fatal(err1, err2)
 	}

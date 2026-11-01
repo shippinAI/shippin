@@ -10,9 +10,13 @@ import (
 )
 
 type Brand struct {
-	Name    string `json:"name"`
-	Short   string `json:"short"`
-	Tagline string `json:"tagline"`
+	Name       string `json:"name"`
+	Short      string `json:"short"`
+	Tagline    string `json:"tagline"`
+	LogoURL    string `json:"logo_url,omitempty"`
+	Color      string `json:"color,omitempty"`
+	PrivacyURL string `json:"privacy_url,omitempty"`
+	TermsURL   string `json:"terms_url,omitempty"`
 }
 
 type IDP struct {
@@ -103,6 +107,7 @@ type Config struct {
 	Access            Access            `json:"access"`
 	Staff             Staff             `json:"staff"`
 	Identity          Identity          `json:"identity"`
+	Directory         Directory         `json:"directory"`
 	Mail              Mail              `json:"mail"`
 	Jobs              Jobs              `json:"jobs"`
 	AI                AI                `json:"ai"`
@@ -133,6 +138,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("SHIPPIN_OIDC_CLIENT_ID"); v != "" {
 		c.IDP.ClientID = v
+	}
+	if v := os.Getenv("SHIPPIN_NOMEN_ISSUER"); v != "" {
+		c.IDP.Issuer = v
 	}
 	if v := os.Getenv("SHIPPIN_OPS_OIDC_CLIENT_ID"); v != "" {
 		c.Operator.ClientID = v
@@ -176,6 +184,10 @@ func (c *Config) Check() error {
 		}
 	}
 	c.IdentityDefaults()
+	c.DirectoryDefaults()
+	if err := c.Directory.Check(c.IDP.ClientID); err != nil {
+		return err
+	}
 	if c.IDP.Name == "" {
 		return errors.New("idp.name is required (the identity product name users see)")
 	}

@@ -491,5 +491,24 @@
   },
   "migrations": {
     "hold": []
+  },
+  "directory": {
+    "signup": "invite_only",
+    "upstream_required": false,
+    "client_id": "shippin-panel",
+    "captcha": {
+      "provider": "none",
+      "secret_env": "SHIPPIN_CAPTCHA_SECRET"
+    },
+    "upstreams": [
+      {
+        "id": "nomen",
+        "label": "Nomen",
+        "issuer": "",
+        "client_id": "",
+        "secret_env": "SHIPPIN_OIDC_CLIENT_SECRET"
+      }
+    ],
+    "webhook_skew_seconds": 300
   }
 }

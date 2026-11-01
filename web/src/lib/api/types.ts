@@ -25,6 +25,9 @@ export type PublicSettings = {
   /** IdP self-service page (MFA, profile); "" when not configured. */
   idp_account_url?: string;
   login_ready: boolean;
+  /** Local magic-link sign-in is offered when an upstream issuer is not required. */
+  local_login?: boolean;
+  signup?: "open" | "invite_only" | "waitlist";
   /** Which app this origin serves: the customer console or the operator app (ops.<domain>). */
   app?: "console" | "operator";
   console_url?: string;

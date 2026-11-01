@@ -58,13 +58,29 @@ export function SignInPage() {
                 Continue with {p.label} <ArrowRight className="size-4" />
               </Button>
             ))}
+            {s?.local_login !== false && (
+              <form
+                className="mt-4 grid gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const email = new FormData(e.currentTarget).get("email");
+                  void fetch("/v1/session/magic", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) }).then((res) => {
+                    if (res.ok) toast.success("Check your email", "The sign-in link is on its way.");
+                    else toast.error("Sign-in failed", "The panel could not send a link.");
+                  });
+                }}
+              >
+                <input name="email" type="email" required placeholder="you@example.invalid" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 text-sm" />
+                <Button type="submit" variant="secondary" size="lg" className="w-full" tooltip="We email a one-time sign-in link. It expires after a few minutes.">Email me a sign-in link</Button>
+              </form>
+            )}
             <div className="mt-4 flex items-center gap-2 text-xs text-fg-subtle">
               <LockKeyhole className="size-3.5" />
               {s?.idp_name} · OpenID Connect with PKCE via <span className="font-mono text-fg-muted">{idpHost}</span>
             </div>
           </div>
           <p className="mt-8 text-xs text-fg-subtle">
-            Need access? Ask your organization owner for an invite.
+            Need access? Ask your organization owner for an invite, or join the waitlist at /v1/waitlist.
           </p>
         </div>
       </div>

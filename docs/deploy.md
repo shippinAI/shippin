@@ -24,6 +24,8 @@ A passing health check looks like this:
 
 `db` must be true. The process listens on `SHIPPIN_LISTEN` (default `127.0.0.1:8080`). Put a TLS reverse proxy in front of it before exposing it. The panel does not ship a certificate or a hostname.
 
+The installer then runs `shippin-console setup` on a disposable `--example` install and prints `setup_code=...`. Redeem it with `POST /v1/setup`. That code creates the first owner. See [identity and access](identity-and-access.md).
+
 ## Disposable proof
 
 `--example` is only for a throwaway machine. It uses the committed example JSON, creates a local database, and generates a session key.
@@ -45,6 +47,10 @@ sudo ./install/panel/install.sh --example
 | `SHIPPIN_DATABASE_URL` | no | Postgres URL. Empty means the installer creates a local database |
 | `SHIPPIN_SESSION_KEY` | no | 64 hex characters. Empty means the installer generates one |
 | `SHIPPIN_SMTP_PASSWORD` | only if mail is enabled in JSON | Named by `mail.password_env` |
+| `SHIPPIN_NOMEN_ISSUER` | when Nomen is the upstream issuer | Sets `idp.issuer` |
+| `SHIPPIN_OIDC_CLIENT_SECRET` | when that issuer requires a secret | Not stored in the JSON file |
+| `SHIPPIN_CAPTCHA_SECRET` | when captcha provider is `turnstile` | Siteverify secret |
+| `SHIPPIN_MAIL_SINK` | disposable installs only | File that receives mail bodies. Leave unset on a real site |
 
 Host agent settings, hypervisor tokens, and SMTP passwords stay in that uncommitted file or in `/etc/shippin/hostd.json` copied from [deploy/hostd.example.json](../deploy/hostd.example.json). The Proxmox panel reads `/etc/warden/warden.env`, copied from [third_party/warden-ct102/warden.env.example](../third_party/warden-ct102/warden.env.example), with TLS verification left on.
 
