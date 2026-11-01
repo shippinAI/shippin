@@ -311,7 +311,10 @@ User=root
 WantedBy=multi-user.target
 UNIT
   systemctl daemon-reload
-  systemctl enable --now shippin-console.service
+  systemctl enable shippin-console.service
+  # restart, not start: a re-run must replace a panel that is already running with the new build
+  # and the new console.env, or the health check below passes against the old process.
+  systemctl restart shippin-console.service
 else
   if [ -f /var/lib/shippin/console.pid ] && kill -0 "$(cat /var/lib/shippin/console.pid)" 2>/dev/null; then
     kill "$(cat /var/lib/shippin/console.pid)" || true
