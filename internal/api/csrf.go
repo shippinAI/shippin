@@ -33,5 +33,7 @@ func crossOriginWrite(r *http.Request) bool {
 	if o == "" {
 		return false
 	}
-	return !strings.EqualFold(o, "https://"+requestHost(r)) || r.Header.Get("Origin") == "null"
+	// Compare with the full Host so a panel served on a non-default port (https://host:8443) still
+	// accepts its own writes; a different port is a different origin and stays refused.
+	return !strings.EqualFold(o, "https://"+r.Host) || r.Header.Get("Origin") == "null"
 }

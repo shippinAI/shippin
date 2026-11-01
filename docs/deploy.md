@@ -1,8 +1,12 @@
 # Deploy the panel
 
-One command installs the panel on a fresh Debian or Ubuntu machine. It installs Postgres, builds the control plane and the web UI, writes a root-only env file, starts the process, and checks `GET /healthz`.
+One command installs the panel on a fresh Debian or Ubuntu machine (Debian 13 is tested). It installs Postgres, fetches the Go and Node.js toolchains the build needs when the machine does not already have new enough ones, builds the control plane and the web UI, writes a root-only env file, starts the process, checks `GET /healthz`, and prints the one-time setup code for the first owner.
 
 ```sh
+sudo apt-get install -y git
+git clone https://github.com/shippinAI/shippin && cd shippin
+sudo install -d -m 0700 /etc/shippin
+sudo install -m 0600 config/site.env.example /etc/shippin/site.env   # then edit it
 sudo ./install/panel/install.sh --site /etc/shippin/site.env
 ```
 
@@ -12,9 +16,12 @@ The installer writes:
 
 - `/etc/shippin/shippin.json`, from [config/shippin.example.json](../config/shippin.example.json), with domain and identity fields taken from the site file
 - `/etc/shippin/console.env` (mode 0600) with `SHIPPIN_DATABASE_URL` and `SHIPPIN_SESSION_KEY`
+- `/etc/shippin/templates.json`, from [config/templates.json](../config/templates.json), when the site does not already have one
 - `/usr/local/bin/shippin-console`
 
 When systemd is running and the command is not `--example`, it enables `shippin-console.service`. Otherwise it starts the binary in the background and records the pid in `/var/lib/shippin/console.pid`.
+
+The machine needs `git` (to clone this repository) and outbound HTTPS. Debian and Ubuntu ship Go and Node.js releases older than `go.mod` and `web/` require, so when `go` is missing or older than `go.mod`, or `node` is older than 24, the installer downloads the release pinned in `install/panel/install.sh` from go.dev or nodejs.org, checks its SHA-256, and unpacks it under `/usr/local/lib/shippin-toolchains`. It does not change the system `PATH`.
 
 A passing health check looks like this:
 
@@ -22,9 +29,34 @@ A passing health check looks like this:
 {"status":"ok","db":true,"uptime_s":1}
 ```
 
-`db` must be true. The process listens on `SHIPPIN_LISTEN` (default `127.0.0.1:8080`). Put a TLS reverse proxy in front of it before exposing it. The panel does not ship a certificate or a hostname.
+`db` must be true. The process listens on `SHIPPIN_LISTEN` (default `127.0.0.1:8080`).
 
-The installer then runs `shippin-console setup` on a disposable `--example` install and prints `setup_code=...`. Redeem it with `POST /v1/setup`. That code creates the first owner. See [identity and access](identity-and-access.md).
+## TLS
+
+A browser can only use the panel over https: the session cookie is `Secure`, and state-changing requests must carry an `https://` origin that matches the host the browser used (including a non-default port). Pick one:
+
+- Put a TLS reverse proxy in front of it and keep `SHIPPIN_LISTEN` on loopback.
+- Let the panel serve TLS. Set `SHIPPIN_TLS_CERT` and `SHIPPIN_TLS_KEY` to a certificate and key you already have. The panel rereads them when either file changes, so a renewal job only has to replace the files.
+- Set `SHIPPIN_TLS=self-signed` to have the installer generate a pair for `SHIPPIN_CONSOLE_HOST` under `/etc/shippin/tls/`. Browsers warn until you trust it.
+
+The panel does not ship a certificate or a hostname. `SHIPPIN_CONSOLE_HOST` should be the name people type, because sign-in redirects are built from it.
+
+## Reaching a panel inside a VM
+
+When the panel runs in a guest and the hypervisor forwards one host address to it, listen on the guest's own address (for example `SHIPPIN_LISTEN=0.0.0.0:8443` with TLS on) and forward only the host address you want. With Incus, a virtual machine needs a NAT proxy device and a fixed guest address on the bridge:
+
+```sh
+incus config device override <vm> eth0 ipv4.address=<guest address>
+incus config device add <vm> panel proxy nat=true listen=tcp:<host address>:443 connect=tcp:<guest address>:8443
+```
+
+`nat=true` forwards only the listen address given, so binding a single host address keeps the panel off the others.
+
+## First owner
+
+After the health check passes, the installer runs `shippin-console setup` and prints `setup_code=...` while no owner exists. The code is valid for 24 hours. Running the installer again before it is redeemed issues a new code and invalidates the old one; once an owner exists, nothing is issued. Redeem it once with `POST /v1/setup` (`code`, `email`, `name`) from the panel's https origin. That creates the owner and returns eight recovery codes, shown once. See [identity and access](identity-and-access.md).
+
+The `--example` install redeems its own code as part of the smoke test.
 
 ## Disposable proof
 
@@ -44,6 +76,11 @@ sudo ./install/panel/install.sh --example
 | `SHIPPIN_IDP_ISSUER` | before sign-in works | OIDC issuer URL |
 | `SHIPPIN_OIDC_CLIENT_ID` | before sign-in works | OIDC client id. Empty leaves login disabled |
 | `SHIPPIN_LISTEN` | no | Bind address. Default `127.0.0.1:8080` |
+| `SHIPPIN_TLS_CERT`, `SHIPPIN_TLS_KEY` | no | Serve TLS from this pair. Both or neither |
+| `SHIPPIN_TLS` | no | `self-signed` generates a pair for `SHIPPIN_CONSOLE_HOST` |
+| `SHIPPIN_SIGNUP` | no | `open`, `invite_only`, or `waitlist`. Sets `directory.signup` |
+| `SHIPPIN_CAPTCHA_PROVIDER` | no | `none` or `turnstile`. Sets `directory.captcha.provider` |
+| `SHIPPIN_SERVERS_ENABLED` | no | `1` turns on server enrollment (`servers.enabled`) |
 | `SHIPPIN_DATABASE_URL` | no | Postgres URL. Empty means the installer creates a local database |
 | `SHIPPIN_SESSION_KEY` | no | 64 hex characters. Empty means the installer generates one |
 | `SHIPPIN_SMTP_PASSWORD` | only if mail is enabled in JSON | Named by `mail.password_env` |
