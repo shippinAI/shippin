@@ -1,6 +1,8 @@
-# Shippin.Cloud Control Panel (deployable baseline)
+# Shippin.app panel prototype
 
-This folder provides a centralized, deployable control panel shell for managing Shippin.Cloud through the control-plane API.
+This folder provides the current panel shell and API workbench. One prototype
+deployment exposes customer and operator modes; it is not the completed Shippin.app
+experience.
 
 This is an API-workbench prototype; it is not the final customer console or a
 claim that the control-plane backend, Incus provider, or node installer exists.
@@ -88,15 +90,14 @@ From the repository root:
 docker compose -f panel/docker-compose.yml up -d --build
 ```
 
-Default URLs:
-
-- Customer console: `http://localhost:8088/console/`
-- Operator console: `http://localhost:8089/ops/`
+Default URL: `http://localhost:8088/console/`. Select customer or operator mode
+in the panel. Operator visibility requires an operator role from `/me`; the API
+must independently authorize every request.
 
 Note: compose builds from the repository root context so the OpenAPI source at [`api/openapi/`](../api/openapi/) is available during image build.
-Both ports bind to loopback by default. Set `SHIPPIN_BIND_ADDRESS`,
-`SHIPPIN_CONSOLE_PORT` or `SHIPPIN_OPS_PORT` before running Compose to choose a
-different bind address or ports. Binding beyond loopback exposes this prototype;
+The port binds to loopback by default. Set `SHIPPIN_BIND_ADDRESS` or
+`SHIPPIN_PANEL_PORT` before running Compose to choose a different bind address or
+port. Binding beyond loopback exposes this prototype;
 configure trusted HTTPS and authentication before any remote use.
 
 For an update, pull the desired revision and rebuild from that checkout:
@@ -148,12 +149,18 @@ to configure defaults for the deployment:
 }
 ```
 
-For split deployment, use:
-
-- [`runtime-config.console.json`](./public/config/runtime-config.console.json)
-- [`runtime-config.ops.json`](./public/config/runtime-config.ops.json)
-
-The compose file mounts those runtime configs into each deployed container, so API/auth targets can be changed without rebuilding.
+Compose mounts [`runtime-config.json`](./public/config/runtime-config.json), so
+its browser defaults can be changed without rebuilding. To migrate from the old
+two-service prototype, back up and reconcile the previous
+`runtime-config.console.json` and `runtime-config.ops.json` into the single runtime
+config. In particular, configure an OIDC client and redirect URI valid for the
+single panel URL; the previous clients may differ. The old files are retained for
+reference and are no longer mounted by Compose. `SHIPPIN_CONSOLE_PORT` and
+`SHIPPIN_OPS_PORT` no longer configure the deployment. After reviewing existing
+containers and configuration, remove the two old Compose services as orphans when
+starting the replacement, for example with `docker compose -f panel/docker-compose.yml
+up -d --build --remove-orphans` from the repository root. This does not migrate
+server-side settings or create a control plane.
 
 `capabilityHints` maps OpenAPI `operationId` to the capability key returned by `/me.capabilities`. If a mapped capability is `false`, the action is disabled in UI before request execution.
 

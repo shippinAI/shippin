@@ -2,7 +2,9 @@
 
 Shippin is an early-stage, self-hosted infrastructure platform. This repository contains a panel prototype, a draft API contract, agent-workflow tooling and a Debian/Incus development image builder.
 
-**Status:** The control plane, first-owner setup, remote node enrollment, shared UI configuration and production ISO are not implemented here. The panel is an API workbench, not a production management system. Incus is the first target; Proxmox, OpenTofu and Coder are future integrations.
+**Direction:** Shippin.app is one panel for authorized customer and operator workflows, including adding and managing Incus and Proxmox servers. Installation-wide settings should be configurable through that panel and owned by the control plane. The name does not prescribe an installation URL.
+
+**Status:** The control plane, first-owner setup, remote node enrollment, shared UI configuration, provider management and production ISO are not implemented here. The panel is an API workbench, not a production management system. OpenTofu and Coder are optional future integrations.
 
 To try the current panel from a fresh checkout with Docker and Docker Compose:
 
@@ -12,8 +14,8 @@ cd shippin
 docker compose -f panel/docker-compose.yml up -d --build
 ```
 
-Open `http://127.0.0.1:8088/console/` for the customer workbench or
-`http://127.0.0.1:8089/ops/` for the operator workbench. These commands start
+Open `http://127.0.0.1:8088/console/` and select customer or operator mode in
+the panel. These commands start
 only the static panel; they do not install an API, identity provider, host agent or
 Incus. See the panel guide for configuration, updates and stopping the deployment.
 
@@ -22,7 +24,7 @@ Incus. See the panel guide for configuration, updates and stopping the deploymen
 - [Contributing and resuming work](CONTRIBUTING.md)
 - [Security reporting](SECURITY.md)
 - [Panel](panel/README.md)
-- [Host-side Incus diagnostic](agent/README.md)
+- [Incus and Proxmox diagnostics](agent/README.md)
 - [Primary image development](install/primary-image/README.md)
 - [Secondary-node enrollment design](docs/node-enrollment.md)
 - [Source boundaries](docs/source-of-truth.md)
