@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
 	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/config"
 )
 
 // Platform settings: a closed list of config keys ops may override from the panel. The config
@@ -23,8 +26,54 @@ type platformKey struct {
 
 var accountPathRe = regexp.MustCompile(`^(/[A-Za-z0-9._~-]+)+/?$`)
 
+func validateProbes(value any) error {
+	raw, err := json.Marshal(value)
+	if err != nil || len(raw) > 32<<10 {
+		return fmt.Errorf("probe configuration exceeds the 32 KiB limit")
+	}
+	var probes []config.Probe
+	if err := json.Unmarshal(raw, &probes); err != nil {
+		return fmt.Errorf("must be a list of probe definitions")
+	}
+	if len(probes) > 50 {
+		return fmt.Errorf("at most 50 probes are allowed")
+	}
+	seen := map[string]bool{}
+	for _, p := range probes {
+		name := strings.TrimSpace(p.Name)
+		if name == "" || len(name) > 80 || p.Kind == "" || len(p.Kind) > 40 {
+			return fmt.Errorf("each probe needs a name and kind")
+		}
+		if seen[strings.ToLower(name)] {
+			return fmt.Errorf("probe names must be unique")
+		}
+		seen[strings.ToLower(name)] = true
+		if (p.URL == "") == (p.TCP == "") {
+			return fmt.Errorf("%s must have exactly one HTTP URL or TCP address", name)
+		}
+		if p.URL != "" {
+			u, err := url.ParseRequestURI(p.URL)
+			if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.User != nil || u.Fragment != "" || u.RawQuery != "" {
+				return fmt.Errorf("%s needs an HTTP or HTTPS URL without credentials, query or fragment", name)
+			}
+		}
+		if p.TCP != "" {
+			if _, _, err := net.SplitHostPort(p.TCP); err != nil {
+				return fmt.Errorf("%s needs a host:port TCP address", name)
+			}
+		}
+		if strings.ContainsAny(p.Host, "\r\n") {
+			return fmt.Errorf("%s has an invalid Host header", name)
+		}
+	}
+	return nil
+}
+
 func (a *API) platformKeys() []platformKey {
 	return []platformKey{
+		{Key: "services.probes", Kind: "array", Label: "Platform service probes",
+			Help: "Live HTTP or TCP health targets. Saved in PostgreSQL and audited. Probe credentials are not supported.",
+			def:  func(a *API) any { return a.cfg.Probes }, valid: validateProbes},
 		issuerKey(a.cfg),
 		{Key: "idp.account_path", Kind: "string", Label: "IdP account page path",
 			Help: "Path under the IdP issuer for the user's own account page; empty hides the link.",
@@ -112,7 +161,8 @@ func (a *API) opSetPlatformSetting(w http.ResponseWriter, r *http.Request, c *ca
 		_, isS := v.(string)
 		_, isB := v.(bool)
 		_, isO := v.(map[string]any)
-		if (k.Kind == "string" && !isS) || (k.Kind == "bool" && !isB) || (k.Kind == "json" && !isO) {
+		_, isA := v.([]any)
+		if (k.Kind == "string" && !isS) || (k.Kind == "bool" && !isB) || (k.Kind == "json" && !isO) || (k.Kind == "array" && !isA) {
 			auth.Problem(w, http.StatusBadRequest, "The value must be a "+k.Kind+".")
 			return
 		}
@@ -127,8 +177,11 @@ func (a *API) opSetPlatformSetting(w http.ResponseWriter, r *http.Request, c *ca
 	}
 	old := a.platformValue(r.Context(), k.Key)
 	detail := fmt.Sprintf("%s: %v → %s · %s", k.Key, old, strings.TrimSpace(string(in.Value)), in.Reason)
-	if k.Kind == "json" { // the previous document is too long to read in an audit line
-		detail = fmt.Sprintf("%s → %s · %s", k.Key, strings.TrimSpace(string(in.Value)), in.Reason)
+	if k.Kind == "json" || k.Kind == "array" {
+		detail = fmt.Sprintf("%s updated (configuration values redacted) · %s", k.Key, in.Reason)
+		if in.Value == nil {
+			detail = fmt.Sprintf("%s reset to config (configuration values redacted) · %s", k.Key, in.Reason)
+		}
 	}
 	e := teamEntry(r, c, "platform.setting", detail)
 	if err := a.db.SetPlatformSetting(r.Context(), k.Key, in.Value, c.id.Sub, e); err != nil {

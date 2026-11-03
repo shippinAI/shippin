@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"net"
 	"net/http"
 	"sync"
@@ -20,6 +21,16 @@ type probeResult struct {
 	Healthy   bool   `json:"healthy"`
 	LatencyMs int64  `json:"latency_ms"`
 	Detail    string `json:"detail"`
+}
+
+func (a *API) platformProbes(ctx context.Context) []config.Probe {
+	value := a.platformValue(ctx, "services.probes")
+	raw, err := json.Marshal(value)
+	var probes []config.Probe
+	if err != nil || json.Unmarshal(raw, &probes) != nil {
+		return a.cfg.Probes
+	}
+	return probes
 }
 
 // probeClient verifies TLS against the system trust store. serverName sets SNI when the dial host differs.
@@ -83,9 +94,10 @@ func (a *API) services(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusForbidden, "Platform services need an operator role.")
 		return
 	}
-	probes := make([]probeResult, len(a.cfg.Probes))
+	definitions := a.platformProbes(r.Context())
+	probes := make([]probeResult, len(definitions))
 	var wg sync.WaitGroup
-	for i, p := range a.cfg.Probes {
+	for i, p := range definitions {
 		wg.Add(1)
 		go func() { defer wg.Done(); probes[i] = probe(r.Context(), p) }()
 	}
