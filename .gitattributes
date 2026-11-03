@@ -1,2 +1,2 @@
-deploy/image/ai/ai-probes text eol=lf
-deploy/image/ai/shippin-ai-status text eol=lf
+# Every text file is LF on every platform. Scripts, Dockerfiles and Go tools break on CRLF.
+* text=auto eol=lf
