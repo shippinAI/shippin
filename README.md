@@ -24,6 +24,7 @@ On a disposable machine, `sudo ./install/panel/install.sh --example` does the sa
 - [Source boundaries](docs/source-of-truth.md)
 - [API contract](api/openapi/openapi.yaml)
 - [API workbench](panel/README.md) (not the installed panel)
+- [Host-side Incus diagnostic](agent/README.md)
 - [Contributing](CONTRIBUTING.md)
 
 `web/` is the panel. `cmd/console` is the control plane. `cmd/shippin-hostd` is the host agent. `third_party/warden-ct102` is the Proxmox panel. `panel/` is the older API workbench. Site names, addresses, and secrets belong in `/etc/shippin/site.env`, not in git.
