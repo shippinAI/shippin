@@ -13,7 +13,7 @@ Three rules keep it safe:
 3. **The control plane does not depend on it.** Signing in, authorizing and auditing work whatever state that row is in. A tenant problem must never lock the operator out of fixing it.
 
 ```
-Staff roles (Nomen) ──grant──▶ permissions ──gate──▶ every /v1/infra and /v1/operator route
+Staff roles ─────────grant──▶ permissions ──gate──▶ every /v1/infra and /v1/operator route
                                                           │ note + audit, then approval
                                                           ▼
 System tenant ──owns──▶ hosts, the panel's guest      Customer tenants ──own──▶ their own servers
@@ -84,10 +84,6 @@ Staff roles grant these once the team is in enforce mode (**Provider panel → T
 - The panel gets its own registrable domain. Session cookies stay host-only.
 - Customer workloads never share a registrable domain with the panel or with marketing. Put them under a dedicated name registered on the [Public Suffix List](https://publicsuffix.org/), so one customer's site cannot set cookies for another's. This is why GitHub serves pages from `github.io`.
 - Mail uses its own domain or subdomain, so that a deliverability or reputation problem cannot affect the panel.
-
-### CP-10: Telemetry is not training data by default
-
-**Status:** Not built. Agent telemetry may become supervised and unsupervised training data, but customer prompts, code and logs must be excluded unless that customer has opted in, per tenant, revocably, with secrets and personal data removed first, and with retention stated. The system tenant's own activity is the safe place to start.
 
 ## Order
 

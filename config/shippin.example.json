@@ -23,28 +23,7 @@
     "project": "platform",
     "host_label": "primary"
   },
-  "probes": [
-    {
-      "name": "Nomen",
-      "kind": "nomen",
-      "instance": "zitadel"
-    },
-    {
-      "name": "Vaultix",
-      "kind": "vaultix",
-      "instance": "infisical"
-    },
-    {
-      "name": "Edge",
-      "kind": "caddy",
-      "instance": "edge"
-    },
-    {
-      "name": "Database",
-      "kind": "postgres",
-      "instance": "pg"
-    }
-  ],
+  "probes": [],
   "plan_name": "Founder",
   "workspaces": {
     "user": "dev",

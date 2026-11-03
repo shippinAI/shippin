@@ -119,6 +119,10 @@ sudo ./install/panel/install.sh --example
 
 Host agent settings, hypervisor tokens, and SMTP passwords stay in that uncommitted file or in `/etc/shippin/hostd.json` copied from [deploy/hostd.example.json](../deploy/hostd.example.json). The Proxmox panel reads `/etc/warden/warden.env`, copied from [third_party/warden-ct102/warden.env.example](../third_party/warden-ct102/warden.env.example), with TLS verification left on.
 
+## Watching other services
+
+**Platform health** shows a card for each service you ask it to watch, and none until you do. Add them under **Provider panel → Platform settings**, or in `probes` in the config file, each with a name, a kind and either an HTTP `url` or a `tcp` address. A kind of `identity`, `secrets`, `mail`, `dns`, `proxy` or `database` picks a matching icon, and anything else gets a plain one. Set `instance` to tie a card to an Incus instance and show its memory and address.
+
 ## The audit log
 
 Every run of the installer hands `audit_log` to a database role nobody can log in as, so the panel can read and append but not change or delete, and adds a hash chain that can be re-walked. **Provider panel → Tenants** shows whether it is protected and intact.

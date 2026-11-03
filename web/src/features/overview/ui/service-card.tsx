@@ -6,23 +6,23 @@ import { Focusable } from "react-aria-components";
 import type { Instance, Probe } from "../../../lib/api/types";
 import { formatBytes } from "../../../lib/format";
 
+// The kind is whatever the configuration calls it. These categories only choose an icon, and any other
+// kind gets the plain one.
 const kinds: Record<string, { icon: typeof Server; hue: string }> = {
-  nomen: { icon: Fingerprint, hue: "var(--color-hue-identity)" },
-  vaultix: { icon: KeyRound, hue: "var(--color-hue-secrets)" },
+  identity: { icon: Fingerprint, hue: "var(--color-hue-identity)" },
+  secrets: { icon: KeyRound, hue: "var(--color-hue-secrets)" },
   mail: { icon: Mail, hue: "var(--color-hue-edge)" },
   dns: { icon: Network, hue: "var(--color-hue-data)" },
-  // Pre-rebrand probe kinds, so a config rollback still renders.
-  infisical: { icon: KeyRound, hue: "var(--color-hue-secrets)" },
-  caddy: { icon: Globe, hue: "var(--color-hue-edge)" },
-  postgres: { icon: Database, hue: "var(--color-hue-data)" },
+  proxy: { icon: Globe, hue: "var(--color-hue-edge)" },
+  database: { icon: Database, hue: "var(--color-hue-data)" },
 };
 
 /** Live card: HTTP/TCP probe plus the backing Incus instance state. */
 export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Instance }) {
-  const k = kinds[probe.kind] ?? { icon: Server, hue: "var(--color-primary)" };
+  const k = kinds[probe.kind.toLowerCase()] ?? { icon: Server, hue: "var(--color-primary)" };
   const Icon = k.icon;
   return (
-    <div className="group relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-e1)] transition-shadow hover:shadow-[var(--shadow-e2)]">
+    <div data-testid="service-card" className="group relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-e1)] transition-shadow hover:shadow-[var(--shadow-e2)]">
       <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${k.hue}, transparent)` }} />
       <div className="flex items-start justify-between">
         <span className="flex size-10 items-center justify-center rounded-xl" style={{ background: `color-mix(in oklch, ${k.hue} 16%, transparent)` }}>
@@ -41,10 +41,11 @@ export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Inst
       </div>
       <div className="mt-4 text-[15px] font-semibold">{probe.name}</div>
       <div className="text-xs text-fg-subtle capitalize">{probe.kind}</div>
-      <dl className="mt-4 grid grid-cols-[0.8fr_1fr_1.25fr] gap-2 border-t border-line pt-3.5 text-xs">
-        <Stat label="Latency" value={probe.detail === "not configured" ? "—" : `${probe.latency_ms} ms`} />
-        <Stat label="Memory" value={formatBytes(instance?.memory_bytes ?? 0)} />
-        <Stat label="Address" value={instance?.ipv4 ?? "—"} mono />
+      <dl className="mt-4 flex gap-6 border-t border-line pt-3.5 text-xs">
+        <Stat label="Latency" value={probe.configured === false ? "—" : `${probe.latency_ms} ms`} />
+        {/* Only a service tied to an instance has these to show. */}
+        {instance && <Stat label="Memory" value={formatBytes(instance.memory_bytes)} />}
+        {instance && <Stat label="Address" value={instance.ipv4 || "—"} mono />}
       </dl>
     </div>
   );

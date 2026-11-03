@@ -55,9 +55,9 @@ func fakeServer(t *testing.T) (srv *httptest.Server, trustedCount func() int, po
 			if trusted[peer] {
 				auth = "trusted"
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"metadata": map[string]any{"auth": auth, "environment": map[string]any{"server_version": "6.0.4", "server_name": "plat", "kernel_version": "6.12", "os_name": "Debian", "os_version": "13"}}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"metadata": map[string]any{"auth": auth, "environment": map[string]any{"server_version": "6.0.4", "server_name": "node1", "kernel_version": "6.12", "os_name": "Debian", "os_version": "13"}}})
 		case r.URL.Path == "/1.0/resources":
-			_ = json.NewEncoder(w).Encode(map[string]any{"metadata": map[string]any{"cpu": map[string]any{"total": 112, "sockets": []map[string]string{{"name": "Xeon 8280"}}}, "memory": map[string]any{"total": 800, "used": 100}}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"metadata": map[string]any{"cpu": map[string]any{"total": 112, "sockets": []map[string]string{{"name": "Xeon 9000"}}}, "memory": map[string]any{"total": 800, "used": 100}}})
 		default:
 			http.NotFound(w, r)
 		}
@@ -97,7 +97,7 @@ func TestEnrollSpendsTheTokenAndProvesTrust(t *testing.T) {
 		t.Fatalf("%+v %v", h, err)
 	}
 	d, err := c.Details(context.Background())
-	if err != nil || d.Hostname != "plat" || d.CPUs != 112 || d.CPUModel != "Xeon 8280" || d.MemTotal != 800 || d.OS != "Debian 13" {
+	if err != nil || d.Hostname != "node1" || d.CPUs != 112 || d.CPUModel != "Xeon 9000" || d.MemTotal != 800 || d.OS != "Debian 13" {
 		t.Fatalf("%+v %v", d, err)
 	}
 }

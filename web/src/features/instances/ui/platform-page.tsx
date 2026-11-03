@@ -8,7 +8,7 @@ export function PlatformPage() {
   const me = useMe().data;
   return (
     <>
-      <PageHeader eyebrow="Operator" title="Platform health" description="Live probes of every platform service, joined with Incus state." />
+      <PageHeader eyebrow="Operator" title="Platform health" description="The hosts this panel manages, and the services you have told it to watch." />
       {me?.capabilities["infra.hosts"] && <InfrastructureSummary />}
       <ServicesGrid />
       <TenantsCard />
