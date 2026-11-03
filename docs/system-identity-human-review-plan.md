@@ -10,9 +10,12 @@ records; the control plane owns the authoritative system inventory.
 ## Grounded starting point
 
 - The draft platform compute API (`api/openapi/paths/compute-nodes.yaml` and its
-  schema) uses a UUID, name and Incus/Proxmox provider. Enrollment and the
+  schema) uses a UUID and name; inventory responses may have an unspecified
+  provider and optional observed hostname, nickname, aliases and tags. Enrollment and the
   control plane are planned; `panel/src/features/infrastructure/` only reads a
-  planned API. The agent currently supplies read-only provider diagnostics.
+  planned API and displays that metadata when supplied. The agent currently
+  supplies read-only provider diagnostics; no server persists or emits these new
+  fields here, and the enrollment request still requires a provider.
 - AgentHub `server/internal/machines/list.go` and migration
   `004_devagotchi_access.sql` define a separate machine with a text ID, label,
   bridge identity, host relationship and connection state. Its machine API and
@@ -49,6 +52,13 @@ facts. Hostname failure or stale data must not create a duplicate or claim a
 system is online. Follow the distinction between identity and descriptive names
 in [OpenTelemetry's host conventions](https://opentelemetry.io/docs/specs/semconv/resource/host/)
 and [Kubernetes names and UIDs](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/).
+
+The draft inventory response now permits `provider: null` for an unspecified
+provider; that is not proof that a provider is absent or that the system is ready.
+The existing `name` remains for compatibility, while the panel prefers nickname,
+then observed hostname, then name. Earlier consumers may reject a null provider;
+coordinate their migration before a server emits it. The added response fields do
+not create a system, discover a hostname, change a provider or save metadata.
 
 Human-review requests and audit records must identify the same Shippin system ID
 and include a snapshot of the relevant hostname, alias, provenance, action,
