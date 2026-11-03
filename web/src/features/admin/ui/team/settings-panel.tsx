@@ -33,6 +33,10 @@ export function SettingsPanel({ team, canEdit }: { team: Team; canEdit: boolean 
         <div className="w-96"><Select label="Mode" options={modes} value={s.mode} onChange={(v) => set("mode")(v as TeamSettings["mode"])} /></div></div>
       <div className={row}><div><div className="text-sm text-fg">IAM owner fallback</div><div className={help}>In enforce mode, {idp} instance owners keep Owner rights. Every use is audited.</div></div>
         <Switch isSelected={s.legacy_fallback} onChange={set("legacy_fallback")} isDisabled={!canEdit} tooltip="authz.legacy_iam_owner is logged on use" /></div>
+      {team.local_roles && (
+        <div className={row}><div><div className="text-sm text-fg">Staff need a second factor</div><div className={help}>Roles apply once someone has a passkey or signs in through an identity provider. Browsers refuse passkeys on a site with a certificate warning, so turn this off only if yours has one and you have no provider.</div></div>
+          <Switch isSelected={!s.no_second_factor} onChange={(on) => set("no_second_factor")(!on)} isDisabled={!canEdit} tooltip="Off lets roles apply with a recovery code alone" /></div>
+      )}
       <div className={row}><div><div className="text-sm text-fg">Two-person rule</div><div className={help}>High-risk grants and role edits wait for a second Owner. Takes effect with 2+ Owners ({team.owners} now{team.two_person_active ? ", active" : ""}).</div></div>
         <Switch isSelected={s.two_person} onChange={set("two_person")} isDisabled={!canEdit} tooltip="Requester can never approve their own change" /></div>
       <div className={row}><div><div className="text-sm text-fg">Break-glass needs an approver</div><div className={help}>Someone else with access.approve_breakglass approves. Never self-approval.</div></div>

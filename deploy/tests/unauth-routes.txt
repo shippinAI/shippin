@@ -167,6 +167,7 @@ POST /v1/operator/customers/{id}/provision-intent
 POST /v1/operator/staff-mode
 POST /v1/operator/staff-mode/exit
 POST /v1/operator/team/members
+POST /v1/operator/team/members/{userId}/invite-link
 POST /v1/operator/team/members/{userId}/{state}
 POST /v1/operator/team/permission-grants
 POST /v1/operator/team/requests/{requestId}/{decision}

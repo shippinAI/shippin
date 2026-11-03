@@ -8,6 +8,7 @@ export type TenantRef = {
 };
 
 export type Me = {
+  staff?: { mfa_required?: boolean };
   user_id: string;
   display_name: string;
   email?: string;
@@ -38,6 +39,7 @@ export type PublicSettings = {
   operator_origin_only?: boolean;
   /** Upstream sign-ins (Google, GitHub...) the IdP offers; each is /auth/login?idp=<id>. */
   login_providers?: { id: string; label: string }[];
+  sign_in_providers?: { id: string; label: string }[];
 };
 
 export type Probe = { name: string; kind: string; instance: string; healthy: boolean; configured?: boolean; latency_ms: number; detail: string };

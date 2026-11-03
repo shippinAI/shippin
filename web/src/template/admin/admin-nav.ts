@@ -10,7 +10,7 @@ export const adminNav: NavItem[] = [
   { id: "admin.workspaces", label: "Workspaces", icon: Boxes, to: "/admin/workspaces", hue: "var(--color-hue-workspaces)", cap: "workspaces.read", feature: "workspaces" },
   { id: "admin.access", label: "Access & audit", icon: ShieldCheck, to: "/admin/access", hue: "var(--color-danger)", cap: "audit.read|access.request|access.approve_breakglass" },
   { id: "admin.templates", label: "Templates", icon: LayoutTemplate, to: "/admin/templates", hue: "var(--color-hue-ai)", cap: "templates.read", feature: "workspaces" },
-  { id: "admin.identity", label: "Users & sign-in", icon: Fingerprint, to: "/admin/identity", hue: "var(--color-hue-identity)", cap: "identity.read" },
+  { id: "admin.identity", label: "Users & sign-in", icon: Fingerprint, to: "/admin/identity", hue: "var(--color-hue-identity)", cap: "identity.read", feature: "idp_admin" },
   { id: "admin.host", label: "Host", icon: Server, to: "/admin/host", hue: "var(--color-hue-data)", cap: "host.read", feature: "workspaces" },
   { id: "admin.edge", label: "Edge", icon: Globe, to: "/admin/edge", hue: "var(--color-hue-edge)", cap: "edge.read", feature: "workspaces" },
   { id: "admin.platform", label: "Platform settings", icon: SlidersHorizontal, to: "/admin/platform", hue: "var(--color-hue-data)", cap: "platform.settings.read" },

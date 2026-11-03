@@ -21,5 +21,5 @@ export function LandingRedirect() {
   const t = me?.tenants[0];
   if (t) return <Navigate to={`/t/${t.tenant_id}`} replace />;
   const caps = me?.capabilities ?? {};
-  return <Navigate to={caps["ops.view"] ? "/ops/servers" : caps["operator.view"] ? "/operator" : "/welcome"} replace />;
+  return <Navigate to={caps["ops.view"] ? "/ops/servers" : caps["operator.view"] ? "/operator" : caps["infra.hosts"] ? "/operator/hosts" : caps["provider.panel"] ? "/admin" : "/welcome"} replace />;
 }

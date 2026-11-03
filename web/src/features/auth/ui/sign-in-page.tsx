@@ -58,6 +58,18 @@ export function SignInPage() {
                 Continue with {p.label} <ArrowRight className="size-4" />
               </Button>
             ))}
+            {(s?.sign_in_providers ?? []).map((p) => (
+              <Button
+                key={p.id}
+                variant={s?.login_ready ? "secondary" : "primary"}
+                size="lg"
+                className="mb-3 w-full"
+                tooltip={`Sign in with ${p.label}`}
+                onPress={() => window.location.assign(`/auth/upstream/${encodeURIComponent(p.id)}`)}
+              >
+                Continue with {p.label} <ArrowRight className="size-4" />
+              </Button>
+            ))}
             {s?.local_login !== false && (
               <form
                 className="mt-4 grid gap-2"

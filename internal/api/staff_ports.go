@@ -64,9 +64,17 @@ func (a *API) store() staffStore {
 	return a.db
 }
 
+// localRoles says this panel holds staff roles itself: nothing has been set up to hold them elsewhere.
+func (a *API) localRoles() bool {
+	return a.staffIdP == nil && a.db != nil && a.cfg.Staff.TeamToken == "" && a.cfg.IDP.ClientID == ""
+}
+
 func (a *API) idp() staffIdP {
 	if a.staffIdP != nil {
 		return a.staffIdP
+	}
+	if a.localRoles() {
+		return &localStaff{db: a.db, noSecondFactor: func(ctx context.Context) bool { return a.teamSettings(ctx).NoSecondFactor }}
 	}
 	return &nomenStaff{flow: a.flow, tok: a.cfg.Staff.TeamToken, org: a.cfg.StaffOrg(), project: a.cfg.Staff.ProjectID}
 }

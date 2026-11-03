@@ -177,13 +177,26 @@ func (a *API) publicSettings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{
 		"brand": brand, "domain": a.cfg.Domain,
 		"local_login": !a.cfg.Directory.UpstreamRequired, "signup": a.cfg.Directory.Signup,
-		"setup_open": a.directory != nil && !a.directory.HasOwner(r.Context()),
+		"setup_open":         a.directory != nil && !a.directory.HasOwner(r.Context()),
 		"governance_domains": a.cfg.GovernanceDomains,
 		"idp_host":           a.cfg.IDP.Issuer, "idp_account_url": a.idpAccountURL(r.Context()), "idp_name": a.cfg.IDP.Name, "login_ready": ready, "app": app,
 		"console_url": "https://" + a.cfg.ConsoleHost, "operator_url": a.operatorURL(),
 		"operator_origin_only": a.cfg.Operator.OriginOnly && a.cfg.Operator.Host != "",
 		"login_providers":      loginProviders(a.cfg.IDP.Providers),
+		"sign_in_providers":    signInProviders(a.cfg.Directory.Upstreams),
 	})
+}
+
+// signInProviders lists the OIDC providers people can sign in through. One with no issuer or client is
+// not set up, so it is not offered.
+func signInProviders(ups []config.Upstream) []map[string]string {
+	out := []map[string]string{}
+	for _, u := range ups {
+		if u.Issuer != "" && u.ClientID != "" {
+			out = append(out, map[string]string{"id": u.ID, "label": u.Label})
+		}
+	}
+	return out
 }
 
 // loginProviders lists the upstream sign-in buttons (id and label only; IdP ids stay server-side).

@@ -308,6 +308,10 @@ func (s *Service) LinkUpstream(ctx context.Context, issuer, sub, email string, v
 			if _, err := s.db.Exec(ctx, `INSERT INTO identity_links (issuer, sub, user_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, issuer, sub, u.ID); err != nil {
 				return User{}, err
 			}
+			// The provider vouched for this email, which is what an invited account was waiting for.
+			if _, err := s.db.Exec(ctx, `UPDATE identity_users SET email_verified = true WHERE id = $1`, u.ID); err != nil {
+				return User{}, err
+			}
 			s.audit(ctx, u.ID, "account.link", map[string]string{"issuer": issuer})
 			return u, nil
 		}
@@ -361,27 +365,46 @@ func (s *Service) CreateInvite(ctx context.Context, actor, email, role string, u
 	return raw, nil
 }
 
-// RedeemInvite creates a member from an invite code.
-func (s *Service) RedeemInvite(ctx context.Context, raw, email, name string) (User, error) {
+// RedeemInvite makes a member from an invite code, or hands them the account someone made for them. An
+// account that has already been signed in to is never taken over this way. Recovery codes come back
+// once, because with no mail or passkey they are how this person signs in next time.
+func (s *Service) RedeemInvite(ctx context.Context, raw, email, name string) (User, []string, error) {
 	email = emailNorm(email)
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
-		return User{}, err
+		return User{}, nil, err
 	}
 	defer tx.Rollback(ctx)
 	if err := consumeInvite(ctx, tx, raw, email); err != nil {
-		return User{}, err
+		return User{}, nil, err
 	}
-	u, err := insertUser(ctx, tx, email, name, "member", true)
+	var u User
+	err = tx.QueryRow(ctx, `SELECT id, email, name, role, email_verified FROM identity_users WHERE email = $1`, email).Scan(&u.ID, &u.Email, &u.Name, &u.Role, &u.EmailVerified)
+	switch {
+	case err == nil && u.EmailVerified:
+		return User{}, nil, ErrInvite
+	case err == nil:
+		if _, err := tx.Exec(ctx, `UPDATE identity_users SET email_verified = true, name = CASE WHEN $2 = '' THEN name ELSE $2 END WHERE id = $1`, u.ID, name); err != nil {
+			return User{}, nil, err
+		}
+		u.EmailVerified = true
+	case errors.Is(err, pgx.ErrNoRows):
+		if u, err = insertUser(ctx, tx, email, name, "member", true); err != nil {
+			return User{}, nil, err
+		}
+	default:
+		return User{}, nil, err
+	}
+	codes, err := insertRecovery(ctx, tx, u.ID)
 	if err != nil {
-		return User{}, err
+		return User{}, nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return User{}, err
+		return User{}, nil, err
 	}
 	s.audit(ctx, u.ID, "invite.redeemed", map[string]string{"email": email})
 	s.emit(ctx, "invite.redeemed", map[string]string{"user_id": u.ID})
-	return u, nil
+	return u, codes, nil
 }
 
 // JoinWaitlist records a pending row and mails a confirmation token.

@@ -998,7 +998,7 @@ func (a *API) permitAction(w http.ResponseWriter, r *http.Request, c *caller, ac
 			return false
 		}
 		if st != "approved" {
-			writeBoardWait(r.Context(), w, cards, org, key, verb, guest, st)
+			writeBoardWait(r.Context(), w, cards, org, key, verb, guest, st, a.cfg.Approval.Allows(approverSubject(a, c), "hub.decide", ""))
 			return false
 		}
 		// An approval covers one change. Only one request can take it.
@@ -1009,7 +1009,7 @@ func (a *API) permitAction(w http.ResponseWriter, r *http.Request, c *caller, ac
 				return false
 			}
 			if !used {
-				writeBoardWait(r.Context(), w, cards, org, key, verb, guest, st)
+				writeBoardWait(r.Context(), w, cards, org, key, verb, guest, st, a.cfg.Approval.Allows(approverSubject(a, c), "hub.decide", ""))
 				return false
 			}
 		}
@@ -1079,9 +1079,11 @@ func changeTitle(verb, guest string) string {
 	return verb + " " + guest
 }
 
-func writeBoardWait(ctx context.Context, w http.ResponseWriter, cards cardBoard, org, key, verb, guest, st string) {
+// writeBoardWait says a change is waiting. The card's id goes only to someone who can decide it, which is
+// what offers them the decision on the page.
+func writeBoardWait(ctx context.Context, w http.ResponseWriter, cards cardBoard, org, key, verb, guest, st string, canDecide bool) {
 	id := ""
-	if finder, ok := cards.(cardFinder); ok {
+	if finder, ok := cards.(cardFinder); ok && canDecide {
 		if found, err := finder.CardID(ctx, org, key); err == nil {
 			id = found
 		}

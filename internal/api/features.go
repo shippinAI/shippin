@@ -14,5 +14,6 @@ func (a *API) features() map[string]bool {
 		"feature.secrets":    a.cfg.Vaultix.Enabled,
 		"feature.servers":    a.cfg.Servers.Enabled,
 		"feature.orgs":       a.cfg.Orgs.Enabled,
+		"feature.idp_admin":  a.cfg.IDPReadToken != "",
 	}
 }

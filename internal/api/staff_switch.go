@@ -53,7 +53,7 @@ func freshAuth(at, now time.Time, window time.Duration) bool {
 }
 
 func (a *API) staffReauthWindow(c *caller) time.Duration {
-	if c.installOwner {
+	if c.installOwner || strings.HasPrefix(c.id.Sub, localSubPrefix) {
 		return a.cfg.Staff.Session.LocalReauth()
 	}
 	return a.cfg.Staff.Session.Reauth()

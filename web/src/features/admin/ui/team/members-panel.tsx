@@ -23,7 +23,7 @@ export function MembersPanel({ team, canWrite }: { team: Team; canWrite: boolean
       <DataTable label="Staff" columns={memberColumns(team.roles)} rows={rows} onRowAction={setOpen}
         empty={<EmptyState title="No staff yet" description="Invite someone by e-mail to get started." />} />
       <MemberDrawer team={team} member={team.members.find((m) => m.id === open)} canWrite={canWrite} onClose={() => setOpen(undefined)} />
-      {inviting && <InviteDialog roles={team.roles} onClose={() => setInviting(false)} />}
+      {inviting && <InviteDialog roles={team.roles} local={team.local_roles} onClose={() => setInviting(false)} />}
     </Card>
   );
 }

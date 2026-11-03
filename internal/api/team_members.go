@@ -33,7 +33,7 @@ func (a *API) teamSetRoles(w http.ResponseWriter, r *http.Request, c *caller) {
 	}
 	cur, err := a.idp().Grant(r.Context(), id)
 	if err != nil {
-		auth.Problem(w, http.StatusBadGateway, a.cfg.IDP.Name+" couldn't be read.")
+		auth.Problem(w, http.StatusBadGateway, a.idpWord()+" couldn't be read.")
 		return
 	}
 	roles, ok := a.checkRoles(w, r, in.Roles)
@@ -68,8 +68,8 @@ func (a *API) applyRoles(w http.ResponseWriter, r *http.Request, c *caller, id, 
 	}
 	if err := a.idp().SetRoles(r.Context(), id, cur, in.Roles); err != nil {
 		log.Printf("team roles for %s: %v", id, err)
-		_ = a.store().AddAudit(r.Context(), teamEntry(r, c, "team.roles_failed", name+" ("+id+"): "+a.cfg.IDP.Name+" refused the change"))
-		auth.Problem(w, http.StatusBadGateway, a.cfg.IDP.Name+" refused the change; nothing was granted.")
+		_ = a.store().AddAudit(r.Context(), teamEntry(r, c, "team.roles_failed", name+" ("+id+"): "+a.idpWord()+" refused the change"))
+		auth.Problem(w, http.StatusBadGateway, a.idpWord()+" refused the change; nothing was granted.")
 		return
 	}
 	a.staffCache.flush()
@@ -110,7 +110,7 @@ func (a *API) teamSetActive(w http.ResponseWriter, r *http.Request, c *caller) {
 	if err := a.idp().SetActive(r.Context(), id, state == "reactivate"); err != nil {
 		log.Printf("team %s %s: %v", state, id, err)
 		_ = a.store().AddAudit(r.Context(), teamEntry(r, c, "team."+state+"_failed", u.Name+" ("+id+")"))
-		auth.Problem(w, http.StatusBadGateway, a.cfg.IDP.Name+" refused the change.")
+		auth.Problem(w, http.StatusBadGateway, a.idpWord()+" refused the change.")
 		return
 	}
 	a.staffCache.flush()

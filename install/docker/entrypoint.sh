@@ -16,6 +16,11 @@ fi
 export SHIPPIN_CONSOLE_HOST=${SHIPPIN_CONSOLE_HOST:-localhost}
 export SHIPPIN_DOMAIN=${SHIPPIN_DOMAIN:-$SHIPPIN_CONSOLE_HOST}
 export SHIPPIN_OPERATOR_HOST=${SHIPPIN_OPERATOR_HOST:-none}
+# What a provider sends people back to, including a port the browser has to use.
+case "${SHIPPIN_PORT:-443}" in
+  443) ;;
+  *) export SHIPPIN_ORIGIN=${SHIPPIN_ORIGIN:-https://$SHIPPIN_CONSOLE_HOST:$SHIPPIN_PORT} ;;
+esac
 
 # Session cookies are Secure and writes must come from an https origin, so the panel needs TLS.
 # A proxy in front can terminate it instead: set SHIPPIN_TLS=proxy.

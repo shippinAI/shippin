@@ -29,7 +29,13 @@ The panel is its own authorization server for its own clients.
 
 The public client id defaults to `shippin-panel`. Redirect URLs come from `directory.redirects`, or `https://<console_host>/auth/callback` when that list is empty. Refresh tokens rotate. Reusing an old refresh token revokes the family.
 
-## Upstream Nomen and other issuers
+## Signing in through any OIDC provider
+
+Any provider with OIDC discovery works: Keycloak, Authentik, Google, Dex or anything else. Register the panel with it, with the redirect URL `https://<console host>/auth/upstream/callback`, and set `SHIPPIN_SSO_ISSUER`, `SHIPPIN_SSO_NAME`, `SHIPPIN_SSO_CLIENT_ID` and `SHIPPIN_SSO_SECRET` in the site file. Several providers go in `directory.upstreams`. Each gets a button on the sign-in page.
+
+Under the default signup policy, only someone already invited gets in. Add them under **Provider panel → Team**. When they sign in with the same verified email, they get the account and roles made for them. Without a provider, the same screen gives a one-time link that lasts a week, and they get recovery codes when they claim it.
+
+## Upstream issuers
 
 Nomen remains an optional upstream. The existing `idp.issuer` and `idp.client_id` (or `SHIPPIN_NOMEN_ISSUER` and `SHIPPIN_OIDC_CLIENT_ID`) keep the current BFF login at `/auth/login`.
 

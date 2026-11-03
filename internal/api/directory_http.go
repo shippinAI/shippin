@@ -213,12 +213,17 @@ func (a *API) inviteRedeem(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusBadRequest, "Request body was not accepted.")
 		return
 	}
-	u, err := a.directory.RedeemInvite(r.Context(), in.Code, in.Email, in.Name)
+	u, codes, err := a.directory.RedeemInvite(r.Context(), in.Code, in.Email, in.Name)
 	if err != nil {
 		auth.Problem(w, http.StatusBadRequest, "Invite is not valid.")
 		return
 	}
-	a.startSession(w, r, u.ID)
+	sid, err := a.flow.StartLocal(w, r, u.ID)
+	if err != nil {
+		auth.Problem(w, http.StatusServiceUnavailable, "Sign-in is unavailable right now.")
+		return
+	}
+	writeJSON(w, map[string]any{"user_id": u.ID, "session": sid, "recovery_codes": codes})
 }
 
 func (a *API) waitlistJoin(w http.ResponseWriter, r *http.Request) {
@@ -258,7 +263,7 @@ func (a *API) directoryMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var email, name, role string
-	if err := a.db.Pool.QueryRow(r.Context(), `SELECT email, name, role FROM identity_users WHERE id = $1`, id).Scan(&email, &name, &role); err != nil {
+	if err := a.db.Pool.QueryRow(r.Context(), `SELECT email, name, role FROM identity_users WHERE id = $1 AND active`, id).Scan(&email, &name, &role); err != nil {
 		auth.Problem(w, http.StatusUnauthorized, "Sign in to continue.")
 		return
 	}
