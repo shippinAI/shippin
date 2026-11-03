@@ -1,0 +1,41 @@
+export class ApiError extends Error {
+  code?: string;
+  cardKey?: string;
+  constructor(public status: number, message: string, extra?: { code?: string; card_key?: string }) {
+    super(message);
+    this.code = extra?.code;
+    this.cardKey = extra?.card_key;
+  }
+}
+
+function problemMessage(data: unknown, fallback: string): { message: string; code?: string; card_key?: string } {
+  const p = data as { message?: string; code?: string; card_key?: string };
+  return { message: p?.message || fallback, code: p?.code, card_key: p?.card_key };
+}
+
+/** GET a control-plane endpoint; problem+json errors become ApiError. */
+export async function apiGet<T>(path: string): Promise<T> {
+  const res = await fetch(path, { credentials: "same-origin", headers: { Accept: "application/json" } });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const p = problemMessage(body, res.statusText);
+    throw new ApiError(res.status, p.message, p);
+  }
+  return (await res.json()) as T;
+}
+
+/** POST/PUT with JSON; returns the parsed body (problem+json → ApiError). */
+export async function apiSend<T>(method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method,
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json", Accept: "application/json", "Idempotency-Key": crypto.randomUUID() },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = res.status === 204 ? {} : await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const p = problemMessage(data, res.statusText);
+    throw new ApiError(res.status, p.message, p);
+  }
+  return data as T;
+}

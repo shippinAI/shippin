@@ -1,0 +1,267 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Firewall</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        <section class="card">
+            {{ if not .Firewall.Available }}
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h2 style="margin:0;padding:0;border:none;">FIREWALL</h2>
+            </div>
+            <div class="fw-unavailable">
+                <p>UFW (Uncomplicated Firewall) is not installed on this system.</p>
+                <p class="text-dim">Install it with: <code>sudo apt install ufw</code></p>
+            </div>
+            {{ else }}
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h2 style="margin:0;padding:0;border:none;">
+                    FIREWALL
+                    {{ if .Firewall.Active }}
+                    <span class="badge state-up" style="margin-left:0.75rem;">Active</span>
+                    {{ else }}
+                    <span class="badge state-down" style="margin-left:0.75rem;">Inactive</span>
+                    {{ end }}
+                </h2>
+                <div class="action-btns">
+                    {{ if .Firewall.Active }}
+                    <button class="btn btn-primary" onclick="showAddRule()">Add Rule</button>
+                    <button class="btn" onclick="fwAction('reload')">Reload</button>
+                    <button class="btn btn-danger" onclick="fwToggle('disable')">Disable</button>
+                    {{ else }}
+                    <button class="btn btn-ok" onclick="fwToggle('enable')">Enable</button>
+                    <button class="btn btn-danger" onclick="fwAction('reset')">Reset</button>
+                    {{ end }}
+                </div>
+            </div>
+
+            <!-- Add Rule Form -->
+            <div id="rule-form" class="cron-form" style="display:none;">
+                <div class="cron-form-header">
+                    <h3>Add Firewall Rule</h3>
+                    <button class="btn btn-sm" onclick="hideRuleForm()">Cancel</button>
+                </div>
+                <div class="cron-form-fields">
+                    <div class="cron-schedule-row">
+                        <div class="cron-field" style="flex:1;">
+                            <label>Action</label>
+                            <select id="r-action" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.4rem 0.5rem;font-size:0.9rem;">
+                                <option value="allow">Allow</option>
+                                <option value="deny">Deny</option>
+                                <option value="reject">Reject</option>
+                                <option value="limit">Limit</option>
+                            </select>
+                        </div>
+                        <div class="cron-field" style="flex:1;">
+                            <label>Direction</label>
+                            <select id="r-direction" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.4rem 0.5rem;font-size:0.9rem;">
+                                <option value="in">Inbound</option>
+                                <option value="out">Outbound</option>
+                            </select>
+                        </div>
+                        <div class="cron-field" style="flex:1;">
+                            <label>Port</label>
+                            <input type="text" id="r-port" placeholder="22, 80, 8000:9000" style="text-align:left;">
+                        </div>
+                        <div class="cron-field" style="flex:1;">
+                            <label>Protocol</label>
+                            <select id="r-proto" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.4rem 0.5rem;font-size:0.9rem;">
+                                <option value="any">Any</option>
+                                <option value="tcp">TCP</option>
+                                <option value="udp">UDP</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="cron-schedule-row">
+                        <div class="cron-field" style="flex:1;">
+                            <label>From (source)</label>
+                            <input type="text" id="r-from" placeholder="Anywhere (e.g. 10.0.0.0/8)" style="text-align:left;">
+                        </div>
+                        <div class="cron-field" style="flex:1;">
+                            <label>To (destination)</label>
+                            <input type="text" id="r-to" placeholder="Any (e.g. 192.0.2.100)" style="text-align:left;">
+                        </div>
+                        <div class="cron-field" style="flex:1;">
+                            <label>Comment</label>
+                            <input type="text" id="r-comment" placeholder="Optional description" style="text-align:left;">
+                        </div>
+                    </div>
+                    <div class="cron-preset-row">
+                        <label>Presets:</label>
+                        <button class="btn btn-sm" onclick="setPreset('allow','in','22','tcp','','','SSH')">SSH</button>
+                        <button class="btn btn-sm" onclick="setPreset('allow','in','80','tcp','','','HTTP')">HTTP</button>
+                        <button class="btn btn-sm" onclick="setPreset('allow','in','443','tcp','','','HTTPS')">HTTPS</button>
+                        <button class="btn btn-sm" onclick="setPreset('allow','in','80,443','tcp','','','Web')">HTTP+S</button>
+                        <button class="btn btn-sm" onclick="setPreset('limit','in','22','tcp','','','Rate limit SSH')">Limit SSH</button>
+                        <button class="btn btn-sm" onclick="setPreset('deny','in','','any','','','Deny all in')">Deny All In</button>
+                    </div>
+                    <button class="btn btn-primary" onclick="submitRule()">Add Rule</button>
+                </div>
+                <div id="rule-form-message" class="cron-form-message"></div>
+            </div>
+
+            <!-- Rules Table -->
+            {{ if .Firewall.Active }}
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>TO</th>
+                            <th>ACTION</th>
+                            <th>DIR</th>
+                            <th>FROM</th>
+                            <th>COMMENT</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ if not .Firewall.Rules }}
+                        <tr><td colspan="7" class="text-center text-dim">No firewall rules configured.</td></tr>
+                        {{ else }}
+                        {{ range .Firewall.Rules }}
+                        <tr data-fw-num="{{ .Number }}" data-fw-to="{{ .To }}" data-fw-action="{{ .Action }}">
+                            <td>{{ .Number }}</td>
+                            <td><code>{{ .To }}</code></td>
+                            <td>
+                                {{ if eq .Action "ALLOW" }}<span class="badge state-up">{{ .Action }}</span>
+                                {{ else if eq .Action "DENY" }}<span class="badge state-down">{{ .Action }}</span>
+                                {{ else if eq .Action "REJECT" }}<span class="badge state-down">{{ .Action }}</span>
+                                {{ else if eq .Action "LIMIT" }}<span class="badge fw-limit">{{ .Action }}</span>
+                                {{ else }}<span class="badge">{{ .Action }}</span>{{ end }}
+                            </td>
+                            <td>{{ .Direction }}</td>
+                            <td><code>{{ .From }}</code></td>
+                            <td class="desc-cell text-dim">{{ .Comment }}</td>
+                            <td class="actions-cell">
+                                <button class="btn btn-sm btn-danger" onclick="deleteRule('{{ .Number }}')" title="Delete rule">Del</button>
+                            </td>
+                        </tr>
+                        {{ end }}
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            {{ else }}
+            <p class="text-dim" style="padding:1rem 0;">Enable the firewall to view and manage rules.{{ if not .SudoEnabled }} You may need to enable sudo.{{ end }}</p>
+            {{ end }}
+            {{ end }}
+        </section>
+    </main>
+
+    <footer>
+        <span>Warden Firewall Manager</span>
+    </footer>
+
+    <script>
+        function showAddRule() {
+            document.getElementById('rule-form').style.display = '';
+            document.getElementById('rule-form-message').textContent = '';
+            document.getElementById('r-port').value = '';
+            document.getElementById('r-from').value = '';
+            document.getElementById('r-to').value = '';
+            document.getElementById('r-comment').value = '';
+        }
+
+        function hideRuleForm() {
+            document.getElementById('rule-form').style.display = 'none';
+        }
+
+        function setPreset(action, dir, port, proto, from, to, comment) {
+            document.getElementById('r-action').value = action;
+            document.getElementById('r-direction').value = dir;
+            document.getElementById('r-port').value = port;
+            document.getElementById('r-proto').value = proto;
+            document.getElementById('r-from').value = from;
+            document.getElementById('r-to').value = to;
+            document.getElementById('r-comment').value = comment;
+        }
+
+        function submitRule() {
+            var body = 'action=add_rule' +
+                '&rule_action=' + encodeURIComponent(document.getElementById('r-action').value) +
+                '&direction=' + encodeURIComponent(document.getElementById('r-direction').value) +
+                '&port=' + encodeURIComponent(document.getElementById('r-port').value) +
+                '&proto=' + encodeURIComponent(document.getElementById('r-proto').value) +
+                '&from=' + encodeURIComponent(document.getElementById('r-from').value) +
+                '&to=' + encodeURIComponent(document.getElementById('r-to').value) +
+                '&comment=' + encodeURIComponent(document.getElementById('r-comment').value);
+
+            fwPost(body, 'rule-form-message');
+        }
+
+        function deleteRule(num) {
+            Modal.confirm('Delete firewall rule #' + num + '?', {danger:true}).then(function(ok) {
+                if (!ok) return;
+                fwPost('action=delete_rule&rule_number=' + num, null);
+            });
+        }
+
+        function fwToggle(action) {
+            var msg = action === 'enable' ? 'Enable the firewall?' : 'Disable the firewall? This will leave the system unprotected.';
+            var danger = action !== 'enable';
+            Modal.confirm(msg, {danger:danger}).then(function(ok) {
+                if (!ok) return;
+                fwPost('action=' + action, null);
+            });
+        }
+
+        function fwAction(action) {
+            var msg = action === 'reset' ? 'Reset ALL firewall rules to defaults? This cannot be undone.' : 'Reload firewall?';
+            Modal.confirm(msg, {danger: action === 'reset'}).then(function(ok) {
+                if (!ok) return;
+                fwPost('action=' + action, null);
+            });
+        }
+
+        function fwPost(body, msgId) {
+            fetch('/api/firewall', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (msgId) {
+                    var msg = document.getElementById(msgId);
+                    msg.textContent = data.message;
+                    msg.className = data.success ? 'cron-form-message cron-msg-ok' : 'cron-form-message cron-msg-error';
+                }
+                if (data.success) {
+                    setTimeout(function() { location.reload(); }, 500);
+                } else if (!msgId) {
+                    alert('Failed: ' + data.message);
+                }
+            })
+            .catch(function() {
+                if (msgId) {
+                    var el = document.getElementById(msgId);
+                    el.textContent = 'Request failed';
+                    el.className = 'cron-form-message cron-msg-error';
+                } else {
+                    alert('Request failed');
+                }
+            });
+        }
+    </script>
+{{ template "scripts" }}
+<script src="/static/contextmenu.js"></script>
+<script>
+ctxMenu.attach('tr[data-fw-num]', function(row) {
+    var num = row.getAttribute('data-fw-num');
+    var to = row.getAttribute('data-fw-to');
+    var action = row.getAttribute('data-fw-action');
+    return [
+        {label: 'Rule #' + num + ' (' + action + ' ' + to + ')', disabled: true},
+        'separator',
+        {label: 'Delete Rule', icon: '\ud83d\uddd1', danger: true, action: function() { deleteRule(num); }}
+    ];
+});
+</script>
+
+</body>
+</html>

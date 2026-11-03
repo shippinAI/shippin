@@ -1,0 +1,19 @@
+{
+  "name": "__APP_NAME__",
+  "url": "https://__CONSOLE_HOST__",
+  "description": "Import repositories into Shippin devspaces: clone, push and open pull requests.",
+  "hook_attributes": { "url": "https://__CONSOLE_HOST__/v1/github/webhook", "active": true },
+  "redirect_url": "https://__CONSOLE_HOST__/",
+  "callback_urls": ["https://__CONSOLE_HOST__/v1/github/callback"],
+  "setup_url": "https://__CONSOLE_HOST__/v1/github/setup",
+  "setup_on_update": true,
+  "request_oauth_on_install": true,
+  "public": true,
+  "default_permissions": {
+    "contents": "write",
+    "metadata": "read",
+    "pull_requests": "write",
+    "workflows": "write"
+  },
+  "default_events": ["repository"]
+}

@@ -7,6 +7,12 @@ must not exist as a Shippin or AgentHub product feature, fixed policy, route,
 identity or default. AgentHub owns the configurable review policy and review
 records; the control plane owns the authoritative system inventory.
 
+> **Status:** written before the shippin-console import landed in PRs #9 to #14.
+> `cmd/console`, `internal/` and `web/` are now in this repository, `web/` is the
+> installed panel and `panel/` remains the API workbench. The "historical console"
+> Gold code described below was imported with it and is still present. Where this plan
+> differs, [source ownership](source-of-truth.md) is current.
+
 ## Grounded starting point
 
 - The draft platform compute API (`api/openapi/paths/compute-nodes.yaml` and its

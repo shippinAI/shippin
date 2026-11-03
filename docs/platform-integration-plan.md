@@ -6,6 +6,11 @@ the platform, node enrollment or managed services are implemented. Preserve the
 source folders, local modifications, branches and relevant ignored data until
 their contents have been accounted for and the replacement has been verified.
 
+> **Status:** written before the shippin-console import landed in PRs #9 to #14.
+> `cmd/console`, `internal/` and `web/` are now in this repository, `web/` is the
+> installed panel and `panel/` remains the API workbench. Where this plan
+> differs, [source ownership](source-of-truth.md) is current.
+
 ## What has been established
 
 This checkout owns the draft API in `api/openapi/`, panel in `panel/`, provider

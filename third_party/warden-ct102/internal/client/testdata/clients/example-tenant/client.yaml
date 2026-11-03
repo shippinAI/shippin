@@ -1,0 +1,11 @@
+slug: example-tenant
+name: "Example Tenant"
+owner_email: hello@example.com
+tier: default
+
+hosts_owned: []
+
+policy_ref: policy.yaml
+
+created_at: 2026-05-09T00:00:00Z
+updated_at: 2026-05-09T00:00:00Z

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Runners - Warden</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main class="container" style="padding: 1rem 2rem;">
+
+        <h2 style="font-family:'JetBrains Mono',monospace; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-dim); margin-bottom:1rem;">CI Runner Fleet</h2>
+        <p style="color:var(--text-dim);font-size:0.84rem;margin-top:0;">Health is live (GitHub + substrate + host). Stats are wide events — one row per completed job, logs stay on GitHub.</p>
+
+        <!-- fleet pills -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(340px, 1fr));gap:0.75rem;margin-bottom:1.5rem;">
+            {{ range .Runners }}
+            <div class="card" style="padding:1rem;border-left:3px solid {{ if eq .Overall "ok" }}var(--green,#7fc97f){{ else if eq .Overall "warn" }}var(--orange,#e5b567){{ else if eq .Overall "critical" }}var(--red,#e57373){{ else }}var(--border){{ end }};">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">
+                    <div style="font-weight:700;font-size:1.05rem;">{{ .Name }}</div>
+                    <span class="badge" style="text-transform:uppercase;font-size:0.65rem;">{{ .Overall }}</span>
+                </div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text-dim);margin:0.25rem 0 0.75rem;">{{ .Kind }}/{{ .VMID }} &middot; {{ .Host }}</div>
+                <div style="display:grid;gap:0.35rem;font-size:0.78rem;">
+                    <div><span style="color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;">GitHub</span> — <span class="hw-core-{{ .GitHub.State }}">{{ .GitHub.State }}</span> <span style="color:var(--text-dim);">{{ .GitHub.Detail }}</span></div>
+                    <div><span style="color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;">Substrate</span> — <span class="hw-core-{{ .Substrate.State }}">{{ .Substrate.State }}</span> <span style="color:var(--text-dim);">{{ .Substrate.Detail }}</span></div>
+                    <div><span style="color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;">Host</span> — <span class="hw-core-{{ .HostLoad.State }}">{{ .HostLoad.State }}</span> <span style="color:var(--text-dim);">{{ .HostLoad.Detail }}</span></div>
+                </div>
+            </div>
+            {{ end }}
+        </div>
+
+        {{ if not .Stats.Available }}
+        <div class="card" style="padding:1.25rem;">
+            <h3 style="margin-top:0;">Stats not available yet</h3>
+            <p style="color:var(--text-dim);font-size:0.84rem;">{{ .Stats.Error }}</p>
+        </div>
+        {{ else }}
+
+        <!-- fun layer -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:0.75rem;margin-bottom:1.5rem;">
+            {{ range .Stats.Streaks }}
+            <div class="card" style="padding:1rem;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;color:var(--text-dim);">Nightly streak</div>
+                <div style="font-weight:700;font-size:1.6rem;">{{ .Current }}<span style="font-size:0.85rem;color:var(--text-dim);"> / best {{ .Best }}</span></div>
+                <div style="color:var(--text-dim);font-size:0.72rem;">{{ .Repo }}</div>
+            </div>
+            {{ end }}
+            <div class="card" style="padding:1rem;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;color:var(--text-dim);">Green builds</div>
+                <div style="font-weight:700;font-size:1.6rem;">{{ .Stats.TotalGreen }}</div>
+                <div style="color:var(--text-dim);font-size:0.72rem;">all time, all repos</div>
+            </div>
+        </div>
+
+        <!-- achievements -->
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+            {{ range .Stats.Achievements }}
+            <div class="card" style="padding:0.6rem 0.9rem;{{ if .Achieved }}border-left:3px solid var(--green,#7fc97f);{{ else }}opacity:0.55;{{ end }}">
+                <span style="font-weight:700;font-size:0.85rem;">{{ if .Achieved }}&#127942; {{ end }}{{ .Label }}</span>
+                <span style="color:var(--text-dim);font-size:0.72rem;margin-left:0.5rem;">{{ .Detail }}</span>
+            </div>
+            {{ end }}
+        </div>
+
+        <!-- the race -->
+        {{ if .Stats.Race }}
+        <div class="card" style="padding:1.25rem;margin-bottom:1.5rem;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:0.75rem;">The Race — Windows vs Linux per commit</div>
+            <table style="width:100%;font-size:0.78rem;border-collapse:collapse;">
+                <thead><tr style="color:var(--text-dim);text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;">
+                    <th style="padding:0.3rem 0.5rem;">Commit</th><th style="padding:0.3rem 0.5rem;">Windows</th><th style="padding:0.3rem 0.5rem;">Linux</th><th style="padding:0.3rem 0.5rem;">Winner</th>
+                </tr></thead>
+                <tbody>
+                {{ range .Stats.Race }}
+                <tr style="border-top:1px solid var(--border);">
+                    <td style="padding:0.3rem 0.5rem;font-family:'JetBrains Mono',monospace;">{{ printf "%.7s" .HeadSHA }}</td>
+                    <td style="padding:0.3rem 0.5rem;">{{ printf "%.1f" .WindowsMin }}m</td>
+                    <td style="padding:0.3rem 0.5rem;">{{ printf "%.1f" .LinuxMin }}m</td>
+                    <td style="padding:0.3rem 0.5rem;">{{ if lt .LinuxMS .WindowsMS }}&#128013; linux{{ else }}&#129411; windows{{ end }}</td>
+                </tr>
+                {{ end }}
+                </tbody>
+            </table>
+        </div>
+        {{ end }}
+
+        <!-- recent jobs -->
+        <div class="card" style="padding:1.25rem;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:0.75rem;">Last 10 jobs</div>
+            {{ if not .Stats.RecentJobs }}
+            <p style="color:var(--text-dim);font-size:0.84rem;">No jobs recorded yet. They arrive via the GitHub webhook or the hourly reconciler.</p>
+            {{ else }}
+            <table style="width:100%;font-size:0.78rem;border-collapse:collapse;">
+                <thead><tr style="color:var(--text-dim);text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;">
+                    <th style="padding:0.3rem 0.5rem;">Repo</th><th style="padding:0.3rem 0.5rem;">Workflow / job</th><th style="padding:0.3rem 0.5rem;">Runner</th><th style="padding:0.3rem 0.5rem;">Result</th><th style="padding:0.3rem 0.5rem;">Completed</th>
+                </tr></thead>
+                <tbody>
+                {{ range .Stats.RecentJobs }}
+                <tr style="border-top:1px solid var(--border);">
+                    <td style="padding:0.3rem 0.5rem;">{{ .Repo }}</td>
+                    <td style="padding:0.3rem 0.5rem;"><a href="{{ .HTMLURL }}" target="_blank" style="color:var(--accent,#6c8aff);text-decoration:none;">{{ .Workflow }} / {{ .JobName }}</a></td>
+                    <td style="padding:0.3rem 0.5rem;font-family:'JetBrains Mono',monospace;font-size:0.72rem;">{{ .RunnerName }}</td>
+                    <td style="padding:0.3rem 0.5rem;">{{ if eq .Conclusion "success" }}<span style="color:var(--green,#7fc97f);">success</span>{{ else }}<span style="color:var(--red,#e57373);">{{ .Conclusion }}</span>{{ end }}</td>
+                    <td style="padding:0.3rem 0.5rem;color:var(--text-dim);">{{ .CompletedAt.Format "Jan 02 15:04" }}</td>
+                </tr>
+                {{ end }}
+                </tbody>
+            </table>
+            {{ end }}
+        </div>
+
+        {{ end }}
+
+    </main>
+
+    {{ template "scripts" }}
+</body>
+</html>

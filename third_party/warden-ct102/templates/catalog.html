@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Catalog - Warden</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main class="container" style="padding: 1rem 2rem;">
+
+        <h2 style="font-family:'JetBrains Mono',monospace; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-dim); margin-bottom:1rem;">Catalog</h2>
+        <p style="color:var(--text-dim);font-size:0.84rem;margin-top:0;">Catalog = deployable blueprints. Template = versioned deployment blueprint.</p>
+
+        {{ if not .Inventory.Available }}
+        <div class="card" style="padding:1.5rem;">
+            <h3 style="margin-top:0;color:var(--state-down,#e57373);">Catalog unavailable</h3>
+            <p style="color:var(--text-dim);">{{ .Inventory.Error }}</p>
+            <p style="margin-top:1rem;">Place compose templates with an <code>x-warden:</code> top-level key into one of:</p>
+            <pre style="background:var(--bg-deep);padding:1rem;border-radius:8px;font-size:0.78rem;overflow-x:auto;">$WARDEN_CATALOG_DIR  (env override)
+/etc/warden/templates/compose
+./templates/compose
+../templates/compose</pre>
+        </div>
+        {{ else }}
+
+        <!-- summary card -->
+        <div class="card" style="padding:1.25rem;margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+                <div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);">Source directory</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;font-weight:600;">{{ .Inventory.Dir }}</div>
+                    <div style="color:var(--text-dim);font-size:0.78rem;margin-top:0.25rem;">resolved via <code>{{ .Inventory.DirSource }}</code></div>
+                    <div style="color:var(--text-dim);font-size:0.78rem;margin-top:0.25rem;">Deploy actions open Clyffe-aware workflow wizard (Environment, Substrate, Cluster, Tenant boundary inputs).</div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4, minmax(70px, auto));gap:1.25rem;">
+                    <div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);">Templates</div>
+                        <div style="font-weight:700;font-size:1.4rem;">{{ len .Inventory.Templates }}</div>
+                    </div>
+                    <div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);">OK</div>
+                        <div style="font-weight:700;font-size:1.4rem;color:var(--green,#7fc97f);">{{ .Inventory.OkCount }}</div>
+                    </div>
+                    <div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);">Errors</div>
+                        <div style="font-weight:700;font-size:1.4rem;{{ if gt .Inventory.ErrCount 0 }}color:var(--red,#e57373);{{ end }}">{{ .Inventory.ErrCount }}</div>
+                    </div>
+                    <div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);">Categories</div>
+                        <div style="font-weight:700;font-size:1.4rem;">{{ len .Inventory.Categories }}</div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;">
+                <button onclick="refreshCatalog()" style="background:var(--bg-deep);color:var(--text);border:1px solid var(--border);padding:0.4rem 0.8rem;border-radius:6px;font-family:'Outfit',sans-serif;font-size:0.85rem;cursor:pointer;">Refresh from disk</button>
+                <span id="refresh-status" style="color:var(--text-dim);font-size:0.78rem;"></span>
+                <span style="color:var(--text-dim);font-size:0.78rem;margin-left:auto;">loaded in {{ .Inventory.LoadMillis }}ms</span>
+            </div>
+        </div>
+
+        {{ if eq (len .Inventory.Templates) 0 }}
+        <div class="card" style="padding:1.5rem;">
+            <h3 style="margin-top:0;">No templates found</h3>
+            <p style="color:var(--text-dim);">Catalog directory <code>{{ .Inventory.Dir }}</code> exists but contains no <code>.yml</code> or <code>.yaml</code> files. Drop a docker-compose file with an <code>x-warden:</code> block into it and click Refresh.</p>
+        </div>
+        {{ else }}
+
+        <!-- templates grouped by category -->
+        {{ range $cat := .Inventory.Categories }}
+        <div style="margin-bottom:1.5rem;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-dim);margin-bottom:0.5rem;padding-left:0.25rem;">{{ $cat }}</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:0.75rem;">
+                {{ range $.Inventory.Templates }}{{ if eq .Category $cat }}
+                <div class="card" style="padding:1rem;{{ if .ParseErr }}border-left:3px solid var(--red,#e57373);{{ end }}">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;margin-bottom:0.25rem;">
+                        <div style="font-weight:700;font-size:1.05rem;">{{ .Name }}</div>
+                        {{ if .Version }}<div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text-dim);">v{{ .Version }}</div>{{ end }}
+                    </div>
+                    {{ if .ParseErr }}
+                    <div style="color:var(--red,#e57373);font-size:0.8rem;margin-top:0.5rem;">
+                        <strong>Parse error:</strong> {{ .ParseErr }}
+                    </div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text-dim);margin-top:0.25rem;word-break:break-all;">{{ .FilePath }}</div>
+                    {{ else }}
+                    {{ if .Description }}<div style="color:var(--text-dim);font-size:0.85rem;line-height:1.4;margin-bottom:0.5rem;">{{ .Description }}</div>{{ end }}
+                    <div style="display:flex;flex-wrap:wrap;gap:0.4rem;font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--text-dim);margin-bottom:0.5rem;">
+                        {{ if .UpstreamVersion }}<span style="background:var(--bg-deep);padding:0.15rem 0.5rem;border-radius:4px;">upstream {{ .UpstreamVersion }}</span>{{ end }}
+                        {{ if .License }}<span style="background:var(--bg-deep);padding:0.15rem 0.5rem;border-radius:4px;">{{ .License }}</span>{{ end }}
+                        {{ if .Source.Type }}<span style="background:var(--bg-deep);padding:0.15rem 0.5rem;border-radius:4px;">{{ .Source.Type }}</span>{{ end }}
+                    </div>
+                    <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.75rem;color:var(--text-dim);">
+                        <span>{{ len .Ports }} port{{ if ne (len .Ports) 1 }}s{{ end }}</span>
+                        <span>&middot;</span>
+                        <span>{{ len .Secrets }} secret{{ if ne (len .Secrets) 1 }}s{{ end }}</span>
+                        <span>&middot;</span>
+                        <span>{{ len .Configurable }} configurable</span>
+                    </div>
+                    <div style="margin-top:0.75rem;display:flex;gap:0.5rem;">
+                        <a href="/api/catalog/{{ .Name }}" target="_blank" style="background:var(--bg-deep);color:var(--text);border:1px solid var(--border);padding:0.35rem 0.75rem;border-radius:6px;font-family:'Outfit',sans-serif;font-size:0.8rem;text-decoration:none;">View JSON</a>
+                        <a href="/deployments/new?template={{ .Name }}" style="background:var(--accent,#6c8aff);color:#fff;border:none;padding:0.35rem 0.75rem;border-radius:6px;font-family:'Outfit',sans-serif;font-size:0.8rem;text-decoration:none;">Deploy template</a>
+                    </div>
+                    <div style="margin-top:0.5rem;display:flex;gap:0.35rem;flex-wrap:wrap;font-size:0.68rem;">
+                        {{ if .Lifecycle }}<span class="badge">lifecycle</span>{{ end }}
+                        {{ if or .Backup .Backups .BackupPolicy }}<span class="badge">backup policy</span>{{ end }}
+                        {{ if or .Recovery .RecoveryProfile }}<span class="badge">recovery profile</span>{{ end }}
+                        {{ if .Placement }}<span class="badge">placement</span>{{ end }}
+                        {{ if .Networking }}<span class="badge">networking</span>{{ end }}
+                        {{ if .Compliance }}<span class="badge">compliance</span>{{ end }}
+                    </div>
+                    {{ end }}
+                </div>
+                {{ end }}{{ end }}
+            </div>
+        </div>
+        {{ end }}
+
+        {{ end }}
+        {{ end }}
+
+    </main>
+
+    {{ template "scripts" }}
+    <script>
+    function refreshCatalog() {
+        var status = document.getElementById('refresh-status');
+        status.style.color = 'var(--text-dim)';
+        status.textContent = 'reloading from disk...';
+        fetch('/api/catalog?refresh=1', { method: 'GET' })
+            .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(function(data){
+                status.textContent = 'reloaded: ' + (data.ok_count||0) + ' ok, ' + (data.err_count||0) + ' errors';
+                setTimeout(function(){ window.location.reload(); }, 600);
+            })
+            .catch(function(err){
+                status.textContent = 'reload failed: ' + err.message;
+                status.style.color = 'var(--red,#e57373)';
+            });
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+#!/bin/sh
+# Starts openvscode-server for the dev user, bound to the workspace's private IPv4 only.
+# Auth happens at the edge (forward-auth); the network ACL lets only the edge reach this port.
+PORT=${SHIPPIN_IDE_PORT:-3000}
+for i in $(seq 1 60); do
+  IP=$(ip -4 -o addr show dev eth0 scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
+  [ -n "$IP" ] && break; sleep 1
+done
+mkdir -p "$HOME/code"
+exec /opt/openvscode-server/bin/openvscode-server --host "$IP" --port "$PORT" \
+  --without-connection-token --telemetry-level off --default-folder "$HOME/code"

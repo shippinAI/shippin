@@ -1,0 +1,162 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - System Info</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        <section class="card">
+            <h2>Host &amp; OS</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="label">Hostname</span>
+                    <span class="value">{{ .Hostname }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Operating System</span>
+                    <span class="value">{{ .OS }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Kernel</span>
+                    <span class="value">{{ .Kernel }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Architecture</span>
+                    <span class="value">{{ .Arch }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Init System</span>
+                    <span class="value">{{ .InitSystem }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Virtualization</span>
+                    <span class="value">{{ .Virtualization }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Timezone</span>
+                    <span class="value">{{ .Timezone }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Shell</span>
+                    <span class="value">{{ .Shell }}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Processor</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="label">CPU Model</span>
+                    <span class="value">{{ .CPUModel }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Cores / Threads</span>
+                    <span class="value">{{ .CPUCores }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Load Average</span>
+                    <span class="value">{{ .LoadAvg.Load1 }}, {{ .LoadAvg.Load5 }}, {{ .LoadAvg.Load15 }}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Memory</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="label">RAM Total</span>
+                    <span class="value">{{ formatBytes .MemTotal }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">RAM Used</span>
+                    <span class="value">{{ formatBytes .MemUsed }} ({{ printf "%.1f" .MemUsedPerc }}%)</span>
+                </div>
+                {{ if gt .SwapTotal 0 }}
+                <div class="info-item">
+                    <span class="label">Swap Total</span>
+                    <span class="value">{{ formatBytes .SwapTotal }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Swap Used</span>
+                    <span class="value">{{ formatBytes .SwapUsed }} ({{ printf "%.1f" .SwapUsedPerc }}%)</span>
+                </div>
+                {{ end }}
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Network Interfaces</h2>
+            <div class="info-grid">
+                {{ range .Network }}
+                <div class="info-item">
+                    <span class="label">{{ .Name }}</span>
+                    <span class="value">{{ if .IPv4 }}{{ .IPv4 }}{{ else }}No IPv4{{ end }} · {{ .State }}</span>
+                </div>
+                {{ end }}
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Storage</h2>
+            <div class="info-grid">
+                {{ range .Disks }}
+                <div class="info-item">
+                    <span class="label">{{ .MountPoint }}</span>
+                    <span class="value">{{ formatBytes .Used }} / {{ formatBytes .Total }} ({{ printf "%.1f" .UsedPerc }}%) · {{ .FSType }}</span>
+                </div>
+                {{ end }}
+            </div>
+        </section>
+
+        {{ if .Temps }}
+        <section class="card">
+            <h2>Temperatures</h2>
+            <div class="info-grid">
+                {{ range .Temps }}
+                <div class="info-item">
+                    <span class="label">{{ .Label }}</span>
+                    <span class="value">{{ printf "%.1f" .Temp }}°C</span>
+                </div>
+                {{ end }}
+            </div>
+        </section>
+        {{ end }}
+
+        <section class="card">
+            <h2>Runtime</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="label">Uptime</span>
+                    <span class="value">{{ formatUptime .Uptime }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Boot Time</span>
+                    <span class="value">{{ .BootTime }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Processes</span>
+                    <span class="value">{{ .ProcessCount }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Go Version</span>
+                    <span class="value">{{ .GoVersion }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Warden Version</span>
+                    <span class="value">v{{ .Version.Current }}</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <span>Warden Server Management Panel</span>
+    </footer>
+
+    {{ template "scripts" }}
+</body>
+</html>

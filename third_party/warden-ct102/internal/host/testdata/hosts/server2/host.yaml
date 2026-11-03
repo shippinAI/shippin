@@ -1,0 +1,23 @@
+# Per-host detail (test fixture). server2 is a future Wardenclyffe-fork
+# host — same Proxmox API surface today, branded panel.
+
+name: server2
+kind: wardenclyffe
+os: "Debian 12"
+
+addresses:
+  - role: api
+    host: 192.0.2.5
+    port: 8006
+    verify: false
+    network: internal
+
+owner_client: acme-corp
+
+credentials:
+  api_token: platforms/wardenclyffe/server2.token
+  ssh_key:   ssh/warden-to-lxc.key
+
+tags:
+  - compute
+  - tenant-acme

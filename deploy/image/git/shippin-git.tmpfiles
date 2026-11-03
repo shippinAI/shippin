@@ -1,0 +1,2 @@
+d /run/shippin 0755 root root -
+d /run/shippin/git 0700 dev dev -

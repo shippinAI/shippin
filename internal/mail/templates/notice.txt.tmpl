@@ -1,0 +1,10 @@
+{{.Heading}}
+
+{{.Intro}}
+{{if .Facts}}
+{{range .Facts}}{{index . 0}}: {{index . 1}}
+{{end}}{{end}}{{if .URL}}
+{{.Action}}: {{.URL}}
+{{end}}
+--
+{{.Footer}}

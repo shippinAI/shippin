@@ -1,0 +1,205 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Services</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        {{ if .Message }}
+        <div class="alert {{ if contains .Message "success" }}alert-ok{{ else }}alert-err{{ end }}">
+            {{ .Message }}
+        </div>
+        {{ end }}
+
+        <section class="card">
+            <div class="services-header">
+                <h2>Systemd Units</h2>
+                <form class="filter-form" method="get" action="/services">
+                    <input type="text" name="filter" value="{{ .Filter }}" placeholder="Filter units (e.g. ssh, docker, nginx...)" class="filter-input" />
+                    <button type="submit" class="btn btn-default">Filter</button>
+                    {{ if .Filter }}
+                    <a href="/services" class="btn btn-dim">Clear</a>
+                    {{ end }}
+                </form>
+            </div>
+
+            {{ if .Units }}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-col="0" data-type="text">Unit Name</th>
+                            <th class="sortable" data-col="1" data-type="text">Description</th>
+                            <th class="sortable" data-col="2" data-type="text">Type</th>
+                            <th class="sortable" data-col="3" data-type="text">Status</th>
+                            <th class="sortable" data-col="4" data-type="text">Enabled</th>
+                            <th class="sortable" data-col="5" data-type="text">Running</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Units }}
+                        <tr data-unit="{{ .Name }}" data-running="{{ .Running }}" data-enabled="{{ .Enabled }}" data-state="{{ .ActiveState }}">
+                            <td><strong>{{ .Name }}</strong></td>
+                            <td class="desc-cell">{{ .Description }}</td>
+                            <td><span class="badge type-badge">{{ .UnitType }}</span></td>
+                            <td>
+                                <span class="badge {{ if eq .ActiveState "active" }}state-up{{ else if eq .ActiveState "inactive" }}state-down{{ else if eq .ActiveState "failed" }}state-failed{{ else }}state-unknown{{ end }}">
+                                    {{ .ActiveState }} ({{ .SubState }})
+                                </span>
+                            </td>
+                            <td>
+                                {{ if or (eq .Enabled "enabled") (eq .Enabled "enabled-runtime") }}
+                                <span class="enabled-yes">{{ .Enabled }}</span>
+                                {{ else if eq .Enabled "static" }}
+                                <span class="enabled-static">{{ .Enabled }}</span>
+                                {{ else }}
+                                <span class="enabled-no">{{ .Enabled }}</span>
+                                {{ end }}
+                            </td>
+                            <td>
+                                {{ if .Running }}
+                                <span class="running-yes">Yes</span>
+                                {{ else }}
+                                <span class="running-no">No</span>
+                                {{ end }}
+                            </td>
+                            <td class="actions-cell">
+                                <div class="action-btns">
+                                    {{ if .Running }}
+                                    <form method="post" action="/api/services/action" class="inline-form" data-confirm="Restart {{ .Name }}?">
+                                        <input type="hidden" name="unit" value="{{ .Name }}">
+                                        <input type="hidden" name="action" value="restart">
+                                        <button type="submit" class="btn btn-sm btn-warn">Restart</button>
+                                    </form>
+                                    <form method="post" action="/api/services/action" class="inline-form" data-confirm="Stop {{ .Name }}?" data-confirm-danger>
+                                        <input type="hidden" name="unit" value="{{ .Name }}">
+                                        <input type="hidden" name="action" value="stop">
+                                        <button type="submit" class="btn btn-sm btn-danger">Stop</button>
+                                    </form>
+                                    {{ else }}
+                                    <form method="post" action="/api/services/action" class="inline-form">
+                                        <input type="hidden" name="unit" value="{{ .Name }}">
+                                        <input type="hidden" name="action" value="start">
+                                        <button type="submit" class="btn btn-sm btn-ok">Start</button>
+                                    </form>
+                                    {{ end }}
+                                    {{ if or (eq .Enabled "enabled") (eq .Enabled "enabled-runtime") }}
+                                    <form method="post" action="/api/services/action" class="inline-form" data-confirm="Disable {{ .Name }} at boot?">
+                                        <input type="hidden" name="unit" value="{{ .Name }}">
+                                        <input type="hidden" name="action" value="disable">
+                                        <button type="submit" class="btn btn-sm btn-dim">Disable</button>
+                                    </form>
+                                    {{ else if not (eq .Enabled "static") }}
+                                    <form method="post" action="/api/services/action" class="inline-form">
+                                        <input type="hidden" name="unit" value="{{ .Name }}">
+                                        <input type="hidden" name="action" value="enable">
+                                        <button type="submit" class="btn btn-sm btn-default">Enable</button>
+                                    </form>
+                                    {{ end }}
+                                </div>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span>{{ len .Units }} units{{ if .Filter }} matching "{{ .Filter }}"{{ end }}</span>
+            </div>
+            {{ else }}
+            <p class="no-data">No units found{{ if .Filter }} matching "{{ .Filter }}"{{ end }}</p>
+            {{ end }}
+        </section>
+    </main>
+
+    <footer>
+        <span>Boot system: Systemd</span>
+    </footer>
+
+    <script>
+    (function() {
+        const table = document.querySelector('.table-wrap table');
+        if (!table) return;
+        const tbody = table.querySelector('tbody');
+        const headers = table.querySelectorAll('th.sortable');
+        let sortCol = -1, sortAsc = true;
+
+        headers.forEach(th => {
+            th.addEventListener('click', function() {
+                const col = parseInt(this.dataset.col);
+                if (sortCol === col) {
+                    sortAsc = !sortAsc;
+                } else {
+                    sortCol = col;
+                    sortAsc = true;
+                }
+                headers.forEach(h => { h.classList.remove('sort-asc', 'sort-desc'); });
+                this.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                rows.sort((a, b) => {
+                    const aText = (a.children[col]?.textContent || '').trim().toLowerCase();
+                    const bText = (b.children[col]?.textContent || '').trim().toLowerCase();
+                    if (aText < bText) return sortAsc ? -1 : 1;
+                    if (aText > bText) return sortAsc ? 1 : -1;
+                    return 0;
+                });
+                rows.forEach(r => tbody.appendChild(r));
+            });
+        });
+    })();
+    </script>
+{{ template "scripts" }}
+<script src="/static/contextmenu.js"></script>
+<script>
+ctxMenu.attach('tr[data-unit]', function(row) {
+    var unit = row.getAttribute('data-unit');
+    var running = row.getAttribute('data-running') === 'true';
+    var enabled = row.getAttribute('data-enabled');
+    var isStatic = enabled === 'static';
+    var isEnabled = enabled === 'enabled' || enabled === 'enabled-runtime';
+    var items = [];
+    if (running) {
+        items.push({label: 'Restart', icon: '\u21bb', action: function() { svcAction(unit, 'restart'); }});
+        items.push({label: 'Stop', icon: '\u25a0', danger: true, action: function() { Modal.confirm('Stop ' + unit + '?', {danger:true}).then(function(ok){ if(ok) svcAction(unit, 'stop'); }); }});
+    } else {
+        items.push({label: 'Start', icon: '\u25b6', action: function() { svcAction(unit, 'start'); }});
+    }
+    if (!isStatic) {
+        items.push('separator');
+        if (isEnabled) {
+            items.push({label: 'Disable at boot', icon: '\u2715', action: function() { Modal.confirm('Disable ' + unit + ' at boot?').then(function(ok){ if(ok) svcAction(unit, 'disable'); }); }});
+        } else {
+            items.push({label: 'Enable at boot', icon: '\u2713', action: function() { svcAction(unit, 'enable'); }});
+        }
+    }
+    return items;
+});
+function svcAction(unit, action) {
+    fetch('/api/services/action', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
+        body: 'unit=' + encodeURIComponent(unit) + '&action=' + encodeURIComponent(action)
+    }).then(function(r) { return r.json(); })
+    .then(function(res) {
+        Toast.show(res.message, res.success ? 'ok' : 'err');
+        if (res.success) {
+            fetch('/api/services?filter=' + encodeURIComponent(document.querySelector('.filter-input')?.value || ''), {headers:{'Accept':'application/json'}})
+            .then(function(r){return r.json();})
+            .then(function(units){
+                var tbody = document.querySelector('table tbody');
+                if (!tbody) return;
+                // Rebuild is handled by toast.js refreshServices, but also works inline
+                setTimeout(function(){ window.location.reload(); }, 800);
+            });
+        }
+    }).catch(function(e) { Toast.show('Request failed', 'err'); });
+}
+</script>
+
+</body>
+</html>

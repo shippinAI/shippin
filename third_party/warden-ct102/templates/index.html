@@ -1,0 +1,1380 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{ template "head" }}
+    <title>Warden - {{ .Hostname }}</title>
+    <style>
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            position: relative;
+        }
+
+        /* Blueprint grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(108, 138, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 138, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(rgba(108, 138, 255, 0.012) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 138, 255, 0.012) 1px, transparent 1px);
+            background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+            -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, rgba(0,0,0,0.4) 0%, transparent 70%);
+            mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, rgba(0,0,0,0.4) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        [data-theme="light"] body::before {
+            background-image:
+                linear-gradient(rgba(79, 109, 245, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 109, 245, 0.05) 1px, transparent 1px),
+                linear-gradient(rgba(79, 109, 245, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 109, 245, 0.02) 1px, transparent 1px);
+        }
+
+        header, main, footer { position: relative; z-index: 1; }
+
+        header h1 { font-weight: 800; letter-spacing: -0.03em; }
+        .version-info { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+
+        /* ── Headless health visual system ── */
+        .warden-dashboard-shell {
+            max-width: 1260px;
+            margin: 0 auto;
+            padding: 1rem 2rem 0;
+        }
+
+        .warden-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .warden-tab {
+            border: 1px solid rgba(108, 138, 255, 0.16);
+            border-radius: 999px;
+            padding: 0.45rem 0.85rem;
+            background: color-mix(in srgb, var(--bg-card) 72%, transparent);
+            color: var(--text-dim);
+            -webkit-backdrop-filter: blur(18px);
+            backdrop-filter: blur(18px);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .warden-tab-active {
+            color: var(--text);
+            border-color: rgba(108, 138, 255, 0.58);
+            box-shadow: 0 0 24px rgba(108, 138, 255, 0.12);
+        }
+
+        .warden-tab-count { opacity: 0.55; margin-left: 0.35rem; }
+
+        .health-widget-grid,
+        .host-map-grid {
+            display: grid;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .health-widget-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+        .host-map-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+        .health-widget,
+        .host-node-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(108, 138, 255, 0.14);
+            background:
+                linear-gradient(135deg, color-mix(in srgb, var(--bg-card) 74%, transparent), color-mix(in srgb, var(--bg) 42%, transparent)),
+                radial-gradient(circle at 15% 0%, rgba(108, 138, 255, 0.10), transparent 36%);
+            -webkit-backdrop-filter: blur(22px) saturate(1.05);
+            backdrop-filter: blur(22px) saturate(1.05);
+            border-radius: 18px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        .health-widget {
+            min-height: 174px;
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: 92px 1fr;
+            gap: 0.85rem;
+            align-items: center;
+        }
+
+        .host-node-card { padding: 1rem; }
+
+        .health-widget::after,
+        .host-node-card::after {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            border-radius: inherit;
+            border: 1px solid rgba(255,255,255,0.03);
+            pointer-events: none;
+        }
+
+        .hw-svg { width: 92px; height: 92px; overflow: visible; }
+        .hw-orbit, .hw-track { fill: none; stroke: rgba(108, 138, 255, 0.14); stroke-width: 1.5; }
+        .hw-track { stroke: rgba(255,255,255,0.08); stroke-width: 9; }
+        .hw-fill-ok { stroke: var(--green); fill: none; }
+        .hw-fill-warn { stroke: var(--orange); fill: none; }
+        .hw-fill-critical { stroke: var(--red); fill: none; }
+        .hw-fill-unknown { stroke: var(--text-dim); fill: none; }
+        .hw-fill { stroke-width: 9; stroke-linecap: round; filter: drop-shadow(0 0 10px currentColor); }
+        .hw-core-ok { fill: rgba(34,197,94,0.12); }
+        .hw-core-warn { fill: rgba(251,146,60,0.14); }
+        .hw-core-critical { fill: rgba(239,68,68,0.14); }
+        .hw-core-unknown { fill: rgba(148,163,184,0.12); }
+        .hw-pulse { fill: none; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+
+        .health-label, .host-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-dim);
+        }
+
+        .health-value { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.04em; margin-top: 0.2rem; }
+        .health-unit { font-size: 0.8rem; color: var(--text-dim); margin-left: 0.1rem; }
+        .health-message { color: var(--text-dim); font-size: 0.76rem; line-height: 1.35; margin-top: 0.25rem; }
+        .tag-row { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.65rem; }
+        .data-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.56rem; color: var(--text-dim); background: rgba(108, 138, 255, 0.07); border: 1px solid rgba(108, 138, 255, 0.10); border-radius: 999px; padding: 0.14rem 0.42rem; }
+        .host-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+        .host-name { font-size: 1.05rem; font-weight: 800; margin-top: 0.2rem; }
+        .host-scope { font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; text-transform: uppercase; border-radius: 999px; padding: 0.18rem 0.5rem; border: 1px solid var(--border); color: var(--text-dim); }
+        .connection-list { margin-top: 0.9rem; display: grid; gap: 0.45rem; }
+        .connection-row { display: grid; grid-template-columns: 0.65rem 1fr auto; gap: 0.5rem; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--text-dim); }
+        .state-dot { width: 0.58rem; height: 0.58rem; border-radius: 999px; background: var(--text-dim); }
+        .state-ok { background: var(--green); }
+        .state-warn { background: var(--orange); }
+        .state-critical { background: var(--red); }
+        .state-unknown { background: var(--text-dim); }
+        .drilldown-hint { color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; margin-top: 0.75rem; opacity: 0.62; }
+
+        .main-chart-shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr);
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .main-chart-panel,
+        .main-chart-side {
+            border: 1px solid rgba(108, 138, 255, 0.14);
+            border-radius: 22px;
+            background:
+                linear-gradient(135deg, color-mix(in srgb, var(--bg-card) 70%, transparent), color-mix(in srgb, var(--bg) 36%, transparent)),
+                radial-gradient(circle at 12% 0%, rgba(255,255,255,0.04), transparent 34%);
+            -webkit-backdrop-filter: blur(24px) saturate(1.08);
+            backdrop-filter: blur(24px) saturate(1.08);
+            overflow: hidden;
+        }
+
+        .main-chart-panel {
+            min-height: 360px;
+            display: grid;
+            place-items: center;
+            padding: 1rem;
+        }
+
+        .main-chart-view { display: none; width: min(520px, 100%); }
+        .main-chart-view-active { display: block; }
+        .main-chart-svg { width: 100%; height: auto; overflow: visible; }
+        .main-chart-field { fill: rgba(3, 6, 18, 0.34); stroke: rgba(108, 138, 255, 0.12); }
+        .main-chart-axis, .topology-link { fill: none; stroke: rgba(108, 138, 255, 0.16); stroke-width: 1.2; }
+        .main-chart-poly { fill: rgba(108, 138, 255, 0.12); stroke: rgba(108, 138, 255, 0.72); stroke-width: 2; }
+        .main-chart-node { fill: var(--accent); filter: drop-shadow(0 0 9px currentColor); }
+        .main-chart-node-ok { color: var(--green); fill: var(--green); }
+        .main-chart-node-warn { color: var(--orange); fill: var(--orange); }
+        .main-chart-node-critical { color: var(--red); fill: var(--red); }
+        .main-chart-node-unknown { color: var(--text-dim); fill: var(--text-dim); }
+        .main-chart-label, .topology-small, .topology-label, .band-value {
+            fill: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 8px;
+            text-anchor: middle;
+            text-transform: uppercase;
+        }
+        .band-track { fill: rgba(255,255,255,0.06); }
+        .band-fill-ok { fill: var(--green); }
+        .band-fill-warn { fill: var(--orange); }
+        .band-fill-critical { fill: var(--red); }
+        .band-fill-unknown { fill: var(--text-dim); }
+        .band-value { text-anchor: end; fill: var(--text); }
+        .topology-core { fill: rgba(108, 138, 255, 0.18); stroke: rgba(108, 138, 255, 0.72); stroke-width: 2; }
+        .topology-node { stroke: rgba(255,255,255,0.12); stroke-width: 1; }
+        .topology-label { fill: var(--text); font-size: 12px; font-weight: 800; }
+
+        .main-chart-side {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .perspective-button {
+            text-align: left;
+            border: 1px solid rgba(108, 138, 255, 0.12);
+            border-radius: 14px;
+            background: rgba(108, 138, 255, 0.04);
+            color: var(--text);
+            padding: 0.75rem;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .perspective-button-active {
+            border-color: rgba(108, 138, 255, 0.55);
+            background: rgba(108, 138, 255, 0.10);
+        }
+
+        .perspective-title {
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+
+        .perspective-desc {
+            color: var(--text-dim);
+            font-size: 0.72rem;
+            line-height: 1.35;
+            margin-top: 0.2rem;
+        }
+
+        @media (max-width: 900px) {
+            .main-chart-shell { grid-template-columns: 1fr; }
+        }
+
+        /* Connection indicator in header */
+        .refresh-indicator {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        /* ── Dashboard grid ── */
+        .dashboard-grid {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* ── Card styling ── */
+        .dashboard-grid .card {
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .dashboard-grid .card > summary,
+        .dashboard-grid .gauges-section {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .dashboard-grid summary {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-dim);
+            padding: 1rem 1.25rem;
+        }
+
+        .dashboard-grid summary::marker {
+            color: var(--accent);
+        }
+
+        /* ── Gauges ── */
+        .gauges-section {
+            border-radius: 14px;
+        }
+
+        .gauge-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+        }
+
+        .gauge-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.55rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .gauges-detail {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.02em;
+        }
+
+        /* ── System info grid ── */
+        .sysinfo-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 0.25rem 0.75rem;
+        }
+
+        .sysinfo-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            padding: 0.9rem 1.1rem;
+            background: var(--bg);
+            position: relative;
+        }
+
+        .sysinfo-wide {
+            grid-column: span 2;
+        }
+
+        .sysinfo-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--accent);
+            opacity: 0.6;
+        }
+
+        .sysinfo-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1.2;
+        }
+
+        .sysinfo-mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+        }
+
+        .sysinfo-pkg-warn {
+            color: var(--orange);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            font-weight: 500;
+        }
+
+        .sysinfo-pkg-sec {
+            display: inline-block;
+            margin-top: 0.15rem;
+            font-size: 0.65rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--red);
+            letter-spacing: 0.03em;
+        }
+
+        .sysinfo-pkg-ok {
+            color: var(--green);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            font-weight: 500;
+        }
+
+        /* ── Stat headers ── */
+        .stat-header {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.02em;
+        }
+
+        .stat-detail {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+        }
+
+        /* ── Progress bars — blueprint style ── */
+        .progress-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.03em;
+        }
+
+        .progress-bar {
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Tick marks on progress bars */
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 24%,
+                rgba(108, 138, 255, 0.08) 24%,
+                rgba(108, 138, 255, 0.08) 25%
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        [data-theme="light"] .progress-bar::after {
+            background-image: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 24%,
+                rgba(79, 109, 245, 0.1) 24%,
+                rgba(79, 109, 245, 0.1) 25%
+            );
+        }
+
+        /* ── Tables ── */
+        .dashboard-grid table {
+            font-size: 0.82rem;
+        }
+
+        .dashboard-grid th {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+        }
+
+        .dashboard-grid td code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+        }
+
+        .dashboard-grid td strong {
+            font-weight: 600;
+        }
+
+        .cmd-cell code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+        }
+
+        /* ── Badges ── */
+        .badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        /* ── Temperature items ── */
+        .temp-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.03em;
+        }
+
+        .temp-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        /* ── Drag handle ── */
+        .drag-handle {
+            font-family: 'JetBrains Mono', monospace;
+            opacity: 0.3;
+        }
+
+        .drag-handle:hover {
+            opacity: 0.6;
+            color: var(--accent);
+        }
+
+        /* ── Reset layout button ── */
+        .btn-reset-layout {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 0.4rem 1rem;
+        }
+
+        .btn-reset-layout:hover {
+            border-style: solid;
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* ── Footer ── */
+        footer {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0.35;
+        }
+
+        /* ── No data ── */
+        .no-data {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.03em;
+        }
+
+        /* ── Mini bar ticks ── */
+        .mini-bar {
+            position: relative;
+        }
+
+        .mini-bar::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 24%,
+                rgba(108, 138, 255, 0.06) 24%,
+                rgba(108, 138, 255, 0.06) 25%
+            );
+            pointer-events: none;
+            border-radius: inherit;
+        }
+
+        .usage-cell span {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+        }
+
+        /* ── Package updates highlight ── */
+        .pkg-updates {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        .platform-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: flex-start;
+            margin: 0 0 1rem 0;
+        }
+        .platform-search {
+            flex: 1 1 220px;
+            min-width: 180px;
+            padding: 0.45rem 0.65rem;
+            border-radius: 8px;
+            border: 1px solid rgba(108, 138, 255, 0.35);
+            background: rgba(12, 14, 24, 0.85);
+            color: inherit;
+        }
+        .platform-add {
+            flex: 0 0 auto;
+            border: 1px solid rgba(108, 138, 255, 0.25);
+            border-radius: 10px;
+            padding: 0.35rem 0.6rem;
+            background: rgba(8, 10, 18, 0.75);
+            max-width: min(520px, 100%);
+        }
+        .platform-add summary { cursor: pointer; font-weight: 600; }
+        .platform-add-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.6rem;
+        }
+        .platform-add input, .platform-add select, .platform-add textarea {
+            width: 100%;
+            padding: 0.35rem 0.45rem;
+            border-radius: 6px;
+            border: 1px solid rgba(108, 138, 255, 0.2);
+            background: rgba(12, 14, 24, 0.9);
+            color: inherit;
+            font-size: 0.85rem;
+        }
+        .btn-remove-platform {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 99, 99, 0.4);
+            background: transparent;
+            color: #f88;
+            cursor: pointer;
+        }
+        .host-node-card.filtered-out { display: none !important; }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <section class="warden-dashboard-shell">
+        <nav class="warden-tabs" aria-label="Dashboard views">
+            {{ range .DashboardTabs }}
+            <span class="warden-tab {{ if .Active }}warden-tab-active{{ end }}" data-tab="{{ .ID }}">
+                {{ .Label }}<span class="warden-tab-count">{{ .Count }}</span>
+            </span>
+            {{ end }}
+        </nav>
+
+        <section class="main-chart-shell" aria-label="Main dashboard chart">
+            <div class="main-chart-panel">
+                {{ range .MainCharts }}
+                <div class="main-chart-view {{ if .Active }}main-chart-view-active{{ end }}" data-perspective-view="{{ .ID }}">
+                    {{ .SVG }}
+                </div>
+                {{ end }}
+            </div>
+            <aside class="main-chart-side">
+                <div class="health-label">Perspectives</div>
+                {{ range .MainCharts }}
+                <button class="perspective-button {{ if .Active }}perspective-button-active{{ end }}" type="button" data-perspective="{{ .ID }}">
+                    <div class="perspective-title">{{ .Label }}</div>
+                    <div class="perspective-desc">{{ .Description }}</div>
+                    <div class="tag-row">
+                        {{ range .Legend }}<span class="data-tag">{{ . }}</span>{{ end }}
+                    </div>
+                </button>
+                {{ end }}
+            </aside>
+        </section>
+
+        <div class="health-widget-grid" aria-label="Host health widgets">
+            {{ range .HealthWidgets }}
+            <article class="health-widget" data-widget="{{ .ID }}" data-state="{{ .State }}" data-tags="{{ joinTags .Tags }}">
+                <div>{{ .SVG }}</div>
+                <div>
+                    <div class="health-label">{{ .Label }}</div>
+                    <div class="health-value">{{ .Value }}{{ if .Unit }}<span class="health-unit">{{ .Unit }}</span>{{ end }}</div>
+                    <div class="health-message">{{ .Message }}</div>
+                    <div class="tag-row">
+                        {{ range .Tags }}<span class="data-tag">{{ . }}</span>{{ end }}
+                    </div>
+                    <div class="drilldown-hint">overlay target: {{ .DrilldownID }}</div>
+                </div>
+            </article>
+            {{ end }}
+        </div>
+
+        <div class="platform-toolbar">
+            <label class="sr-only" for="platform-search">Filter platform systems</label>
+            <input type="search" id="platform-search" class="platform-search" placeholder="Search systems (name, tags, role)…" autocomplete="off" />
+            <span style="font-size:0.75rem;color:var(--text-dim);align-self:center;">Boundary: Provider X -> Host -> Clyffe tenant -> CT/VM (VLAN/tag aware)</span>
+            <details class="platform-add">
+                <summary>Add platform system</summary>
+                <form id="platform-add-form">
+                    <div class="platform-add-form-grid">
+                        <input type="text" id="platform-name" name="name" placeholder="Display name" required />
+                        <input type="text" id="platform-category" name="category" placeholder="Category (edge, idp, …)" />
+                        <select id="platform-scope" name="scope">
+                            <option value="internal" selected>WardenClyffe-Infra</option>
+                            <option value="customer">customer</option>
+                        </select>
+                        <input type="text" id="platform-url" name="public_url" placeholder="Public URL (optional)" />
+                        <input type="text" id="platform-check-host" name="check_host" placeholder="TCP check host" />
+                        <input type="number" id="platform-check-port" name="check_port" placeholder="TCP port" min="1" max="65535" />
+                        <input type="text" id="platform-tags" name="tags" placeholder="Tags (comma-separated)" />
+                        <textarea id="platform-notes" name="notes" placeholder="Notes" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn-remove-platform" style="margin-top:0.6rem;border-color:rgba(108,138,255,0.4);color:#9af;">Save system</button>
+                </form>
+            </details>
+        </div>
+
+        <div class="host-map-grid" aria-label="Host map">
+            {{ range .HostNodes }}
+            <article class="host-node-card" data-host="{{ .ID }}" data-scope="{{ .Scope }}" data-state="{{ .Status }}"
+                data-search="{{ printf "%s %s %s" .Name (joinTags .Tags) .Kind }}">
+                <div class="host-head">
+                    <div>
+                        <div class="host-label">{{ .Kind }}</div>
+                        <div class="host-name">{{ .Name }}</div>
+                        <div class="health-message">{{ .Address }}</div>
+                    </div>
+                    <span class="host-scope">{{ .Scope }}</span>
+                </div>
+                <div class="tag-row">
+                    {{ range .Tags }}<span class="data-tag">{{ . }}</span>{{ end }}
+                </div>
+                <div class="connection-list">
+                    {{ range .Connections }}
+                    <div class="connection-row">
+                        <span class="state-dot state-{{ .State }}"></span>
+                        <span>{{ .Label }}</span>
+                        <span>{{ .Target }}</span>
+                    </div>
+                    {{ end }}
+                </div>
+                {{ if ne .ID "local" }}
+                <button type="button" class="btn-remove-platform" data-platform-id="{{ .ID }}">Remove from registry</button>
+                {{ end }}
+            </article>
+            {{ end }}
+        </div>
+    </section>
+
+    <main class="dashboard-grid">
+        <!-- Gauges Row -->
+        <section class="card gauges-section" data-card="gauges" data-size="full">
+            <div class="gauges-row">
+                <div class="gauge-item">
+                    <svg class="gauge" viewBox="0 0 120 120">
+                        <g transform="rotate(-90 60 60)">
+                            <circle class="gauge-bg" cx="60" cy="60" r="50" pathLength="100" />
+                            <circle class="gauge-fill {{ cpuClass .CPU.UsagePerc }}-stroke" cx="60" cy="60" r="50" pathLength="100"
+                                stroke-dasharray="{{ printf "%.1f" .CPU.UsagePerc }}, 100" />
+                        </g>
+                        <text x="60" y="56" class="gauge-text">{{ printf "%.0f" .CPU.UsagePerc }}%</text>
+                        <text x="60" y="74" class="gauge-label">CPU</text>
+                    </svg>
+                </div>
+                <div class="gauge-item">
+                    <svg class="gauge" viewBox="0 0 120 120">
+                        <g transform="rotate(-90 60 60)">
+                            <circle class="gauge-bg" cx="60" cy="60" r="50" pathLength="100" />
+                            <circle class="gauge-fill {{ memClass .Memory.UsedPerc }}-stroke" cx="60" cy="60" r="50" pathLength="100"
+                                stroke-dasharray="{{ printf "%.1f" .Memory.UsedPerc }}, 100" />
+                        </g>
+                        <text x="60" y="56" class="gauge-text">{{ printf "%.0f" .Memory.UsedPerc }}%</text>
+                        <text x="60" y="74" class="gauge-label">MEMORY</text>
+                    </svg>
+                </div>
+                {{ if gt .Swap.Total 0 }}
+                <div class="gauge-item">
+                    <svg class="gauge" viewBox="0 0 120 120">
+                        <g transform="rotate(-90 60 60)">
+                            <circle class="gauge-bg" cx="60" cy="60" r="50" pathLength="100" />
+                            <circle class="gauge-fill {{ memClass .Swap.UsedPerc }}-stroke" cx="60" cy="60" r="50" pathLength="100"
+                                stroke-dasharray="{{ printf "%.1f" .Swap.UsedPerc }}, 100" />
+                        </g>
+                        <text x="60" y="56" class="gauge-text">{{ printf "%.0f" .Swap.UsedPerc }}%</text>
+                        <text x="60" y="74" class="gauge-label">SWAP</text>
+                    </svg>
+                </div>
+                {{ end }}
+                <div class="gauge-item">
+                    <svg class="gauge" viewBox="0 0 120 120">
+                        {{ $diskPerc := totalDiskPerc .Disks }}
+                        <g transform="rotate(-90 60 60)">
+                            <circle class="gauge-bg" cx="60" cy="60" r="50" pathLength="100" />
+                            <circle class="gauge-fill {{ diskClass $diskPerc }}-stroke" cx="60" cy="60" r="50" pathLength="100"
+                                stroke-dasharray="{{ printf "%.1f" $diskPerc }}, 100" />
+                        </g>
+                        <text x="60" y="56" class="gauge-text">{{ printf "%.0f" $diskPerc }}%</text>
+                        <text x="60" y="74" class="gauge-label">DISK</text>
+                    </svg>
+                </div>
+            </div>
+            <div class="gauges-detail">
+                <span>CPU: {{ printf "%.1f" .CPU.UsagePerc }}% ({{ .CPU.Cores }} cores)</span>
+                <span>RAM: {{ formatBytes .Memory.Used }} / {{ formatBytes .Memory.Total }}</span>
+                {{ if gt .Swap.Total 0 }}<span>Swap: {{ formatBytes .Swap.Used }} / {{ formatBytes .Swap.Total }}</span>{{ end }}
+                <span>Disk: {{ formatBytes (totalDiskUsed .Disks) }} / {{ formatBytes (totalDiskSize .Disks) }}</span>
+            </div>
+        </section>
+
+        <!-- System Info -->
+        <details class="card" id="section-sysinfo" data-card="sysinfo" data-size="full" open>
+            <summary>System Information</summary>
+            <div class="sysinfo-grid">
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">Hostname</span>
+                    <span class="sysinfo-value">{{ .Hostname }}</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">OS</span>
+                    <span class="sysinfo-value">{{ .OS }}</span>
+                </div>
+                <div class="sysinfo-item sysinfo-wide">
+                    <span class="sysinfo-label">Kernel</span>
+                    <span class="sysinfo-value sysinfo-mono">{{ .Kernel }}</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">Architecture</span>
+                    <span class="sysinfo-value">{{ .Arch }}</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">Uptime</span>
+                    <span class="sysinfo-value sysinfo-mono">{{ formatUptime .Uptime }}</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">Load Average</span>
+                    <span class="sysinfo-value sysinfo-mono">{{ .LoadAvg.Load1 }} / {{ .LoadAvg.Load5 }} / {{ .LoadAvg.Load15 }}</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">Processes</span>
+                    <span class="sysinfo-value sysinfo-mono">{{ .ProcessCount }}</span>
+                </div>
+                <div class="sysinfo-item">
+                    <span class="sysinfo-label">Packages</span>
+                    {{ if gt .PackageUpdates.Total 0 }}
+                    <span class="sysinfo-value sysinfo-pkg-warn">{{ .PackageUpdates.Total }} updates{{ if gt .PackageUpdates.Security 0 }} <span class="sysinfo-pkg-sec">{{ .PackageUpdates.Security }} security</span>{{ end }}</span>
+                    {{ else }}
+                    <span class="sysinfo-value sysinfo-pkg-ok">Up to date</span>
+                    {{ end }}
+                </div>
+            </div>
+        </details>
+
+        <!-- CPU -->
+        <details class="card" id="section-cpu" data-card="cpu" data-size="half" open>
+            <summary>CPU</summary>
+            <div class="stat-header">
+                <span>{{ .CPU.ModelName }}</span>
+                <span>{{ .CPU.Cores }} cores</span>
+            </div>
+            <div class="progress-group">
+                <div class="progress-label">
+                    <span>Total Usage</span>
+                    <span>{{ printf "%.1f" .CPU.UsagePerc }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill {{ cpuClass .CPU.UsagePerc }}" style="width: {{ printf "%.1f" .CPU.UsagePerc }}%"></div>
+                </div>
+            </div>
+            <div class="progress-group">
+                <div class="progress-label">
+                    <span>User</span>
+                    <span>{{ printf "%.1f" .CPU.UserPerc }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill level-ok" style="width: {{ printf "%.1f" .CPU.UserPerc }}%"></div>
+                </div>
+            </div>
+            <div class="progress-group">
+                <div class="progress-label">
+                    <span>System</span>
+                    <span>{{ printf "%.1f" .CPU.SystemPerc }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill level-info" style="width: {{ printf "%.1f" .CPU.SystemPerc }}%"></div>
+                </div>
+            </div>
+        </details>
+
+        <!-- Memory -->
+        <details class="card" id="section-memory" data-card="memory" data-size="half" open>
+            <summary>Memory</summary>
+            <div class="stat-header">
+                <span>{{ formatBytes .Memory.Used }} / {{ formatBytes .Memory.Total }}</span>
+                <span>{{ printf "%.1f" .Memory.UsedPerc }}% used</span>
+            </div>
+            <div class="progress-group">
+                <div class="progress-label">
+                    <span>RAM</span>
+                    <span>{{ printf "%.1f" .Memory.UsedPerc }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill {{ memClass .Memory.UsedPerc }}" style="width: {{ printf "%.1f" .Memory.UsedPerc }}%"></div>
+                </div>
+            </div>
+            <div class="stat-detail">
+                <span>Available: {{ formatBytes .Memory.Available }}</span>
+                <span>Free: {{ formatBytes .Memory.Free }}</span>
+            </div>
+            {{ if gt .Swap.Total 0 }}
+            <div class="progress-group" style="margin-top: 1rem;">
+                <div class="progress-label">
+                    <span>Swap ({{ formatBytes .Swap.Used }} / {{ formatBytes .Swap.Total }})</span>
+                    <span>{{ printf "%.1f" .Swap.UsedPerc }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill {{ memClass .Swap.UsedPerc }}" style="width: {{ printf "%.1f" .Swap.UsedPerc }}%"></div>
+                </div>
+            </div>
+            {{ end }}
+        </details>
+
+        <!-- Disk Usage -->
+        <details class="card" id="section-disk" data-card="disk" data-size="full" open>
+            <summary>Disk Usage</summary>
+            <table>
+                <thead>
+                    <tr><th>Device</th><th>Mount</th><th>Type</th><th>Total</th><th>Used</th><th>Free</th><th>Usage</th></tr>
+                </thead>
+                <tbody>
+                    {{ range .Disks }}
+                    <tr>
+                        <td>{{ .Device }}</td>
+                        <td><code>{{ .MountPoint }}</code></td>
+                        <td>{{ .FSType }}</td>
+                        <td>{{ formatBytes .Total }}</td>
+                        <td>{{ formatBytes .Used }}</td>
+                        <td>{{ formatBytes .Free }}</td>
+                        <td class="usage-cell">
+                            <div class="mini-bar">
+                                <div class="mini-fill {{ diskClass .UsedPerc }}" style="width: {{ printf "%.1f" .UsedPerc }}%"></div>
+                            </div>
+                            <span>{{ printf "%.1f" .UsedPerc }}%</span>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </details>
+
+        <!-- Network -->
+        <details class="card" id="section-network" data-card="network" data-size="full" open>
+            <summary>Network Interfaces</summary>
+            <table>
+                <thead>
+                    <tr><th>Interface</th><th>State</th><th>IPv4</th><th>RX</th><th>TX</th></tr>
+                </thead>
+                <tbody>
+                    {{ range .Network }}
+                    <tr>
+                        <td><strong>{{ .Name }}</strong></td>
+                        <td><span class="badge {{ stateClass .State }}">{{ .State }}</span></td>
+                        <td><code>{{ .IPv4 }}</code></td>
+                        <td>{{ formatBytes .RxBytes }}</td>
+                        <td>{{ formatBytes .TxBytes }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </details>
+
+        <!-- Temperatures -->
+        <details class="card" id="section-temps" data-card="temps" data-size="half" open>
+            <summary>Temperatures</summary>
+            {{ if .Temps }}
+            <div class="temp-grid">
+                {{ range .Temps }}
+                <div class="temp-item">
+                    <span class="temp-label">{{ .Label }}</span>
+                    <span class="temp-value {{ tempClass .Temp }}">{{ printf "%.1f" .Temp }}&deg;C</span>
+                </div>
+                {{ end }}
+            </div>
+            {{ else }}
+            <p class="no-data">No temperature sensors found</p>
+            {{ end }}
+        </details>
+
+        <!-- Disk I/O -->
+        <details class="card" id="section-diskio" data-card="diskio" data-size="half" open>
+            <summary>Disk I/O (cumulative)</summary>
+            {{ if .DiskIO }}
+            <table>
+                <thead>
+                    <tr><th>Device</th><th>Reads</th><th>Writes</th><th>Read</th><th>Written</th></tr>
+                </thead>
+                <tbody>
+                    {{ range .DiskIO }}
+                    <tr>
+                        <td><strong>{{ .Device }}</strong></td>
+                        <td>{{ .ReadsCompleted }}</td>
+                        <td>{{ .WritesCompleted }}</td>
+                        <td>{{ formatBytes .ReadBytes }}</td>
+                        <td>{{ formatBytes .WriteBytes }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ else }}
+            <p class="no-data">No disk I/O data available</p>
+            {{ end }}
+        </details>
+
+        <!-- Logged-in Users -->
+        <details class="card" id="section-users" data-card="users" data-size="half" open>
+            <summary>Logged-in Users</summary>
+            {{ if .LoggedIn }}
+            <table>
+                <thead>
+                    <tr><th>User</th><th>Terminal</th><th>From</th><th>Login Time</th></tr>
+                </thead>
+                <tbody>
+                    {{ range .LoggedIn }}
+                    <tr>
+                        <td><strong>{{ .User }}</strong></td>
+                        <td>{{ .Terminal }}</td>
+                        <td>{{ if .From }}<code>{{ .From }}</code>{{ else }}-{{ end }}</td>
+                        <td>{{ .LoginAt }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ else }}
+            <p class="no-data">No users currently logged in</p>
+            {{ end }}
+        </details>
+
+        <!-- Listening Ports -->
+        <details class="card" id="section-ports" data-card="ports" data-size="half" open>
+            <summary>Listening Ports</summary>
+            {{ if .Listeners }}
+            <table>
+                <thead>
+                    <tr><th>Proto</th><th>Address</th><th>Port</th><th>Process</th></tr>
+                </thead>
+                <tbody>
+                    {{ range .Listeners }}
+                    <tr>
+                        <td><span class="badge proto-badge">{{ .Proto }}</span></td>
+                        <td><code>{{ .Address }}</code></td>
+                        <td><strong>{{ .Port }}</strong></td>
+                        <td>{{ if .Process }}{{ .Process }} ({{ .PID }}){{ else }}-{{ end }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ else }}
+            <p class="no-data">No listening ports found</p>
+            {{ end }}
+        </details>
+
+        <!-- Recent Logins -->
+        <details class="card" id="section-logins" data-card="logins" data-size="full" open>
+            <summary>Recent Logins &amp; SSH Attempts</summary>
+            {{ if .RecentLogins }}
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>User</th><th>From</th><th>Time</th></tr>
+                </thead>
+                <tbody>
+                    {{ range .RecentLogins }}
+                    <tr>
+                        <td>
+                            {{ if .Success }}
+                            <span class="badge state-up">OK</span>
+                            {{ else }}
+                            <span class="badge state-down">FAILED</span>
+                            {{ end }}
+                        </td>
+                        <td><strong>{{ .User }}</strong></td>
+                        <td>{{ if .From }}<code>{{ .From }}</code>{{ else }}-{{ end }}</td>
+                        <td>{{ .Time }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ else }}
+            <p class="no-data">No recent login data available</p>
+            {{ end }}
+        </details>
+
+        <!-- Top Processes -->
+        <details class="card" id="section-procs" data-card="procs" data-size="full" open>
+            <summary>Top Processes (by CPU time)</summary>
+            <table>
+                <thead>
+                    <tr><th>PID</th><th>User</th><th>MEM %</th><th>Command</th></tr>
+                </thead>
+                <tbody>
+                    {{ range .TopProcs }}
+                    <tr>
+                        <td>{{ .PID }}</td>
+                        <td>{{ .User }}</td>
+                        <td>{{ printf "%.1f" .Mem }}%</td>
+                        <td class="cmd-cell"><code>{{ .Command }}</code></td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </details>
+    </main>
+
+    <footer>
+        <span>Collected at {{ .CollectedAt.Format "2006-01-02 15:04:05" }}</span>
+    </footer>
+
+    <script>
+        (function() {
+            var COLLAPSED_KEY = 'Warden-collapsed';
+            var ORDER_KEY = 'Warden-card-order';
+            var grid = document.querySelector('.dashboard-grid');
+            var cards = Array.from(grid.querySelectorAll('[data-card]'));
+
+            // --- Collapsed state ---
+            function getCollapsed() {
+                try { return JSON.parse(localStorage.getItem(COLLAPSED_KEY)) || []; } catch(e) { return []; }
+            }
+            function saveCollapsed() {
+                var collapsed = [];
+                document.querySelectorAll('details.card').forEach(function(d) {
+                    if (!d.open) collapsed.push(d.id);
+                });
+                localStorage.setItem(COLLAPSED_KEY, JSON.stringify(collapsed));
+            }
+            var collapsed = getCollapsed();
+            collapsed.forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.removeAttribute('open');
+            });
+            document.querySelectorAll('details.card').forEach(function(d) {
+                d.addEventListener('toggle', saveCollapsed);
+            });
+
+            // --- Card order ---
+            function getOrder() {
+                try { return JSON.parse(localStorage.getItem(ORDER_KEY)) || null; } catch(e) { return null; }
+            }
+            function saveOrder() {
+                var order = [];
+                grid.querySelectorAll('[data-card]').forEach(function(el) {
+                    order.push(el.getAttribute('data-card'));
+                });
+                localStorage.setItem(ORDER_KEY, JSON.stringify(order));
+            }
+            function applyOrder(order) {
+                if (!order) return;
+                var footer = grid.querySelector('footer');
+                var actionsBar = grid.querySelector('.dashboard-actions');
+                order.forEach(function(id) {
+                    var el = grid.querySelector('[data-card="' + id + '"]');
+                    if (el) grid.appendChild(el);
+                });
+                if (actionsBar) grid.appendChild(actionsBar);
+                if (footer) grid.appendChild(footer);
+            }
+            applyOrder(getOrder());
+
+            // --- Reset layout button ---
+            var actionsDiv = document.createElement('div');
+            actionsDiv.className = 'dashboard-actions';
+            var resetBtn = document.createElement('button');
+            resetBtn.className = 'btn-reset-layout';
+            resetBtn.textContent = 'Reset Layout';
+            resetBtn.onclick = function() {
+                localStorage.removeItem(ORDER_KEY);
+                localStorage.removeItem(COLLAPSED_KEY);
+                location.reload();
+            };
+            actionsDiv.appendChild(resetBtn);
+            grid.insertBefore(actionsDiv, grid.firstChild);
+
+            // --- Drag handles ---
+            grid.querySelectorAll('[data-card]').forEach(function(card) {
+                var summary = card.querySelector('summary');
+                var target = summary || card;
+
+                var handle = document.createElement('span');
+                handle.className = 'drag-handle';
+                handle.textContent = '\u2630';
+                handle.draggable = true;
+                handle.title = 'Drag to reorder';
+
+                handle.addEventListener('click', function(e) { e.stopPropagation(); e.preventDefault(); });
+
+                if (summary) {
+                    summary.insertBefore(handle, summary.firstChild);
+                } else {
+                    card.insertBefore(handle, card.firstChild);
+                    handle.style.display = 'block';
+                    handle.style.textAlign = 'center';
+                    handle.style.paddingBottom = '0.5rem';
+                }
+
+                handle.addEventListener('dragstart', function(e) {
+                    card.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', card.getAttribute('data-card'));
+                    e.dataTransfer.setDragImage(card, 20, 20);
+                });
+                handle.addEventListener('dragend', function() {
+                    card.classList.remove('dragging');
+                    grid.querySelectorAll('.drag-over').forEach(function(el) { el.classList.remove('drag-over'); });
+                    saveOrder();
+                });
+
+                card.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    var dragging = grid.querySelector('.dragging');
+                    if (dragging && dragging !== card) {
+                        card.classList.add('drag-over');
+                    }
+                });
+                card.addEventListener('dragleave', function() {
+                    card.classList.remove('drag-over');
+                });
+                card.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    card.classList.remove('drag-over');
+                    var draggedId = e.dataTransfer.getData('text/plain');
+                    var dragged = grid.querySelector('[data-card="' + draggedId + '"]');
+                    if (!dragged || dragged === card) return;
+
+                    var rect = card.getBoundingClientRect();
+                    var midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        grid.insertBefore(dragged, card);
+                    } else {
+                        grid.insertBefore(dragged, card.nextSibling);
+                    }
+                    saveOrder();
+                });
+            });
+
+            // --- Auto-refresh with connection indicator ---
+            var connDot = document.getElementById('conn-dot');
+            var indicator = document.getElementById('refresh-indicator');
+            var wasDisconnected = false;
+            var refreshDelay = 30000;
+
+            document.querySelectorAll('[data-perspective]').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var id = btn.getAttribute('data-perspective');
+                    document.querySelectorAll('[data-perspective]').forEach(function(el) {
+                        el.classList.toggle('perspective-button-active', el === btn);
+                    });
+                    document.querySelectorAll('[data-perspective-view]').forEach(function(view) {
+                        view.classList.toggle('main-chart-view-active', view.getAttribute('data-perspective-view') === id);
+                    });
+                });
+            });
+
+            function applyHostFilters() {
+                var tabEl = document.querySelector('.warden-tab-active');
+                var tabId = tabEl ? tabEl.getAttribute('data-tab') : 'overview';
+                var searchEl = document.getElementById('platform-search');
+                var q = searchEl ? searchEl.value.trim().toLowerCase() : '';
+                document.querySelectorAll('.host-node-card').forEach(function(card) {
+                    var scope = card.getAttribute('data-scope');
+                    var hasConn = card.querySelectorAll('.connection-row').length > 0;
+                    var hay = (card.getAttribute('data-search') || '').toLowerCase();
+                    var showTab = true;
+                    if (tabId === 'internal') showTab = scope === 'internal';
+                    else if (tabId === 'customer') showTab = scope === 'customer';
+                    else if (tabId === 'connections') showTab = hasConn;
+                    var showQ = q === '' || hay.indexOf(q) !== -1;
+                    card.classList.toggle('filtered-out', !showTab || !showQ);
+                });
+            }
+            document.querySelectorAll('.warden-tab').forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.warden-tab').forEach(function(t) {
+                        t.classList.toggle('warden-tab-active', t === tab);
+                    });
+                    applyHostFilters();
+                });
+            });
+            var searchInput = document.getElementById('platform-search');
+            if (searchInput) searchInput.addEventListener('input', applyHostFilters);
+            applyHostFilters();
+
+            var pf = document.getElementById('platform-add-form');
+            if (pf) {
+                pf.addEventListener('submit', function(ev) {
+                    ev.preventDefault();
+                    var tagsRaw = document.getElementById('platform-tags').value.trim();
+                    var tags = tagsRaw ? tagsRaw.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
+                    var portVal = parseInt(document.getElementById('platform-check-port').value, 10);
+                    var body = {
+                        name: document.getElementById('platform-name').value.trim(),
+                        category: document.getElementById('platform-category').value.trim(),
+                        scope: document.getElementById('platform-scope').value,
+                        public_url: document.getElementById('platform-url').value.trim(),
+                        check_host: document.getElementById('platform-check-host').value.trim(),
+                        check_port: isNaN(portVal) ? 0 : portVal,
+                        notes: document.getElementById('platform-notes').value.trim(),
+                        tags: tags
+                    };
+                    fetch('/api/platform-systems', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                        .then(function(r) { return r.json(); })
+                        .then(function(j) {
+                            if (j.error) { alert(j.error); return; }
+                            location.reload();
+                        })
+                        .catch(function() { alert('network error'); });
+                });
+            }
+            document.querySelectorAll('.btn-remove-platform[data-platform-id]').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var id = btn.getAttribute('data-platform-id');
+                    if (!id || !confirm('Remove ' + id + ' from platform registry?')) return;
+                    fetch('/api/platform-systems?id=' + encodeURIComponent(id), { method: 'DELETE' })
+                        .then(function(r) { return r.json(); })
+                        .then(function(j) {
+                            if (j.error) { alert(j.error); return; }
+                            location.reload();
+                        })
+                        .catch(function() { alert('network error'); });
+                });
+            });
+
+            function scheduleRefresh() {
+                setTimeout(function() {
+                    if (document.hidden) {
+                        scheduleRefresh();
+                        return;
+                    }
+                    if (typeof QuickNav !== 'undefined' && QuickNav.isOpen()) {
+                        scheduleRefresh();
+                        return;
+                    }
+                    fetch('/api/stats', { method: 'HEAD' })
+                        .then(function(res) {
+                            if (!res.ok) throw new Error('bad status');
+                            connDot.className = 'conn-dot conn-ok';
+                            indicator.title = 'Connected';
+                            if (wasDisconnected) {
+                                wasDisconnected = false;
+                                location.reload();
+                            }
+                            refreshDelay = 30000;
+                            scheduleRefresh();
+                        })
+                        .catch(function() {
+                            wasDisconnected = true;
+                            connDot.className = 'conn-dot conn-lost';
+                            indicator.title = 'Connection lost — retrying…';
+                            refreshDelay = Math.min(refreshDelay * 2, 120000);
+                            scheduleRefresh();
+                        });
+                }, refreshDelay);
+            }
+            scheduleRefresh();
+        })();
+
+        function checkVersion(e) {
+            e.preventDefault();
+            var link = e.target;
+            var status = document.getElementById('version-status');
+            link.style.pointerEvents = 'none';
+            link.style.opacity = '0.5';
+            status.textContent = 'checking...';
+            fetch('/api/version?check=now')
+                .then(function(r) { return r.json(); })
+                .then(function(v) {
+                    if (v.update_available) {
+                        status.innerHTML = '<a href="' + v.release_url + '" target="_blank" class="update-badge">v' + v.latest + ' available</a>';
+                    } else {
+                        status.textContent = 'up to date';
+                        setTimeout(function() { status.textContent = ''; }, 3000);
+                    }
+                    link.style.pointerEvents = '';
+                    link.style.opacity = '';
+                })
+                .catch(function() {
+                    status.textContent = 'check failed';
+                    link.style.pointerEvents = '';
+                    link.style.opacity = '';
+                    setTimeout(function() { status.textContent = ''; }, 3000);
+                });
+        }
+    </script>
+{{ template "scripts" }}
+</body>
+</html>

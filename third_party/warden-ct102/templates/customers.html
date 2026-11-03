@@ -1,0 +1,40 @@
+{{/* customers.html — /customers index page. Composes components.* per Spec 17.
+     NO inline styles. Page body is mounted via the components.shell partial
+     using the unique customers.body template slot. */}}
+
+{{ define "customers.body" }}
+    {{ if .LoadError }}
+        {{ template "components.empty_state" (dict
+            "Icon" "⚠️"
+            "Title" "Customer registry unavailable"
+            "Message" .LoadError) }}
+    {{ else }}
+        {{ template "components.section" (dict
+            "Title" "Customers"
+            "Subtitle" "Operator view of every customer account + their services. Drill into a card to see their devstation, bundles, identity, secrets, observability, and network posture.") }}
+
+        {{ $cards := list }}
+        {{ range .Customers }}
+            {{ $cards = append $cards (dict
+                "Icon" "👤"
+                "Title" .DisplayName
+                "Subtitle" (printf "%s · %d services · %d active" .BrandFront .ServiceCount .ActiveCount)
+                "TierBadges" (list .Tier)
+                "DrillHref" (printf "/customers/%s" .AccountSlug)
+                "Metrics" (list
+                    (dict "Label" "ACTIVE"   "Value" (toString .ActiveCount))
+                    (dict "Label" "EXPIRING" "Value" (toString .ExpiringCount))
+                    (dict "Label" "EXPIRED"  "Value" (toString .ExpiredCount)))) }}
+        {{ end }}
+
+        {{ template "components.entity_list" (dict
+            "Cards" $cards
+            "Layout" "grid"
+            "Empty" (dict
+                "Icon" "🗂️"
+                "Title" "No customers yet"
+                "Message" "Drop a registry/customer-services/<slug>.services.yaml file and reload.")) }}
+    {{ end }}
+{{ end }}
+
+{{ template "components.shell" . }}

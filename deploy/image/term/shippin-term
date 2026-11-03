@@ -1,0 +1,11 @@
+#!/bin/bash
+# The console Terminal view's shell (hostd runs it as the workspace user, in its home).
+#   shippin-term          attach to (or create) the Zellij session "shippin"
+#   shippin-term plain    a plain login shell, no multiplexer
+# Falls back to bash -l when Zellij is missing or the user set SHIPPIN_TERM=plain.
+export ZELLIJ_CONFIG_DIR=${ZELLIJ_CONFIG_DIR:-/etc/zellij}
+[ -r ~/.config/shippin/term ] && . ~/.config/shippin/term   # optional: SHIPPIN_TERM=plain
+if [ "${1:-zellij}" = plain ] || [ "${SHIPPIN_TERM:-zellij}" = plain ] || ! command -v zellij >/dev/null || [ -n "${ZELLIJ:-}" ]; then
+  exec bash -l
+fi
+exec bash -lc 'exec zellij --layout shippin attach --create shippin'

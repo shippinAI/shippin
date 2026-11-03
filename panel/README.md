@@ -1,8 +1,8 @@
 # Shippin.app panel prototype
 
-This folder provides the current panel shell and API workbench. One prototype
-deployment exposes customer and operator modes; it is not the completed Shippin.app
-experience.
+This folder provides the older panel shell and API workbench; the installed panel is
+[`web/`](../web/). One prototype deployment exposes customer and operator modes; it is
+not the completed Shippin.app experience.
 
 This is an API-workbench prototype; it is not the final customer console or a
 claim that the control-plane backend, Incus provider, or node installer exists.

@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-11-02T18:13:05.273Z",
+  "generatedAt": "2026-11-03T02:59:01.634Z",
   "sourceFile": "../../api/openapi/openapi.yaml",
-  "operationCount": 131,
+  "operationCount": 136,
   "tags": [
     "agents-runtime",
     "audit",
@@ -512,6 +512,46 @@
     },
     {
       "method": "GET",
+      "path": "/admin/config",
+      "operationId": "getDirectoryConfig",
+      "summary": "Read the directory policy and branding overlay, with a version",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/waitlist.csv",
+      "operationId": "exportWaitlist",
+      "summary": "Export the waitlist as CSV",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/session/magic",
+      "operationId": "requestMagicLink",
+      "summary": "Email a one-time sign-in link",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/setup",
+      "operationId": "redeemSetupCode",
+      "summary": "Redeem the one-time setup code printed by shippin-console setup",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
       "path": "/tenants/{tenantId}/identity/agents",
       "operationId": "listAgents",
       "summary": "List agent identities (Zitadel service users)",
@@ -569,6 +609,16 @@
         "identity"
       ],
       "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/waitlist",
+      "operationId": "joinWaitlist",
+      "summary": "Request early access. Confirmation is a second email.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered"
     },
     {
       "method": "GET",

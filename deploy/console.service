@@ -1,0 +1,17 @@
+[Unit]
+Description=Shippin.Cloud console (Go API + SPA)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=console
+WorkingDirectory=/opt/console/current
+EnvironmentFile=/etc/shippin/console.env
+ExecStart=/opt/console/current/console
+Restart=always
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target

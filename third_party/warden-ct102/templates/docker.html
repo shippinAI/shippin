@@ -1,0 +1,662 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Docker</title>
+    <style>
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            position: relative;
+        }
+
+        /* Blueprint grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(108, 138, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 138, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(rgba(108, 138, 255, 0.012) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 138, 255, 0.012) 1px, transparent 1px);
+            background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+            mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, rgba(0,0,0,0.4) 0%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, rgba(0,0,0,0.4) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        [data-theme="light"] body::before {
+            background-image:
+                linear-gradient(rgba(79, 109, 245, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 109, 245, 0.05) 1px, transparent 1px),
+                linear-gradient(rgba(79, 109, 245, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 109, 245, 0.02) 1px, transparent 1px);
+        }
+
+        header, main, footer { position: relative; z-index: 1; }
+        header h1 { font-weight: 800; letter-spacing: -0.03em; }
+        .version-info { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+
+        /* ── Tab bar ── */
+        .dk-tabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 1rem;
+            background: var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            width: fit-content;
+        }
+
+        .dk-tab {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 0.5rem 1.1rem;
+            text-decoration: none;
+            color: var(--text-dim);
+            background: var(--bg-card);
+            transition: all 0.15s;
+        }
+
+        .dk-tab:hover { color: var(--text); background: var(--bg); }
+
+        .dk-tab-active {
+            color: var(--accent);
+            background: var(--bg);
+            font-weight: 500;
+        }
+
+        /* ── Table styling ── */
+        .dk-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            table-layout: fixed;
+        }
+
+        .dk-table thead th {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            padding: 0.5rem 0.6rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            opacity: 0.6;
+        }
+
+        .dk-table tbody tr {
+            border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+            transition: background 0.12s;
+        }
+
+        .dk-table tbody tr:last-child { border-bottom: none; }
+        .dk-table tbody tr:hover { background: rgba(108, 138, 255, 0.02); }
+
+        .dk-table td {
+            padding: 0.45rem 0.6rem;
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .dk-name {
+            font-weight: 600;
+            font-size: 0.88rem;
+        }
+
+        .dk-image {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.74rem;
+            color: var(--text-dim);
+        }
+
+        .dk-status-cell {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+        }
+
+        .dk-ports {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            opacity: 0.7;
+        }
+
+        /* State badge */
+        .dk-state {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 0.2rem 0.55rem;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .dk-state::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .dk-state-running { background: rgba(34, 197, 94, 0.08); color: var(--green); }
+        .dk-state-running::before { background: var(--green); box-shadow: 0 0 4px var(--green); }
+
+        .dk-state-exited { background: rgba(239, 68, 68, 0.08); color: var(--red); }
+        .dk-state-exited::before { background: var(--red); }
+
+        .dk-state-paused { background: rgba(250, 204, 21, 0.08); color: var(--yellow, #facc15); }
+        .dk-state-paused::before { background: var(--yellow, #facc15); }
+
+        .dk-state-other { background: rgba(148, 163, 184, 0.08); color: var(--text-dim); }
+        .dk-state-other::before { background: var(--text-dim); opacity: 0.5; }
+
+        /* ── Icon action buttons ── */
+        .dk-actions {
+            display: flex;
+            gap: 0.2rem;
+            align-items: center;
+        }
+
+        .dk-act {
+            width: 26px;
+            height: 26px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.15s;
+            padding: 0;
+            opacity: 0.55;
+        }
+
+        .dk-act svg {
+            width: 13px;
+            height: 13px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .dk-act:hover { opacity: 1; }
+
+        .dk-act-start, .dk-act-unpause { color: var(--green); }
+        .dk-act-stop { color: var(--red); }
+        .dk-act-restart { color: var(--orange); }
+        .dk-act-logs { color: var(--accent); }
+        .dk-act-rm { color: var(--red); }
+
+        .dk-act-sep {
+            width: 1px;
+            height: 14px;
+            background: var(--border);
+            opacity: 0.3;
+            margin: 0 0.15rem;
+        }
+
+        /* ── Logs panel ── */
+        .dk-logs-panel {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .dk-logs-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background: rgba(108, 138, 255, 0.02);
+        }
+
+        .dk-logs-bar strong {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.03em;
+        }
+
+        .dk-logs-pre {
+            padding: 0.8rem 1rem;
+            margin: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            max-height: 400px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.6;
+        }
+
+        /* ── Pull form ── */
+        .dk-pull-form {
+            margin-bottom: 1rem;
+        }
+
+        .dk-pull-form form {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .dk-pull-form input[type="text"] {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            padding: 0.45rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--text);
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .dk-pull-form input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .dk-pull-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.45rem 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .dk-pull-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* ── Image remove button ── */
+        .dk-rm-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 0.3rem 0.65rem;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .dk-rm-btn:hover {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        /* ── Table footer ── */
+        .dk-footer {
+            padding: 0.5rem 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            opacity: 0.4;
+            letter-spacing: 0.06em;
+        }
+
+        /* ── Page footer ── */
+        footer {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0.35;
+        }
+
+        /* ── No data ── */
+        .dk-empty {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            opacity: 0.5;
+            padding: 2rem 0;
+            text-align: center;
+            letter-spacing: 0.03em;
+        }
+
+        /* ID code styling */
+        .dk-table td code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+        }
+
+        .dk-table td strong {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main class="docker-main">
+        {{ if .Message }}
+        <div class="alert {{ if contains .Message "success" }}alert-ok{{ else }}alert-err{{ end }}">
+            {{ .Message }}
+        </div>
+        {{ end }}
+
+        {{ if not .Available }}
+        <section class="card">
+            <p class="dk-empty">Docker is not installed or not found in PATH</p>
+        </section>
+        {{ else }}
+
+        <section class="card">
+            <div class="dk-tabs">
+                <a href="/docker?tab=containers" class="dk-tab {{ if eq .Tab "containers" }}dk-tab-active{{ end }}">Containers</a>
+                <a href="/docker?tab=images" class="dk-tab {{ if eq .Tab "images" }}dk-tab-active{{ end }}">Images</a>
+                <a href="/docker?tab=volumes" class="dk-tab {{ if eq .Tab "volumes" }}dk-tab-active{{ end }}">Volumes</a>
+                <a href="/docker?tab=networks" class="dk-tab {{ if eq .Tab "networks" }}dk-tab-active{{ end }}">Networks</a>
+            </div>
+
+            {{ if eq .Tab "containers" }}
+            <!-- Container log viewer -->
+            {{ if .LogContainer }}
+            <div class="dk-logs-panel">
+                <div class="dk-logs-bar">
+                    <strong>{{ .LogContainer }}</strong>
+                    <a href="/docker?tab=containers" class="dk-rm-btn">Close</a>
+                </div>
+                <pre class="dk-logs-pre">{{ .ContainerLogs }}</pre>
+            </div>
+            {{ end }}
+
+            {{ if .Containers }}
+            <div class="table-wrap">
+                <table class="dk-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-col="0" data-type="text" style="width:18%">Name</th>
+                            <th class="sortable" data-col="1" data-type="text" style="width:20%">Image</th>
+                            <th class="sortable" data-col="2" data-type="text" style="width:10%">State</th>
+                            <th class="sortable" data-col="3" data-type="text" style="width:16%">Status</th>
+                            <th class="sortable" data-col="4" data-type="text" style="width:22%">Ports</th>
+                            <th style="width:14%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Containers }}
+                        <tr data-container="{{ .Name }}" data-cstate="{{ .State }}">
+                            <td><span class="dk-name">{{ .Name }}</span></td>
+                            <td><span class="dk-image">{{ .Image }}</span></td>
+                            <td>
+                                <span class="dk-state {{ if eq .State "running" }}dk-state-running{{ else if eq .State "exited" }}dk-state-exited{{ else if eq .State "paused" }}dk-state-paused{{ else }}dk-state-other{{ end }}">
+                                    {{ .State }}
+                                </span>
+                            </td>
+                            <td class="dk-status-cell">{{ .Status }}</td>
+                            <td><span class="dk-ports">{{ .Ports }}</span></td>
+                            <td>
+                                <div class="dk-actions">
+                                    {{ if eq .State "running" }}
+                                    <form method="post" action="/api/docker/action" class="inline-form" data-confirm="Stop {{ .Name }}?" data-confirm-danger>
+                                        <input type="hidden" name="action" value="stop">
+                                        <input type="hidden" name="target" value="{{ .Name }}">
+                                        <button type="submit" class="dk-act dk-act-stop" title="Stop">
+                                            <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1" fill="currentColor" stroke="none"/></svg>
+                                        </button>
+                                    </form>
+                                    <form method="post" action="/api/docker/action" class="inline-form">
+                                        <input type="hidden" name="action" value="restart">
+                                        <input type="hidden" name="target" value="{{ .Name }}">
+                                        <button type="submit" class="dk-act dk-act-restart" title="Restart">
+                                            <svg viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                                        </button>
+                                    </form>
+                                    {{ else if eq .State "paused" }}
+                                    <form method="post" action="/api/docker/action" class="inline-form">
+                                        <input type="hidden" name="action" value="unpause">
+                                        <input type="hidden" name="target" value="{{ .Name }}">
+                                        <button type="submit" class="dk-act dk-act-unpause" title="Unpause">
+                                            <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none"/></svg>
+                                        </button>
+                                    </form>
+                                    {{ else }}
+                                    <form method="post" action="/api/docker/action" class="inline-form">
+                                        <input type="hidden" name="action" value="start">
+                                        <input type="hidden" name="target" value="{{ .Name }}">
+                                        <button type="submit" class="dk-act dk-act-start" title="Start">
+                                            <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none"/></svg>
+                                        </button>
+                                    </form>
+                                    {{ end }}
+                                    <a href="/docker?tab=containers&logs={{ .Name }}" class="dk-act dk-act-logs" title="View Logs">
+                                        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                                    </a>
+                                    <span class="dk-act-sep"></span>
+                                    <form method="post" action="/api/docker/action" class="inline-form" data-confirm="Remove {{ .Name }}?" data-confirm-danger>
+                                        <input type="hidden" name="action" value="remove">
+                                        <input type="hidden" name="target" value="{{ .Name }}">
+                                        <button type="submit" class="dk-act dk-act-rm" title="Remove">
+                                            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            <div class="dk-footer">{{ len .Containers }} containers</div>
+            {{ else }}
+            <p class="dk-empty">No containers found</p>
+            {{ end }}
+            {{ end }}
+
+            {{ if eq .Tab "images" }}
+            <div class="dk-pull-form">
+                <form method="post" action="/api/docker/action">
+                    <input type="hidden" name="action" value="pull">
+                    <input type="text" name="target" placeholder="Pull image (e.g. nginx:latest)">
+                    <button type="submit" class="dk-pull-btn">Pull</button>
+                </form>
+            </div>
+
+            {{ if .Images }}
+            <div class="table-wrap">
+                <table class="dk-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-col="0" data-type="text">ID</th>
+                            <th class="sortable" data-col="1" data-type="text">Repository</th>
+                            <th class="sortable" data-col="2" data-type="text">Tag</th>
+                            <th class="sortable" data-col="3" data-type="text">Size</th>
+                            <th class="sortable" data-col="4" data-type="text">Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Images }}
+                        <tr>
+                            <td><code>{{ .ID }}</code></td>
+                            <td><strong>{{ .Repository }}</strong></td>
+                            <td>{{ .Tag }}</td>
+                            <td>{{ .Size }}</td>
+                            <td>{{ .Created }}</td>
+                            <td>
+                                <form method="post" action="/api/docker/action" class="inline-form" data-confirm="Remove image {{ .Repository }}:{{ .Tag }}?" data-confirm-danger>
+                                    <input type="hidden" name="action" value="remove-image">
+                                    <input type="hidden" name="target" value="{{ .Repository }}:{{ .Tag }}">
+                                    <button type="submit" class="dk-rm-btn">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            <div class="dk-footer">{{ len .Images }} images</div>
+            {{ else }}
+            <p class="dk-empty">No images found</p>
+            {{ end }}
+            {{ end }}
+
+            {{ if eq .Tab "volumes" }}
+            {{ if .Volumes }}
+            <div class="table-wrap">
+                <table class="dk-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-col="0" data-type="text">Name</th>
+                            <th class="sortable" data-col="1" data-type="text">Driver</th>
+                            <th class="sortable" data-col="2" data-type="text">Mount Point</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Volumes }}
+                        <tr>
+                            <td><strong>{{ .Name }}</strong></td>
+                            <td>{{ .Driver }}</td>
+                            <td class="desc-cell"><code>{{ .MountPoint }}</code></td>
+                            <td>
+                                <form method="post" action="/api/docker/action" class="inline-form" data-confirm="Remove volume {{ .Name }}?" data-confirm-danger>
+                                    <input type="hidden" name="action" value="remove-volume">
+                                    <input type="hidden" name="target" value="{{ .Name }}">
+                                    <button type="submit" class="dk-rm-btn">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            <div class="dk-footer">{{ len .Volumes }} volumes</div>
+            {{ else }}
+            <p class="dk-empty">No volumes found</p>
+            {{ end }}
+            {{ end }}
+
+            {{ if eq .Tab "networks" }}
+            {{ if .Networks }}
+            <div class="table-wrap">
+                <table class="dk-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-col="0" data-type="text">ID</th>
+                            <th class="sortable" data-col="1" data-type="text">Name</th>
+                            <th class="sortable" data-col="2" data-type="text">Driver</th>
+                            <th class="sortable" data-col="3" data-type="text">Scope</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Networks }}
+                        <tr>
+                            <td><code>{{ .ID }}</code></td>
+                            <td><strong>{{ .Name }}</strong></td>
+                            <td>{{ .Driver }}</td>
+                            <td>{{ .Scope }}</td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            <div class="dk-footer">{{ len .Networks }} networks</div>
+            {{ else }}
+            <p class="dk-empty">No networks found</p>
+            {{ end }}
+            {{ end }}
+
+        </section>
+        {{ end }}
+    </main>
+
+    <script>
+    (function() {
+        var table = document.querySelector('.table-wrap table');
+        if (!table) return;
+        var tbody = table.querySelector('tbody');
+        var headers = table.querySelectorAll('th.sortable');
+        var sortCol = -1, sortAsc = true;
+
+        headers.forEach(function(th) {
+            th.addEventListener('click', function() {
+                var col = parseInt(this.dataset.col);
+                if (sortCol === col) {
+                    sortAsc = !sortAsc;
+                } else {
+                    sortCol = col;
+                    sortAsc = true;
+                }
+                headers.forEach(function(h) { h.classList.remove('sort-asc', 'sort-desc'); });
+                this.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+
+                var rows = Array.from(tbody.querySelectorAll('tr'));
+                rows.sort(function(a, b) {
+                    var aText = (a.children[col] ? a.children[col].textContent : '').trim().toLowerCase();
+                    var bText = (b.children[col] ? b.children[col].textContent : '').trim().toLowerCase();
+                    if (aText < bText) return sortAsc ? -1 : 1;
+                    if (aText > bText) return sortAsc ? 1 : -1;
+                    return 0;
+                });
+                rows.forEach(function(r) { tbody.appendChild(r); });
+            });
+        });
+    })();
+    </script>
+{{ template "scripts" }}
+<script src="/static/contextmenu.js"></script>
+<script>
+ctxMenu.attach('tr[data-container]', function(row) {
+    var name = row.getAttribute('data-container');
+    var state = row.getAttribute('data-cstate');
+    var items = [];
+    if (state === 'running') {
+        items.push({label: 'Stop', icon: '\u25a0', danger: true, action: function() { Modal.confirm('Stop ' + name + '?', {danger:true}).then(function(ok){ if(ok) dkAction('stop', name); }); }});
+        items.push({label: 'Restart', icon: '\u21bb', action: function() { dkAction('restart', name); }});
+    } else if (state === 'paused') {
+        items.push({label: 'Unpause', icon: '\u25b6', action: function() { dkAction('unpause', name); }});
+    } else {
+        items.push({label: 'Start', icon: '\u25b6', action: function() { dkAction('start', name); }});
+    }
+    items.push({label: 'View Logs', icon: '\ud83d\udcdc', action: function() { window.location = '/docker?tab=containers&logs=' + encodeURIComponent(name); }});
+    items.push('separator');
+    items.push({label: 'Remove', icon: '\ud83d\uddd1', danger: true, action: function() { Modal.confirm('Remove container ' + name + '?', {danger:true}).then(function(ok){ if(ok) dkAction('remove', name); }); }});
+    return items;
+});
+function dkAction(action, target) {
+    fetch('/api/docker/action', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
+        body: 'action=' + encodeURIComponent(action) + '&target=' + encodeURIComponent(target)
+    }).then(function(r) { return r.json(); })
+    .then(function(res) {
+        Toast.show(res.message, res.success ? 'ok' : 'err');
+        if (res.success) setTimeout(function(){ window.location.reload(); }, 1000);
+    }).catch(function(e) { Toast.show('Request failed', 'err'); });
+}
+</script>
+
+</body>
+</html>

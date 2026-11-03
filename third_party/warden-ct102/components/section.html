@@ -1,0 +1,16 @@
+{{/* components.section — titled content area with optional subtitle + toolbar.
+     Args: {Title, Subtitle, Toolbar (template.HTML)}.
+     Spec 17 §3.3.
+*/}}
+{{ define "components.section" }}
+<section class="c-section">
+    <header class="c-section__head">
+        <div class="c-section__titles">
+            <h2 class="c-section__title">{{ .Title }}</h2>
+            {{ if .Subtitle }}<p class="c-section__subtitle">{{ .Subtitle }}</p>{{ end }}
+        </div>
+        {{ if .Toolbar }}<div class="c-section__toolbar">{{ .Toolbar }}</div>{{ end }}
+    </header>
+    {{ if .Body }}<div class="c-section__body">{{ .Body }}</div>{{ end }}
+</section>
+{{ end }}

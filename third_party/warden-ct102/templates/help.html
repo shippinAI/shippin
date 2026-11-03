@@ -1,0 +1,236 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Help</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        <div class="help-tabs">
+            <button class="btn pkg-tab-active" onclick="showTab('help')" id="tab-help">Help</button>
+            <button class="btn" onclick="showTab('about')" id="tab-about">About</button>
+        </div>
+
+        <!-- Help Tab -->
+        <div id="panel-help">
+            <section class="card">
+                <h2>Getting Started</h2>
+                <div class="help-content">
+                    <p>Warden is a lightweight, single-binary Linux server management panel. It provides a web interface for common server administration tasks without the overhead of large management suites.</p>
+                    <div class="help-tip">
+                        <strong>Sudo Mode:</strong> Many operations require elevated privileges. Use the sudo toggle in the header to enable sudo mode. When active, commands will be executed with <code>sudo</code>.
+                    </div>
+                    <div class="help-tip">
+                        <strong>Theme:</strong> Click the sun/moon icon in the header to switch between dark and light themes. Your preference is saved automatically.
+                    </div>
+                    <div class="help-tip">
+                        <strong>Right-Click Menus:</strong> Most tables support right-click context menus for quick actions on rows.
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>Feature Guide</h2>
+                <div class="help-grid">
+                    <div class="help-item">
+                        <h3>Dashboard</h3>
+                        <p>Real-time overview of CPU, memory, disk, and network usage with boundary tabs for Deployments, Customers, Warden Internal, and Connections. Includes topology and auto-refresh.</p>
+                    </div>
+                    <div class="help-item">
+                        <h3>Deployments</h3>
+                        <p>Template-driven rollout workflow with subtabs for Active, Pending/Rollouts, Backups, Recovery Drills, and Migrations, plus Environment/Substrate/Cluster/Tenant metadata.</p>
+                    </div>
+                    <div class="help-item">
+                        <h3>Services</h3>
+                        <p>Manage systemd units. Start, stop, restart, enable, or disable services. Filter units by name. Sortable columns for easy navigation.</p>
+                    </div>
+                    <div class="help-item">
+                        <h3>Packages</h3>
+                        <p>View installed packages, check for updates, and install/remove packages. Supports APT and Snap package managers with a progress overlay for operations.</p>
+                    </div>
+                    <div class="help-item">
+                        <h3>Docker</h3>
+                        <p>Manage Docker containers, images, volumes, and networks. Start, stop, restart, or remove containers. Pull new images and view container logs.</p>
+                    </div>
+                    <div class="help-item">
+                        <h3>Files</h3>
+                        <p>Browse the filesystem, view and edit text files, create files and directories, rename, delete, and download files. Supports path navigation and breadcrumbs.</p>
+                    </div>
+                    <div class="help-item">
+                        <h3>Logs</h3>
+                        <p>View system logs via journalctl. Filter by unit, priority level, and time range. Supports keyword search and auto-follow for live log streaming.</p>
+                    </div>
+                    <div class="help-item">
+                        <h3>Cron</h3>
+                        <p>Manage cron jobs for any user. Add, edit, or delete scheduled tasks. Includes preset schedules and a human-readable preview of cron expressions.</p>
+                    </div>
+                    <div class="help-item">
+                        <h3>Users &amp; Groups</h3>
+                        <p>Manage system users and groups. Create, edit, and delete users. Change passwords, lock/unlock accounts, and manage group memberships.</p>
+                    </div>
+                    <div class="help-item">
+                        <h3>Firewall</h3>
+                        <p>Manage UFW firewall rules. Enable/disable the firewall, add or delete rules with presets for common services (SSH, HTTP, HTTPS). View all active rules.</p>
+                    </div>
+                    <div class="help-item">
+                        <h3>Terminal</h3>
+                        <p>Full interactive terminal via WebSocket. Runs as the logged-in system user with proper PTY support. Supports terminal resizing.</p>
+                    </div>
+                    <div class="help-item">
+                        <h3>System</h3>
+                        <p>Reboot, shutdown, or schedule system power actions. Requires sudo mode to be enabled for safety.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>Keyboard Shortcuts &amp; Tips</h2>
+                <div class="help-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Action</th>
+                                <th>How</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Quick actions on table rows</td><td>Right-click any row</td></tr>
+                            <tr><td>Sort table columns</td><td>Click column headers</td></tr>
+                            <tr><td>Filter services</td><td>Type in the filter box and press Enter</td></tr>
+                            <tr><td>Navigate file manager</td><td>Click breadcrumbs or type a path</td></tr>
+                            <tr><td>Follow logs in real-time</td><td>Enable the Follow toggle on the Logs page</td></tr>
+                            <tr><td>Toggle sudo mode</td><td>Click the sudo switch in the header</td></tr>
+                            <tr><td>Switch theme</td><td>Click the sun/moon icon in the header</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- About Tab -->
+        <div id="panel-about" style="display:none;">
+            <section class="card">
+                <div class="about-hero">
+                    <h2 class="about-title">Warden</h2>
+                    <p class="about-tagline">One binary. Full control.</p>
+                    <span class="badge state-up about-version">v{{ .Version.Current }}</span>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>About</h2>
+                <div class="help-content">
+                    <p>Warden is a lightweight, self-contained Linux server management panel built with Go. It compiles to a single binary with all templates, styles, and assets embedded — no external dependencies, no database, no configuration files required.</p>
+                    <p>Designed for developers and sysadmins who want a clean, modern web interface for routine server tasks without the complexity of heavyweight management suites.</p>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>Build Information</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">Version</span>
+                        <span class="value">{{ .Version.Current }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Go Version</span>
+                        <span class="value">{{ .GoVersion }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">OS / Arch</span>
+                        <span class="value">{{ .GoOS }}/{{ .GoArch }}</span>
+                    </div>
+                    {{ if .Version.UpdateAvail }}
+                    <div class="info-item">
+                        <span class="label">Latest Version</span>
+                        <span class="value"><a href="{{ .Version.ReleaseURL }}" target="_blank" style="color:var(--green);">v{{ .Version.Latest }}</a></span>
+                    </div>
+                    {{ end }}
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>Key Features</h2>
+                <div class="about-features">
+                    <div class="about-feature">
+                        <span class="about-feature-icon">&#x1F4E6;</span>
+                        <div>
+                            <strong>Single Binary</strong>
+                            <p>Everything embedded. Just copy and run.</p>
+                        </div>
+                    </div>
+                    <div class="about-feature">
+                        <span class="about-feature-icon">&#x1F512;</span>
+                        <div>
+                            <strong>PAM Authentication</strong>
+                            <p>Uses your existing Linux system accounts.</p>
+                        </div>
+                    </div>
+                    <div class="about-feature">
+                        <span class="about-feature-icon">&#x1F510;</span>
+                        <div>
+                            <strong>TLS by Default</strong>
+                            <p>Auto-generates self-signed certificates.</p>
+                        </div>
+                    </div>
+                    <div class="about-feature">
+                        <span class="about-feature-icon">&#x1F3A8;</span>
+                        <div>
+                            <strong>Dark &amp; Light Themes</strong>
+                            <p>Switch between themes with one click.</p>
+                        </div>
+                    </div>
+                    <div class="about-feature">
+                        <span class="about-feature-icon">&#x1F4BB;</span>
+                        <div>
+                            <strong>Web Terminal</strong>
+                            <p>Full PTY terminal access in your browser.</p>
+                        </div>
+                    </div>
+                    <div class="about-feature">
+                        <span class="about-feature-icon">&#x26A1;</span>
+                        <div>
+                            <strong>Lightweight</strong>
+                            <p>Minimal resource usage. No database needed.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>Links</h2>
+                <div class="about-links">
+                    <a href="https://github.com/eonsofstupidity/wardenclyffe/Warden" target="_blank" class="about-link">
+                        <strong>Source Code</strong>
+                        <span>gitlab.com/Haggistech/Warden</span>
+                    </a>
+                    <a href="https://github.com/eonsofstupidity/wardenclyffe/Warden/-/releases" target="_blank" class="about-link">
+                        <strong>Releases</strong>
+                        <span>Download the latest version</span>
+                    </a>
+                    <a href="https://github.com/eonsofstupidity/wardenclyffe/Warden/-/issues" target="_blank" class="about-link">
+                        <strong>Report an Issue</strong>
+                        <span>Bug reports and feature requests</span>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <span>Warden Server Management Panel</span>
+    </footer>
+
+    <script>
+    function showTab(name) {
+        document.getElementById('panel-help').style.display = name === 'help' ? '' : 'none';
+        document.getElementById('panel-about').style.display = name === 'about' ? '' : 'none';
+        document.getElementById('tab-help').className = 'btn' + (name === 'help' ? ' pkg-tab-active' : '');
+        document.getElementById('tab-about').className = 'btn' + (name === 'about' ? ' pkg-tab-active' : '');
+    }
+    </script>
+{{ template "scripts" }}
+</body>
+</html>

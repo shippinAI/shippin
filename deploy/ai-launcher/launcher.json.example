@@ -1,0 +1,11 @@
+{
+  "addr": "127.0.0.1:7681",
+  "origins": ["https://ai.<workspace-host>"],
+  "tmux_socket": "shippin-ai",
+  "session_prefix": "ai-",
+  "static": "/opt/ai-launcher/web",
+  "clis": [
+    {"id": "claude", "label": "Claude Code", "argv": ["claude"]},
+    {"id": "codex", "label": "Codex CLI", "argv": ["codex"]}
+  ]
+}

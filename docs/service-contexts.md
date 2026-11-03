@@ -40,7 +40,7 @@ come from the installation, and individual attachments need scoped authorization
 
 | Group | Desired capability and candidate products | Boundary |
 | --- | --- | --- |
-| Infrastructure | Incus and Proxmox | Hosts, placement, workloads and provider-specific capabilities belong to the infrastructure control plane. Both are planned; neither has a management implementation here. |
+| Infrastructure | Incus and Proxmox | Hosts, placement, workloads and provider-specific capabilities belong to the infrastructure control plane. Both are intended providers; see [source ownership](source-of-truth.md) for what exists today. |
 | Data | ShippinDB / PostgreSQL; Dragonfly-compatible cache | Database and cache have separate lifecycle, performance, isolation and recovery requirements. |
 | Object storage | ShippinS3 | A separately scoped object-storage capability; S3 compatibility requires testing, not a name alone. |
 | Identity and secrets | Nomen / `nomen.sh`; Vaultix / `vaultix.cloud` | Identity and secret systems own their records and expose reviewed interfaces; the panel does not become a second identity or secrets store. |
@@ -54,7 +54,8 @@ ClickHouse analytics services. These are platform-owned instances and have their
 own configuration, capacity, credentials, backup and recovery. They are separate
 from customer-provisioned services. Dragonfly is a cache candidate to validate
 against Shippin's actual workloads; ClickHouse is intended for analytics, not as
-the owner of transactional platform state. Their deployment is not implemented.
+the owner of transactional platform state. The panel installer provisions PostgreSQL;
+cache and ClickHouse deployment are not implemented.
 
 A cloud-user experience comparable in usability to a managed database dashboard
 should eventually expose authorized database and storage operations, connection

@@ -1,0 +1,302 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Packages</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        {{ if .Message }}
+        <div class="alert {{ if contains .Message "success" }}alert-ok{{ else }}alert-err{{ end }}">
+            {{ .Message }}
+        </div>
+        {{ end }}
+
+        <section class="card">
+            <div class="services-header">
+                <h2>Package Management</h2>
+                <span class="pkg-manager-label">{{ .PackageManager }}</span>
+            </div>
+
+            <div class="pkg-tabs">
+                <a href="/packages?tab=updates" class="btn {{ if eq .Tab "updates" }}pkg-tab-active{{ else }}btn-dim{{ end }}">Updates</a>
+                <a href="/packages?tab=installed" class="btn {{ if eq .Tab "installed" }}pkg-tab-active{{ else }}btn-dim{{ end }}">Installed</a>
+                <a href="/packages?tab=search" class="btn {{ if eq .Tab "search" }}pkg-tab-active{{ else }}btn-dim{{ end }}">Search</a>
+            </div>
+
+            {{ if eq .Tab "updates" }}
+            <!-- Updates Tab -->
+            {{ if .Updates }}
+            <div class="pkg-actions-bar">
+                <span>{{ len .Updates }} updates available</span>
+                <form method="post" action="/api/packages/action" class="inline-form" data-confirm="Upgrade all packages?">
+                    <input type="hidden" name="action" value="upgrade-all">
+                    <button type="submit" class="btn btn-sm btn-ok">Upgrade All</button>
+                </form>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Package</th>
+                            <th>Current Version</th>
+                            <th>New Version</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Updates }}
+                        <tr>
+                            <td><strong>{{ .Name }}</strong></td>
+                            <td>{{ .Version }}</td>
+                            <td><span class="pkg-new-version">{{ .NewVersion }}</span></td>
+                            <td class="actions-cell">
+                                <form method="post" action="/api/packages/action" class="inline-form">
+                                    <input type="hidden" name="action" value="upgrade">
+                                    <input type="hidden" name="package" value="{{ .Name }}">
+                                    <button type="submit" class="btn btn-sm btn-ok">Update</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            {{ else }}
+            <p class="no-data">System is up to date</p>
+            {{ end }}
+
+            {{ else if eq .Tab "installed" }}
+            <!-- Installed Tab -->
+            <form class="filter-form" method="get" action="/packages">
+                <input type="hidden" name="tab" value="installed">
+                <input type="text" name="search" value="{{ .Search }}" placeholder="Search installed packages..." class="filter-input" />
+                <button type="submit" class="btn btn-default">Search</button>
+                {{ if .Search }}
+                <a href="/packages?tab=installed" class="btn btn-dim">Clear</a>
+                {{ end }}
+            </form>
+
+            {{ if .Search }}
+            {{ if .Installed }}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-col="0" data-type="text">Package</th>
+                            <th class="sortable" data-col="1" data-type="text">Version</th>
+                            <th>Arch</th>
+                            <th>Size</th>
+                            <th class="sortable" data-col="4" data-type="text">Description</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Installed }}
+                        <tr>
+                            <td><strong>{{ .Name }}</strong></td>
+                            <td><code>{{ .Version }}</code></td>
+                            <td>{{ .Architecture }}</td>
+                            <td>{{ .Size }}</td>
+                            <td class="desc-cell">{{ .Description }}</td>
+                            <td class="actions-cell">
+                                <form method="post" action="/api/packages/action" class="inline-form" data-confirm="Remove {{ .Name }}?" data-confirm-danger>
+                                    <input type="hidden" name="action" value="remove">
+                                    <input type="hidden" name="package" value="{{ .Name }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span>{{ len .Installed }} packages{{ if .Search }} matching "{{ .Search }}"{{ end }}</span>
+            </div>
+            {{ else }}
+            <p class="no-data">No packages found matching "{{ .Search }}"</p>
+            {{ end }}
+            {{ else }}
+            <p class="no-data">Enter a search term to find installed packages</p>
+            {{ end }}
+
+            {{ else if eq .Tab "search" }}
+            <!-- Search Tab -->
+            <form class="filter-form" method="get" action="/packages">
+                <input type="hidden" name="tab" value="search">
+                <input type="text" name="q" value="{{ .Query }}" placeholder="Search for packages to install..." class="filter-input" />
+                <button type="submit" class="btn btn-default">Search</button>
+                {{ if .Query }}
+                <a href="/packages?tab=search" class="btn btn-dim">Clear</a>
+                {{ end }}
+            </form>
+
+            {{ if .Query }}
+            {{ if .SearchResults }}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-col="0" data-type="text">Package</th>
+                            <th class="sortable" data-col="1" data-type="text">Description</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .SearchResults }}
+                        <tr>
+                            <td><strong>{{ .Name }}</strong></td>
+                            <td class="desc-cell">{{ .Description }}</td>
+                            <td class="actions-cell">
+                                <form method="post" action="/api/packages/action" class="inline-form" data-confirm="Install {{ .Name }}?">
+                                    <input type="hidden" name="action" value="install">
+                                    <input type="hidden" name="package" value="{{ .Name }}">
+                                    <button type="submit" class="btn btn-sm btn-ok">Install</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span>{{ len .SearchResults }} results for "{{ .Query }}"</span>
+            </div>
+            {{ else }}
+            <p class="no-data">No packages found for "{{ .Query }}"</p>
+            {{ end }}
+            {{ else }}
+            <p class="no-data">Enter a search term to find available packages</p>
+            {{ end }}
+            {{ end }}
+        </section>
+    </main>
+
+    <footer>
+        <span>Package Manager: {{ .PackageManager }}</span>
+    </footer>
+
+    <!-- Progress overlay -->
+    <div id="pkg-progress" class="pkg-progress-overlay" style="display:none">
+        <div class="pkg-progress-card">
+            <div class="pkg-progress-title" id="pkg-progress-title">Installing package...</div>
+            <div class="pkg-progress-bar-wrap">
+                <div class="pkg-progress-bar" id="pkg-progress-bar"></div>
+            </div>
+            <div class="pkg-progress-status" id="pkg-progress-status">This may take a moment</div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        // Sortable table
+        const table = document.querySelector('.table-wrap table');
+        if (table) {
+            const tbody = table.querySelector('tbody');
+            const headers = table.querySelectorAll('th.sortable');
+            let sortCol = -1, sortAsc = true;
+
+            headers.forEach(th => {
+                th.addEventListener('click', function() {
+                    const col = parseInt(this.dataset.col);
+                    if (sortCol === col) {
+                        sortAsc = !sortAsc;
+                    } else {
+                        sortCol = col;
+                        sortAsc = true;
+                    }
+                    headers.forEach(h => { h.classList.remove('sort-asc', 'sort-desc'); });
+                    this.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    rows.sort((a, b) => {
+                        const aText = (a.children[col]?.textContent || '').trim().toLowerCase();
+                        const bText = (b.children[col]?.textContent || '').trim().toLowerCase();
+                        if (aText < bText) return sortAsc ? -1 : 1;
+                        if (aText > bText) return sortAsc ? 1 : -1;
+                        return 0;
+                    });
+                    rows.forEach(r => tbody.appendChild(r));
+                });
+            });
+        }
+
+        // Package action progress bar
+        var overlay = document.getElementById('pkg-progress');
+        var titleEl = document.getElementById('pkg-progress-title');
+        var barEl = document.getElementById('pkg-progress-bar');
+        var statusEl = document.getElementById('pkg-progress-status');
+
+        var labels = {
+            'install': 'Installing',
+            'remove': 'Removing',
+            'upgrade': 'Upgrading',
+            'upgrade-all': 'Upgrading all packages'
+        };
+
+        var tabMap = {
+            'install': 'search',
+            'remove': 'installed',
+            'upgrade': 'updates',
+            'upgrade-all': 'updates'
+        };
+
+        document.querySelectorAll('form[action="/api/packages/action"]').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                var action = form.querySelector('[name="action"]').value;
+                var pkgInput = form.querySelector('[name="package"]');
+                var pkg = pkgInput ? pkgInput.value : '';
+                var label = labels[action] || action;
+                var target = pkg || 'all packages';
+
+                titleEl.textContent = label + ' ' + target + '...';
+                statusEl.textContent = 'This may take a moment';
+                barEl.className = 'pkg-progress-bar pkg-progress-indeterminate';
+                overlay.style.display = 'flex';
+
+                var body = new URLSearchParams(new FormData(form));
+
+                fetch('/api/packages/action', {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' },
+                    body: body
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    barEl.classList.remove('pkg-progress-indeterminate');
+                    if (data.success) {
+                        barEl.classList.add('pkg-progress-done');
+                        barEl.style.width = '100%';
+                        titleEl.textContent = 'Complete';
+                        statusEl.textContent = data.message;
+                    } else {
+                        barEl.classList.add('pkg-progress-error');
+                        barEl.style.width = '100%';
+                        titleEl.textContent = 'Failed';
+                        statusEl.textContent = data.message;
+                    }
+                    setTimeout(function() {
+                        var tab = tabMap[action] || 'updates';
+                        window.location.href = '/packages?tab=' + tab + '&msg=' + encodeURIComponent(data.message);
+                    }, 1500);
+                })
+                .catch(function(err) {
+                    barEl.classList.remove('pkg-progress-indeterminate');
+                    barEl.classList.add('pkg-progress-error');
+                    barEl.style.width = '100%';
+                    titleEl.textContent = 'Error';
+                    statusEl.textContent = 'Request failed: ' + err.message;
+                    setTimeout(function() { overlay.style.display = 'none'; }, 3000);
+                });
+            });
+        });
+    })();
+    </script>
+{{ template "scripts" }}
+</body>
+</html>

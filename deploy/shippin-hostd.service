@@ -1,0 +1,15 @@
+[Unit]
+Description=Shippin host helper (tenant-scoped Incus/ZFS operations over a unix socket)
+After=incus.service zfs.target
+Requires=incus.service
+
+[Service]
+Environment=SHIPPIN_HOSTD_CONFIG=/etc/shippin/hostd.json
+Environment=SOPS_AGE_KEY_FILE=/root/.config/sops/age/keys.txt
+ExecStart=/usr/local/bin/shippin-hostd
+Restart=always
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

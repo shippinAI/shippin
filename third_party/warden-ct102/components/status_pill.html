@@ -1,0 +1,10 @@
+{{/* components.status_pill — colored state pill.
+     Args: {State, Label}.  State ∈ ADR 0037 customer_service_state enum.
+     Spec 17 §3.8 / ADR 0038 §5.
+*/}}
+{{ define "components.status_pill" }}
+<span class="c-status-pill c-status-pill--{{ .State }}" data-state="{{ .State }}">
+    <span class="c-status-pill__dot" aria-hidden="true"></span>
+    <span class="c-status-pill__label">{{ if .Label }}{{ .Label }}{{ else }}{{ .State }}{{ end }}</span>
+</span>
+{{ end }}

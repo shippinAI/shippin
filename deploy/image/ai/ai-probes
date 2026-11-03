@@ -1,0 +1,4 @@
+# provider binary probe (0 = signed in, 1 = signed out, other = unknown, - = unsupported).
+claude claude claude auth status
+codex codex codex login status
+grok grok -
