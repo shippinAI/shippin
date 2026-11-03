@@ -72,6 +72,7 @@ jobs:
           go-version: '1.26.x'
           cache: false
       - run: SHIPPIN_TEST_DATABASE_URL=postgres://shippin:shippin@127.0.0.1:5432/shippin?sslmode=disable go test -p 1 -count=1 ./internal/identity -run TestStore
+      - run: SHIPPIN_TEST_DATABASE_URL=postgres://shippin:shippin@127.0.0.1:5432/shippin?sslmode=disable go test -p 1 -count=1 ./internal/servers
   panel:
     runs-on: ubuntu-latest
     defaults:
@@ -160,6 +161,18 @@ jobs:
           # A second run keeps the owner and issues nothing.
           SHIPPIN_SKIP_WEB=1 ./install/panel/install.sh --site /etc/shippin/site.env | tee /tmp/install2.log
           grep -q 'an owner already exists' /tmp/install2.log
+  installer-upgrade:
+    # An existing install, under systemd, updated the way docs/deploy.md says. The pinned commit is the
+    # oldest build a site is expected to update from.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - run: sudo git config --global --add safe.directory '*'
+      - run: sudo scripts/check-upgrade.sh ab3cdfd "$GITHUB_SHA"
+      - if: failure()
+        run: sudo journalctl -u shippin-console -n 80 --no-pager
   compose:
     # The way anyone tries the panel: clone, one command, no configuration.
     runs-on: ubuntu-latest

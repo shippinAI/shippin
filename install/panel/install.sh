@@ -165,6 +165,11 @@ SQL
     || runuser -u postgres -- createdb -O shippin shippin
   SHIPPIN_DATABASE_URL="postgres://shippin:${db_pass}@127.0.0.1:5432/shippin?sslmode=disable"
 fi
+# The session key signs sessions and seals secrets saved in the panel, so a re-run must keep it: a new
+# key signs everyone out and leaves every saved host secret unreadable.
+if [ -z "${SHIPPIN_SESSION_KEY:-}" ] && [ -f /etc/shippin/console.env ]; then
+  SHIPPIN_SESSION_KEY=$(sed -n 's/^SHIPPIN_SESSION_KEY=//p' /etc/shippin/console.env | tail -n1)
+fi
 if [ -z "${SHIPPIN_SESSION_KEY:-}" ]; then
   SHIPPIN_SESSION_KEY=$(openssl rand -hex 32)
 fi
@@ -219,6 +224,7 @@ umask 077
 cat > /etc/shippin/console.env <<EOF
 SHIPPIN_CONFIG=/etc/shippin/shippin.json
 SHIPPIN_DEPLOY_METHOD=installer
+SHIPPIN_SELF_GUEST=${SHIPPIN_SELF_GUEST:-}
 SHIPPIN_SOURCE_DIR=${root}
 SHIPPIN_SITE_FILE=${site}
 SHIPPIN_STATIC=${root}/web/dist
