@@ -31,6 +31,13 @@ while IFS= read -r file; do
     fi
   done
 done < <(git ls-files | grep -vE '(^|/)(check-public-tree\.sh|merge-from-shippin-console\.md)$' || true)
+# A product domain in shipped code is a default someone else inherits. Configuration names them.
+if git ls-files 'internal/*' 'cmd/*' 'web/src/*' 'install/*' 'deploy/*' 'config/*' \
+  | grep -vE '(_test\.go|\.test\.tsx?|check-public-tree\.sh|a2ui-types\.ts)$' \
+  | xargs grep -nE '(https?://|@)([a-z0-9-]+\.)*(shippin\.(cloud|ai|tech|app)|vaultix\.cloud|nomen\.sh|rroflow\.ai|clyffy\.ai)\b' >&2 2>/dev/null; then
+  echo "product domain hardcoded in shipped code; move it to configuration" >&2
+  failed=1
+fi
 # Tailscale CGNAT addresses are site data. Documentation of the range in a comment is rejected too.
 if git ls-files | xargs grep -nE '100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.' >/dev/null 2>&1; then
   echo "tailscale CGNAT address found" >&2

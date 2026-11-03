@@ -13,14 +13,14 @@ import base64, hashlib, hmac, http.client, json, os, secrets, socket, ssl, struc
 ORG = os.environ.get("PLATFORM_ORG_ID", "")
 PROJECT = os.environ.get("PROJECT_ID", "")
 OUT = os.environ.get("OUT", "/var/lib/shippin/site/staff-live-creds.json")
-HOST, LAN = "id.shippin.cloud", os.environ.get("EDGE_IP", "192.0.2.252")
+HOST, LAN = os.environ["IDP_HOST"], os.environ.get("EDGE_IP", "192.0.2.252")
 SOPS = "/var/lib/shippin/site/secrets/platform-core.sops.yaml"
 TOKEN = subprocess.run(["sops", "decrypt", "--extract", '["zitadel_control_plane_pat"]', SOPS],
                        check=True, capture_output=True, text=True).stdout.strip()
 
 
 def call(method, path, body=None):
-    # Connect to the LAN edge while keeping SNI/Host = id.shippin.cloud.
+    # Connect to the LAN edge while keeping SNI/Host = the IdP's name.
     conn = _Conn(LAN, ssl.create_default_context())
     hdr = {"Authorization": "Bearer " + TOKEN, "Content-Type": "application/json",
            "x-nomen-orgid": ORG}
@@ -54,7 +54,7 @@ def totp(secret, at=None):
 def make(spec):
     mfa, role = (False, spec[6:]) if spec.startswith("nomfa:") else (True, spec)
     tag = (role.replace("staff.", "") + ("-nomfa" if not mfa else "")).replace("_", "-")
-    login = f"staff-live-{tag}-{secrets.token_hex(3)}@shippin.cloud"
+    login = f"staff-live-{tag}-{secrets.token_hex(3)}@{HOST.split('.', 1)[1]}"
     pw = "Sl-" + secrets.token_urlsafe(18) + "9!"
     u = call("POST", "/v2/users/human", {
         "organization": {"orgId": ORG}, "username": login,

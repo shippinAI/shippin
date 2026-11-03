@@ -1,4 +1,4 @@
-// Package proxmox reads Proxmox VE observations and submits lifecycle actions. It does not authorize workloads.
+// Package proxmox reads Proxmox VE observations. It does not authorize workloads.
 package proxmox
 
 import (

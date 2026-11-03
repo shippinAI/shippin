@@ -1,4 +1,4 @@
-import { Blocks, Boxes, Building2, Contact, Layers, Fingerprint, Globe, LayoutTemplate, Palette, Server, ShieldCheck, SlidersHorizontal, UsersRound } from "lucide-react";
+import { Blocks, Boxes, Braces, Building2, Contact, Layers, Fingerprint, Globe, LayoutTemplate, Palette, Server, ShieldCheck, SlidersHorizontal, UsersRound } from "lucide-react";
 import type { NavItem } from "../nav-items";
 
 /** Provider master panel sections (/admin); cap is the staff permission that shows the item. */
@@ -15,5 +15,6 @@ export const adminNav: NavItem[] = [
   { id: "admin.edge", label: "Edge", icon: Globe, to: "/admin/edge", hue: "var(--color-hue-edge)", cap: "edge.read" },
   { id: "admin.platform", label: "Platform settings", icon: SlidersHorizontal, to: "/admin/platform", hue: "var(--color-hue-data)", cap: "platform.settings.read" },
   { id: "admin.interface", label: "Interface", icon: Palette, to: "/admin/interface", hue: "var(--color-hue-data)", cap: "platform.settings.read" },
+  { id: "admin.api", label: "API explorer", icon: Braces, to: "/admin/api", hue: "var(--color-hue-data)" },
   { id: "admin.team", label: "Team", icon: UsersRound, to: "/admin/team", hue: "var(--color-warning)", cap: "team.read" },
 ];

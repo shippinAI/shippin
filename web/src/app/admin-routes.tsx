@@ -18,6 +18,7 @@ const AdminCustomer = lazy(() => import("../features/admin/ui/catalog/customer-d
 const AdminStaffMode = lazy(() => import("../features/admin/ui/staff-mode/staff-mode-page").then((m) => ({ default: m.StaffModePage })));
 const AdminPlatform = lazy(() => import("../features/admin/ui/platform/platform-settings-page").then((m) => ({ default: m.PlatformSettingsPage })));
 const AdminInterface = lazy(() => import("../features/admin/ui/interface/interface-page").then((m) => ({ default: m.InterfacePage })));
+const AdminApi = lazy(() => import("../features/api-explorer/ui/api-explorer-page").then((m) => ({ default: m.ApiExplorerPage })));
 const AdminPlans = lazy(() => import("../features/admin/ui/catalog/plans-page").then((m) => ({ default: m.PlansPage })));
 const AdminServices = lazy(() => import("../features/admin/ui/catalog/services-page").then((m) => ({ default: m.ServicesPage })));
 
@@ -34,6 +35,7 @@ export const adminRoutes: RouteObject[] = [
   { path: "team", element: <AdminTeam /> },
   { path: "platform", element: <AdminPlatform /> },
   { path: "interface", element: <AdminInterface /> },
+  { path: "api", element: <AdminApi /> },
   { path: "templates", element: <AdminTemplates /> },
   { path: "identity", element: <AdminIdentity /> },
   { path: "host", element: <AdminHost /> },

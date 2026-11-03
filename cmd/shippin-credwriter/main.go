@@ -1,3 +1,5 @@
+//go:build !windows
+
 // shippin-credwriter is the one credential writer per workspace ("activate once, resume
 // forever"): systemd keeps it running, a lock in store_dir keeps it single, and its store lives
 // on the AI home so it resumes after every restart.

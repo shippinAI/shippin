@@ -5,10 +5,11 @@
 //   WS_NAME: also create (then delete) a workspace for the workspace-ready notice.
 import { chromium } from "playwright";
 import { readFileSync } from "fs";
-const base = `https://${process.env.CONSOLE_HOST ?? "console.shippin.cloud"}`, edge = process.env.EDGE_IP ?? "192.0.2.252";
+if (!process.env.CONSOLE_HOST) throw new Error("set CONSOLE_HOST to the console under test");
+const base = `https://${process.env.CONSOLE_HOST}`, edge = process.env.EDGE_IP ?? "192.0.2.252";
 const T = process.env.TENANT_ID, EXP = process.env.EXPIRY ?? "1m", WSN = process.env.WS_NAME;
 const pw = readFileSync(process.env.ADMIN_PW_FILE, "utf8").trim(), owner = readFileSync(process.env.OWNER_PAT_FILE, "utf8").trim();
-const b = await chromium.launch({ args: [`--host-resolver-rules=MAP *.shippin.cloud ${edge}`] });
+const b = await chromium.launch({ args: [`--host-resolver-rules=MAP *.${process.env.CONSOLE_HOST.split(".").slice(1).join(".")} ${edge}`] });
 const A = await (await b.newContext({ ignoreHTTPSErrors: true })).newPage();
 const C = await (await b.newContext({ ignoreHTTPSErrors: true })).newPage();
 let fails = 0;

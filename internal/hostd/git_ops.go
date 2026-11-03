@@ -1,6 +1,7 @@
 package hostd
 
 import (
+	"os"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -55,7 +56,7 @@ type gitStep struct {
 func gitPlan(g GitOp) []gitStep {
 	url := githubBase + g.Repo + ".git"
 	G := func(a ...string) []string { return append([]string{"git", "-C", g.Path}, a...) }
-	id := []string{"-c", "user.name=Shippin", "-c", "user.email=noreply@shippin.cloud"}
+	id := []string{"-c", "user.name=" + envOr("SHIPPIN_GIT_NAME", "Shippin"), "-c", "user.email=" + envOr("SHIPPIN_GIT_EMAIL", "noreply@localhost")}
 	if g.Op == "clone" {
 		return []gitStep{{argv: []string{"test", "!", "-e", g.Path}}, {argv: []string{"git", "clone", "--branch", g.Branch, "--", url, g.Path}}}
 	}
@@ -143,4 +144,12 @@ func (s *Server) gitOp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reply(w, map[string]string{"status": "ok"})
+}
+
+// envOr is the commit identity a site sets; the default names no installation.
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

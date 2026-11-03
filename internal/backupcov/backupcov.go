@@ -1,4 +1,4 @@
-// Package backupcov is the pure part of the Wisconsin panel's backup subsystem:
+// Package backupcov is the pure part of the imported panel's backup subsystem:
 // destination shape, coverage summary, and an event ring.
 //
 // It does not copy files, dial S3, SMB, or Infisical, or store secret bytes.
@@ -12,7 +12,7 @@ import (
 )
 
 // Item is one path a deployment wants backed up. The catalog is configuration.
-// The panel's Wisconsin paths are not the default catalog.
+// That panel's site paths are not the default catalog.
 type Item struct {
 	ID       string
 	Group    string

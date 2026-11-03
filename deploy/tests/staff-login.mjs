@@ -2,8 +2,9 @@
 // Credentials come from the staff-live-users.py file and are never printed.
 import { createHmac } from "crypto";
 
-export const base = process.env.CONSOLE_URL ?? "https://console.shippin.cloud";
-export const edgeArgs = [`--host-resolver-rules=MAP *.shippin.cloud ${process.env.EDGE_IP ?? "192.0.2.252"}`];
+if (!process.env.CONSOLE_URL) throw new Error("set CONSOLE_URL to the console under test");
+export const base = process.env.CONSOLE_URL;
+export const edgeArgs = process.env.EDGE_IP ? [`--host-resolver-rules=MAP *.${new URL(base).hostname.split(".").slice(1).join(".")} ${process.env.EDGE_IP}`] : [];
 
 export function totp(secret, at = Date.now()) {
   const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";

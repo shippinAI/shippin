@@ -1,6 +1,5 @@
 {
-  "generatedAt": "2026-11-03T02:59:01.634Z",
-  "sourceFile": "../../api/openapi/openapi.yaml",
+  "basePath": "/v1",
   "operationCount": 136,
   "tags": [
     "agents-runtime",

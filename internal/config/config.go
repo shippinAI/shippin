@@ -171,9 +171,9 @@ func Load() (*Config, error) {
 		c.Operator.ClientID = v
 	}
 	if c.Domain == "" {
-		c.Domain = "shippin.cloud"
+		c.Domain = c.ConsoleHost
 	}
-	if len(c.GovernanceDomains) == 0 {
+	if len(c.GovernanceDomains) == 0 && c.Domain != "" {
 		c.GovernanceDomains = []string{c.Domain}
 	}
 	c.DatabaseURL = os.Getenv("SHIPPIN_DATABASE_URL")

@@ -29,15 +29,7 @@ configuration. The command reads the provider version and cluster VM/container
 inventory without changing provider state. An empty result does not prove that
 the token can see every resource.
 
-The Proxmox provider library also supports submitting guest start and graceful
-shutdown actions and observing their task results. Callers must persist the
-returned task reference before observing it, authorize the operation, and
-reconcile an unknown submission outcome without automatically resubmitting.
-These operations are not exposed by the diagnostic command or the panel.
-They have been tested against simulated HTTPS responses, not a real Proxmox host.
-
-The Incus provider library has the same shape for instance start and stop over
-the local socket. It is also unexposed and tested only against simulated responses.
+Guest lifecycle lives in the console's drivers (`internal/hv`), not here.
 
 This is not yet an enrolled agent, control plane, authorization boundary,
 scheduler, deployment artifact, or integrated lifecycle service. It does not

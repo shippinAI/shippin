@@ -22,7 +22,7 @@ const crumbs: [RegExp, string][] = [
   [/\/operator$/, "Platform health"],
   [/^\/hub$/, "Agent hub"],
   [/^\/gold\/passkeys$/, "Passkeys"],
-  [/^\/gold/, "Gold approvals"],
+  [/^\/gold/, "Change approvals"],
 ];
 
 export function AppShell() {

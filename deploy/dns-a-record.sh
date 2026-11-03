@@ -2,7 +2,7 @@
 # Create one DNS-only A record <name>.<domain> -> PUBLIC_IP in the Cloudflare zone, if no record of
 # that name exists (never modifies or deletes). Exports the zone first. Runs on Gold; the zone
 # token comes from sops (shippin_cloud_dns_token) and is never printed.
-#   PUBLIC_IP=<edge public IP> bash deploy/dns-a-record.sh ops     env: DOMAIN (shippin.cloud) BACKUP_DIR
+#   PUBLIC_IP=<edge public IP> bash deploy/dns-a-record.sh ops     env: DOMAIN (required) BACKUP_DIR
 set -euo pipefail
 N=${1:?record name, e.g. ops}; D=${DOMAIN:?set DOMAIN}; IP=${PUBLIC_IP:?}
 S=${SECRETS_FILE:-/var/lib/shippin/site/secrets/platform-core.sops.yaml}; B=${BACKUP_DIR:-/var/lib/shippin/changes/snapshots}
