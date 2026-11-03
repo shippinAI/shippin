@@ -1,4 +1,4 @@
-// Package incus reads local Incus observations. It does not authorize workloads.
+// Package incus reads local Incus observations and submits lifecycle actions. It does not authorize workloads.
 package incus
 
 import (
