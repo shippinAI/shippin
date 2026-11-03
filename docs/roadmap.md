@@ -16,6 +16,7 @@ What works today, what does not, and what comes next. [The objective](objective.
 ## Known gaps
 
 - **Hypervisors:** adding a host, node detail, start, stop, shutdown, reboot, snapshot, restore and bulk stop have been run against Incus 6.0.4 and Proxmox VE 9.2, each on one node in a throwaway container. Incus guests were containers and Proxmox guests were QEMU VMs with no operating system. Not yet run: Incus VMs, Proxmox containers, a guest with a real operating system answering a clean shutdown on Proxmox, and any real cluster. Try it on a disposable guest first.
+- **Signing in with no identity provider:** there is no way to register a passkey from the panel. Without mail, each sign-in uses up one of eight recovery codes, and they do not renew. Use an identity provider or set up mail for anything you intend to keep.
 - **Rollback:** migrations run forward only. Going back to an older build means restoring a backup.
 - **Local agent:** neither deployment path sets up `shippin-hostd`. The features that depend on it, including workspaces on the primary, need `incus.hostd_url` set and hostd installed by hand. See `deploy/hostd-install.sh`.
 - **Remote nodes:** node enrollment exists for a token and a heartbeat. There is no node CA and no installer for a secondary. See [node enrollment](node-enrollment.md).
