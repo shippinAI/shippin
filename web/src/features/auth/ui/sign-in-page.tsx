@@ -1,3 +1,4 @@
+import { passkeyProblem, signInWithPasskey } from "../../../lib/passkey";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import { useEffect } from "react";
 import { useSearchParams } from "../../../lib/router/router";
@@ -71,6 +72,20 @@ export function SignInPage() {
               </Button>
             ))}
             {s?.local_login !== false && (
+              <form
+                className="grid gap-2"
+                data-testid="passkey-sign-in"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const email = String(new FormData(e.currentTarget).get("email") ?? "").trim();
+                  void signInWithPasskey(email).then(() => window.location.assign("/")).catch((err: unknown) => toast.error("Sign-in failed", passkeyProblem(err)));
+                }}
+              >
+                <input name="email" type="email" required autoComplete="username webauthn" aria-label="Email" placeholder="you@example.invalid" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 text-sm text-fg" />
+                <Button type="submit" variant="primary" size="lg" className="w-full" tooltip="Use a passkey saved on this device or a security key">Sign in with a passkey</Button>
+              </form>
+            )}
+            {s?.local_login !== false && s?.email_sign_in && (
               <form
                 className="mt-4 grid gap-2"
                 onSubmit={(e) => {

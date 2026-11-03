@@ -1,8 +1,11 @@
 package api
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -20,6 +23,9 @@ func (a *API) registerDirectory(mux Router) {
 	mux.HandleFunc("POST /v1/session/magic", a.magicBegin)
 	mux.HandleFunc("POST /v1/session/magic/redeem", a.magicRedeem)
 	mux.HandleFunc("POST /v1/session/recovery", a.recoveryRedeem)
+	mux.HandleFunc("POST /v1/session/passkey/challenge", a.passkeyChallenge)
+	mux.HandleFunc("GET /v1/session/passkeys", a.passkeyList)
+	mux.HandleFunc("DELETE /v1/session/passkeys/{id}", a.passkeyDelete)
 	mux.HandleFunc("POST /v1/session/passkey/register", a.passkeyRegister)
 	mux.HandleFunc("POST /v1/session/passkey/login", a.passkeyLogin)
 	mux.HandleFunc("POST /v1/invites/redeem", a.inviteRedeem)
@@ -147,6 +153,57 @@ func (a *API) recoveryRedeem(w http.ResponseWriter, r *http.Request) {
 	a.startSession(w, r, u.ID)
 }
 
+// passkeyChallenge starts a ceremony. The browser signs what this panel hands it, and nothing else counts.
+func (a *API) passkeyChallenge(w http.ResponseWriter, r *http.Request) {
+	raw, err := a.directory.NewPasskeyChallenge(r.Context(), clientIP(r))
+	if errors.Is(err, identity.ErrRateLimited) {
+		auth.Problem(w, http.StatusTooManyRequests, "Too many attempts. Try again in a minute.")
+		return
+	}
+	if err != nil {
+		log.Printf("passkey challenge: %v", err)
+		auth.Problem(w, http.StatusServiceUnavailable, "Passkeys are unavailable right now.")
+		return
+	}
+	writeJSON(w, map[string]string{"challenge": base64.RawURLEncoding.EncodeToString(raw), "rp_id": a.cfg.Directory.RPID, "rp_name": a.cfg.Brand.Name})
+}
+
+// spendChallenge takes the challenge a browser says it answered. It works once.
+func (a *API) spendChallenge(ctx context.Context, encoded string) ([]byte, error) {
+	raw, err := base64.RawURLEncoding.DecodeString(encoded)
+	if err != nil || len(raw) == 0 {
+		return nil, identity.ErrChallenge
+	}
+	return raw, a.directory.UsePasskeyChallenge(ctx, raw)
+}
+
+func (a *API) passkeyList(w http.ResponseWriter, r *http.Request) {
+	uid, ok := a.localUser(r)
+	if !ok {
+		auth.Problem(w, http.StatusUnauthorized, "Sign in to continue.")
+		return
+	}
+	items, err := a.directory.ListPasskeys(r.Context(), uid)
+	if err != nil {
+		auth.Problem(w, http.StatusServiceUnavailable, "Passkeys are unavailable right now.")
+		return
+	}
+	writeJSON(w, map[string]any{"items": items})
+}
+
+func (a *API) passkeyDelete(w http.ResponseWriter, r *http.Request) {
+	uid, ok := a.localUser(r)
+	if !ok {
+		auth.Problem(w, http.StatusUnauthorized, "Sign in to continue.")
+		return
+	}
+	if err := a.directory.DeletePasskey(r.Context(), uid, r.PathValue("id")); err != nil {
+		auth.Problem(w, http.StatusNotFound, "That passkey is not yours, or is already gone.")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (a *API) passkeyRegister(w http.ResponseWriter, r *http.Request) {
 	uid, ok := a.localUser(r)
 	if !ok {
@@ -162,7 +219,12 @@ func (a *API) passkeyRegister(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusBadRequest, "Request body was not accepted.")
 		return
 	}
-	key, err := identity.ParseRegistration(identity.Registration{ClientDataJSON: in.ClientDataJSON, AuthenticatorData: in.AuthenticatorData}, []byte(in.Challenge), a.cfg.Directory.Origin, a.cfg.Directory.RPID)
+	challenge, err := a.spendChallenge(r.Context(), in.Challenge)
+	if err != nil {
+		auth.Problem(w, http.StatusBadRequest, "Passkey was rejected.")
+		return
+	}
+	key, err := identity.ParseRegistration(identity.Registration{ClientDataJSON: in.ClientDataJSON, AuthenticatorData: in.AuthenticatorData}, challenge, a.cfg.Directory.Origin, a.cfg.Directory.RPID)
 	if err != nil {
 		auth.Problem(w, http.StatusBadRequest, "Passkey was rejected.")
 		return
@@ -187,6 +249,11 @@ func (a *API) passkeyLogin(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusBadRequest, "Request body was not accepted.")
 		return
 	}
+	challenge, err := a.spendChallenge(r.Context(), in.Challenge)
+	if err != nil {
+		auth.Problem(w, http.StatusUnauthorized, "Passkey was rejected.")
+		return
+	}
 	uid, keys, err := a.directory.Passkeys(r.Context(), in.Email)
 	if err != nil {
 		auth.Problem(w, http.StatusUnauthorized, "Passkey was rejected.")
@@ -198,7 +265,7 @@ func (a *API) passkeyLogin(w http.ResponseWriter, r *http.Request) {
 			match = k
 		}
 	}
-	count, err := identity.VerifyAssertion(match, identity.Assertion{CredentialID: in.CredentialID, ClientDataJSON: in.ClientDataJSON, AuthenticatorData: in.AuthenticatorData, Signature: in.Signature}, []byte(in.Challenge), a.cfg.Directory.Origin, a.cfg.Directory.RPID)
+	count, err := identity.VerifyAssertion(match, identity.Assertion{CredentialID: in.CredentialID, ClientDataJSON: in.ClientDataJSON, AuthenticatorData: in.AuthenticatorData, Signature: in.Signature}, challenge, a.cfg.Directory.Origin, a.cfg.Directory.RPID)
 	if err != nil {
 		auth.Problem(w, http.StatusUnauthorized, "Passkey was rejected.")
 		return

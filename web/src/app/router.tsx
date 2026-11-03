@@ -18,6 +18,7 @@ const SettingsPage = lazy(() => import("../features/settings/ui/settings-page").
 const WorkspacesPage = lazy(() => import("../features/workspaces/ui/workspaces-page").then((m) => ({ default: m.WorkspacesPage })));
 const WorkspaceDetailPage = lazy(() => import("../features/workspaces/ui/workspace-detail-page").then((m) => ({ default: m.WorkspaceDetailPage })));
 const AIConnectionsPage = lazy(() => import("../features/account/ui/ai-connections-page").then((m) => ({ default: m.AIConnectionsPage })));
+const SecurityPage = lazy(() => import("../features/account/ui/security-page").then((m) => ({ default: m.SecurityPage })));
 const SSHKeysPage = lazy(() => import("../features/account/ui/ssh-keys-page").then((m) => ({ default: m.SSHKeysPage })));
 const CreateWorkspacePage = lazy(() => import("../features/workspaces/ui/create/create-workspace-page").then((m) => ({ default: m.CreateWorkspacePage })));
 const ProjectsPage = lazy(() => import("../features/projects/ui/projects-page").then((m) => ({ default: m.ProjectsPage })));
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
               { path: "/t/:tenantId/workspaces/:workspaceId/connect", element: <Suspense fallback={null}><ConnectAccountsPage /></Suspense> },
               { path: "/t/:tenantId/workspaces/:workspaceId/terminal", element: <Suspense fallback={null}><TerminalPage /></Suspense> },
               { path: "/t/:tenantId/desktop", element: <Suspense fallback={null}><DesktopPage /></Suspense> },
+              { path: "/account/security", element: <Suspense fallback={null}><SecurityPage /></Suspense> },
               { path: "/account/ssh-keys", element: <SSHKeysPage /> },
               { path: "/account/ai", element: <AIConnectionsPage /> },
               { path: "/account/bridge", element: <BridgeSessionsPage /> },

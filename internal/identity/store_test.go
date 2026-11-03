@@ -2,6 +2,7 @@ package identity
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -223,3 +224,46 @@ func TestAnInviteClaimsAnUnusedAccountButNeverTakesOverOne(t *testing.T) {
 }
 
 func inviteTestID(n int) string { return fmt.Sprintf("019a0000-0000-7000-8000-%012d", n) }
+
+func TestAPasskeyChallengeWorksOnce(t *testing.T) {
+	s, _ := testService(t)
+	ctx := context.Background()
+	raw, err := s.NewPasskeyChallenge(ctx, "198.51.100.7")
+	if err != nil || len(raw) != 32 {
+		t.Fatalf("%x %v", raw, err)
+	}
+	if err := s.UsePasskeyChallenge(ctx, []byte("one the panel never issued")); !errors.Is(err, ErrChallenge) {
+		t.Fatalf("an invented challenge must be refused: %v", err)
+	}
+	if err := s.UsePasskeyChallenge(ctx, raw); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.UsePasskeyChallenge(ctx, raw); !errors.Is(err, ErrChallenge) {
+		t.Fatalf("replaying a challenge must be refused: %v", err)
+	}
+	old, err := s.NewPasskeyChallenge(ctx, "198.51.100.7")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.db.Exec(ctx, `UPDATE identity_passkey_challenges SET expires_at = now() - interval '1 minute'`); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.UsePasskeyChallenge(ctx, old); !errors.Is(err, ErrChallenge) {
+		t.Fatalf("an expired challenge must be refused: %v", err)
+	}
+}
+
+func TestPasskeyChallengesAreRateLimitedByAddress(t *testing.T) {
+	s, _ := testService(t)
+	ctx := context.Background()
+	var err error
+	for i := 0; i < 40 && err == nil; i++ {
+		_, err = s.NewPasskeyChallenge(ctx, "198.51.100.8")
+	}
+	if !errors.Is(err, ErrRateLimited) {
+		t.Fatalf("%v", err)
+	}
+	if _, err := s.NewPasskeyChallenge(ctx, "198.51.100.9"); err != nil {
+		t.Fatalf("another address is unaffected: %v", err)
+	}
+}

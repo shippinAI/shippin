@@ -12,7 +12,7 @@ The first owner is created only by redeeming a one-time setup code. The installe
 
 After that, a person can hold:
 
-- a passkey (WebAuthn, ES256). The server stores the credential id, the P-256 public key, and the signature counter.
+- a passkey (WebAuthn, ES256), added under **Account → Security**. The server stores the credential id, the P-256 public key, and the signature counter. Each ceremony signs a challenge the panel issued, which works once and lasts five minutes.
 - recovery codes (single use, stored as hashes, shown once at setup).
 - email magic links (single use, hashed, short expiry).
 

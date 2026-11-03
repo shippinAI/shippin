@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"math/big"
 )
@@ -100,32 +101,24 @@ func VerifyAssertion(key Passkey, in Assertion, challenge []byte, origin, rpID s
 }
 
 func checkClient(raw []byte, typ string, challenge []byte, origin string) error {
-	// Minimal JSON scan keeps the package off an extra parser for the three fields.
-	s := string(raw)
-	if !stringsContains(s, `"type":"`+typ+`"`) && !stringsContains(s, `"type": "`+typ+`"`) {
+	var c struct {
+		Type      string `json:"type"`
+		Challenge string `json:"challenge"`
+		Origin    string `json:"origin"`
+	}
+	if json.Unmarshal(raw, &c) != nil {
+		return errors.New("client data")
+	}
+	if c.Type != typ {
 		return errors.New("client data type")
 	}
-	want := b64(challenge)
-	if !stringsContains(s, want) {
+	if len(challenge) == 0 || c.Challenge != b64(challenge) {
 		return errors.New("challenge")
 	}
-	if origin != "" && !stringsContains(s, origin) {
+	if origin != "" && c.Origin != origin {
 		return errors.New("origin")
 	}
 	return nil
-}
-
-func stringsContains(s, sub string) bool {
-	return len(sub) > 0 && len(s) >= len(sub) && (s == sub || len(s) > 0 && indexOf(s, sub) >= 0)
-}
-
-func indexOf(s, sub string) int {
-	for i := 0; i+len(sub) <= len(s); i++ {
-		if s[i:i+len(sub)] == sub {
-			return i
-		}
-	}
-	return -1
 }
 
 func b64(b []byte) string {

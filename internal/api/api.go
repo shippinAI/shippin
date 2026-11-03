@@ -4,6 +4,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"os"
 	"time"
 
 	"shippin.cloud/console/internal/agentruns"
@@ -184,6 +185,7 @@ func (a *API) publicSettings(w http.ResponseWriter, r *http.Request) {
 		"operator_origin_only": a.cfg.Operator.OriginOnly && a.cfg.Operator.Host != "",
 		"login_providers":      loginProviders(a.cfg.IDP.Providers),
 		"sign_in_providers":    signInProviders(a.cfg.Directory.Upstreams),
+		"email_sign_in":        a.cfg.Mail.Enabled || os.Getenv("SHIPPIN_MAIL_SINK") != "",
 	})
 }
 

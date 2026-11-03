@@ -3,6 +3,8 @@ package identity
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"io"
@@ -84,14 +86,16 @@ type Service struct {
 	send    Sender
 	captcha Captcha
 	limit   *Limiter
-	now     func() time.Time
+	// passkeyLimit is apart from limit, which allows far fewer, because signing in is ordinary.
+	passkeyLimit *Limiter
+	now          func() time.Time
 }
 
 func New(pool *pgxpool.Pool, cfg *config.Config, send Sender, captcha Captcha) *Service {
 	if captcha == nil {
 		captcha = NoneCaptcha{}
 	}
-	return &Service{db: pool, cfg: cfg, send: send, captcha: captcha, limit: NewLimiter(5, 10*time.Minute), now: time.Now}
+	return &Service{db: pool, cfg: cfg, send: send, captcha: captcha, limit: NewLimiter(5, 10*time.Minute), passkeyLimit: NewLimiter(30, time.Minute), now: time.Now}
 }
 
 type User struct {
@@ -742,6 +746,83 @@ func (s *Service) RedeemRecovery(ctx context.Context, email, code string) (User,
 		return User{}, ErrNotFound
 	}
 	return u, tx.Commit(ctx)
+}
+
+// passkeyChallengeFor is how long someone has to answer a challenge.
+const passkeyChallengeFor = 5 * time.Minute
+
+// ErrChallenge is a challenge this panel did not issue, or that has been used or has expired.
+var ErrChallenge = errors.New("passkey challenge is not valid")
+
+// ErrRateLimited is too many attempts from one address.
+var ErrRateLimited = errors.New("too many attempts")
+
+// NewPasskeyChallenge issues a challenge for one passkey ceremony.
+func (s *Service) NewPasskeyChallenge(ctx context.Context, from string) ([]byte, error) {
+	if !s.passkeyLimit.Allow(from, s.now()) {
+		return nil, ErrRateLimited
+	}
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return nil, err
+	}
+	sum := sha256.Sum256(raw)
+	if _, err := s.db.Exec(ctx, `DELETE FROM identity_passkey_challenges WHERE expires_at < now()`); err != nil {
+		return nil, err
+	}
+	if _, err := s.db.Exec(ctx, `INSERT INTO identity_passkey_challenges (hash, expires_at) VALUES ($1, $2)`, sum[:], s.now().Add(passkeyChallengeFor)); err != nil {
+		return nil, err
+	}
+	return raw, nil
+}
+
+// UsePasskeyChallenge spends a challenge. Whatever the ceremony's outcome, it cannot be answered twice.
+func (s *Service) UsePasskeyChallenge(ctx context.Context, raw []byte) error {
+	sum := sha256.Sum256(raw)
+	tag, err := s.db.Exec(ctx, `DELETE FROM identity_passkey_challenges WHERE hash = $1 AND expires_at >= now()`, sum[:])
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return ErrChallenge
+	}
+	return nil
+}
+
+// PasskeyRow is one credential as its owner sees it.
+type PasskeyRow struct {
+	ID        string    `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// ListPasskeys is one person's credentials.
+func (s *Service) ListPasskeys(ctx context.Context, user string) ([]PasskeyRow, error) {
+	rows, err := s.db.Query(ctx, `SELECT id::text, created_at FROM identity_passkeys WHERE user_id = $1 ORDER BY created_at`, user)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []PasskeyRow{}
+	for rows.Next() {
+		var p PasskeyRow
+		if err := rows.Scan(&p.ID, &p.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
+// DeletePasskey removes one of this person's own credentials.
+func (s *Service) DeletePasskey(ctx context.Context, user, id string) error {
+	tag, err := s.db.Exec(ctx, `DELETE FROM identity_passkeys WHERE id = $1 AND user_id = $2`, id, user)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // SavePasskey stores a credential for a user.

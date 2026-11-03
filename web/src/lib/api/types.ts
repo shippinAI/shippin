@@ -40,6 +40,7 @@ export type PublicSettings = {
   /** Upstream sign-ins (Google, GitHub...) the IdP offers; each is /auth/login?idp=<id>. */
   login_providers?: { id: string; label: string }[];
   sign_in_providers?: { id: string; label: string }[];
+  email_sign_in?: boolean;
 };
 
 export type Probe = { name: string; kind: string; instance: string; healthy: boolean; configured?: boolean; latency_ms: number; detail: string };
