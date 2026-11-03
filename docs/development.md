@@ -26,6 +26,8 @@ Chrome, Edge and Firefox keep the panel's `Secure` session cookie on `http://loc
 scripts/dev-server.sh
 ```
 
+If 8443 is taken, set `SHIPPIN_LISTEN=:18444` for the server and `SHIPPIN_DEV_API=https://localhost:18444` for the panel.
+
 Use it with `cd web && npm run dev` to change both sides at once. It runs in Git Bash on Windows. The AI launcher needs a Unix pseudo-terminal, so that one feature reports it is unavailable on Windows.
 
 ## Check your work
