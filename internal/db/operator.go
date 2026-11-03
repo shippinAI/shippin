@@ -18,7 +18,7 @@ func (d *DB) WorkspaceByID(ctx context.Context, id string) (*Workspace, error) {
 
 // TenantByID returns one tenant (any status).
 func (d *DB) TenantByID(ctx context.Context, id string) (*Tenant, error) {
-	rows, err := d.Pool.Query(ctx, `SELECT `+tenantCols+` FROM tenants WHERE id::text=$1`, id)
+	rows, err := d.Pool.Query(ctx, `SELECT `+tenantCols+` FROM tenants WHERE kind='customer' AND id::text=$1`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func (d *DB) MarkTenantDeleted(ctx context.Context, id string) error {
 	if _, err := tx.Exec(ctx, `UPDATE workspaces SET state='deleted', updated_at=now() WHERE tenant_id::text=$1`, id); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(ctx, `UPDATE tenants SET status='deleted', error=NULL, updated_at=now() WHERE id::text=$1`, id); err != nil {
+	if _, err := tx.Exec(ctx, `UPDATE tenants SET status='deleted', error=NULL, updated_at=now() WHERE kind='customer' AND id::text=$1`, id); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
@@ -48,7 +48,7 @@ func (d *DB) MarkTenantDeleted(ctx context.Context, id string) error {
 
 // BeginTenantOp moves a tenant from one of from to state atomically; false if it wasn't in from.
 func (d *DB) BeginTenantOp(ctx context.Context, id, state string, from ...string) (bool, error) {
-	tag, err := d.Pool.Exec(ctx, `UPDATE tenants SET status=$2, error=NULL, updated_at=now() WHERE id::text=$1 AND status = ANY($3)`, id, state, from)
+	tag, err := d.Pool.Exec(ctx, `UPDATE tenants SET status=$2, error=NULL, updated_at=now() WHERE kind='customer' AND id::text=$1 AND status = ANY($3)`, id, state, from)
 	return err == nil && tag.RowsAffected() == 1, err
 }
 

@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "../../../lib/design/components/button/button";
 import { ModalDialog } from "../../../lib/design/components/dialog/modal-dialog";
+import { TextField } from "../../../lib/design/components/field/text-field";
 import { Switch } from "../../../lib/design/components/switch/switch";
 import type { Guest } from "../../../lib/hooks/use-hosts";
 import { useStopGuests } from "../../../lib/hooks/use-infra";
 import { useText } from "../../../lib/ui-config/use-ui-config";
-import { stoppableGuests } from "../model";
+import { noteOK, stoppableGuests } from "../model";
 import { BoardNotice } from "./board-notice";
 
 type Props = { serverId: string; guests: Guest[]; isOpen: boolean; onOpenChange: (open: boolean) => void };
@@ -17,11 +18,13 @@ export function StopGuestsDialog({ serverId, guests, isOpen, onOpenChange }: Pro
   const candidates = stoppableGuests(guests);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [force, setForce] = useState(false);
+  const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
     setChosen(new Set(candidates.filter((g) => !g.self).map((g) => g.id)));
     setForce(false);
+    setNote("");
     stop.reset();
     // Reset only when the dialog opens: the guest list refreshes on a timer behind it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -50,11 +53,12 @@ export function StopGuestsDialog({ serverId, guests, isOpen, onOpenChange }: Pro
           ))}
         </ul>
         <Switch isSelected={force} onChange={setForce} tooltip={t("infra.stop.forceTooltip")}>{t("infra.stop.force")}</Switch>
+        <TextField label={t("infra.note.label")} description={t("infra.note.help")} value={note} onChange={setNote} />
         <BoardNotice error={stop.error} retry={() => { if (stop.variables) stop.mutate(stop.variables, { onSuccess: () => onOpenChange(false) }); }} />
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={() => onOpenChange(false)}>{t("infra.dialog.cancel")}</Button>
-          <Button variant="primary" isDisabled={ordered.length === 0 || stop.isPending} tooltip={t("infra.stop.submitTooltip")}
-            onPress={() => stop.mutate({ guests: ordered, force }, { onSuccess: () => onOpenChange(false) })}>
+          <Button variant="primary" isDisabled={ordered.length === 0 || stop.isPending || !noteOK(note)} tooltip={t("infra.stop.submitTooltip")}
+            onPress={() => stop.mutate({ guests: ordered, force, note: note.trim() }, { onSuccess: () => onOpenChange(false) })}>
             {t("infra.stop.submit", { count: ordered.length })}
           </Button>
         </div>

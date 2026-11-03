@@ -214,9 +214,10 @@ func markSelf(items []hv.Guest) []hv.Guest {
 	return items
 }
 
-// refuseSelf stops a stop, shutdown or reboot of the panel's own guest unless the caller confirmed it.
-func refuseSelf(w http.ResponseWriter, r *http.Request, d hv.Driver, guest, verb string) bool {
-	if verb == "start" || r.URL.Query().Get("confirm") == "self" {
+// refuseSelf stops a change that would take down the panel's own guest. Going ahead takes a confirmation
+// and the permission to touch it, so an ordinary infrastructure role cannot do it by accident or at all.
+func (a *API) refuseSelf(w http.ResponseWriter, r *http.Request, c *caller, d hv.Driver, guest, verb string) bool {
+	if verb == "start" {
 		return false
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
@@ -225,8 +226,15 @@ func refuseSelf(w http.ResponseWriter, r *http.Request, d hv.Driver, guest, verb
 	if err != nil || !isSelf(g) {
 		return false
 	}
-	writeHVProblem(w, http.StatusConflict, "self_guest", "This panel runs on that guest. Doing this takes the panel down, and something outside it must bring it back.", "", "")
-	return true
+	if r.URL.Query().Get("confirm") != "self" {
+		writeHVProblem(w, http.StatusConflict, "self_guest", "This panel runs on that guest. Doing this takes the panel down; confirm it to go ahead.", "", "")
+		return true
+	}
+	if !a.infraCan(r.Context(), c, "infra.self") {
+		writeHVProblem(w, http.StatusForbidden, "self_guest", "Changing the guest this panel runs on needs the infra.self permission.", "", "")
+		return true
+	}
+	return false
 }
 
 func runVerb(ctx context.Context, d hv.Driver, verb, guest string) (hv.Guest, error) {

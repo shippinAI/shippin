@@ -33,6 +33,7 @@ type Operation struct {
 	GuestStatus string     `json:"guest_status,omitempty"`
 	Actor       string     `json:"-"`
 	ActorName   string     `json:"actor_name,omitempty"`
+	Note        string     `json:"note,omitempty"`
 	StartedAt   time.Time  `json:"started_at"`
 	FinishedAt  *time.Time `json:"finished_at,omitempty"`
 }
@@ -75,8 +76,8 @@ func (s *Store) StartOperation(ctx context.Context, op Operation) (string, error
 	if op.BatchID != "" {
 		batch = op.BatchID
 	}
-	_, err = s.Pool.Exec(ctx, `INSERT INTO infra_operations(id, server_id, batch_id, guest, verb, status, actor, actor_name) VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
-		id, op.ServerID, batch, op.Guest, op.Verb, status, op.Actor, op.ActorName)
+	_, err = s.Pool.Exec(ctx, `INSERT INTO infra_operations(id, server_id, batch_id, guest, verb, status, actor, actor_name, note) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		id, op.ServerID, batch, op.Guest, op.Verb, status, op.Actor, op.ActorName, op.Note)
 	if err != nil {
 		return "", err
 	}
@@ -104,7 +105,7 @@ func (s *Store) Operations(ctx context.Context, serverID string, limit int) ([]O
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
-	const cols = `o.id, o.server_id, coalesce(nullif(s.label,''), s.slug), coalesce(o.batch_id::text,''), o.guest, o.verb, o.status, o.detail, o.guest_status, o.actor_name, o.started_at, o.finished_at`
+	const cols = `o.id, o.server_id, coalesce(nullif(s.label,''), s.slug), coalesce(o.batch_id::text,''), o.guest, o.verb, o.status, o.detail, o.guest_status, o.note, o.actor_name, o.started_at, o.finished_at`
 	var (
 		rows pgx.Rows
 		err  error
@@ -121,7 +122,7 @@ func (s *Store) Operations(ctx context.Context, serverID string, limit int) ([]O
 	out := []Operation{}
 	for rows.Next() {
 		var o Operation
-		if err := rows.Scan(&o.ID, &o.ServerID, &o.ServerLabel, &o.BatchID, &o.Guest, &o.Verb, &o.Status, &o.Detail, &o.GuestStatus, &o.ActorName, &o.StartedAt, &o.FinishedAt); err != nil {
+		if err := rows.Scan(&o.ID, &o.ServerID, &o.ServerLabel, &o.BatchID, &o.Guest, &o.Verb, &o.Status, &o.Detail, &o.GuestStatus, &o.Note, &o.ActorName, &o.StartedAt, &o.FinishedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, o)

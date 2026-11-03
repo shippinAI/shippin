@@ -6,7 +6,7 @@ import { TextField } from "../../../lib/design/components/field/text-field";
 import { Select } from "../../../lib/design/components/select/select";
 import { useAddHost, useTestHost, type ConnectResult, type InfraField, type InfraOverview } from "../../../lib/hooks/use-infra";
 import { useText } from "../../../lib/ui-config/use-ui-config";
-import { fieldsComplete, filledValues, initialValues, siteOK, slugFrom, slugOK } from "../model";
+import { fieldsComplete, filledValues, initialValues, noteOK, siteOK, slugFrom, slugOK } from "../model";
 
 const NEW_HOST = "new";
 
@@ -62,6 +62,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOp
   const [site, setSite] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [trusted, setTrusted] = useState("");
+  const [note, setNote] = useState("");
   const provider = providers.find((p) => p.kind === kind) ?? providers[0];
   const fields = provider?.fields ?? [];
 
@@ -83,6 +84,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOp
     setSlugEdited(false);
     setSite(data.default_site ?? "");
     setTrusted("");
+    setNote("");
     resetTest();
     // Reset only when the dialog opens: the overview refreshes on a timer behind it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,7 +104,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOp
   const isNew = !existing;
   const hostOK = !isNew || (label.trim().length > 0 && slugOK(slug) && (!site || siteOK(site)));
   const filled = fieldsComplete(fields, values) && Object.keys(filledValues(fields, values)).length > 0;
-  const valid = !!provider && hostOK && filled;
+  const valid = !!provider && hostOK && filled && noteOK(note);
   const hostValues = () => ({ kind: provider!.kind, values: filledValues(fields, values), trustedCert: trusted || undefined });
   const runTest = (trust?: string) => {
     if (!provider) return;
@@ -117,8 +119,8 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOp
     // A detached host keeps its slug, so adding it back under that slug reattaches it.
     const detached = existing ?? data.unattached.find((s) => s.slug === slug);
     const request = detached
-      ? { ...hostValues(), existing: detached.id, label: label.trim() || detached.label || detached.slug }
-      : { ...hostValues(), label: label.trim(), slug, site };
+      ? { ...hostValues(), existing: detached.id, label: label.trim() || detached.label || detached.slug, note: note.trim() }
+      : { ...hostValues(), label: label.trim(), slug, site, note: note.trim() };
     add.mutate(request, {
       onSuccess: () => {
         onOpenChange(false);
@@ -156,6 +158,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOp
           {test.data && <TestOutcome result={test.data} onTrust={trust} />}
           {test.isError && <p role="alert" className="text-[13px] text-danger">{test.error.message}</p>}
         </div>
+        <TextField label={t("infra.note.label")} description={t("infra.note.help")} value={note} onChange={setNote} />
         {add.isError && <p role="alert" data-testid="add-error" className="break-words text-[13px] text-danger">{add.error.message}</p>}
         <div className="flex flex-wrap justify-end gap-2 border-t border-line pt-4">
           <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={() => onOpenChange(false)}>{t("infra.dialog.cancel")}</Button>

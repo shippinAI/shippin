@@ -37,17 +37,10 @@ func testStore(t *testing.T) (*Store, context.Context, string) {
 	return &Store{Pool: d.Pool, Clock: Clock{Interval: 15 * time.Second, Missed: 3}}, ctx, tid
 }
 
-// TestEnrollmentLifecycle: pending → token → enroll once → beats → stale → revoked; estate rows
-// are planned and read-only; secrets are only ever stored hashed.
+// TestEnrollmentLifecycle: pending → token → enroll once → beats → stale → revoked; secrets are
+// only ever stored hashed.
 func TestEnrollmentLifecycle(t *testing.T) {
 	s, ctx, tid := testStore(t)
-	list, _ := s.List(ctx, tid)
-	if len(list) != 3 || list[0].State != Planned || !list[0].Estate {
-		t.Fatalf("seeded estate rows: %+v", list)
-	}
-	if _, err := s.IssueToken(ctx, tid, list[0].ID, "u", time.Hour); err != ErrReadOnly {
-		t.Fatalf("token for estate row: %v", err)
-	}
 	g, err := s.Create(ctx, tid, "gold", "Gold", "gold", "u")
 	if err != nil || g.State != Pending {
 		t.Fatalf("create: %+v %v", g, err)
@@ -157,5 +150,41 @@ func TestHypervisorColumns(t *testing.T) {
 	}
 	if _, err := s.VisibleEndpoint(ctx, uuid.NewString(), g.ID); err != ErrNotFound {
 		t.Fatalf("another org must not see the server: %v", err)
+	}
+}
+
+// A platform host belongs to the system tenant. A customer sees it only if it is assigned to them, and
+// then only to read. Nothing is seeded: a fresh install has no hosts at all.
+func TestCustomersSeeOnlyTheirOwnServersAndWhatIsAssignedToThem(t *testing.T) {
+	s, ctx, tid := testStore(t)
+	if refs, err := s.Registry(ctx); err != nil || len(refs) != 0 {
+		t.Fatalf("a fresh install must not come with anyone's hosts: %+v %v", refs, err)
+	}
+	host, err := s.CreateEndpoint(ctx, Endpoint{ID: uuid.NewString(), Slug: "platform-1", Label: "Platform 1", Site: "main", Kind: "incus", BaseURL: "https://incus.invalid:8443"}, "u")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if list, err := s.List(ctx, tid); err != nil || len(list) != 0 {
+		t.Fatalf("a platform host must be invisible to a customer: %+v %v", list, err)
+	}
+	if _, err := s.Get(ctx, tid, host.ID); err != ErrNotFound {
+		t.Fatalf("and unreadable by id: %v", err)
+	}
+	if _, err := s.IssueToken(ctx, tid, host.ID, "u", time.Hour); err != ErrNotFound {
+		t.Fatalf("and unknown to enrollment: %v", err)
+	}
+	if _, err := s.Pool.Exec(ctx, `INSERT INTO server_assignments(server_id, tenant_id, role, created_by) VALUES($1,$2,'placement','u')`, host.ID, tid); err != nil {
+		t.Fatal(err)
+	}
+	list, err := s.List(ctx, tid)
+	if err != nil || len(list) != 1 || !list[0].Estate {
+		t.Fatalf("once assigned it is visible and marked: %+v %v", list, err)
+	}
+	if _, err := s.IssueToken(ctx, tid, host.ID, "u", time.Hour); err != ErrReadOnly {
+		t.Fatalf("and read-only: %v", err)
+	}
+	var owner string
+	if err := s.Pool.QueryRow(ctx, `SELECT tenant_id::text FROM servers WHERE id=$1`, host.ID).Scan(&owner); err != nil || owner != SystemTenantID {
+		t.Fatalf("the system tenant owns it: %q %v", owner, err)
 	}
 }

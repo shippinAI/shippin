@@ -14,7 +14,7 @@ import { ActivityCard } from "./activity-card";
 import { ProviderCards } from "./provider-cards";
 
 type Row = InfraNode & { providerLabel: string };
-type Props = { data: InfraOverview; onAdd: (kind?: string, existing?: string) => void };
+type Props = { data: InfraOverview; onAdd?: (kind?: string, existing?: string) => void };
 
 export function OverviewTab({ data, onAdd }: Props) {
   const t = useText();
@@ -27,6 +27,7 @@ export function OverviewTab({ data, onAdd }: Props) {
       render: (n) => (
         <>
           <span className="font-medium text-fg">{n.label}</span>
+          {n.control_plane && <Badge tone="warning" className="ml-2">{t("infra.controlPlane")}</Badge>}
           {n.source === "agent" && <span className="ml-2 text-[12px] text-fg-subtle">{t("infra.status.localAgent")}</span>}
         </>
       ),
@@ -63,7 +64,7 @@ export function OverviewTab({ data, onAdd }: Props) {
           {t("infra.agent.down", { label: data.local_agent.label })}
         </p>
       )}
-      <div className="mb-6"><ProviderCards providers={data.providers} onAdd={(kind) => onAdd(kind)} /></div>
+      <div className="mb-6"><ProviderCards providers={data.providers} onAdd={onAdd && ((kind) => onAdd(kind))} /></div>
       <Card elevation={2} className="mb-6 overflow-hidden">
         <CardHeader title={t("infra.nodes.title")} description={t("infra.nodes.description")} />
         <DataTable
@@ -76,7 +77,7 @@ export function OverviewTab({ data, onAdd }: Props) {
               illustration={<Server className="size-10 text-fg-subtle" />}
               title={t("infra.nodes.empty.title")}
               description={t("infra.nodes.empty.body")}
-              action={<Button variant="primary" size="sm" tooltip={t("infra.add.tooltip")} onPress={() => onAdd()}><Plus className="size-4" /> {t("infra.add")}</Button>}
+              action={onAdd && <Button variant="primary" size="sm" tooltip={t("infra.add.tooltip")} onPress={() => onAdd?.()}><Plus className="size-4" /> {t("infra.add")}</Button>}
             />
           }
         />
@@ -89,7 +90,7 @@ export function OverviewTab({ data, onAdd }: Props) {
             {data.unattached.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
                 <span><span className="font-medium text-fg">{s.label || s.slug}</span> <span className="font-mono text-[12.5px] text-fg-subtle">{s.slug}</span></span>
-                <Button size="sm" variant="secondary" tooltip={t("infra.unattached.attachTooltip", { label: s.label || s.slug })} onPress={() => onAdd(undefined, s.id)}>
+                <Button size="sm" variant="secondary" tooltip={t("infra.unattached.attachTooltip", { label: s.label || s.slug })} onPress={() => onAdd?.(undefined, s.id)}>
                   {t("infra.unattached.attach")}
                 </Button>
               </li>

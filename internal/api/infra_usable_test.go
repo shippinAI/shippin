@@ -36,6 +36,7 @@ func infraCall(t *testing.T, a *API, method, path, body string) *httptest.Respon
 	a.infraRoutes(mux)
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer test")
+	req.Header.Set(noteHeader, "A test of this change")
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 	return rec
@@ -354,23 +355,29 @@ func TestStopOneRecordsEachGuestAndSparesThePanel(t *testing.T) {
 	}
 }
 
-func TestRefuseSelfNeedsConfirmation(t *testing.T) {
+func TestRefuseSelfNeedsConfirmationAndThePermission(t *testing.T) {
 	t.Setenv("SHIPPIN_SELF_GUEST", "panel-vm")
 	d := &stubDriver{guests: map[string]*hv.Guest{"panel-vm": {ID: "panel-vm", Name: "panel-vm", Status: "running"}, "other": {ID: "other", Name: "other", Status: "running"}}}
-	call := func(guest, verb, query string) (bool, *httptest.ResponseRecorder) {
+	a := enforcedInfraAPI(t, &memHV{}, "infra.guests.power")
+	limited := staffCaller("infra.guests.power")
+	full := staffCaller("infra.guests.power", "infra.self")
+	call := func(c *caller, guest, verb, query string) (bool, *httptest.ResponseRecorder) {
 		rec := httptest.NewRecorder()
-		return refuseSelf(rec, httptest.NewRequest(http.MethodPost, "/x"+query, nil), d, guest, verb), rec
+		return a.refuseSelf(rec, httptest.NewRequest(http.MethodPost, "/x"+query, nil), c, d, guest, verb), rec
 	}
-	if refused, rec := call("panel-vm", "stop", ""); !refused || !strings.Contains(rec.Body.String(), "self_guest") {
-		t.Fatalf("%v %s", refused, rec.Body)
+	if refused, rec := call(full, "panel-vm", "stop", ""); !refused || rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "self_guest") {
+		t.Fatalf("unconfirmed: %v %d %s", refused, rec.Code, rec.Body)
 	}
-	if refused, _ := call("panel-vm", "stop", "?confirm=self"); refused {
-		t.Fatal("confirmed: should proceed")
+	if refused, rec := call(limited, "panel-vm", "stop", "?confirm=self"); !refused || rec.Code != http.StatusForbidden {
+		t.Fatalf("confirming must not be enough without infra.self: %v %d", refused, rec.Code)
 	}
-	if refused, _ := call("panel-vm", "start", ""); refused {
+	if refused, _ := call(full, "panel-vm", "stop", "?confirm=self"); refused {
+		t.Fatal("confirmed with the permission: should proceed")
+	}
+	if refused, _ := call(limited, "panel-vm", "start", ""); refused {
 		t.Fatal("starting it is harmless")
 	}
-	if refused, _ := call("other", "stop", ""); refused {
+	if refused, _ := call(limited, "other", "stop", ""); refused {
 		t.Fatal("another guest is not the panel")
 	}
 }

@@ -67,7 +67,7 @@ func (s *Store) CreateOperator(ctx context.Context, in OpProject) (*Created, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	out := &Created{PublicID: NewPublicID()}
-	if err := tx.QueryRow(ctx, `SELECT idp_org_id FROM tenants WHERE id=$1`, in.TenantID).Scan(&out.OrgID); err != nil || out.OrgID == "" {
+	if err := tx.QueryRow(ctx, `SELECT idp_org_id FROM tenants WHERE kind='customer' AND id=$1`, in.TenantID).Scan(&out.OrgID); err != nil || out.OrgID == "" {
 		if err == nil || errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNoOrg
 		}

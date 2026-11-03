@@ -130,7 +130,7 @@ func TestInfraGuestLifecycleReadsBack(t *testing.T) {
 		t.Fatalf("task %d %s", rec.Code, rec.Body.String())
 	}
 	acts := a.staffDB.(*fakeStore).actions()
-	if len(acts) != 1 || acts[0] != "hv.lifecycle" {
+	if strings.Join(acts, ",") != "infra.change,hv.lifecycle" {
 		t.Fatalf("audit %v", acts)
 	}
 	for _, e := range a.staffDB.(*fakeStore).audit {
@@ -495,6 +495,7 @@ func TestTenantGuestsStayInsideTheOrg(t *testing.T) {
 func infraDo(mux *http.ServeMux, method, path, body string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer test")
+	req.Header.Set(noteHeader, "A test of this change")
 	if body != "" {
 		req.Header.Set("Content-Type", "application/json")
 	}

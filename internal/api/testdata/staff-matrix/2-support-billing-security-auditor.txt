@@ -2,6 +2,7 @@
 [staff.support]
 GET /v1/operator/access
 GET /v1/operator/tenants
+GET /v1/operator/system
 GET /v1/operator/tenants/{tenantId}
 GET /v1/operator/tenants/{tenantId}/setup
 GET /v1/operator/staff-mode
@@ -20,6 +21,7 @@ POST /v1/operator/access-requests/{grantId}/end
 [staff.billing]
 GET /v1/operator/access
 GET /v1/operator/tenants
+GET /v1/operator/system
 GET /v1/operator/tenants/{tenantId}
 GET /v1/operator/tenants/{tenantId}/setup
 GET /v1/operator/staff-mode
@@ -32,6 +34,7 @@ GET /v1/operator/boundaries
 [staff.security]
 GET /v1/operator/access
 GET /v1/operator/tenants
+GET /v1/operator/system
 GET /v1/operator/tenants/{tenantId}
 GET /v1/operator/tenants/{tenantId}/setup
 GET /v1/operator/staff-mode
@@ -54,6 +57,7 @@ GET /v1/operator/team/permission-grants
 [staff.auditor]
 GET /v1/operator/access
 GET /v1/operator/tenants
+GET /v1/operator/system
 GET /v1/operator/tenants/{tenantId}
 GET /v1/operator/tenants/{tenantId}/setup
 GET /v1/operator/staff-mode

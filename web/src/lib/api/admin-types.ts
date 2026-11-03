@@ -1,4 +1,11 @@
 // Provider panel (/v1/operator/*) response shapes. No secrets are ever returned.
+export type SystemTenant = {
+  tenant: { id: string; name: string; status: string; created_at: string };
+  hosts: number;
+  self_guest: string;
+  audit: { enabled: boolean; rows: number; ok: boolean; first_bad?: number };
+};
+
 export type AdminTenant = {
   id: string; idp_org_id: string; name: string; plan_id: string; status: string; ssh_ip?: string; error?: string;
   created_at: string; owner: string; owner_email: string; subnet: string; router: string; workspace_count: number;

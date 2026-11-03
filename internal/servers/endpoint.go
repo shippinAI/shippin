@@ -141,14 +141,14 @@ func (s *Store) SetEndpoint(ctx context.Context, e Endpoint) error {
 	return nil
 }
 
-// CreateEndpoint adds an estate row that is reached through its hypervisor API. It stays planned:
+// CreateEndpoint adds a platform host, owned by the system tenant and reached through its hypervisor API. It stays planned:
 // no agent enrolls on it and no enrollment token can be issued. The operator page owns these rows.
 func (s *Store) CreateEndpoint(ctx context.Context, e Endpoint, by string) (Endpoint, error) {
 	if uuid.Validate(e.ID) != nil {
 		return Endpoint{}, errors.New("servers: a new host needs its id set first, because its secrets are sealed to it")
 	}
-	_, err := s.Pool.Exec(ctx, `INSERT INTO servers(id, slug, label, site, state, created_by, hv_kind, hv_api_url, hv_node, hv_token_id, hv_token_env, hv_ca_file, hv_cert_file, hv_key_file, hv_trusted_cert, hv_client_cert, hv_client_key, hv_secret)
-		VALUES($1,$2,$3,$4,'planned',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+	_, err := s.Pool.Exec(ctx, `INSERT INTO servers(id, tenant_id, slug, label, site, state, created_by, hv_kind, hv_api_url, hv_node, hv_token_id, hv_token_env, hv_ca_file, hv_cert_file, hv_key_file, hv_trusted_cert, hv_client_cert, hv_client_key, hv_secret)
+		VALUES($1,'`+SystemTenantID+`',$2,$3,$4,'planned',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
 		e.ID, e.Slug, e.Label, e.Site, by, e.Kind, e.BaseURL, e.Node, e.TokenID, e.TokenEnv, e.CAFile, e.CertFile, e.KeyFile, e.TrustedCert, e.ClientCert, e.SealedKey, e.SealedSecret)
 	var pg *pgconn.PgError
 	if errors.As(err, &pg) && pg.Code == "23505" {

@@ -30,11 +30,15 @@ export async function apiGet<T>(path: string): Promise<T> {
 }
 
 /** POST/PUT with JSON; returns the parsed body (problem+json → ApiError). */
-export async function apiSend<T>(method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<T> {
+export async function apiSend<T>(method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown, options?: { note?: string }): Promise<T> {
   const res = await fetch(path, {
     method,
     credentials: "same-origin",
-    headers: { "Content-Type": "application/json", Accept: "application/json", "Idempotency-Key": crypto.randomUUID() },
+    headers: {
+      "Content-Type": "application/json", Accept: "application/json", "Idempotency-Key": crypto.randomUUID(),
+      // Why this change is being made. Percent-encoded so that any language survives a header.
+      ...(options?.note ? { "X-Change-Note": encodeURIComponent(options.note) } : {}),
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = res.status === 204 ? {} : await res.json().catch(() => ({}));

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiGet, apiSend, isWaitingOnBoard } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 import { useText } from "../ui-config/use-ui-config";
+import { useMe } from "./use-api";
 
 export type InfraField = { name: string; required: boolean; secret?: boolean; advanced?: boolean; label: string; help?: string; placeholder?: string; default?: string };
 export type InfraGuestCount = { total: number; running: number };
@@ -35,6 +36,8 @@ export type InfraNode = {
   guests: InfraGuestCount;
   fleet_id?: string;
   details?: NodeDetails;
+  /** This host runs the panel itself. */
+  control_plane?: boolean;
 };
 export type InfraTotals = { nodes: number; online: number; guests: number; running: number };
 export type InfraProvider = {
@@ -68,6 +71,7 @@ export type InfraOperation = {
   batch_id?: string;
   guest: string;
   verb: string;
+  note?: string;
   status: OperationStatus;
   detail?: string;
   guest_status?: string;
@@ -107,6 +111,12 @@ function useRefresh() {
 const boardWord = (fallback: string, e: Error) =>
   e instanceof ApiError && e.code === "waiting_on_board" ? (["Approve the card, then try again", e.message] as const) : ([fallback, e.message] as const);
 
+/** can(p) for one infrastructure permission. The API decides the same thing again; this only hides what would be refused. */
+export function useInfraCan() {
+  const caps = useMe().data?.capabilities;
+  return (p: string) => caps?.[p] === true;
+}
+
 /** Approves one waiting change. It runs when the page asks for it again. */
 export const useApproveCard = () =>
   useMutation({ mutationFn: (id: string) => apiSend("POST", `/v1/hub/tasks/${encodeURIComponent(id)}/decision`, { approve: true, note: "" }) });
@@ -119,10 +129,10 @@ export function useAddHost() {
   const refresh = useRefresh();
   const t = useText();
   return useMutation({
-    mutationFn: (v: (NewHost & { existing?: undefined }) | (HostValues & { existing: string; label: string })) =>
+    mutationFn: (v: ((NewHost & { existing?: undefined }) | (HostValues & { existing: string; label: string })) & { note: string }) =>
       v.existing
-        ? apiSend("PUT", `/v1/infra/servers/${v.existing}`, bodyOf(v))
-        : apiSend("POST", "/v1/infra/servers", { label: v.label, slug: (v as NewHost).slug, site: (v as NewHost).site, ...bodyOf(v) }),
+        ? apiSend("PUT", `/v1/infra/servers/${v.existing}`, bodyOf(v), { note: v.note })
+        : apiSend("POST", "/v1/infra/servers", { label: v.label, slug: (v as NewHost).slug, site: (v as NewHost).site, ...bodyOf(v) }, { note: v.note }),
     onSuccess: (_d, v) => {
       toast.success(t("infra.toast.added", { label: v.label }), t("infra.toast.addedBody"));
       refresh();
@@ -135,7 +145,7 @@ export function useDetachHost() {
   const refresh = useRefresh();
   const t = useText();
   return useMutation({
-    mutationFn: (v: { id: string; label: string }) => apiSend("DELETE", `/v1/infra/servers/${v.id}/attachment`),
+    mutationFn: (v: { id: string; label: string; note: string }) => apiSend("DELETE", `/v1/infra/servers/${v.id}/attachment`, undefined, { note: v.note }),
     onSuccess: (_d, v) => {
       toast.info(t("infra.toast.detached", { label: v.label }), t("infra.toast.detachedBody"));
       refresh();
@@ -149,7 +159,7 @@ export function useStopGuests(serverId: string) {
   const refresh = useRefresh();
   const t = useText();
   return useMutation({
-    mutationFn: (v: { guests: string[]; force: boolean }) => apiSend<{ batch_id: string; total: number }>("POST", `/v1/infra/servers/${serverId}/stop-guests`, v),
+    mutationFn: ({ note, ...body }: { guests: string[]; force: boolean; note: string }) => apiSend<{ batch_id: string; total: number }>("POST", `/v1/infra/servers/${serverId}/stop-guests`, body, { note }),
     onSuccess: (r) => {
       toast.info(t("infra.stop.started", { count: r.total }), t("infra.stop.startedBody"));
       refresh();

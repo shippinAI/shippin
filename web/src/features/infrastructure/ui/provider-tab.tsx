@@ -4,7 +4,6 @@ import { Badge } from "../../../lib/design/components/badge/badge";
 import { Button } from "../../../lib/design/components/button/button";
 import { Card, CardHeader } from "../../../lib/design/components/card/card";
 import { DataTable, type ColumnDef } from "../../../lib/design/components/data-table/data-table";
-import { ModalDialog } from "../../../lib/design/components/dialog/modal-dialog";
 import { EmptyState } from "../../../lib/design/components/empty-state/empty-state";
 import { TextField } from "../../../lib/design/components/field/text-field";
 import { Select } from "../../../lib/design/components/select/select";
@@ -13,12 +12,13 @@ import { StatusDot } from "../../../lib/design/components/status-dot/status-dot"
 import { isWaitingOnBoard } from "../../../lib/api/client";
 import { useServices } from "../../../lib/hooks/use-api";
 import { useCreateGuest, useGuestAction, useGuests, useRollback, useSnapshot, useSnapshots, useTask, type Guest } from "../../../lib/hooks/use-hosts";
-import { isOpen as operationOpen, useDetachHost, useOperations, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
+import { isOpen as operationOpen, useDetachHost, useInfraCan, useOperations, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
 
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { firstAnswering, isRunning, isStopped, stoppableGuests, verbApplies } from "../model";
 import { ActivityCard } from "./activity-card";
 import { BoardNotice } from "./board-notice";
+import { ChangeNoteDialog, type PendingChange } from "./change-note-dialog";
 import { NodeFacts } from "./node-details";
 import { StopGuestsDialog } from "./stop-guests-dialog";
 
@@ -84,9 +84,9 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
   const back = useRollback(base);
   const create = useCreateGuest(node.id);
   const detach = useDetachHost();
-  const [confirming, setConfirming] = useState(false);
+  const may = useInfraCan();
+  const [change, setChange] = useState<PendingChange | null>(null);
   const [stopping, setStopping] = useState(false);
-  const [selfVerb, setSelfVerb] = useState<"stop" | "shutdown" | "reboot" | null>(null);
   const [snapName, setSnapName] = useState("");
   const [kind, setKind] = useState("ct");
   const [newId, setNewId] = useState("");
@@ -109,13 +109,20 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
       <Card elevation={2} className="mb-6 overflow-hidden">
         <CardHeader
           title={node.label}
-          description={[node.base_url, node.scope, node.version].filter(Boolean).join(" · ")}
+          description={[node.control_plane ? t("infra.controlPlane") : "", node.base_url, node.scope, node.version].filter(Boolean).join(" · ")}
           actions={
             <div className="flex gap-2">
-              {can("lifecycle") && (
+              {can("lifecycle") && may("infra.guests.power") && (
                 <Button size="sm" variant="secondary" tooltip={t("infra.stop.tooltip")} isDisabled={stoppableGuests(guests.data?.items ?? []).length === 0} onPress={() => setStopping(true)}>{t("infra.stop.open")}</Button>
               )}
-              <Button size="sm" variant="ghost" tooltip={t("infra.detach.tooltip")} onPress={() => setConfirming(true)}>{t("infra.detach")}</Button>
+              {may("infra.hosts.write") && (
+                <Button size="sm" variant="ghost" tooltip={t("infra.detach.tooltip")}
+                  onPress={() => setChange({
+                    title: t("infra.detach.title", { label: node.label }), description: t("infra.detach.body"),
+                    warning: node.control_plane ? t("infra.detach.controlPlane") : undefined, confirm: t("infra.detach.confirm"),
+                    run: (note) => detach.mutate({ id: node.id, label: node.label, note }),
+                  })}>{t("infra.detach")}</Button>
+              )}
             </div>
           }
         />
@@ -130,25 +137,37 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
             } />
         )}
       </Card>
-      {guest && (can("lifecycle") || can("snapshot")) && (
+      {guest && (can("lifecycle") || can("snapshot") || can("snapshot_list")) && (
         <Card className="mb-6 p-5">
           <h2 className="mb-3 text-sm font-semibold text-fg">{guest.name || guest.id}</h2>
-          {can("lifecycle") && (
+          {can("lifecycle") && may("infra.guests.power") && (
             <div className="mb-4 flex flex-wrap gap-2">
-              {(provider.verbs as ("start" | "stop" | "shutdown" | "reboot")[]).map((verb) => (
-                <Button key={verb} size="sm" variant="secondary" tooltip={t("infra.guest.verbTooltip", { verb, guest: guest.id })} isDisabled={guestBusy || !verbApplies(verb, guest.status)}
-                  onPress={() => (guest.self && verb !== "start" ? setSelfVerb(verb) : act.mutate({ guest: guest.id, verb }))}>
-                  {verb}
-                </Button>
-              ))}
+              {(provider.verbs as ("start" | "stop" | "shutdown" | "reboot")[]).map((verb) => {
+                const takesPanelDown = !!guest.self && verb !== "start";
+                return (
+                  <Button key={verb} size="sm" variant="secondary" tooltip={t("infra.guest.verbTooltip", { verb, guest: guest.id })}
+                    isDisabled={guestBusy || !verbApplies(verb, guest.status) || (takesPanelDown && !may("infra.self"))}
+                    onPress={() => setChange({
+                      title: t("infra.note.title", { change: `${verb} ${guest.name || guest.id}` }),
+                      warning: takesPanelDown ? t("infra.self.body") : undefined,
+                      confirm: takesPanelDown ? t("infra.self.confirm", { verb }) : verb,
+                      run: (note) => act.mutate({ guest: guest.id, verb, note, confirmSelf: takesPanelDown }),
+                    })}>
+                    {verb}
+                  </Button>
+                );
+              })}
               {guestBusy && <p className="basis-full text-[13px] text-fg-muted" data-testid="guest-busy">{t("infra.guest.busy")}</p>}
             </div>
           )}
-          {can("snapshot") && (
+          {can("snapshot") && may("infra.guests.snapshot") && (
             <div className="mb-4 flex flex-wrap items-end gap-2">
               <TextField label={t("infra.snapshot.name")} value={snapName} onChange={setSnapName} description={t("infra.snapshot.help")} />
               <Button size="sm" variant="primary" tooltip={t("infra.snapshot.takeTooltip")} isDisabled={!snapName || snap.isPending}
-                onPress={() => snap.mutate({ guest: guest.id, snapname: snapName })}>
+                onPress={() => setChange({
+                  title: t("infra.note.title", { change: `${t("infra.snapshot.take").toLowerCase()} ${guest.name || guest.id}` }), confirm: t("infra.snapshot.take"),
+                  run: (note) => snap.mutate({ guest: guest.id, snapname: snapName, note }),
+                })}>
                 {t("infra.snapshot.take")}
               </Button>
             </div>
@@ -158,9 +177,15 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
               {(snaps.data?.items ?? []).map((name) => (
                 <li key={name} className="flex items-center justify-between gap-3">
                   <span className="font-mono">{name}</span>
-                  {can("rollback") && (
-                    <Button size="sm" variant="ghost" tooltip={t("infra.snapshot.rollbackTooltip", { guest: guest.id, name })} isDisabled={back.isPending}
-                      onPress={() => back.mutate({ guest: guest.id, name })}>
+                  {can("rollback") && may("infra.guests.restore") && (
+                    <Button size="sm" variant="ghost" tooltip={t("infra.snapshot.rollbackTooltip", { guest: guest.id, name })}
+                      isDisabled={back.isPending || guestBusy || (!!guest.self && !may("infra.self"))}
+                      onPress={() => setChange({
+                        title: t("infra.note.title", { change: `${t("infra.snapshot.rollback").toLowerCase()} ${guest.name || guest.id}` }),
+                        warning: guest.self ? t("infra.self.body") : t("infra.snapshot.rollbackWarning", { name }),
+                        confirm: t("infra.snapshot.rollback"),
+                        run: (note) => back.mutate({ guest: guest.id, name, note, confirmSelf: !!guest.self }),
+                      })}>
                       {t("infra.snapshot.rollback")}
                     </Button>
                   )}
@@ -171,12 +196,18 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
           )}
         </Card>
       )}
-      {(can("create") || can("tasks")) && (
+      {((can("create") && may("infra.guests.manage")) || can("tasks")) && (
         <div className="grid gap-6 lg:grid-cols-2">
-          {can("create") && (
+          {can("create") && may("infra.guests.manage") && (
             <Card className="p-5">
               <h2 className="mb-3 text-sm font-semibold text-fg">{t("infra.create.title")}</h2>
-              <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); create.mutate({ kind, id: newId, name: newName }); }}>
+              <form className="space-y-3" onSubmit={(e) => {
+                e.preventDefault();
+                setChange({
+                  title: t("infra.note.title", { change: t("infra.create.title").toLowerCase() }), confirm: t("infra.create.submit"),
+                  run: (note) => create.mutate({ kind, id: newId, name: newName, note }),
+                });
+              }}>
                 <Select label={t("infra.create.kind")} options={guestKinds} value={kind} onChange={setKind} />
                 <TextField label={t("infra.create.id")} value={newId} onChange={setNewId} />
                 <TextField label={t("infra.create.name")} value={newName} onChange={setNewName} />
@@ -206,24 +237,7 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
       )}
       <div className="mt-6"><ActivityCard serverId={node.id} /></div>
       <StopGuestsDialog serverId={node.id} guests={guests.data?.items ?? []} isOpen={stopping} onOpenChange={setStopping} />
-      <ModalDialog isOpen={selfVerb !== null} onOpenChange={(o) => { if (!o) setSelfVerb(null); }} title={t("infra.self.title")} description={t("infra.self.body")}>
-        <div className="flex justify-end gap-2 px-6 py-5">
-          <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={() => setSelfVerb(null)}>{t("infra.dialog.cancel")}</Button>
-          <Button variant="primary" tooltip={t("infra.self.confirmTooltip")} isDisabled={act.isPending}
-            onPress={() => { if (guest && selfVerb) act.mutate({ guest: guest.id, verb: selfVerb, confirmSelf: true }); setSelfVerb(null); }}>
-            {t("infra.self.confirm", { verb: selfVerb ?? "" })}
-          </Button>
-        </div>
-      </ModalDialog>
-      <ModalDialog isOpen={confirming} onOpenChange={setConfirming} title={t("infra.detach.title", { label: node.label })} description={t("infra.detach.body")}>
-        <div className="flex justify-end gap-2 px-6 py-5">
-          <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={() => setConfirming(false)}>{t("infra.dialog.cancel")}</Button>
-          <Button variant="primary" tooltip={t("infra.detach.tooltip")} isDisabled={detach.isPending}
-            onPress={() => detach.mutate({ id: node.id, label: node.label }, { onSuccess: () => setConfirming(false) })}>
-            {t("infra.detach.confirm")}
-          </Button>
-        </div>
-      </ModalDialog>
+      <ChangeNoteDialog change={change} onClose={() => setChange(null)} />
     </>
   );
 }

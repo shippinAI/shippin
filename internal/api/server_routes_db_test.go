@@ -4,6 +4,10 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/google/uuid"
+
+	"shippin.cloud/console/internal/servers"
 )
 
 // TestServerAdminAuthz: only org owners/admins reach the server API; members get 403 everywhere.
@@ -18,7 +22,7 @@ func TestServerAdminAuthz(t *testing.T) {
 }
 
 // TestServerAdminAPI: create/validate/cap, token shown once and never stored or audited in clear,
-// estate rows read-only, revoke.
+// platform hosts out of reach, revoke.
 func TestServerAdminAPI(t *testing.T) {
 	_, d, tn, srv := serverTestAPI(t, "org_owner")
 	ctx := context.Background()
@@ -49,22 +53,22 @@ func TestServerAdminAPI(t *testing.T) {
 	if leaks != 0 {
 		t.Fatalf("token stored in clear %d times", leaks)
 	}
+	// A platform host is not a customer's: it is not listed, and its id opens nothing.
+	platform := uuid.NewString()
+	if _, err := d.Pool.Exec(ctx, `INSERT INTO servers(id, tenant_id, slug, label, site, state, created_by) VALUES($1,$2,'platform-1','Platform','main','planned','test')`, platform, servers.SystemTenantID); err != nil {
+		t.Fatal(err)
+	}
 	_, list, _ := srvCall(t, srv, "GET", base, "", "")
-	planned := 0
 	for _, it := range list["items"].([]any) {
-		m := it.(map[string]any)
-		if m["estate"] == true && m["state"] == "planned" {
-			planned++
-			if c, _, _ := srvCall(t, srv, "POST", base+"/"+m["id"].(string)+"/enroll-token", ``, ""); c != 403 {
-				t.Errorf("token for planned %s: %d", m["slug"], c)
-			}
-			if c, _, _ := srvCall(t, srv, "POST", base+"/"+m["id"].(string)+"/revoke", ``, ""); c != 403 {
-				t.Errorf("revoke planned %s: %d", m["slug"], c)
-			}
+		if m := it.(map[string]any); m["id"] == platform || m["slug"] == "platform-1" {
+			t.Fatalf("a customer must not see a platform host: %v", m)
 		}
 	}
-	if planned != 3 {
-		t.Fatalf("want Texas, Wisconsin, Virginia planned; got %d", planned)
+	if c, _, _ := srvCall(t, srv, "POST", base+"/"+platform+"/enroll-token", ``, ""); c != 404 {
+		t.Errorf("token for a platform host: %d", c)
+	}
+	if c, _, _ := srvCall(t, srv, "POST", base+"/"+platform+"/revoke", ``, ""); c != 404 {
+		t.Errorf("revoke of a platform host: %d", c)
 	}
 	if c, r, _ := srvCall(t, srv, "POST", base+"/"+id+"/revoke", ``, ""); c != 200 || r["state"] != "revoked" {
 		t.Fatalf("revoke: %d %v", c, r)

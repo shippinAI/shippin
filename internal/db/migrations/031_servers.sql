@@ -43,10 +43,3 @@ CREATE TABLE IF NOT EXISTS server_assignments (
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (server_id, tenant_id)
 );
-
--- Remote sites exist only as planned rows. Nothing contacts them; no address is recorded.
-INSERT INTO servers(id, tenant_id, slug, label, site, state, created_by) VALUES
-  ('019a0000-0000-7000-8000-0000000c0001', NULL, 'texas', 'Texas', 'texas', 'planned', 'seed:028'),
-  ('019a0000-0000-7000-8000-0000000c0002', NULL, 'wisconsin', 'Wisconsin', 'wisconsin', 'planned', 'seed:028'),
-  ('019a0000-0000-7000-8000-0000000c0003', NULL, 'virginia', 'Virginia', 'virginia', 'planned', 'seed:028')
-ON CONFLICT DO NOTHING;

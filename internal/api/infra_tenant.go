@@ -143,7 +143,7 @@ func (a *API) tenantStatus(w http.ResponseWriter, r *http.Request, c *caller, te
 		infraErr(w, err)
 		return
 	}
-	if refuseSelf(w, r, cl, guest, verb) {
+	if a.refuseSelf(w, r, c, cl, guest, verb) {
 		return
 	}
 	got, err2 := a.tracked(r, c, id, guest, verb, func(ctx context.Context) (hv.Guest, error) { return runVerb(ctx, cl, verb, guest) })

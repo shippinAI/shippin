@@ -34,7 +34,7 @@ const (
 func (a *API) tracked(r *http.Request, c *caller, server, guest, verb string, fn func(context.Context) (hv.Guest, error)) (hv.Guest, error) {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), opTimeout)
 	defer cancel()
-	id, err := a.hvDir().StartOperation(ctx, servers.Operation{ServerID: server, Guest: guest, Verb: verb, Actor: c.id.Sub, ActorName: displayName(c)})
+	id, err := a.hvDir().StartOperation(ctx, servers.Operation{ServerID: server, Guest: guest, Verb: verb, Actor: c.id.Sub, ActorName: displayName(c), Note: c.note})
 	if err != nil {
 		log.Printf("infra operation start: %v", err)
 		return hv.Guest{}, errors.New("the change could not be recorded, so it was not made")
@@ -122,7 +122,7 @@ func (a *API) infraStopGuests(w http.ResponseWriter, r *http.Request, c *caller)
 	queue := make([]queued, 0, len(in.Guests))
 	for _, guest := range in.Guests {
 		id, err := a.hvDir().StartOperation(r.Context(), servers.Operation{ServerID: server, BatchID: batch.String(), Guest: guest, Verb: verb,
-			Status: servers.OpQueued, Actor: c.id.Sub, ActorName: displayName(c)})
+			Status: servers.OpQueued, Actor: c.id.Sub, ActorName: displayName(c), Note: c.note})
 		if err != nil {
 			log.Printf("infra stop-guests queue: %v", err)
 			auth.Problem(w, http.StatusServiceUnavailable, "The change could not be recorded, so it was not made.")

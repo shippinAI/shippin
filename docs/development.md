@@ -54,3 +54,7 @@ Implement `hv.Driver` in `internal/hv/<kind>`, declare what it needs and offers 
 ## Fork it
 
 Set `updates.repository` and `updates.branch` in your config, or `SHIPPIN_UPDATE_REPOSITORY` and `SHIPPIN_UPDATE_BRANCH` in your environment, so the update notice follows your repository. Set `ui.text` and `brand` to your own wording. Nothing in the code needs to change.
+
+## Migrations and the audit log
+
+On an installer deployment the panel's database role does not own `audit_log` or `access_grants`, so a migration that alters them fails. Change them in `internal/db/audit_owner.sql` or `audit_chain.sql`, which run as a superuser.

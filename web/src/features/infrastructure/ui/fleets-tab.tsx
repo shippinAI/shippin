@@ -6,7 +6,7 @@ import { Card, CardHeader } from "../../../lib/design/components/card/card";
 import { EmptyState } from "../../../lib/design/components/empty-state/empty-state";
 import { TextField } from "../../../lib/design/components/field/text-field";
 import { StatusDot } from "../../../lib/design/components/status-dot/status-dot";
-import { useDeleteFleet, useSaveFleet, useSetFleet, type InfraOverview } from "../../../lib/hooks/use-infra";
+import { useDeleteFleet, useInfraCan, useSaveFleet, useSetFleet, type InfraOverview } from "../../../lib/hooks/use-infra";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { fleetMembers, fleetTotals, hostsWithoutFleet } from "../model";
 
@@ -18,10 +18,11 @@ function FleetCard({ data, fleetId }: { data: InfraOverview; fleetId: string }) 
   const free = hostsWithoutFleet(data);
   const assign = useSetFleet();
   const remove = useDeleteFleet();
+  const may = useInfraCan();
   return (
     <Card className="mb-6 overflow-hidden" data-testid="fleet">
       <CardHeader title={fleet.label} description={[fleet.description, t("infra.fleets.summary", { online: totals.online, nodes: totals.nodes, running: totals.running, guests: totals.guests })].filter(Boolean).join(" · ")}
-        actions={<Button size="sm" variant="ghost" tooltip={t("infra.fleets.deleteTooltip")} isDisabled={remove.isPending} onPress={() => remove.mutate(fleetId)}>{t("infra.fleets.delete")}</Button>} />
+        actions={may("infra.fleets.write") && <Button size="sm" variant="ghost" tooltip={t("infra.fleets.deleteTooltip")} isDisabled={remove.isPending} onPress={() => remove.mutate(fleetId)}>{t("infra.fleets.delete")}</Button>} />
       {members.length === 0 ? <p className="p-5 text-sm text-fg-muted">{t("infra.fleets.noHosts")}</p> : (
         <ul className="divide-y divide-line">
           {members.map(({ node, providerLabel }) => (
@@ -32,12 +33,12 @@ function FleetCard({ data, fleetId }: { data: InfraOverview; fleetId: string }) 
               {node.details?.cluster && <span className="text-[12.5px] text-fg-muted">{t("infra.fact.clusterNamed", { name: node.details.cluster })}</span>}
               <Badge tone={node.online ? "success" : "danger"}><StatusDot health={node.online ? "up" : "down"} /> {node.online ? t("infra.status.online") : t("infra.status.offline")}</Badge>
               <span className="tabular-nums text-fg-muted">{t("infra.fleets.memberGuests", { running: node.guests.running, total: node.guests.total })}</span>
-              <Button size="sm" variant="ghost" className="ml-auto" tooltip={t("infra.fleets.removeTooltip")} isDisabled={assign.isPending} onPress={() => assign.mutate({ serverId: node.id, fleetId: "" })}>{t("infra.fleets.remove")}</Button>
+              {may("infra.fleets.write") && <Button size="sm" variant="ghost" className="ml-auto" tooltip={t("infra.fleets.removeTooltip")} isDisabled={assign.isPending} onPress={() => assign.mutate({ serverId: node.id, fleetId: "" })}>{t("infra.fleets.remove")}</Button>}
             </li>
           ))}
         </ul>
       )}
-      {free.length > 0 && (
+      {free.length > 0 && may("infra.fleets.write") && (
         <div className="border-t border-line px-5 py-3">
           <label className="flex flex-wrap items-center gap-2 text-[13px] text-fg-muted">
             {t("infra.fleets.addHost")}
@@ -57,6 +58,7 @@ function FleetCard({ data, fleetId }: { data: InfraOverview; fleetId: string }) 
 export function FleetsTab({ data }: { data: InfraOverview }) {
   const t = useText();
   const save = useSaveFleet();
+  const may = useInfraCan();
   const [label, setLabel] = useState("");
   const [description, setDescription] = useState("");
   const create = () => save.mutate({ label: label.trim(), description: description.trim() }, { onSuccess: () => { setLabel(""); setDescription(""); } });
@@ -67,7 +69,7 @@ export function FleetsTab({ data }: { data: InfraOverview }) {
         <div className="mb-6"><EmptyState illustration={<Layers className="size-10 text-fg-subtle" />} title={t("infra.fleets.empty.title")} description={t("infra.fleets.empty.body")} /></div>
       )}
       {data.fleets.map((f) => <FleetCard key={f.id} data={data} fleetId={f.id} />)}
-      <Card className="p-5">
+      {may("infra.fleets.write") && <Card className="p-5">
         <h2 className="mb-3 text-sm font-semibold text-fg">{t("infra.fleets.new")}</h2>
         <form className="grid items-start gap-3 md:grid-cols-[1fr_2fr_auto]" onSubmit={(e) => { e.preventDefault(); if (label.trim()) create(); }}>
           <TextField label={t("infra.fleets.name")} value={label} onChange={setLabel} />
@@ -76,7 +78,7 @@ export function FleetsTab({ data }: { data: InfraOverview }) {
             <Button type="submit" variant="primary" size="sm" tooltip={t("infra.fleets.createTooltip")} isDisabled={!label.trim() || save.isPending}><Plus className="size-4" /> {t("infra.fleets.create")}</Button>
           </div>
         </form>
-      </Card>
+      </Card>}
     </>
   );
 }

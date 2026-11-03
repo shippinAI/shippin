@@ -31,6 +31,10 @@ type caller struct {
 	// role, so infrastructure and approvals accept them by name. This is not founder: tenant access
 	// grants still apply to them.
 	installOwner bool
+	// infraGranted is set by the infrastructure gate once this request holds its permission.
+	infraGranted bool
+	// note is why this change is being made, read by the same gate.
+	note string
 }
 
 func (a *API) caller(w http.ResponseWriter, r *http.Request) (*caller, bool) {

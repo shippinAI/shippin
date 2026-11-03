@@ -42,8 +42,8 @@ export function useGuestAction(base: string) {
   const qc = useQueryClient();
   return useMutation({
     onMutate: () => showStarted(qc),
-    mutationFn: (v: { guest: string; verb: "start" | "stop" | "shutdown" | "reboot"; confirmSelf?: boolean }) =>
-      apiSend<Guest>("POST", `${base}/guests/${v.guest}/status/${v.verb}${v.confirmSelf ? "?confirm=self" : ""}`),
+    mutationFn: (v: { guest: string; verb: "start" | "stop" | "shutdown" | "reboot"; confirmSelf?: boolean; note?: string }) =>
+      apiSend<Guest>("POST", `${base}/guests/${v.guest}/status/${v.verb}${v.confirmSelf ? "?confirm=self" : ""}`, undefined, { note: v.note }),
     onSuccess: (g) => {
       toast.info(`${g.name || g.id} is ${g.status}`, "That is the status the hypervisor reported after the call.");
       void qc.invalidateQueries({ queryKey: ["hv", base, "guests"] });
@@ -56,8 +56,8 @@ export function useGuestAction(base: string) {
 export function useCreateGuest(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { kind: string; id: string; name: string }) =>
-      apiSend<Guest>("POST", `/v1/infra/servers/${id}/guests`, body),
+    mutationFn: ({ note, ...body }: { kind: string; id: string; name: string; note?: string }) =>
+      apiSend<Guest>("POST", `/v1/infra/servers/${id}/guests`, body, { note }),
     onSuccess: (g) => {
       toast.info(`Guest ${g.id} is ${g.status}`, "The task finished and inventory was read again.");
       void qc.invalidateQueries({ queryKey: ["hv", `/v1/infra/servers/${id}`, "guests"] });
@@ -70,8 +70,8 @@ export function useSnapshot(base: string) {
   const qc = useQueryClient();
   return useMutation({
     onMutate: () => showStarted(qc),
-    mutationFn: (v: { guest: string; snapname: string }) =>
-      apiSend<Guest>("POST", `${base}/guests/${v.guest}/snapshots`, { snapname: v.snapname }),
+    mutationFn: (v: { guest: string; snapname: string; note?: string }) =>
+      apiSend<Guest>("POST", `${base}/guests/${v.guest}/snapshots`, { snapname: v.snapname }, { note: v.note }),
     onSuccess: (_g, v) => {
       toast.info("Snapshot saved", v.snapname);
       void qc.invalidateQueries({ queryKey: ["hv", base, v.guest, "snapshots"] });
@@ -84,8 +84,8 @@ export function useRollback(base: string) {
   const qc = useQueryClient();
   return useMutation({
     onMutate: () => showStarted(qc),
-    mutationFn: (v: { guest: string; name: string }) =>
-      apiSend<Guest>("POST", `${base}/guests/${v.guest}/snapshots/${v.name}/rollback`),
+    mutationFn: (v: { guest: string; name: string; confirmSelf?: boolean; note?: string }) =>
+      apiSend<Guest>("POST", `${base}/guests/${v.guest}/snapshots/${v.name}/rollback${v.confirmSelf ? "?confirm=self" : ""}`, undefined, { note: v.note }),
     onSuccess: (g) => {
       toast.info(`Rolled back ${g.name || g.id}`, "The guest was read back after the task.");
       void qc.invalidateQueries({ queryKey: ["hv", base, "guests"] });

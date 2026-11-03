@@ -53,6 +53,7 @@ func overviewOf(t *testing.T, a *API) map[string]any {
 	a.infraRoutes(mux)
 	req := httptest.NewRequest(http.MethodGet, "/v1/infra/overview", nil)
 	req.Header.Set("Authorization", "Bearer test")
+	req.Header.Set(noteHeader, "A test of this change")
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -160,6 +161,7 @@ func addRequest(t *testing.T, a *API, body string) *httptest.ResponseRecorder {
 	a.infraRoutes(mux)
 	req := httptest.NewRequest(http.MethodPost, "/v1/infra/servers", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer test")
+	req.Header.Set(noteHeader, "A test of this change")
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 	return rec
@@ -236,6 +238,7 @@ func TestAttachDoesNotNeedABoardCardButGuestChangesStillDo(t *testing.T) {
 	a.infraRoutes(mux)
 	req := httptest.NewRequest(http.MethodPost, "/v1/infra/servers/"+dir.items[0].ID+"/guests/vm1/status/start", nil)
 	req.Header.Set("Authorization", "Bearer test")
+	req.Header.Set(noteHeader, "A test of this change")
 	got := httptest.NewRecorder()
 	mux.ServeHTTP(got, req)
 	if got.Code != http.StatusConflict || !strings.Contains(got.Body.String(), "waiting_on_board") {
@@ -262,6 +265,7 @@ func TestDetachClearsTheAttachmentAndKeepsTheRow(t *testing.T) {
 	a.infraRoutes(mux)
 	req := httptest.NewRequest(http.MethodDelete, "/v1/infra/servers/s1/attachment", nil)
 	req.Header.Set("Authorization", "Bearer test")
+	req.Header.Set(noteHeader, "A test of this change")
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusNoContent {
@@ -288,6 +292,7 @@ func TestIncusGuestsWorkThroughTheSharedRoutesButProxmoxOnlyCallsAreRefused(t *t
 	call := func(method, path string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(method, path, strings.NewReader("{}"))
 		req.Header.Set("Authorization", "Bearer test")
+		req.Header.Set(noteHeader, "A test of this change")
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		return rec

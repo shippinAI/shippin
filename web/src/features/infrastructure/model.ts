@@ -50,6 +50,12 @@ export function fleetTotals(members: FleetMember[]): InfraTotals {
 }
 
 /** Running guests, the panel's own last so it is never first in line. */
+/** A change must say why. The server applies the same limits. */
+export const noteOK = (note: string) => {
+  const n = [...note.trim()].length;
+  return n >= 5 && n <= 300;
+};
+
 /** Whether a verb can do anything from this status. A status this panel does not know is left to the hypervisor. */
 export const verbApplies = (verb: string, status: string) => {
   if (isRunning(status)) return verb !== "start";

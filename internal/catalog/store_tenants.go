@@ -25,17 +25,17 @@ const customerCols = `t.id::text AS id, t.name, t.plan AS plan_id, t.status, t.c
 	(SELECT status FROM provision_intents p WHERE p.tenant_id=t.id ORDER BY created_at DESC LIMIT 1) AS last_intent`
 
 func (s *Store) Customers(ctx context.Context) (json.RawMessage, error) {
-	return s.listJSON(ctx, `SELECT `+customerCols+` FROM tenants t ORDER BY t.created_at`)
+	return s.listJSON(ctx, `SELECT `+customerCols+` FROM tenants t WHERE t.kind='customer' ORDER BY t.created_at`)
 }
 
 func (s *Store) Customer(ctx context.Context, id string) (json.RawMessage, error) {
-	return s.oneJSON(ctx, `SELECT `+customerCols+` FROM tenants t WHERE t.id::text=$1`, id)
+	return s.oneJSON(ctx, `SELECT `+customerCols+` FROM tenants t WHERE t.kind='customer' AND t.id::text=$1`, id)
 }
 
 // CustomerRow reads the editable fields (updates keep the ones the caller can't see).
 func (s *Store) CustomerRow(ctx context.Context, id string) (Customer, error) {
 	c := Customer{ID: id}
-	err := s.Pool.QueryRow(ctx, `SELECT name, plan, status, contacts, endpoints, notes FROM tenants WHERE id::text=$1`, id).
+	err := s.Pool.QueryRow(ctx, `SELECT name, plan, status, contacts, endpoints, notes FROM tenants WHERE kind='customer' AND id::text=$1`, id).
 		Scan(&c.Name, &c.Plan, &c.Status, &c.Contacts, &c.Endpoints, &c.Notes)
 	if err != nil {
 		return c, ErrNotFound
@@ -45,7 +45,7 @@ func (s *Store) CustomerRow(ctx context.Context, id string) (Customer, error) {
 
 func (s *Store) CustomerPlan(ctx context.Context, id string) (string, error) {
 	var p string
-	err := s.Pool.QueryRow(ctx, `SELECT plan FROM tenants WHERE id::text=$1`, id).Scan(&p)
+	err := s.Pool.QueryRow(ctx, `SELECT plan FROM tenants WHERE kind='customer' AND id::text=$1`, id).Scan(&p)
 	if err != nil {
 		return "", ErrNotFound
 	}
@@ -60,14 +60,14 @@ func (s *Store) CreateCustomer(ctx context.Context, c Customer) error {
 
 func (s *Store) UpdateCustomer(ctx context.Context, c Customer) error {
 	// Status is not editable here: lifecycle goes through provision/suspend/resume.
-	return s.exec(ctx, `UPDATE tenants SET name=$2, plan=$3, contacts=$4, endpoints=$5, notes=$6, updated_at=now() WHERE id::text=$1`,
+	return s.exec(ctx, `UPDATE tenants SET name=$2, plan=$3, contacts=$4, endpoints=$5, notes=$6, updated_at=now() WHERE kind='customer' AND id::text=$1`,
 		c.ID, c.Name, c.Plan, c.Contacts, c.Endpoints, c.Notes)
 }
 
 // DeleteCustomer removes only drafts that were never linked to an IdP org and own no workspaces;
 // live tenants go through the audited operator delete.
 func (s *Store) DeleteCustomer(ctx context.Context, id string) error {
-	return s.exec(ctx, `DELETE FROM tenants t WHERE t.id::text=$1 AND t.status='draft' AND starts_with(t.idp_org_id,$2)
+	return s.exec(ctx, `DELETE FROM tenants t WHERE t.kind='customer' AND t.id::text=$1 AND t.status='draft' AND starts_with(t.idp_org_id,$2)
 		AND NOT EXISTS (SELECT 1 FROM workspaces w WHERE w.tenant_id=t.id)`, id, unlinkedOrg)
 }
 

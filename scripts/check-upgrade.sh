@@ -75,7 +75,7 @@ overview=$(get "$base/v1/infra/overview")
 pass "the new tables exist: overview, fleets and operation history answer"
 
 # A secret saved through the panel has to outlive the next update too.
-added=$(send -o /tmp/added.json -w '%{http_code}' -d '{"kind":"proxmox","label":"Keep","slug":"keep","site":"main","base_url":"https://127.0.0.1:9","node":"n1","token_id":"u@pam!t","token_secret":"upgrade-check-secret"}' "$base/v1/infra/servers")
+added=$(send -o /tmp/added.json -w '%{http_code}' -H 'X-Change-Note: Proving%20an%20update' -d '{"kind":"proxmox","label":"Keep","slug":"keep","site":"main","base_url":"https://127.0.0.1:9","node":"n1","token_id":"u@pam!t","token_secret":"upgrade-check-secret"}' "$base/v1/infra/servers")
 [ "$added" -lt 300 ] || { cat /tmp/added.json; fail "adding a host answered $added"; }
 sealed_error() {
   get "$base/v1/infra/overview" | json '[n.get("error", "") for p in d["providers"] for n in p["nodes"] if n["slug"] == "keep"][0]'
@@ -92,6 +92,24 @@ case "$before$after" in
 esac
 [ "$(get "$base/v1/me" | json 'd["capabilities"]["infra.hosts"]')" = True ] || fail "the session did not survive a second run"
 pass "the session survived a second run"
+
+# The audit log has to end up out of the panel's reach, on an install that began without that.
+as_panel() { runuser -u postgres -- psql -q -v ON_ERROR_STOP=1 -d shippin -c "SET ROLE shippin; $1" >/dev/null 2>&1; }
+[ "$(runuser -u postgres -- psql -At -d shippin -c 'SELECT ok FROM shippin_audit_verify()')" = t ] || fail "the audit chain is not intact"
+as_panel "SELECT count(*) FROM audit_log" || fail "the panel's role can no longer read the audit log"
+as_panel "DELETE FROM audit_log" && fail "the panel's role can delete from the audit log"
+as_panel "UPDATE audit_log SET detail = ''" && fail "the panel's role can rewrite the audit log"
+as_panel "ALTER TABLE audit_log DISABLE TRIGGER ALL" && fail "the panel's role can switch off the audit log's protection"
+pass "the audit log is intact, and the panel's role can read it but not change it"
+send -o /dev/null -d '{"reason":"Checking the audit log"}' "$base/v1/operator/staff-mode"
+[ "$(get "$base/v1/operator/system" | json 'd["audit"]["enabled"] and d["audit"]["ok"]')" = True ] || fail "the panel does not report the audit log as protected"
+pass "the panel reports the audit log as protected and intact"
+
+[ "$(runuser -u postgres -- psql -At -d shippin -c "SELECT count(*) FROM tenants WHERE kind = 'system'")" = 1 ] || fail "the update did not create the system tenant"
+[ "$(runuser -u postgres -- psql -At -d shippin -c "SELECT count(*) FROM servers WHERE tenant_id IS NULL")" = 0 ] || fail "a host was left with no owner"
+[ "$(runuser -u postgres -- psql -At -d shippin -c "SELECT tenant_id::text = (SELECT id::text FROM tenants WHERE kind = 'system') FROM servers WHERE slug = 'keep'")" = t ] || fail "the system tenant does not own the panel's host"
+[ "$(runuser -u postgres -- psql -At -d shippin -c "SELECT count(*) FROM servers WHERE created_by = 'seed:028'")" = 0 ] || fail "another installation's site names are still here"
+pass "the system tenant owns the hosts, and nobody else's site names remain"
 [ -z "$(git status --porcelain)" ] || { git status --porcelain; fail "the update dirtied the checkout, so the next pull would refuse"; }
 pass "the checkout is still clean for the next pull"
 echo "UPGRADE OK: $(git rev-parse --short "$old") to $(git rev-parse --short HEAD)"

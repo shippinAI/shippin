@@ -44,6 +44,10 @@ On callback the directory links `(issuer, sub)` to one local user:
 
 `directory.upstream_required: true` refuses local magic-link signup. Bootstrap and passkeys already registered still work. The site must then have a client id configured.
 
+## The system tenant
+
+The platform's own tenant owns its hosts and services. Belonging to it grants nothing, customers cannot see it, and access to what it owns comes from staff roles. See [the control plane](design/control-plane.md).
+
 ## Signup policy
 
 `directory.signup` is `open`, `invite_only`, or `waitlist`.

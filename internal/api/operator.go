@@ -16,6 +16,7 @@ type opRoute struct {
 func (a *API) operatorRoutes() []opRoute {
 	return append([]opRoute{
 		{"GET /v1/operator/access", permPanel, a.opAccess},
+		{"GET /v1/operator/system", "tenants.read", a.opSystem},
 		{"GET /v1/operator/tenants", "tenants.read", a.opTenants},
 		{"POST /v1/operator/tenants/{tenantId}/provision", "tenants.lifecycle", a.opRetry},
 		{"POST /v1/operator/tenants/{tenantId}/setup/rrflow", "tenants.lifecycle", a.opSetupRRFlow},

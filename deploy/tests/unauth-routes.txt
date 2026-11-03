@@ -72,6 +72,7 @@ GET /v1/operator/host
 GET /v1/operator/identity
 GET /v1/operator/platform-settings
 GET /v1/operator/staff-mode
+GET /v1/operator/system
 GET /v1/operator/team
 GET /v1/operator/team/permission-grants
 GET /v1/operator/templates

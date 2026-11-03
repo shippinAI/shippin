@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -33,11 +34,29 @@ func scanTenants(rows interface {
 	return out, nil
 }
 
+// SystemTenant is the control plane's own tenant. Every other read here leaves it out, so no customer
+// path, list or lifecycle action can reach it by accident.
+func (d *DB) SystemTenant(ctx context.Context) (Tenant, error) {
+	rows, err := d.Pool.Query(ctx, `SELECT `+tenantCols+` FROM tenants WHERE kind = 'system'`)
+	if err != nil {
+		return Tenant{}, err
+	}
+	defer rows.Close()
+	ts, err := scanTenants(rows)
+	if err != nil {
+		return Tenant{}, err
+	}
+	if len(ts) != 1 {
+		return Tenant{}, errors.New("the system tenant is missing")
+	}
+	return ts[0], nil
+}
+
 // TenantsByOrgs returns tenants mapped to the given Nomen org ids (all if orgs is nil).
 func (d *DB) TenantsByOrgs(ctx context.Context, orgs []string) ([]Tenant, error) {
-	q, args := `SELECT `+tenantCols+` FROM tenants WHERE idp_org_id = ANY($1) ORDER BY created_at`, []any{orgs}
+	q, args := `SELECT `+tenantCols+` FROM tenants WHERE kind = 'customer' AND idp_org_id = ANY($1) ORDER BY created_at`, []any{orgs}
 	if orgs == nil {
-		q, args = `SELECT `+tenantCols+` FROM tenants ORDER BY created_at`, nil
+		q, args = `SELECT `+tenantCols+` FROM tenants WHERE kind = 'customer' ORDER BY created_at`, nil
 	}
 	rows, err := d.Pool.Query(ctx, q, args...)
 	if err != nil {
@@ -62,14 +81,14 @@ func (d *DB) TenantByOrg(ctx context.Context, org string) (*Tenant, error) {
 }
 
 func (d *DB) SetTenantStatus(ctx context.Context, id, status, sshIP, errMsg string) error {
-	_, err := d.Pool.Exec(ctx, `UPDATE tenants SET status=$2, ssh_ip=nullif($3,''), error=nullif($4,''), updated_at=now() WHERE id=$1`,
+	_, err := d.Pool.Exec(ctx, `UPDATE tenants SET status=$2, ssh_ip=nullif($3,''), error=nullif($4,''), updated_at=now() WHERE kind='customer' AND id=$1`,
 		id, status, sshIP, errMsg)
 	return err
 }
 
 // TenantsByIDs returns the live (not deleting/deleted) tenants with the given ids.
 func (d *DB) TenantsByIDs(ctx context.Context, ids []string) ([]Tenant, error) {
-	rows, err := d.Pool.Query(ctx, `SELECT `+tenantCols+` FROM tenants WHERE id::text = ANY($1)
+	rows, err := d.Pool.Query(ctx, `SELECT `+tenantCols+` FROM tenants WHERE kind = 'customer' AND id::text = ANY($1)
 		AND status NOT IN ('deleting','deleted') ORDER BY created_at`, ids)
 	if err != nil {
 		return nil, err

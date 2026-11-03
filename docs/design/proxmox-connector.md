@@ -85,7 +85,7 @@ The local installation owner has no IdP to grant `IAM_INFRA`, so the infrastruct
 
 A mutation that the policy marks `needs_approval` files one factory-board card and returns `409` with `code` `waiting_on_board`, `card_key` and, when the board is on this panel, `card_id`. Approve that card and send the same request again. The panel offers both as one button, **Approve and run**.
 
-An approval covers one change. Running it spends the card, which moves to done, and the next change files a new one. A board that lives elsewhere (`approval.board.driver: http`) keeps its own rule.
+Every change here also needs a note: see [the control plane](control-plane.md). An approval covers one change. Running it spends the card, which moves to done, and the next change files a new one. A board that lives elsewhere (`approval.board.driver: http`) keeps its own rule.
 
 Adding or detaching an API is the action `hv.attach`, shipped without a board card because it changes what the console can reach, not any guest. It is still role-gated and audited. A policy with no `hv.attach` rule uses `hv.lifecycle` for it.
 

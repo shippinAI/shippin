@@ -147,6 +147,8 @@ type infraNode struct {
 	Guests  infraGuestCount `json:"guests"`
 	FleetID string          `json:"fleet_id,omitempty"`
 	Details *hv.NodeDetails `json:"details,omitempty"`
+	// ControlPlane says this host runs the panel itself.
+	ControlPlane bool `json:"control_plane,omitempty"`
 }
 
 type infraTotals struct {
@@ -310,6 +312,9 @@ func (a *API) probeNode(ctx context.Context, ep servers.Endpoint) infraNode {
 	for _, g := range guests {
 		if strings.EqualFold(g.Status, "running") {
 			n.Guests.Running++
+		}
+		if isSelf(g) {
+			n.ControlPlane = true
 		}
 	}
 	// Missing detail is not a host that is down: a token may lack the right to read it.

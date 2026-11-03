@@ -7,6 +7,7 @@ import { useAdminTenants } from "../../../lib/hooks/use-admin";
 import { PageHeader } from "../../../template/page-header";
 import { QueryView } from "./query-view";
 import { StatCard } from "./stat-card";
+import { SystemTenantCard } from "./system-tenant-card";
 import { TableToolbar, matches } from "./table-toolbar";
 import { tenantColumns } from "./tenant-columns";
 import { TenantDrawer } from "./tenant-drawer";
@@ -21,6 +22,7 @@ export function TenantsPage() {
   return (
     <>
       <PageHeader eyebrow="Provider" title="Tenants" description="Every organization on the platform, its network silo and lifecycle." />
+      <SystemTenantCard />
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatCard label="Tenants" value={q.data ? all.length : undefined} icon={Building2} hue="var(--color-primary)" hint="All statuses" />
         <StatCard label="Active" value={n("active")} icon={CircleCheck} hue="var(--color-success)" hint="Serving workspaces" />

@@ -10,6 +10,7 @@ Deny by default: anything not listed is denied, including new routes until mappe
 | Workspaces | R A G | R A G | R A G | R G | - | R | R |
 | Users & sign-in | R W | R W | R | R | - | R | - |
 | Host | R W | R | R A | - | - | R | R |
+| Infrastructure ([permissions](../../design/control-plane.md#cp-3-each-duty-has-its-own-permission)) | R W, own guest | - | R A | - | - | R | R |
 | Edge | R W | R W | R A | - | - | R | R |
 | Access & audit | R | R (own + tenant) | R (own) | R (own) | - | R W (legal hold, approve BG) | R |
 | Templates | R W D | R W D | R | R | - | R | R |

@@ -119,6 +119,12 @@ sudo ./install/panel/install.sh --example
 
 Host agent settings, hypervisor tokens, and SMTP passwords stay in that uncommitted file or in `/etc/shippin/hostd.json` copied from [deploy/hostd.example.json](../deploy/hostd.example.json). The Proxmox panel reads `/etc/warden/warden.env`, copied from [third_party/warden-ct102/warden.env.example](../third_party/warden-ct102/warden.env.example), with TLS verification left on.
 
+## The audit log
+
+Every run of the installer hands `audit_log` to a database role nobody can log in as, so the panel can read and append but not change or delete, and adds a hash chain that can be re-walked. **Provider panel → Tenants** shows whether it is protected and intact.
+
+This needs a superuser, so it only happens on the database the installer created. If you brought your own, run `internal/db/audit_owner.sql` and `internal/db/audit_chain.sql` as a superuser with `SET LOCAL shippin.app_role = '<your role>'`, after the panel has applied its migrations. Under `docker compose` the panel's database user is a superuser, so the log is not protected there, and the panel says so.
+
 ## Updates
 
 From the checkout the panel was installed from:

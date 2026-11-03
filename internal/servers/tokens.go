@@ -15,19 +15,19 @@ type Issued struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-// ownRow locks the tenant's own server row and returns its stored state. Estate rows are read-only.
+// ownRow locks the tenant's own server row and returns its stored state. One merely assigned to it is read-only.
 func ownRow(ctx context.Context, tx pgx.Tx, tenant, id string) (State, error) {
 	if uuid.Validate(id) != nil {
 		return "", ErrNotFound
 	}
 	var st string
-	var owner *string
-	err := tx.QueryRow(ctx, `SELECT state, tenant_id::text FROM servers WHERE id=$1 AND (tenant_id=$2 OR tenant_id IS NULL) FOR UPDATE`,
+	var owner string
+	err := tx.QueryRow(ctx, `SELECT state, tenant_id::text FROM servers WHERE id=$1 AND (tenant_id=$2 OR EXISTS (SELECT 1 FROM server_assignments a WHERE a.server_id=servers.id AND a.tenant_id=$2)) FOR UPDATE`,
 		id, tenant).Scan(&st, &owner)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrNotFound
 	}
-	if err == nil && owner == nil {
+	if err == nil && owner != tenant {
 		return "", ErrReadOnly
 	}
 	return State(st), err

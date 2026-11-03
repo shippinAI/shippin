@@ -27,6 +27,9 @@ type Server struct {
 	CreatedAt    time.Time  `json:"created_at"`
 }
 
+// SystemTenantID is the control plane's own tenant (migration 040). It owns the hosts added from the panel.
+const SystemTenantID = "019a0000-0000-7000-8000-00000000c0de"
+
 // Store is the registry; Clock derives stale, Now is the time seam for tests.
 type Store struct {
 	Pool  *pgxpool.Pool
@@ -50,15 +53,16 @@ func (s *Store) scan(row pgx.Row) (*Server, error) {
 		&v.LastSeenAt, &v.EnrolledAt, &v.CreatedAt); err != nil {
 		return nil, err
 	}
-	v.Estate = v.TenantID == ""
+	v.Estate = v.TenantID == SystemTenantID
 	v.State = s.Clock.Effective(State(st), v.LastSeenAt, s.now())
 	return &v, nil
 }
 
-// List: the tenant's own servers, then the estate rows (read-only), each by slug.
+// List: the tenant's own servers, then platform hosts assigned to it (read-only), each by slug. A platform
+// host with no assignment is none of a tenant's business, so it does not appear at all.
 func (s *Store) List(ctx context.Context, tenant string) ([]Server, error) {
-	rows, err := s.Pool.Query(ctx, `SELECT `+cols+` FROM servers WHERE tenant_id=$1 OR tenant_id IS NULL
-		ORDER BY tenant_id IS NULL, slug`, tenant)
+	rows, err := s.Pool.Query(ctx, `SELECT `+cols+` FROM servers WHERE tenant_id=$1 OR EXISTS (SELECT 1 FROM server_assignments a WHERE a.server_id=servers.id AND a.tenant_id=$1)
+		ORDER BY tenant_id<>$1, slug`, tenant)
 	if err != nil {
 		return nil, err
 	}
@@ -74,12 +78,12 @@ func (s *Store) List(ctx context.Context, tenant string) ([]Server, error) {
 	return out, rows.Err()
 }
 
-// Get returns a server the tenant can see (its own or an estate row).
+// Get returns a server the tenant can see (its own or one assigned to it).
 func (s *Store) Get(ctx context.Context, tenant, id string) (*Server, error) {
 	if uuid.Validate(id) != nil {
 		return nil, ErrNotFound
 	}
-	v, err := s.scan(s.Pool.QueryRow(ctx, `SELECT `+cols+` FROM servers WHERE id=$1 AND (tenant_id=$2 OR tenant_id IS NULL)`, id, tenant))
+	v, err := s.scan(s.Pool.QueryRow(ctx, `SELECT `+cols+` FROM servers WHERE id=$1 AND (tenant_id=$2 OR EXISTS (SELECT 1 FROM server_assignments a WHERE a.server_id=servers.id AND a.tenant_id=$2))`, id, tenant))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}

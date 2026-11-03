@@ -46,8 +46,12 @@ come from the installation, and individual attachments need scoped authorization
 | Identity and secrets | Nomen / `nomen.sh`; Vaultix / `vaultix.cloud` | Identity and secret systems own their records and expose reviewed interfaces; the panel does not become a second identity or secrets store. |
 | Communication | Email; Chatmaton | Email delivery and conversation are distinct capabilities. Chatmaton owns its conversations and intent, not infrastructure inventory or other products' credentials. |
 | Agents and specialists | AgentHub, Clyffy and shippin.bot | AgentHub owns its task and event stream and its configurable change-policy and review records; Clyffy is an assistant/harness context; shippin.bot is the government-contract specialist. Their attachment, permissions and readiness require separate implementation. |
-| Surfaces | The panel | One panel. Branding and addresses are configured by each installation. |
-| Unresolved | OMA | Its meaning and ownership need clarification before assigning a capability. |
+| Surfaces | The panel; `shippin.app` on the owner's installation | One panel. Branding and addresses are configured by each installation. |
+| Reasoning and telemetry | rrflow; rroflow and wardenmesh | rrflow owns reasoning sessions and memory. rroflow and wardenmesh observe agents and may feed training datasets, but customer data stays out unless that customer opts in. See [the control plane](design/control-plane.md#cp-10-telemetry-is-not-training-data-by-default). |
+| Middleware AI | Clyffy / `clyffy.ai` | Domain specialists across the products. Each product stays the owner of its own data and permissions. |
+| Hosting | `shippin.cloud` | Customer hosting. Customer workloads get their own registrable domain, apart from the panel. |
+| Mail | `shippin.tech` | Mail for the owner's installation. The panel sends through whatever SMTP a site configures. |
+| Unresolved | OMA | Described by the owner as Notion compatible. What it is and who owns it still need confirming before assigning a capability. |
 
 Shippin also needs its own self-hosted transactional PostgreSQL, cache and
 ClickHouse analytics services. These are platform-owned instances and have their

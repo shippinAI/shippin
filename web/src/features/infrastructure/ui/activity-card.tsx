@@ -30,6 +30,7 @@ export function ActivityCard({ serverId, showHost }: { serverId?: string; showHo
                 {o.guest_status && o.status === "succeeded" && <span className="text-fg-subtle">{t("infra.activity.nowStatus", { status: o.guest_status })}</span>}
                 <span className="ml-auto text-[12px] text-fg-subtle">{o.actor_name ? `${o.actor_name} · ` : ""}{new Date(o.started_at).toLocaleString()}</span>
               </div>
+              {o.note && <p className="mt-1 break-words text-[12.5px] text-fg-muted" data-testid="operation-note">{t("infra.activity.why", { note: o.note })}</p>}
               {o.detail && <p className={`mt-1 break-words text-[12.5px] ${o.status === "failed" ? "text-danger" : o.status === "unknown" ? "text-warning" : "text-fg-muted"}`}>{o.detail}</p>}
             </li>
           ))}

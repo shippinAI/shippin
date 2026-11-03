@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type { InfraField, InfraOverview, InfraProvider } from "../../lib/hooks/use-infra";
-import { verbApplies, firstAnswering, FLEETS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, hostsWithoutFleet, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
+import { noteOK, verbApplies, firstAnswering, FLEETS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, hostsWithoutFleet, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
 
 const totals = { nodes: 0, online: 0, guests: 0, running: 0 };
 const provider = (kind: string, nodes = 0): InfraProvider => ({
@@ -87,5 +87,11 @@ assert.equal(verbApplies("start", "stopped"), true);
 assert.equal(verbApplies("reboot", "Stopped"), false, "a stopped guest cannot be rebooted");
 assert.equal(verbApplies("shutdown", "stopped"), false);
 assert.equal(verbApplies("stop", "Frozen"), true, "a status the panel does not know is left to the hypervisor");
+
+assert.equal(noteOK("disk"), false, "too short to say anything");
+assert.equal(noteOK("    disk    "), false, "spaces do not count");
+assert.equal(noteOK("disk is full"), true);
+assert.equal(noteOK("x".repeat(301)), false, "too long for the audit log");
+assert.equal(noteOK("é".repeat(300)), true, "the limit counts characters, not bytes");
 
 console.log("infrastructure model ok");

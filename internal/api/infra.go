@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"shippin.cloud/console/internal/approval"
 	"shippin.cloud/console/internal/auth"
@@ -44,56 +46,61 @@ type hvDirectory interface {
 
 type infraRoute struct {
 	pattern string
+	perm    string // catalog permission; a route without one stops startup
+	note    bool   // a change to real infrastructure, which must say why
 	h       func(http.ResponseWriter, *http.Request, *caller)
 }
 
 func (a *API) infraRoutes(mux Router) {
 	for _, rt := range a.infraRouteTable() {
-		mux.HandleFunc(rt.pattern, a.flow.Require(a.infraGate(rt.h)))
+		if !knownPerm(rt.perm) {
+			panic("infra route " + rt.pattern + " has no catalog permission (" + rt.perm + ")")
+		}
+		mux.HandleFunc(rt.pattern, a.flow.Require(a.infraGate(rt)))
 	}
 	a.tenantHVRoutes(mux)
 }
 
 func (a *API) infraRouteTable() []infraRoute {
 	return []infraRoute{
-		{"GET /v1/infra/overview", a.infraOverview},
-		{"GET /v1/infra/servers", a.infraServers},
-		{"POST /v1/infra/servers", a.infraAdd},
-		{"POST /v1/infra/servers/test", a.infraTest},
-		{"GET /v1/infra/operations", a.infraOperations},
-		{"POST /v1/infra/servers/{id}/stop-guests", a.infraStopGuests},
-		{"PUT /v1/infra/servers/{id}/fleet", a.infraSetFleet},
-		{"POST /v1/infra/fleets", a.infraFleetCreate},
-		{"PUT /v1/infra/fleets/{fleet}", a.infraFleetUpdate},
-		{"DELETE /v1/infra/fleets/{fleet}", a.infraFleetDelete},
-		{"GET /v1/infra/servers/registry", a.infraRegistry},
-		{"PUT /v1/infra/servers/{id}", a.infraAttach},
-		{"DELETE /v1/infra/servers/{id}/attachment", a.infraDetach},
-		{"GET /v1/infra/servers/{id}/health", a.infraHealth},
-		{"GET /v1/infra/servers/{id}/guests", a.infraGuests},
-		{"GET /v1/infra/servers/{id}/guests/{guest}", a.infraGuest},
-		{"POST /v1/infra/servers/{id}/guests", a.infraCreate},
-		{"POST /v1/infra/servers/{id}/guests/{guest}/clone", a.infraClone},
-		{"POST /v1/infra/servers/{id}/guests/{guest}/template", a.infraTemplate},
-		{"DELETE /v1/infra/servers/{id}/guests/{guest}", a.infraDelete},
-		{"PUT /v1/infra/servers/{id}/guests/{guest}/config", a.infraConfig},
-		{"POST /v1/infra/servers/{id}/guests/{guest}/resize", a.infraResize},
-		{"POST /v1/infra/servers/{id}/guests/{guest}/migrate", a.infraMigrate},
-		{"POST /v1/infra/servers/{id}/guests/{guest}/status/{verb}", a.infraStatus},
-		{"GET /v1/infra/servers/{id}/guests/{guest}/snapshots", a.infraSnapshots},
-		{"POST /v1/infra/servers/{id}/guests/{guest}/snapshots", a.infraSnapshot},
-		{"POST /v1/infra/servers/{id}/guests/{guest}/snapshots/{name}/rollback", a.infraRollback},
-		{"GET /v1/infra/servers/{id}/storage", a.infraStorage},
-		{"GET /v1/infra/servers/{id}/storage/{storage}/content", a.infraContent},
-		{"POST /v1/infra/servers/{id}/storage/{storage}/download-url", a.infraDownload},
-		{"POST /v1/infra/servers/{id}/storage/{storage}/upload", a.infraUpload},
-		{"GET /v1/infra/servers/{id}/services", a.infraServices},
-		{"GET /v1/infra/servers/{id}/network", a.infraNetwork},
-		{"GET /v1/infra/servers/{id}/firewall/rules", a.infraFirewall},
-		{"GET /v1/infra/servers/{id}/backups", a.infraBackups},
-		{"POST /v1/infra/servers/{id}/backups", a.infraVzdump},
-		{"POST /v1/infra/servers/{id}/restore", a.infraRestore},
-		{"GET /v1/infra/servers/{id}/tasks/{upid}", a.infraTask},
+		{"GET /v1/infra/overview", "infra.read", false, a.infraOverview},
+		{"GET /v1/infra/servers", "infra.read", false, a.infraServers},
+		{"POST /v1/infra/servers", "infra.hosts.write", true, a.infraAdd},
+		{"POST /v1/infra/servers/test", "infra.hosts.write", false, a.infraTest},
+		{"GET /v1/infra/operations", "infra.read", false, a.infraOperations},
+		{"POST /v1/infra/servers/{id}/stop-guests", "infra.guests.power", true, a.infraStopGuests},
+		{"PUT /v1/infra/servers/{id}/fleet", "infra.fleets.write", false, a.infraSetFleet},
+		{"POST /v1/infra/fleets", "infra.fleets.write", false, a.infraFleetCreate},
+		{"PUT /v1/infra/fleets/{fleet}", "infra.fleets.write", false, a.infraFleetUpdate},
+		{"DELETE /v1/infra/fleets/{fleet}", "infra.fleets.write", false, a.infraFleetDelete},
+		{"GET /v1/infra/servers/registry", "infra.read", false, a.infraRegistry},
+		{"PUT /v1/infra/servers/{id}", "infra.hosts.write", true, a.infraAttach},
+		{"DELETE /v1/infra/servers/{id}/attachment", "infra.hosts.write", true, a.infraDetach},
+		{"GET /v1/infra/servers/{id}/health", "infra.read", false, a.infraHealth},
+		{"GET /v1/infra/servers/{id}/guests", "infra.read", false, a.infraGuests},
+		{"GET /v1/infra/servers/{id}/guests/{guest}", "infra.read", false, a.infraGuest},
+		{"POST /v1/infra/servers/{id}/guests", "infra.guests.manage", true, a.infraCreate},
+		{"POST /v1/infra/servers/{id}/guests/{guest}/clone", "infra.guests.manage", true, a.infraClone},
+		{"POST /v1/infra/servers/{id}/guests/{guest}/template", "infra.guests.manage", true, a.infraTemplate},
+		{"DELETE /v1/infra/servers/{id}/guests/{guest}", "infra.guests.manage", true, a.infraDelete},
+		{"PUT /v1/infra/servers/{id}/guests/{guest}/config", "infra.guests.manage", true, a.infraConfig},
+		{"POST /v1/infra/servers/{id}/guests/{guest}/resize", "infra.guests.manage", true, a.infraResize},
+		{"POST /v1/infra/servers/{id}/guests/{guest}/migrate", "infra.guests.manage", true, a.infraMigrate},
+		{"POST /v1/infra/servers/{id}/guests/{guest}/status/{verb}", "infra.guests.power", true, a.infraStatus},
+		{"GET /v1/infra/servers/{id}/guests/{guest}/snapshots", "infra.read", false, a.infraSnapshots},
+		{"POST /v1/infra/servers/{id}/guests/{guest}/snapshots", "infra.guests.snapshot", true, a.infraSnapshot},
+		{"POST /v1/infra/servers/{id}/guests/{guest}/snapshots/{name}/rollback", "infra.guests.restore", true, a.infraRollback},
+		{"GET /v1/infra/servers/{id}/storage", "infra.read", false, a.infraStorage},
+		{"GET /v1/infra/servers/{id}/storage/{storage}/content", "infra.read", false, a.infraContent},
+		{"POST /v1/infra/servers/{id}/storage/{storage}/download-url", "infra.storage.write", true, a.infraDownload},
+		{"POST /v1/infra/servers/{id}/storage/{storage}/upload", "infra.storage.write", true, a.infraUpload},
+		{"GET /v1/infra/servers/{id}/services", "infra.read", false, a.infraServices},
+		{"GET /v1/infra/servers/{id}/network", "infra.read", false, a.infraNetwork},
+		{"GET /v1/infra/servers/{id}/firewall/rules", "infra.read", false, a.infraFirewall},
+		{"GET /v1/infra/servers/{id}/backups", "infra.read", false, a.infraBackups},
+		{"POST /v1/infra/servers/{id}/backups", "infra.guests.backup", true, a.infraVzdump},
+		{"POST /v1/infra/servers/{id}/restore", "infra.guests.restore", true, a.infraRestore},
+		{"GET /v1/infra/servers/{id}/tasks/{upid}", "infra.read", false, a.infraTask},
 	}
 }
 
@@ -128,18 +135,77 @@ func (a *API) infraAllowed(c *caller) bool {
 	return c != nil && (c.founder || c.installOwner || c.op != "" && c.op == a.infraRole())
 }
 
-func (a *API) infraGate(h func(http.ResponseWriter, *http.Request, *caller)) http.HandlerFunc {
+// infraCan is one infrastructure permission. Whoever passes infraAllowed holds them all. Anyone else needs
+// a staff role that grants this one, which only counts once the team has moved to enforce mode.
+func (a *API) infraCan(ctx context.Context, c *caller, perm string) bool {
+	if a.infraAllowed(c) {
+		return true
+	}
+	return c != nil && c.id != nil && a.authzMode(ctx) == "enforce" && a.staffCan(ctx, c, perm)
+}
+
+// infraGate lets a request through only with its permission. Every change is recorded before it runs,
+// and a change to real infrastructure must also say why.
+func (a *API) infraGate(rt infraRoute) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, ok := a.resolve(w, r)
 		if !ok {
 			return
 		}
-		if !a.infraAllowed(c) {
-			auth.Problem(w, http.StatusForbidden, a.infraRoleMessage())
+		if !a.infraCan(r.Context(), c, rt.perm) {
+			if c != nil && c.id != nil {
+				a.auditOnce(r, c, "authz.denied", rt.perm, "refused")
+			}
+			auth.Problem(w, http.StatusForbidden, a.infraRoleMessage()+" ("+rt.perm+")")
 			return
 		}
-		h(w, r, c)
+		c.infraGranted = true
+		if rt.note {
+			note, ok := changeNote(w, r)
+			if !ok {
+				return
+			}
+			c.note = note
+		}
+		if r.Method != http.MethodGet && !a.auditInfraChange(w, r, c, rt.perm) {
+			return
+		}
+		rt.h(w, r, c)
 	}
+}
+
+// noteHeader carries why a change is being made, percent-encoded so that any language survives a header.
+const noteHeader = "X-Change-Note"
+
+// changeNote reads and checks the reason for a change.
+func changeNote(w http.ResponseWriter, r *http.Request) (string, bool) {
+	note, err := url.PathUnescape(r.Header.Get(noteHeader))
+	note = strings.TrimSpace(note)
+	n := utf8.RuneCountInString(note)
+	if err != nil || n < noteMin || n > noteMax || strings.IndexFunc(note, unicode.IsControl) >= 0 {
+		writeHVProblem(w, http.StatusBadRequest, "note_required", fmt.Sprintf("Say why you are making this change, in %d to %d characters. It goes in the audit log.", noteMin, noteMax), "", "")
+		return "", false
+	}
+	return note, true
+}
+
+const (
+	noteMin = 5
+	noteMax = 300
+)
+
+// auditInfraChange records a change against the system tenant, before it runs. With no record there is
+// no change.
+func (a *API) auditInfraChange(w http.ResponseWriter, r *http.Request, c *caller, perm string) bool {
+	if a.db == nil && a.staffDB == nil {
+		auth.Problem(w, http.StatusServiceUnavailable, "The change couldn't be audited, so it wasn't made.")
+		return false
+	}
+	detail := perm + " · " + r.Method + " " + r.URL.Path
+	if c.note != "" {
+		detail += " · " + c.note
+	}
+	return a.auditFirst(w, r, db.AuditEntry{TenantID: servers.SystemTenantID, Actor: c.id.Sub, ActorName: displayName(c), Action: "infra.change", Detail: detail, IP: clientIP(r)})
 }
 
 func (a *API) hvDir() hvDirectory {
@@ -476,12 +542,15 @@ func (a *API) infraClone(w http.ResponseWriter, r *http.Request, c *caller) {
 
 func (a *API) infraTemplate(w http.ResponseWriter, r *http.Request, c *caller) {
 	id, guest := r.PathValue("id"), r.PathValue("guest")
-	if !a.permit(w, r, c, id, guest, "template") {
-		return
-	}
 	cl, err := a.pve(r.Context(), id)
 	if err != nil {
 		infraErr(w, err)
+		return
+	}
+	if a.refuseSelf(w, r, c, cl, guest, "template") {
+		return
+	}
+	if !a.permit(w, r, c, id, guest, "template") {
 		return
 	}
 	g, err := a.tracked(r, c, id, guest, "template", func(ctx context.Context) (hv.Guest, error) { return cl.Template(ctx, guest) })
@@ -494,12 +563,15 @@ func (a *API) infraTemplate(w http.ResponseWriter, r *http.Request, c *caller) {
 
 func (a *API) infraDelete(w http.ResponseWriter, r *http.Request, c *caller) {
 	id, guest := r.PathValue("id"), r.PathValue("guest")
-	if !a.permit(w, r, c, id, guest, "delete") {
-		return
-	}
 	cl, err := a.pve(r.Context(), id)
 	if err != nil {
 		infraErr(w, err)
+		return
+	}
+	if a.refuseSelf(w, r, c, cl, guest, "delete") {
+		return
+	}
+	if !a.permit(w, r, c, id, guest, "delete") {
 		return
 	}
 	if _, err := a.tracked(r, c, id, guest, "delete", func(ctx context.Context) (hv.Guest, error) { return hv.Guest{}, cl.Delete(ctx, guest) }); err != nil {
@@ -559,12 +631,15 @@ func (a *API) infraMigrate(w http.ResponseWriter, r *http.Request, c *caller) {
 		return
 	}
 	id, guest := r.PathValue("id"), r.PathValue("guest")
-	if !a.permit(w, r, c, id, guest, "migrate") {
-		return
-	}
 	cl, err := a.pve(r.Context(), id)
 	if err != nil {
 		infraErr(w, err)
+		return
+	}
+	if a.refuseSelf(w, r, c, cl, guest, "migrate") {
+		return
+	}
+	if !a.permit(w, r, c, id, guest, "migrate") {
 		return
 	}
 	g, err := a.tracked(r, c, id, guest, "migrate", func(ctx context.Context) (hv.Guest, error) { return cl.Migrate(ctx, guest, in.spec()) })
@@ -589,7 +664,7 @@ func (a *API) infraStatus(w http.ResponseWriter, r *http.Request, c *caller) {
 		infraErr(w, err)
 		return
 	}
-	if refuseSelf(w, r, cl, guest, verb) {
+	if a.refuseSelf(w, r, c, cl, guest, verb) {
 		return
 	}
 	if !a.permit(w, r, c, id, guest, verb) {
@@ -654,6 +729,14 @@ func (a *API) infraSnapshot(w http.ResponseWriter, r *http.Request, c *caller) {
 
 func (a *API) infraRollback(w http.ResponseWriter, r *http.Request, c *caller) {
 	id, guest, name := r.PathValue("id"), r.PathValue("guest"), r.PathValue("name")
+	d, err := a.driver(r.Context(), id)
+	if err != nil {
+		infraErr(w, err)
+		return
+	}
+	if a.refuseSelf(w, r, c, d, guest, "rollback") {
+		return
+	}
 	if !a.permit(w, r, c, id, guest, "rollback") {
 		return
 	}
@@ -905,7 +988,11 @@ func (a *API) permitAction(w http.ResponseWriter, r *http.Request, c *caller, ac
 			writeHVProblem(w, http.StatusConflict, "waiting_on_board", "The approval board is not configured.", key, "")
 			return false
 		}
-		st, err := cards.Post(r.Context(), org, key, changeTitle(verb, guest), "Approve this card, then run the change again. An approval covers one change.", c.id.Sub)
+		body := "Approve this card, then run the change again. An approval covers one change."
+		if c.note != "" {
+			body = "Why: " + c.note + "\n\n" + body
+		}
+		st, err := cards.Post(r.Context(), org, key, changeTitle(verb, guest), body, c.id.Sub)
 		if err != nil {
 			infraErr(w, err)
 			return false
@@ -931,12 +1018,19 @@ func (a *API) permitAction(w http.ResponseWriter, r *http.Request, c *caller, ac
 		auth.Problem(w, http.StatusServiceUnavailable, "The change couldn't be audited, so it wasn't made.")
 		return false
 	}
-	return a.auditFirst(w, r, db.AuditEntry{Actor: c.id.Sub, ActorName: displayName(c), Action: "hv.lifecycle",
-		Detail: server + " " + verb + " " + guest, IP: clientIP(r)})
+	detail := server + " " + verb + " " + guest
+	if c.note != "" {
+		detail += " · " + c.note
+	}
+	return a.auditFirst(w, r, db.AuditEntry{Actor: c.id.Sub, ActorName: displayName(c), Action: "hv.lifecycle", Detail: detail, IP: clientIP(r)})
 }
 
 func hvSubject(a *API, c *caller, tenant string) approval.Subject {
 	sub := approverSubject(a, c)
+	// The gate already found this permission in a staff role, which the policy cannot see.
+	if c != nil && c.infraGranted && tenant == "" {
+		sub.Roles = append(sub.Roles, a.infraRole())
+	}
 	if c == nil || tenant == "" {
 		return sub
 	}

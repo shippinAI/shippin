@@ -148,7 +148,9 @@ if [ ! -f /etc/shippin/templates.json ]; then
 fi
 python3 "$root/install/panel/render-config.py" "$root"
 
+db_is_local=0
 if [ -z "${SHIPPIN_DATABASE_URL:-}" ]; then
+  db_is_local=1
   db_pass=$(openssl rand -hex 24)
   runuser -u postgres -- psql -v ON_ERROR_STOP=1 <<SQL
 DO \$\$
@@ -323,6 +325,19 @@ if [ "$ok" -ne 1 ]; then
   exit 1
 fi
 echo "panel health ok at $url"
+
+# The audit log must not be something the panel's own database role can rewrite. This hands it to a role
+# nobody can log in as, and adds the hash chain. It needs a superuser, and it has to run after the panel
+# has applied its migrations. A database the site brought itself is the site's to protect.
+if [ "$db_is_local" -eq 1 ]; then
+  { echo "BEGIN; SET LOCAL shippin.app_role = 'shippin';"; cat "$root/internal/db/audit_owner.sql" "$root/internal/db/audit_chain.sql"; echo "COMMIT;"; } \
+    | runuser -u postgres -- psql -q -v ON_ERROR_STOP=1 -d shippin
+  audit_ok=$(runuser -u postgres -- psql -At -d shippin -c "SELECT ok FROM shippin_audit_verify()")
+  [ "$audit_ok" = "t" ] || { echo "the audit log failed its integrity check" >&2; exit 1; }
+  echo "audit log protected and intact"
+else
+  echo "this database was not created by the installer, so the audit log was not protected; see docs/deploy.md"
+fi
 
 # First owner. While no owner exists, every run issues a fresh one-time setup code (valid 24 hours)
 # and invalidates any earlier unredeemed one. Once an owner exists nothing is issued.
