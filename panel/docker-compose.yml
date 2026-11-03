@@ -1,24 +1,12 @@
 services:
-  shippin-console-panel:
+  shippin-panel:
     build:
       context: ..
       dockerfile: panel/Dockerfile
       args:
         PANEL_BASE_PATH: /console/
     ports:
-      - "${SHIPPIN_BIND_ADDRESS:-127.0.0.1}:${SHIPPIN_CONSOLE_PORT:-8088}:8080"
+      - "${SHIPPIN_BIND_ADDRESS:-127.0.0.1}:${SHIPPIN_PANEL_PORT:-8088}:8080"
     restart: unless-stopped
     volumes:
-      - ./public/config/runtime-config.console.json:/usr/share/nginx/html/config/runtime-config.json:ro
-
-  shippin-ops-panel:
-    build:
-      context: ..
-      dockerfile: panel/Dockerfile
-      args:
-        PANEL_BASE_PATH: /ops/
-    ports:
-      - "${SHIPPIN_BIND_ADDRESS:-127.0.0.1}:${SHIPPIN_OPS_PORT:-8089}:8080"
-    restart: unless-stopped
-    volumes:
-      - ./public/config/runtime-config.ops.json:/usr/share/nginx/html/config/runtime-config.json:ro
+      - ./public/config/runtime-config.json:/usr/share/nginx/html/config/runtime-config.json:ro

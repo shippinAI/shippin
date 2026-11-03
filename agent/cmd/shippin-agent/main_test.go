@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -51,6 +53,45 @@ func TestInspectCommandReadsSelectedProject(t *testing.T) {
 	}
 	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil || result.Provider != "incus" || result.Project != "example" || result.ServerVersion != "6.0" || result.Instances == nil || len(result.Instances) != 0 {
 		t.Fatalf("unexpected result %s: %v", stdout.String(), err)
+	}
+}
+
+func TestInspectProxmoxCommand(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "PVEAPIToken=user@realm!test=secret" {
+			t.Error("missing token")
+		}
+		switch r.URL.Path {
+		case "/api2/json/version":
+			fmt.Fprint(w, `{"data":{"version":"8.4"}}`)
+		case "/api2/json/cluster/resources":
+			fmt.Fprint(w, `{"data":[]}`)
+		default:
+			http.Error(w, "unexpected", http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+	caFile := filepath.Join(t.TempDir(), "ca.pem")
+	if err := os.WriteFile(caFile, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: server.Certificate().Raw}), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("SHIPPIN_PROXMOX_TOKEN_ID", "user@realm!test")
+	t.Setenv("SHIPPIN_PROXMOX_TOKEN_SECRET", "secret")
+	var stdout, stderr bytes.Buffer
+	if err := run(context.Background(), []string{"inspect-proxmox", "-endpoint", server.URL, "-ca-file", caFile}, &stdout, &stderr); err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Provider  string `json:"provider"`
+		Instances []any  `json:"instances"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil || got.Provider != "proxmox" || got.Instances == nil {
+		t.Fatalf("unexpected output: %s", stdout.String())
+	}
+	t.Setenv("SHIPPIN_PROXMOX_TOKEN_SECRET", "")
+	stdout.Reset()
+	if err := run(context.Background(), []string{"inspect-proxmox", "-endpoint", server.URL}, &stdout, &stderr); err == nil || stdout.Len() != 0 {
+		t.Fatal("missing token accepted or output emitted")
 	}
 }
 

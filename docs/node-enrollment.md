@@ -11,8 +11,8 @@ The primary owns operator authentication and authorization, durable enrollment
 state, node inventory, audit records and distribution of versioned installer
 artifacts. The browser requests enrollment through that control plane; it does
 not directly manage a hypervisor. Each secondary runs an agent which connects to
-the primary and uses a provider adapter for local infrastructure. Incus is the
-first provider; Proxmox is a separate future adapter.
+the primary and uses a provider adapter for local infrastructure. Incus and
+Proxmox require separate adapters and provider-specific verification.
 
 A node represents infrastructure, not a tenant. A request to run tenant work
 must be independently authorized and scoped to the tenant and resource. A

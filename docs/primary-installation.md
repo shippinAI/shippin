@@ -8,8 +8,8 @@ for exact build instructions and limitations.
 The intended deployment has a primary server hosting the control plane, durable state,
 identity and management interface. Additional physical servers or VMs enroll as
 infrastructure nodes through an installer or command issued by that primary. Hosts
-and VMs need explicit roles and configurable tags. Incus is the first provider;
-Proxmox and other services are future integrations. None of this topology is
+and VMs need explicit roles and configurable tags. Incus and Proxmox are both
+intended providers. None of this topology is
 implemented by the current image.
 
 A future first-run flow must let the owner establish an account through a unique,

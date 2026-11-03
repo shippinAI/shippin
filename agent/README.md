@@ -13,7 +13,33 @@ does not alter Incus. Socket access can grant powerful host privileges: run it
 only on an authorized host and protect its JSON output as infrastructure data.
 An Incus project is not automatically a Shippin project or tenant.
 
+The agent also includes a read-only Proxmox inventory diagnostic. Supply an
+HTTPS origin and token through your execution environment. For a private CA,
+pass `-ca-file /path/to/ca.pem`; certificate and hostname verification remain
+enabled. The token needs permission to read the desired inventory, and results
+are limited to what that token can see.
+
+```sh
+go run ./cmd/shippin-agent inspect-proxmox -endpoint https://your-proxmox-host:8006 -ca-file /path/to/ca.pem
+```
+
+Set `SHIPPIN_PROXMOX_TOKEN_ID` and `SHIPPIN_PROXMOX_TOKEN_SECRET` securely in
+the command's environment; do not put secrets in arguments, logs or repository
+configuration. The command reads the provider version and cluster VM/container
+inventory without changing provider state. An empty result does not prove that
+the token can see every resource.
+
+The Proxmox provider library also supports submitting guest start and graceful
+shutdown actions and observing their task results. Callers must persist the
+returned task reference before observing it, authorize the operation, and
+reconcile an unknown submission outcome without automatically resubmitting.
+These operations are not exposed by the diagnostic command or the panel.
+They have been tested against simulated HTTPS responses, not a real Proxmox host.
+
+The Incus provider library has the same shape for instance start and stop over
+the local socket. It is also unexposed and tested only against simulated responses.
+
 This is not yet an enrolled agent, control plane, authorization boundary,
-scheduler, deployment artifact, or lifecycle implementation. It does not
-establish that a node is ready or schedulable. Proxmox support and real-host
+scheduler, deployment artifact, or integrated lifecycle service. It does not
+establish that a node is ready or schedulable. Provider management and real-host
 verification remain outstanding.

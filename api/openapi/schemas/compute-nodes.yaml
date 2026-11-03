@@ -3,8 +3,32 @@ Node:
   required: [id, name, provider, status, schedulable, capabilities]
   properties:
     id: {type: string, format: uuid}
-    name: {type: string}
-    provider: {type: string, enum: [incus, proxmox]}
+    name: {type: string, description: Existing display name; not a stable identity or proof of hostname.}
+    provider:
+      type: [string, 'null']
+      enum: [incus, proxmox, null]
+      description: Selected provider, or null when unspecified. Null does not establish provider absence or readiness.
+    observed_hostname:
+      type: object
+      description: Hostname observed from the specified source; not proof of system identity.
+      required: [value, source, observed_at]
+      additionalProperties: false
+      properties:
+        value: {type: string, minLength: 1, maxLength: 253}
+        source: {type: string, enum: [node-agent, control-plane, provider]}
+        observed_at: {$ref: common.yaml#/Timestamp}
+    nickname:
+      allOf: [{$ref: common.yaml#/Label}, {pattern: '\S'}]
+      description: Optional operator-selected display name.
+    aliases:
+      type: array
+      description: Operator-provided alternate names; not unique identifiers.
+      uniqueItems: true
+      items:
+        allOf: [{$ref: common.yaml#/Label}, {pattern: '\S'}]
+    tags:
+      $ref: common.yaml#/Labels
+      description: Operator-provided grouping metadata, not identity or proof of access.
     status: {type: string, enum: [enrolling, verifying, ready, degraded, offline, revoked]}
     schedulable: {type: boolean}
     last_seen_at: {type: [string, 'null'], format: date-time}

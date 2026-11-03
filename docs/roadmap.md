@@ -6,6 +6,8 @@ development image builder. It does not yet provide a deployable management syste
 The public repository is the source of truth for accepted code; historical material
 is a candidate for review, not an implementation dependency. The [release objective](objective.md)
 defines the desired primary-to-secondary outcome and evidence required to ship.
+The [platform integration plan](platform-integration-plan.md) maps the historical
+code to the target owners and details the implementation and acceptance sequence.
 
 ## Next: build the primary service and prove the OS foundation
 
@@ -37,10 +39,11 @@ A successful image build or installer boot alone does not establish this milesto
    from the primary. Authenticate each node using short-lived enrollment credentials
    and unique node identity, protect its connection, allow revocation, and expose
    clear host and VM roles and user-defined tags. Prevent accidental data loss or
-   cluster membership changes. Incus is the first provider.
-4. **Manage actual workloads.** Implement and test authorized Incus operations,
-   isolation and failure handling end to end. Add Proxmox as an explicitly supported
-   provider only after its adapter and tests exist. OpenTofu, Coder, chatmaton.io,
+   cluster membership changes. Support both Incus and Proxmox through explicit,
+   provider-specific adapters and verified capabilities.
+4. **Manage actual workloads.** Implement and test authorized Incus and Proxmox
+   operations, isolation and failure handling end to end. Neither provider is
+   supported until its adapter and real-host tests exist. OpenTofu, Coder, chatmaton.io,
    shippin.bot and other services are optional integrations, configured by users.
 5. **Package and release.** Produce an installable, versioned image and node
    artifacts through a documented build, with signed artifacts, independently
@@ -53,7 +56,7 @@ A successful image build or installer boot alone does not establish this milesto
 A release candidate needs evidence from a clean checkout and representative disposable
 infrastructure: verified build and artifact signatures; clean primary install and
 reboot; first-owner setup and recovery; authenticated enrollment, revocation and
-clear tags; real Incus workload lifecycle and isolation; upgrade and rollback or
+clear tags; real Incus and Proxmox workload lifecycle and isolation; upgrade and rollback or
 recovery; backup and restore; and tests for network interruption and invalid or
 expired credentials. Document platform, firmware and network prerequisites and known
 limitations. Tests must observe system behavior, not only mocked API calls or the

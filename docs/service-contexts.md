@@ -40,14 +40,22 @@ come from the installation, and individual attachments need scoped authorization
 
 | Group | Desired capability and candidate products | Boundary |
 | --- | --- | --- |
-| Infrastructure | Incus first; Proxmox later | Hosts, placement, workloads and provider-specific capabilities belong to the infrastructure control plane. |
+| Infrastructure | Incus and Proxmox | Hosts, placement, workloads and provider-specific capabilities belong to the infrastructure control plane. Both are intended providers; see [source ownership](source-of-truth.md) for what exists today. |
 | Data | ShippinDB / PostgreSQL; Dragonfly-compatible cache | Database and cache have separate lifecycle, performance, isolation and recovery requirements. |
 | Object storage | ShippinS3 | A separately scoped object-storage capability; S3 compatibility requires testing, not a name alone. |
 | Identity and secrets | Nomen / `nomen.sh`; Vaultix / `vaultix.cloud` | Identity and secret systems own their records and expose reviewed interfaces; the panel does not become a second identity or secrets store. |
 | Communication | Email; Chatmaton | Email delivery and conversation are distinct capabilities. Chatmaton owns its conversations and intent, not infrastructure inventory or other products' credentials. |
-| Agents and specialists | AgentHub, Clyffy and shippin.bot | AgentHub owns its task and event stream; Clyffy is an assistant/harness context; shippin.bot is the government-contract specialist. Their attachment, permissions and readiness require separate implementation. |
-| Surfaces and domains | `shippin.cloud`, `shippin.tech` | Branding and domain routing are operator-configured; their exact product roles are not yet established in this repository. |
+| Agents and specialists | AgentHub, Clyffy and shippin.bot | AgentHub owns its task and event stream and its configurable change-policy and review records; Clyffy is an assistant/harness context; shippin.bot is the government-contract specialist. Their attachment, permissions and readiness require separate implementation. |
+| Surfaces and domains | Shippin.app; `shippin.cloud`, `shippin.tech` | Shippin.app is the single panel product. Branding and deployment addresses are operator-configured; the other domains' roles remain to be established. |
 | Unresolved | OMA | Its meaning and ownership need clarification before assigning a capability. |
+
+Shippin also needs its own self-hosted transactional PostgreSQL, cache and
+ClickHouse analytics services. These are platform-owned instances and have their
+own configuration, capacity, credentials, backup and recovery. They are separate
+from customer-provisioned services. Dragonfly is a cache candidate to validate
+against Shippin's actual workloads; ClickHouse is intended for analytics, not as
+the owner of transactional platform state. The panel installer provisions PostgreSQL;
+cache and ClickHouse deployment are not implemented.
 
 A cloud-user experience comparable in usability to a managed database dashboard
 should eventually expose authorized database and storage operations, connection
