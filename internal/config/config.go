@@ -143,6 +143,7 @@ type Config struct {
 	Migrations        Migrations        `json:"migrations"` // hold: files a change ticket releases later
 	Approval          approval.Policy   `json:"approval"`
 	UI                UI                `json:"ui"`
+	Updates           Updates           `json:"updates"`
 	DatabaseURL       string            `json:"-"`
 	SessionKey        string            `json:"-"`
 	Listen            string            `json:"-"`
@@ -185,6 +186,7 @@ func Load() (*Config, error) {
 	c.StaticDir = env("SHIPPIN_STATIC", "web/dist")
 	c.Mail.load()
 	c.GitHub.load()
+	c.Updates.load()
 	c.Authz.load()
 	c.Vaultix.load()
 	c.Services.RRFlow.loadEnv()
@@ -223,6 +225,9 @@ func (c *Config) Check() error {
 		return err
 	}
 	if err := c.UI.Check(); err != nil {
+		return err
+	}
+	if err := c.Updates.Check(); err != nil {
 		return err
 	}
 	return c.Workspaces.Check()

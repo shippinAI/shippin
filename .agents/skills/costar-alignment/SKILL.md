@@ -1,6 +1,6 @@
 ---
 name: costar-alignment
-description: Ground a Shippin.Cloud request and clarify material choices using CO-STAR without asking the user for facts already available in the project.
+description: Ground a Shippin request and clarify material choices using CO-STAR without asking the user for facts already available in the project.
 ---
 
 # CO-STAR alignment

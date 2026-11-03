@@ -1,63 +1,37 @@
-# Roadmap to a release
+# Roadmap
 
-Shippin is an early-stage infrastructure platform. The repository contains a static
-panel workbench, a draft API contract, governance tooling and an unsigned Debian/Incus
-development image builder. It does not yet provide a deployable management system.
-The public repository is the source of truth for accepted code; historical material
-is a candidate for review, not an implementation dependency. The [release objective](objective.md)
-defines the desired primary-to-secondary outcome and evidence required to ship.
-The [platform integration plan](platform-integration-plan.md) maps the historical
-code to the target owners and details the implementation and acceptance sequence.
+What works today, what does not, and what comes next. [The objective](objective.md) says where this is going.
 
-## Next: build the primary service and prove the OS foundation
+## Works today
 
-Establish the canonical control-plane and host-agent ownership after reviewing
-candidate code. Build the primary service, durable state, authorization and
-first-owner flow in small, independently verified slices. The current panel is a
-workbench and cannot yet manage real infrastructure.
+- Deploy with `docker compose up`, or on Debian or Ubuntu with the installer. CI proves both from a clean checkout.
+- First owner and sign-in, with or without an upstream identity provider. Orgs, invites and a waitlist.
+- Infrastructure: an overview and one tab per provider, for Incus and Proxmox. Add and detach hosts, and start, stop and snapshot guests.
+- Workspaces and projects, an API explorer, an agent hub, a provider panel, and audited platform settings.
+- Names, navigation and providers are configuration, and owners can change them from the panel.
+- The panel shows its running build and tells operators when a newer one has been pushed.
 
-In parallel, prove the installation foundation:
+## Known gaps
 
-Complete an unattended test of a **disposable virtual machine** that boots the existing
-development ISO, installs Debian and Incus from a verified package mirror, reboots,
-and proves an Incus container can start and be removed. Retain command output and
-identify failures separately from successes. The test must isolate its disk and use
-throwaway credentials. Follow the [implementation handoff](../install/primary-image/implementation-plan.md).
-A successful image build or installer boot alone does not establish this milestone.
+- **Hypervisors:** the Incus and Proxmox drivers have only been exercised against simulated APIs in tests. Try them on a disposable guest first.
+- **Local agent:** neither deployment path sets up `shippin-hostd`. The features that depend on it, including workspaces on the primary, need `incus.hostd_url` set and hostd installed by hand. See `deploy/hostd-install.sh`.
+- **Remote nodes:** node enrollment exists for a token and a heartbeat. There is no node CA and no installer for a secondary. See [node enrollment](node-enrollment.md).
+- **Change approvals:** the Gold signing code is still in the tree, off unless configured. It must be retired through a reviewed migration. See [the plan](system-identity-human-review-plan.md).
+- **Reference panel:** `third_party/warden-ct102` still has features to port. See [the ledger](panel-variants.md).
+- **Wording:** pages other than infrastructure and navigation still have their text in code.
+- **Primary image:** the ISO builder in `install/primary-image/` is unsigned and does not install the panel.
 
-## Follow-on milestones
+## Next
 
-1. **Establish service ownership.** Review candidate control-plane and host-agent
-   code for provenance, license, security, dependencies and behavior before adopting
-   it. Define canonical modules, configuration, contracts and migration boundaries.
-2. **Bootstrap a primary.** Build the control plane, persistent data and secure
-   first-owner setup. The first owner establishes their own credentials using a
-   unique, short-lived bootstrap mechanism; no shared default password. Require
-   trusted HTTPS, recovery and a documented backup and restore path. Treat identity
-   provider integration as a recoverable multi-step operation.
-3. **Enroll infrastructure.** Generate a secondary installer or enrollment command
-   from the primary. Authenticate each node using short-lived enrollment credentials
-   and unique node identity, protect its connection, allow revocation, and expose
-   clear host and VM roles and user-defined tags. Prevent accidental data loss or
-   cluster membership changes. Support both Incus and Proxmox through explicit,
-   provider-specific adapters and verified capabilities.
-4. **Manage actual workloads.** Implement and test authorized Incus and Proxmox
-   operations, isolation and failure handling end to end. Neither provider is
-   supported until its adapter and real-host tests exist. OpenTofu, Coder, chatmaton.io,
-   shippin.bot and other services are optional integrations, configured by users.
-5. **Package and release.** Produce an installable, versioned image and node
-   artifacts through a documented build, with signed artifacts, independently
-   distributed verification keys, provenance and an SBOM. Define supported upgrades,
-   backup and restore, and a published security response process. Select a license
-   before describing the repository as open source or granting reuse rights.
+The order is in [fleet operations](design/fleet-operations.md):
 
-## Release evidence
+1. A durable history of lifecycle operations, and a view of what is running.
+2. Node detail: kernel, uptime, capacity, and native cluster members.
+3. Named fleets that group Incus and Proxmox hosts.
+4. Updating from a button.
 
-A release candidate needs evidence from a clean checkout and representative disposable
-infrastructure: verified build and artifact signatures; clean primary install and
-reboot; first-owner setup and recovery; authenticated enrollment, revocation and
-clear tags; real Incus and Proxmox workload lifecycle and isolation; upgrade and rollback or
-recovery; backup and restore; and tests for network interruption and invalid or
-expired credentials. Document platform, firmware and network prerequisites and known
-limitations. Tests must observe system behavior, not only mocked API calls or the
-presence of files. No production readiness claim follows from this roadmap alone.
+Then secondary-node installation, signed releases, backup and restore with a tested restore, and managed data services. Those are [designed](design/managed-services.md) but not built.
+
+## Release gates
+
+A release needs evidence from a clean checkout and disposable infrastructure: install and reboot, first-owner setup and recovery, real Incus and Proxmox workload lifecycle, upgrade and rollback, backup and a tested restore, and behavior under network loss and expired credentials. Tests must observe system behavior, not only mocked API calls.

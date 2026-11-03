@@ -1,0 +1,49 @@
+# Run the panel and its database with Docker:
+#
+#   docker compose up -d --build
+#   docker compose logs panel | grep setup_code
+#
+# Then open https://localhost:8443/setup. It works with no configuration. For a real installation,
+# copy config/site.env.example to .env and edit it; docs/deploy.md has the details.
+name: shippin
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shippin
+      POSTGRES_DB: shippin
+      # Reachable only on this project's private network. Set your own in .env before going live.
+      POSTGRES_PASSWORD: ${SHIPPIN_DB_PASSWORD:-shippin-local-only}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U shippin -d shippin]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  panel:
+    build: .
+    image: shippin-panel:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SHIPPIN_DATABASE_URL: postgres://shippin:${SHIPPIN_DB_PASSWORD:-shippin-local-only}@db:5432/shippin?sslmode=disable
+      SHIPPIN_LISTEN: :8443
+      SHIPPIN_DEPLOY_METHOD: compose
+      SHIPPIN_PORT: ${SHIPPIN_PORT:-8443}
+    ports:
+      - ${SHIPPIN_BIND:-127.0.0.1}:${SHIPPIN_PORT:-8443}:8443
+    volumes:
+      - state:/var/lib/shippin
+
+volumes:
+  db:
+  state:

@@ -1,0 +1,6 @@
+# Publishes the database to this machine, for running the console from source.
+# scripts/dev-server.sh uses this. Do not use it for a real installation.
+services:
+  db:
+    ports:
+      - 127.0.0.1:${SHIPPIN_DEV_DB_PORT:-15432}:5432

@@ -1,6 +1,6 @@
 ---
 name: evidence-execution
-description: Execute and verify a grounded Shippin.Cloud handoff, recording actual results and carrying unfinished work forward.
+description: Execute and verify a grounded Shippin handoff, recording actual results and carrying unfinished work forward.
 ---
 
 # Evidence execution

@@ -11,7 +11,7 @@ The public tree is the squashed, cleaned snapshot. A full history import was not
 | `cmd/console`, `internal/` | same paths | Console implementation. `api/openapi/` remains the published contract. |
 | `cmd/shippin-hostd`, `internal/hostd` | same paths | Console host agent. `agent/` stays the local Incus diagnostic. |
 | `cmd/shippin-bridge`, `cmd/shippin-credwriter`, `cmd/ai-launcher`, `cmd/rrflow-state`, `cmd/catalog-demo`, `cmd/hub-demo`, `cmd/chat-probe`, `cmd/vaultix-demo` | same paths | Console. |
-| `web/` | `web/` | Console UI. This is the panel the installer serves. `panel/` stays the API workbench and is not the install path. |
+| `web/` | `web/` | Console UI. This is the panel. The separate `panel/` workbench has since moved into it; see [panel variants](panel-variants.md). |
 | `deploy/` | `deploy/` | Kept after site addresses and site paths were removed. The supported install path is `install/panel/install.sh`. |
 | `config/shippin.json` | `config/shippin.example.json` | Example only. A site writes `/etc/shippin/shippin.json` from `config/site.env`. |
 | `deploy/hostd.json` | `deploy/hostd.example.json` | Example only. |
@@ -38,7 +38,7 @@ The public tree is the squashed, cleaned snapshot. A full history import was not
 
 ## Wardenclyffe coverage
 
-`third_party/warden-ct102` is still the Proxmox panel. The native drivers in `internal/hv/proxmox` and `internal/hv/incus` are what the console calls. They do not replace the Warden UI for firewall editing, backup coverage, DNS screens, or the deployment catalog. Those stay in the Warden module.
+`third_party/warden-ct102` is a reference import and is not served. The native drivers in `internal/hv/proxmox` and `internal/hv/incus` are what the console calls. They do not replace the Warden UI for firewall editing, backup coverage, DNS screens, or the deployment catalog. Those stay in the Warden module.
 
 ## Not done by this import
 

@@ -1,6 +1,6 @@
 ---
 name: grounded-handoff
-description: Ground and write a verifiable implementation handoff for substantial Shippin.Cloud work, especially when another agent will execute it.
+description: Ground and write a verifiable implementation handoff for substantial Shippin work, especially when another agent will execute it.
 ---
 
 # Grounded handoff

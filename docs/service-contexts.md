@@ -32,7 +32,7 @@ provides relevant threat categories.
 
 ## Capability groups
 
-The Shippin.Cloud operator can offer these capabilities where implemented and
+The Shippin operator can offer these capabilities where implemented and
 authorized. Product names and domains below describe the owner's requested
 ecosystem; they are not default URLs, credentials, deployed services or mandatory
 dependencies of a self-hosted installation. Availability and configuration must
@@ -46,7 +46,7 @@ come from the installation, and individual attachments need scoped authorization
 | Identity and secrets | Nomen / `nomen.sh`; Vaultix / `vaultix.cloud` | Identity and secret systems own their records and expose reviewed interfaces; the panel does not become a second identity or secrets store. |
 | Communication | Email; Chatmaton | Email delivery and conversation are distinct capabilities. Chatmaton owns its conversations and intent, not infrastructure inventory or other products' credentials. |
 | Agents and specialists | AgentHub, Clyffy and shippin.bot | AgentHub owns its task and event stream and its configurable change-policy and review records; Clyffy is an assistant/harness context; shippin.bot is the government-contract specialist. Their attachment, permissions and readiness require separate implementation. |
-| Surfaces and domains | Shippin.app; `shippin.cloud`, `shippin.tech` | Shippin.app is the single panel product. Branding and deployment addresses are operator-configured; the other domains' roles remain to be established. |
+| Surfaces | The panel | One panel. Branding and addresses are configured by each installation. |
 | Unresolved | OMA | Its meaning and ownership need clarification before assigning a capability. |
 
 Shippin also needs its own self-hosted transactional PostgreSQL, cache and
@@ -86,7 +86,7 @@ Before using the new shapes on an API, define versioning, migration and compatib
 verify callers and update the authoritative OpenAPI path and tests together.
 
 Place an API shape under `api/openapi/`, panel features under their owning
-`panel/src/features/<context>/`, and operational records under the owning service.
+`web/src/features/<context>/`, and operational records under the owning service.
 The `agent/` module owns the current local Incus diagnostic; an enrolled host
 agent and control plane remain to be established. Do not create empty service
 folders or duplicate a provider's database or event store. Use lowercase kebab-case

@@ -19,7 +19,7 @@
     "dialect": ""
   },
   "incus": {
-    "hostd_url": "http://127.0.0.1:8444",
+    "hostd_url": "",
     "project": "platform",
     "host_label": "primary"
   },
@@ -603,5 +603,12 @@
         ]
       }
     ]
+  },
+  "updates": {
+    "enabled": true,
+    "repository": "shippinAI/shippin",
+    "branch": "main",
+    "interval_minutes": 30,
+    "api_url": "https://api.github.com"
   }
 }

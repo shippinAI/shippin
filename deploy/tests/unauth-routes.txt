@@ -130,6 +130,7 @@ GET /v1/tenants/{tenantId}/workspaces/{workspaceId}/discover
 GET /v1/tenants/{tenantId}/workspaces/{workspaceId}/listening
 GET /v1/tenants/{tenantId}/workspaces/{workspaceId}/site
 GET /v1/tenants/{tenantId}/workspaces/{workspaceId}/terminal
+GET /v1/version
 PATCH /v1/tenants/{tenantId}/members/{userId}
 POST /v1/bridge/device/{code}
 POST /v1/chat/sessions

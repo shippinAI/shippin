@@ -9,7 +9,7 @@ records; the control plane owns the authoritative system inventory.
 
 > **Status:** written before the shippin-console import landed in PRs #9 to #14.
 > `cmd/console`, `internal/` and `web/` are now in this repository, `web/` is the
-> installed panel and `panel/` remains the API workbench. The "historical console"
+> panel. The "historical console"
 > Gold code described below was imported with it and is still present. Where this plan
 > differs, [source ownership](source-of-truth.md) is current.
 
@@ -18,7 +18,7 @@ records; the control plane owns the authoritative system inventory.
 - The draft platform compute API (`api/openapi/paths/compute-nodes.yaml` and its
   schema) uses a UUID and name; inventory responses may have an unspecified
   provider and optional observed hostname, nickname, aliases and tags. Enrollment and the
-  control plane are planned; `panel/src/features/infrastructure/` only reads a
+  control plane are planned; `web/src/features/infrastructure/` only reads a
   planned API and displays that metadata when supplied. The agent currently
   supplies read-only provider diagnostics; no server persists or emits these new
   fields here, and the enrollment request still requires a provider.

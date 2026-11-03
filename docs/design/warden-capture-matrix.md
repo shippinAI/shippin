@@ -1,6 +1,6 @@
 # Warden capture matrix
 
-The console is the product. The tree in `third_party/warden-ct102` is an import of the Wisconsin panel (2026-08-27), kept so this matrix can name every file. It is not a subsystem: its HTML, PAM login, env file, and YAML registries are not loaded. Each row says where the job lives in the console and how it was changed to fit.
+The console is the product. The tree in `third_party/warden-ct102` is an import of the older panel (2026-08-27), kept so this matrix can name every file. It is not a subsystem: its HTML, PAM login, env file, and YAML registries are not loaded. Each row says where the job lives in the console and how it was changed to fit.
 
 Naming. Packages, routes, UI strings, and config keys say Shippin. The panel's product name does not appear in those places. Provenance is this matrix and the import commit.
 
@@ -79,9 +79,9 @@ From `BACKLOG.md` in the import. Checked items the console already covers are re
 | `auth_pam_unsupported.go` | rejected-for-security | internal/auth (Nomen session) | Local PAM passwords are a second identity. The console session is Nomen. There is no PAM conversation and no password form. |
 | `auth_test.go` | intentionally replaced | internal/auth, sign-in page | Panel sessions, OIDC hand-roll, and the login page are not a second sign-in. The console already uses Nomen. |
 | `backups.go` | to-author | docs/design/managed-services.md backups section | S3, SMB, Infisical, and estate copy executors are not wired. Destinations will use secret_ref. No shell-out was copied. Coverage scoring is already in internal/backupcov. |
-| `backups_coverage.go` | ported | internal/backupcov | Coverage scoring and the event ring were rewritten without the Wisconsin paths and without logging secret material. |
+| `backups_coverage.go` | ported | internal/backupcov | Coverage scoring and the event ring were rewritten without the the original site paths and without logging secret material. |
 | `backups_estate.go` | to-author | docs/design/managed-services.md backups section | S3, SMB, Infisical, and estate copy executors are not wired. Destinations will use secret_ref. No shell-out was copied. Coverage scoring is already in internal/backupcov. |
-| `backups_events.go` | ported | internal/backupcov | Coverage scoring and the event ring were rewritten without the Wisconsin paths and without logging secret material. |
+| `backups_events.go` | ported | internal/backupcov | Coverage scoring and the event ring were rewritten without the the original site paths and without logging secret material. |
 | `backups_handlers.go` | to-author | docs/design/managed-services.md backups section | S3, SMB, Infisical, and estate copy executors are not wired. Destinations will use secret_ref. No shell-out was copied. Coverage scoring is already in internal/backupcov. |
 | `backups_infisical.go` | to-author | docs/design/managed-services.md backups section | S3, SMB, Infisical, and estate copy executors are not wired. Destinations will use secret_ref. No shell-out was copied. Coverage scoring is already in internal/backupcov. |
 | `backups_s3.go` | to-author | docs/design/managed-services.md backups section | S3, SMB, Infisical, and estate copy executors are not wired. Destinations will use secret_ref. No shell-out was copied. Coverage scoring is already in internal/backupcov. |

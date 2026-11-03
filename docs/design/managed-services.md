@@ -138,7 +138,7 @@ Adopt is an operator API `POST /v1/infra/services:adopt` with the observed endpo
 
 ## Backups (warden panel, 2026-08-27)
 
-The Wisconsin panel (`third_party/warden-ct102`) grew a backups subsystem that is not in git history: S3, SMB, Infisical, a local secrets file, an estate preflight, a coverage checklist, and an event log. That work belongs here, not in a second panel.
+The older panel (`third_party/warden-ct102`) grew a backups subsystem that is not in git history: S3, SMB, Infisical, a local secrets file, an estate preflight, a coverage checklist, and an event log. That work belongs here, not in a second panel.
 
 Two different backups must stay separate:
 
@@ -149,7 +149,7 @@ Two different backups must stay separate:
 
 Estate destination rows store a kind (`s3`, `smb`, `infisical`), endpoint, bucket or share, and a `secret_ref`. They do not store access keys. The panel's `backups-secrets.json` (raw keys on disk) is not ported.
 
-Coverage is a function of a configured catalog plus observations (path present, job listed, last status). The panel's catalog hardcodes Wisconsin paths (`/var/lib/shippin/warden-src`, `//192.0.2.117/warden-storage`, `/var/lib/shippin/operator`). Those paths are evidence in the import, not console defaults. A deployment supplies its own catalog.
+Coverage is a function of a configured catalog plus observations (path present, job listed, last status). The panel's catalog hardcodes the original site paths (`/var/lib/shippin/warden-src`, `//192.0.2.117/warden-storage`, `/var/lib/shippin/operator`). Those paths are evidence in the import, not console defaults. A deployment supplies its own catalog.
 
 Events are an append-only ring on the backup row. A repeated failure updates `next_reconcile_at` and does not log the same line on every pass.
 

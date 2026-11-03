@@ -108,6 +108,19 @@ export const textDefaults = {
   "infra.board.open": "Open the board",
   "infra.board.openTooltip": "Open the factory board to approve this card, then retry the same action",
   "home.instances.hint": "Platform host",
+  "update.available": "Update available ({count})",
+  "update.build": "Build {build}",
+  "update.unstamped": "Unknown build",
+  "update.title": "A new version is available",
+  "update.currentTitle": "This panel",
+  "update.running": "Running",
+  "update.modified": "with local changes",
+  "update.disabled": "Update checks are turned off for this installation.",
+  "update.checking": "Checking for a newer build…",
+  "update.current": "Up to date with {source}.",
+  "update.changes": "See what changed",
+  "update.howTo": "To update this installation, run:",
+  "update.howToUnknown": "Pull the latest code and redeploy the way this panel was installed.",
 } as const;
 
 export type TextKey = keyof typeof textDefaults;

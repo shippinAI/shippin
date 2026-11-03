@@ -8,13 +8,15 @@ import { AdminPanelLink } from "./admin-panel-link";
 import { MobileNav } from "./mobile-nav";
 import { BypassBadge } from "../features/gold-sign/ui/bypass-badge";
 import { useMe as useCurrentUser } from "../lib/hooks/use-api";
+import { UpdateStatus } from "../features/updates/update-status";
 
 // Loaded after first paint so the header stays inside the initial JS budget.
 const OrgSwitcher = lazy(() => import("../features/orgs/ui/org-switcher").then((m) => ({ default: m.OrgSwitcher })));
 
 /** Aero-glass top bar (one of the few glass surfaces allowed by 02d). */
 export function Topbar({ crumb }: { crumb: string }) {
-  const goldOn = useCurrentUser().data?.capabilities["gold.sign"];
+  const caps = useCurrentUser().data?.capabilities;
+  const goldOn = caps?.["gold.sign"];
   const qc = useQueryClient();
   const s = usePublicSettings().data;
   return (
@@ -29,6 +31,7 @@ export function Topbar({ crumb }: { crumb: string }) {
         <Command className="size-3" /> K <span className="ml-1">Command palette · v0.2</span>
       </div>
       {goldOn && <BypassBadge />}
+      {caps?.["operator.view"] && <UpdateStatus />}
       <Suspense fallback={null}><OrgSwitcher /></Suspense>
       <AdminPanelLink />
       <IconButton

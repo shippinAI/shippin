@@ -1,6 +1,6 @@
 # Debian and Incus installer: development foundation
 
-This builds an **unsigned development image**, not a finished Shippin.Cloud appliance.
+This builds an **unsigned development image**, not a finished Shippin appliance.
 It starts from Debian 13.7.0 amd64 netinst, checks Debian's signed SHA-256 manifest,
 and adds `pkgsel/include=incus` to the normal graphical and text installer choices.
 Debian's installer still asks for account and disk choices; this image supplies no
@@ -9,7 +9,7 @@ Debian package mirror. Incus is requested during installation, not bundled offli
 The advanced, rescue and automated installer choices remain Debian's unchanged
 choices and do not request Incus. Do not use them as a Shippin setup flow.
 
-The image does **not** provide the Shippin.Cloud control plane, panel, first-owner
+The image does **not** provide the Shippin control plane, panel, first-owner
 bootstrap, node installer, artifact signature, SBOM or a reproducible pinned package
 snapshot. It is unsuitable for production or distribution as a finished appliance.
 The build verifies upstream Debian media; its generated checksum detects accidental

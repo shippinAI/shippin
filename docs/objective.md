@@ -2,7 +2,7 @@
 
 Build a self-hosted infrastructure platform that an operator can install on a
 primary server, open in a browser, set up with their own account, and use to
-securely connect and manage additional servers or VMs. Shippin.app is one panel
+securely connect and manage additional servers or VMs. Shippin is one panel
 for customer and operator workflows; it must support both Incus and Proxmox servers.
 The public Shippin repository is the canonical
 owner of accepted platform code.
@@ -50,9 +50,7 @@ not establish support for the other. OpenTofu/Terraform, Coder, AgentHub, Chatma
 optional integrations, not prerequisites for the first usable release. Support
 for any integration requires its own implementation and tests.
 
-Today the repository contains a panel workbench, a draft API, governance tools
-and an unsigned development image builder. It does not yet contain a complete
-primary service, first-owner flow, node enrollment or production release. See the
-[roadmap](roadmap.md) for work order and the [source boundaries](source-of-truth.md)
+The [roadmap](roadmap.md) says what works today and what comes next, and the
+[source boundaries](source-of-truth.md)
 for ownership. The [service context map](service-contexts.md) defines the intended
 managed data, identity, storage, communication and agent boundaries.

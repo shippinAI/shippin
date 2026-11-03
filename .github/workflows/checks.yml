@@ -160,6 +160,28 @@ jobs:
           # A second run keeps the owner and issues nothing.
           SHIPPIN_SKIP_WEB=1 ./install/panel/install.sh --site /etc/shippin/site.env | tee /tmp/install2.log
           grep -q 'an owner already exists' /tmp/install2.log
+  compose:
+    # The way anyone tries the panel: clone, one command, no configuration.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: docker compose up -d --build --wait --wait-timeout 300
+      - name: The first owner can set up and sign in
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=https://localhost:8443
+          curl -fsSk "$base/healthz" | grep -q '"db":true'
+          code=$(docker compose logs panel | sed -n 's/.*setup_code=//p' | tail -n1)
+          test -n "$code"
+          curl -fsSk -c /tmp/jar -H "Origin: $base" -H 'content-type: application/json' \
+            -d "{\"code\":\"$code\",\"email\":\"owner@example.invalid\",\"name\":\"Owner\"}" "$base/v1/setup" >/dev/null
+          curl -fsSk -b /tmp/jar "$base/v1/me" | grep -q '"infra.hosts":true'
+          curl -fsSk -b /tmp/jar "$base/v1/infra/overview" | grep -q '"providers"'
+          curl -fsSk -b /tmp/jar "$base/v1/version" | grep -q "\"commit\":\"$GITHUB_SHA\""
+          curl -fsSk "$base/" | grep -qi '<!doctype html'
+      - if: failure()
+        run: docker compose logs --tail=80
   gitleaks:
     runs-on: ubuntu-latest
     steps:

@@ -1,5 +1,24 @@
 # Deploy the panel
 
+Two ways, with the same settings. Containers are the quickest; the installer gives you a plain Debian or Ubuntu service.
+
+## With containers
+
+```sh
+git clone https://github.com/shippinAI/shippin && cd shippin
+cp config/site.env.example .env   # optional; edit it for a real site
+docker compose up -d --build
+docker compose logs panel | grep setup_code
+```
+
+With no `.env` it serves `https://localhost:8443` with a generated certificate and a database on a private network. For a real site, set at least `SHIPPIN_CONSOLE_HOST`, `SHIPPIN_DB_PASSWORD` and `SHIPPIN_BIND` in `.env`, and either `SHIPPIN_TLS_CERT` and `SHIPPIN_TLS_KEY` or `SHIPPIN_TLS=proxy` behind your own TLS proxy. State lives in the `db` and `state` volumes, so back those up.
+
+To upgrade, run `git pull --ff-only && docker compose up -d --build`. The panel's top bar shows when a newer build exists, and this command.
+
+Set `SHIPPIN_HV_*` tokens in `.env`, and mount any certificate files a hypervisor attachment names.
+
+## On a Debian or Ubuntu machine
+
 One command installs the panel on a fresh Debian or Ubuntu machine (Debian 13 is tested). It installs Postgres, fetches the Go and Node.js toolchains the build needs when the machine does not already have new enough ones, builds the control plane and the web UI, writes a root-only env file, starts the process, checks `GET /healthz`, and prints the one-time setup code for the first owner.
 
 ```sh

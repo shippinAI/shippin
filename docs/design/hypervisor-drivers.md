@@ -2,7 +2,7 @@
 
 Status: the console is the product. The Proxmox and Incus drivers are mounted on the server registry (`internal/db/migrations/036_server_hypervisor.sql`), `/v1/infra/servers`, and `/operator/hosts`. The Incus driver has only been exercised against a simulated API, not a real server. The capture of every imported file is `docs/design/warden-capture-matrix.md`. The full API plan is `docs/design/proxmox-full-coverage.md`.
 
-The panel that runs on Wisconsin CT 102 is the Go+HTML tree imported at `third_party/warden-ct102` (built 2026-08-27). Its Proxmox client is `proxmox.go`. The files `internal/host/kinds/proxmox`, `wardenclyffe`, and `bare` are registered stubs that return "not yet implemented". "Wardenclyffe" in that tree is not a second hypervisor. Shippin-mesh notes treated it as a product name. In this console it is provenance only.
+The older panel is the Go+HTML tree imported at `third_party/warden-ct102` (built 2026-08-27). Its Proxmox client is `proxmox.go`. The files `internal/host/kinds/proxmox`, `wardenclyffe`, and `bare` are registered stubs that return "not yet implemented". "Wardenclyffe" in that tree is not a second hypervisor. Shippin-mesh notes treated it as a product name. In this console it is provenance only.
 
 ## One driver
 
@@ -75,12 +75,12 @@ Mutations call `hv.Guard` before the driver. The guard uses `internal/approval.P
 | `backups.go` tar/rsync jobs | managed-services estate backups | Shell-outs not ported. |
 | `backups_s3.go`, `backups_smb.go`, `backups_infisical.go` | destination records with secret refs | Transfer clients left out. |
 | `backups_secrets.go` | dropped | Wrote raw keys to `backups-secrets.json`. |
-| `backups_coverage.go` catalog | evaluator only | Wisconsin paths stay in the import, not in defaults. |
+| `backups_coverage.go` catalog | evaluator only | Its site paths stay in the import, not in defaults. |
 | `backups_estate.go`, `backups_events.go` | event ring + preflight checks that do not dial the network | Estate SMB to `192.0.2.117` is not a default. |
 | PAM login, local users | Nomen session | Second login stack dropped. |
 | File manager, docker, cron, firewall, packages | dropped | Guest OS admin, not the hypervisor driver. |
 | HTML templates and static panel | dropped from the product UI | Kept only in the import. |
-| `install/*.sh` | provenance | Not the Texas installer. CRLF-only differences vs mesh main. |
+| `install/*.sh` | provenance | Not the installer. CRLF-only differences vs mesh main. |
 | Single global `PROXMOX_*` env | per-server endpoint | Example values are not copied into `config/shippin.json`. |
 
 ## Left out of phase 1
