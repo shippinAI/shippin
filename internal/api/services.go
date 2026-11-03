@@ -39,6 +39,12 @@ func probe(ctx context.Context, p config.Probe) (res probeResult) {
 	res = probeResult{Name: p.Name, Kind: p.Kind, Instance: p.Instance}
 	t0 := time.Now()
 	defer func() { res.LatencyMs = time.Since(t0).Milliseconds() }()
+	// A named service without a target is configuration, not a successful probe.
+	// Keep the health page useful during first-run without panicking on an empty URL.
+	if (p.TCP == "") == (p.URL == "") {
+		res.Detail = "not configured"
+		return res
+	}
 	if p.TCP != "" {
 		c, err := (&net.Dialer{Timeout: 3 * time.Second}).DialContext(ctx, "tcp", p.TCP)
 		if err == nil {
@@ -49,7 +55,11 @@ func probe(ctx context.Context, p config.Probe) (res probeResult) {
 		}
 		return res
 	}
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, p.URL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.URL, nil)
+	if err != nil {
+		res.Detail = "invalid probe URL"
+		return res
+	}
 	if p.Host != "" {
 		req.Host = p.Host
 	}

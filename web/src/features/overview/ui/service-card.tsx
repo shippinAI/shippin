@@ -42,7 +42,7 @@ export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Inst
       <div className="mt-4 text-[15px] font-semibold">{probe.name}</div>
       <div className="text-xs text-fg-subtle capitalize">{probe.kind}</div>
       <dl className="mt-4 grid grid-cols-[0.8fr_1fr_1.25fr] gap-2 border-t border-line pt-3.5 text-xs">
-        <Stat label="Latency" value={`${probe.latency_ms} ms`} />
+        <Stat label="Latency" value={probe.detail === "not configured" ? "—" : `${probe.latency_ms} ms`} />
         <Stat label="Memory" value={formatBytes(instance?.memory_bytes ?? 0)} />
         <Stat label="Address" value={instance?.ipv4 ?? "—"} mono />
       </dl>
