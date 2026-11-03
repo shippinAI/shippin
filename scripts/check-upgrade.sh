@@ -46,8 +46,8 @@ chmod 600 /etc/shippin/site.env
 install_site | tee /tmp/install-old.log
 code=$(sed -n 's/^setup_code=//p' /tmp/install-old.log)
 [ -n "$code" ] || fail "the older build issued no setup code"
-curl -fsS --cacert "$ca" -c "$jar" -H "Origin: $base" -H 'content-type: application/json' \
-  -d "{\"code\":\"$code\",\"email\":\"owner@example.invalid\",\"name\":\"Owner\"}" "$base/v1/setup" >/dev/null
+recovery=$(curl -fsS --cacert "$ca" -c "$jar" -H "Origin: $base" -H 'content-type: application/json' \
+  -d "{\"code\":\"$code\",\"email\":\"owner@example.invalid\",\"name\":\"Owner\"}" "$base/v1/setup" | json 'd["recovery_codes"][0]')
 [ "$(get "$base/v1/me" | json 'd["capabilities"]["operator.view"]')" = True ] || fail "the owner cannot use the older build"
 pass "older build installed and the owner signed in"
 key_before=$(key)
@@ -101,7 +101,12 @@ as_panel "DELETE FROM audit_log" && fail "the panel's role can delete from the a
 as_panel "UPDATE audit_log SET detail = ''" && fail "the panel's role can rewrite the audit log"
 as_panel "ALTER TABLE audit_log DISABLE TRIGGER ALL" && fail "the panel's role can switch off the audit log's protection"
 pass "the audit log is intact, and the panel's role can read it but not change it"
-send -o /dev/null -d '{"reason":"Checking the audit log"}' "$base/v1/operator/staff-mode"
+# Staff mode needs a recent sign-in from this build. An owner with no identity provider signs in again here.
+again=$(curl -sS --cacert "$ca" -c "$jar" -o /tmp/again.json -w '%{http_code}' -H "Origin: $base" -H 'content-type: application/json' \
+  -d "{\"email\":\"owner@example.invalid\",\"code\":\"$recovery\"}" "$base/v1/session/recovery")
+[ "$again" -lt 300 ] || { cat /tmp/again.json; fail "the owner could not sign in again with a recovery code: $again"; }
+staff=$(send -o /tmp/staff.json -w '%{http_code}' -d '{"reason":"Checking the audit log"}' "$base/v1/operator/staff-mode")
+[ "$staff" -lt 300 ] || { cat /tmp/staff.json; fail "the owner could not enter staff mode after signing in again: $staff"; }
 [ "$(get "$base/v1/operator/system" | json 'd["audit"]["enabled"] and d["audit"]["ok"]')" = True ] || fail "the panel does not report the audit log as protected"
 pass "the panel reports the audit log as protected and intact"
 

@@ -276,6 +276,7 @@ func TestDetachClearsTheAttachmentAndKeepsTheRow(t *testing.T) {
 	}
 	missing := httptest.NewRequest(http.MethodDelete, "/v1/infra/servers/nope/attachment", nil)
 	missing.Header.Set("Authorization", "Bearer test")
+	missing.Header.Set(noteHeader, "A test of this change")
 	rec = httptest.NewRecorder()
 	mux.ServeHTTP(rec, missing)
 	if rec.Code != http.StatusNotFound {
