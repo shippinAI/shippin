@@ -1,3 +1,4 @@
+DELETE /v1/infra/fleets/{fleet}
 DELETE /v1/infra/servers/{id}/attachment
 DELETE /v1/infra/servers/{id}/guests/{guest}
 DELETE /v1/me/bridge-sessions/{id}
@@ -29,6 +30,7 @@ GET /v1/chat/sessions/{id}/ready
 GET /v1/chat/tips
 GET /v1/github/callback
 GET /v1/github/setup
+GET /v1/infra/operations
 GET /v1/infra/overview
 GET /v1/infra/servers
 GET /v1/infra/servers/registry
@@ -135,7 +137,9 @@ PATCH /v1/tenants/{tenantId}/members/{userId}
 POST /v1/bridge/device/{code}
 POST /v1/chat/sessions
 POST /v1/chat/sessions/{id}/messages
+POST /v1/infra/fleets
 POST /v1/infra/servers
+POST /v1/infra/servers/test
 POST /v1/infra/servers/{id}/backups
 POST /v1/infra/servers/{id}/guests
 POST /v1/infra/servers/{id}/guests/{guest}/clone
@@ -146,6 +150,7 @@ POST /v1/infra/servers/{id}/guests/{guest}/snapshots/{name}/rollback
 POST /v1/infra/servers/{id}/guests/{guest}/status/{verb}
 POST /v1/infra/servers/{id}/guests/{guest}/template
 POST /v1/infra/servers/{id}/restore
+POST /v1/infra/servers/{id}/stop-guests
 POST /v1/infra/servers/{id}/storage/{storage}/download-url
 POST /v1/infra/servers/{id}/storage/{storage}/upload
 POST /v1/me/ssh-keys
@@ -219,7 +224,9 @@ POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/adopt
 POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/code
 POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/login
 POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/site
+PUT /v1/infra/fleets/{fleet}
 PUT /v1/infra/servers/{id}
+PUT /v1/infra/servers/{id}/fleet
 PUT /v1/infra/servers/{id}/guests/{guest}/config
 PUT /v1/operator/catalog/defaults
 PUT /v1/operator/catalog/plan-services/{plan}/{service}

@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,6 +22,7 @@ type Endpoint struct {
 	BaseURL    string // https://host:8443
 	Project    string // "" is the server's default project
 	CAPEM      []byte
+	TrustedPEM []byte           // one certificate an operator accepted; it replaces the system roots
 	ClientCert *tls.Certificate // Incus trusts remotes by certificate; nil uses the bearer secret alone
 }
 
@@ -39,16 +39,9 @@ func New(ep Endpoint, secret func() (string, error)) (*Client, error) {
 	if ep.BaseURL == "" || secret == nil {
 		return nil, fmt.Errorf("incus: base URL and secret resolver are required")
 	}
-	pool, err := x509.SystemCertPool()
-	if err != nil || pool == nil {
-		pool = x509.NewCertPool()
-	}
-	if len(ep.CAPEM) > 0 && !pool.AppendCertsFromPEM(ep.CAPEM) {
-		return nil, fmt.Errorf("incus: CA PEM was not accepted")
-	}
-	tlsCfg := &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
-	if ep.ClientCert != nil {
-		tlsCfg.Certificates = []tls.Certificate{*ep.ClientCert}
+	tlsCfg, err := hv.TLSConfig(ep.CAPEM, ep.TrustedPEM, ep.ClientCert)
+	if err != nil {
+		return nil, err
 	}
 	return &Client{
 		Endpoint: ep,
@@ -128,12 +121,18 @@ func (c *Client) Health(ctx context.Context) (hv.Health, error) {
 	}
 	var api struct {
 		Metadata struct {
+			Auth        string `json:"auth"`
 			Environment struct {
 				ServerVersion string `json:"server_version"`
 			} `json:"environment"`
 		} `json:"metadata"`
 	}
 	_ = json.Unmarshal(body, &api)
+	// An untrusted client still gets 200 here, so a plain answer does not prove the panel can manage it.
+	if api.Metadata.Auth == "untrusted" {
+		h.Error = "the server does not trust this panel's certificate; add it with incus config trust"
+		return h, fmt.Errorf("incus: %s", h.Error)
+	}
 	h.Online = true
 	h.Version = api.Metadata.Environment.ServerVersion
 	return h, nil

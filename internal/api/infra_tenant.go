@@ -93,7 +93,7 @@ func (a *API) tenantGuests(w http.ResponseWriter, r *http.Request, _ *caller, te
 		infraErr(w, err)
 		return
 	}
-	writeJSON(w, map[string]any{"items": items})
+	writeJSON(w, map[string]any{"items": markSelf(items)})
 }
 
 func (a *API) tenantGuest(w http.ResponseWriter, r *http.Request, _ *caller, tenant string) {
@@ -143,20 +143,10 @@ func (a *API) tenantStatus(w http.ResponseWriter, r *http.Request, c *caller, te
 		infraErr(w, err)
 		return
 	}
-	var (
-		got  hv.Guest
-		err2 error
-	)
-	switch verb {
-	case "start":
-		got, err2 = cl.Start(r.Context(), guest)
-	case "stop":
-		got, err2 = cl.Stop(r.Context(), guest)
-	case "shutdown":
-		got, err2 = cl.Shutdown(r.Context(), guest)
-	default:
-		got, err2 = cl.Reboot(r.Context(), guest)
+	if refuseSelf(w, r, cl, guest, verb) {
+		return
 	}
+	got, err2 := a.tracked(r, c, id, guest, verb, func(ctx context.Context) (hv.Guest, error) { return runVerb(ctx, cl, verb, guest) })
 	if err2 != nil {
 		infraErr(w, err2)
 		return
@@ -192,7 +182,7 @@ func (a *API) tenantSnapshot(w http.ResponseWriter, r *http.Request, c *caller, 
 		infraErr(w, err)
 		return
 	}
-	g, err := cl.Snapshot(r.Context(), guest, in.Snap)
+	g, err := a.tracked(r, c, id, guest, "snapshot", func(ctx context.Context) (hv.Guest, error) { return cl.Snapshot(ctx, guest, in.Snap) })
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -210,7 +200,7 @@ func (a *API) tenantRollback(w http.ResponseWriter, r *http.Request, c *caller, 
 		infraErr(w, err)
 		return
 	}
-	g, err := cl.Rollback(r.Context(), guest, name)
+	g, err := a.tracked(r, c, id, guest, "rollback", func(ctx context.Context) (hv.Guest, error) { return cl.Rollback(ctx, guest, name) })
 	if err != nil {
 		infraErr(w, err)
 		return

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiGet, apiSend } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 
-export type Guest = { id: string; name: string; kind: string; status: string; node: string; tags?: string };
+export type Guest = { id: string; name: string; kind: string; status: string; node: string; tags?: string; self?: boolean };
 
 export type Task = { upid: string; status: string; exitstatus: string; type: string; log?: string[]; done: boolean };
 
@@ -37,12 +37,13 @@ function hvError(fallback: string, e: Error) {
 export function useGuestAction(base: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { guest: string; verb: "start" | "stop" | "shutdown" | "reboot" }) =>
-      apiSend<Guest>("POST", `${base}/guests/${v.guest}/status/${v.verb}`),
+    mutationFn: (v: { guest: string; verb: "start" | "stop" | "shutdown" | "reboot"; confirmSelf?: boolean }) =>
+      apiSend<Guest>("POST", `${base}/guests/${v.guest}/status/${v.verb}${v.confirmSelf ? "?confirm=self" : ""}`),
     onSuccess: (g) => {
       toast.info(`${g.name || g.id} is ${g.status}`, "That is the status the hypervisor reported after the call.");
       void qc.invalidateQueries({ queryKey: ["hv", base, "guests"] });
     },
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["infra", "operations"] }),
     onError: (e) => toast.error(...hvError("The hypervisor did not change the guest", e)),
   });
 }

@@ -1,16 +1,21 @@
 package hv
 
-import "slices"
+import (
+	"context"
+	"slices"
+)
 
 // Attach field names shared by the API and the form it describes.
 const (
-	FieldBaseURL  = "base_url"
-	FieldNode     = "node"
-	FieldTokenID  = "token_id"
-	FieldTokenEnv = "token_env"
-	FieldCAFile   = "ca_file"
-	FieldCertFile = "cert_file"
-	FieldKeyFile  = "key_file"
+	FieldBaseURL     = "base_url"
+	FieldNode        = "node"
+	FieldTokenID     = "token_id"
+	FieldTokenSecret = "token_secret"
+	FieldTokenEnv    = "token_env"
+	FieldTrustToken  = "trust_token"
+	FieldCAFile      = "ca_file"
+	FieldCertFile    = "cert_file"
+	FieldKeyFile     = "key_file"
 )
 
 // Capabilities a driver may offer beyond reading health and guests.
@@ -23,10 +28,13 @@ const (
 	CapTasks        = "tasks"
 )
 
-// Field is one value a driver needs to reach a hypervisor.
+// Field is one value a driver needs to reach a hypervisor. Secret is write-only: the API never
+// returns it. Advanced keeps a rarely needed field out of the way in the form.
 type Field struct {
 	Name     string `json:"name"`
 	Required bool   `json:"required"`
+	Secret   bool   `json:"secret,omitempty"`
+	Advanced bool   `json:"advanced,omitempty"`
 }
 
 // Spec states what a driver needs and can do. These are facts about the code, so they live in
@@ -42,14 +50,29 @@ type Spec struct {
 func Specs() []Spec {
 	return []Spec{
 		{
-			Kind:         "incus",
-			Fields:       []Field{{FieldBaseURL, true}, {FieldNode, false}, {FieldCertFile, false}, {FieldKeyFile, false}, {FieldTokenEnv, false}, {FieldCAFile, false}},
+			Kind: "incus",
+			Fields: []Field{
+				{Name: FieldTrustToken, Secret: true},
+				{Name: FieldNode},
+				{Name: FieldBaseURL, Advanced: true},
+				{Name: FieldCertFile, Advanced: true},
+				{Name: FieldKeyFile, Advanced: true},
+				{Name: FieldTokenEnv, Advanced: true},
+				{Name: FieldCAFile, Advanced: true},
+			},
 			Capabilities: []string{CapLifecycle, CapSnapshot},
 			Verbs:        []string{"start", "stop", "shutdown", "reboot"},
 		},
 		{
-			Kind:         "proxmox",
-			Fields:       []Field{{FieldBaseURL, true}, {FieldNode, true}, {FieldTokenID, true}, {FieldTokenEnv, true}, {FieldCAFile, false}},
+			Kind: "proxmox",
+			Fields: []Field{
+				{Name: FieldBaseURL, Required: true},
+				{Name: FieldTokenID, Required: true},
+				{Name: FieldTokenSecret, Secret: true},
+				{Name: FieldNode},
+				{Name: FieldTokenEnv, Advanced: true},
+				{Name: FieldCAFile, Advanced: true},
+			},
 			Capabilities: []string{CapLifecycle, CapSnapshot, CapSnapshotList, CapRollback, CapCreate, CapTasks},
 			Verbs:        []string{"start", "stop", "shutdown", "reboot"},
 		},
@@ -64,4 +87,37 @@ func SpecFor(kind string) (Spec, bool) {
 		return Spec{}, false
 	}
 	return specs[i], true
+}
+
+// ClusterMember is one member of a hypervisor's own cluster, as it reports.
+type ClusterMember struct {
+	Name   string `json:"name"`
+	Online bool   `json:"online"`
+	Local  bool   `json:"local,omitempty"`
+}
+
+// NodeDetails is what a host says about itself. Anything it did not report stays empty.
+type NodeDetails struct {
+	Hostname string          `json:"hostname,omitempty"`
+	Release  string          `json:"release,omitempty"`
+	OS       string          `json:"os,omitempty"`
+	Kernel   string          `json:"kernel,omitempty"`
+	CPUModel string          `json:"cpu_model,omitempty"`
+	CPUs     int             `json:"cpus,omitempty"`
+	MemTotal int64           `json:"mem_total_bytes,omitempty"`
+	MemUsed  int64           `json:"mem_used_bytes,omitempty"`
+	Uptime   int64           `json:"uptime_seconds,omitempty"`
+	Cluster  string          `json:"cluster,omitempty"`
+	Members  []ClusterMember `json:"members,omitempty"`
+}
+
+// Inspector is a driver that can describe its host. A token may lack the right to, so the overview
+// treats a failure here as missing detail rather than a host that is down.
+type Inspector interface {
+	Details(ctx context.Context) (NodeDetails, error)
+}
+
+// NodeLister is a driver that addresses work to named nodes and can list them.
+type NodeLister interface {
+	Nodes(ctx context.Context) ([]string, error)
 }

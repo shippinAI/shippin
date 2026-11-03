@@ -51,6 +51,7 @@ func main() {
 	consoleAPI.RegisterHub(mux)
 	consoleAPI.RegisterVaultixHosted(mux)
 	go consoleAPI.RunSweeper(ctx)
+	consoleAPI.RecoverOperations(ctx)
 	startMail(ctx, cfg, database, consoleAPI)
 	mux.HandleFunc("GET /auth/login", flow.Login)
 	mux.HandleFunc("GET /auth/callback", flow.Callback)

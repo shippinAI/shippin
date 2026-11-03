@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,6 +28,15 @@ type hvDirectory interface {
 	SetEndpoint(ctx context.Context, e servers.Endpoint) error
 	CreateEndpoint(ctx context.Context, e servers.Endpoint, by string) (servers.Endpoint, error)
 	Registry(ctx context.Context) ([]servers.Ref, error)
+	StartOperation(ctx context.Context, op servers.Operation) (string, error)
+	RunOperation(ctx context.Context, id string) error
+	FinishOperation(ctx context.Context, id, status, detail, guestStatus string) error
+	Operations(ctx context.Context, serverID string, limit int) ([]servers.Operation, error)
+	AbandonOperations(ctx context.Context) (int64, error)
+	Fleets(ctx context.Context) ([]servers.Fleet, error)
+	SaveFleet(ctx context.Context, f servers.Fleet, by string) (servers.Fleet, error)
+	DeleteFleet(ctx context.Context, id string) error
+	SetFleet(ctx context.Context, serverID, fleetID string) error
 }
 
 type infraRoute struct {
@@ -48,6 +56,13 @@ func (a *API) infraRouteTable() []infraRoute {
 		{"GET /v1/infra/overview", a.infraOverview},
 		{"GET /v1/infra/servers", a.infraServers},
 		{"POST /v1/infra/servers", a.infraAdd},
+		{"POST /v1/infra/servers/test", a.infraTest},
+		{"GET /v1/infra/operations", a.infraOperations},
+		{"POST /v1/infra/servers/{id}/stop-guests", a.infraStopGuests},
+		{"PUT /v1/infra/servers/{id}/fleet", a.infraSetFleet},
+		{"POST /v1/infra/fleets", a.infraFleetCreate},
+		{"PUT /v1/infra/fleets/{fleet}", a.infraFleetUpdate},
+		{"DELETE /v1/infra/fleets/{fleet}", a.infraFleetDelete},
 		{"GET /v1/infra/servers/registry", a.infraRegistry},
 		{"PUT /v1/infra/servers/{id}", a.infraAttach},
 		{"DELETE /v1/infra/servers/{id}/attachment", a.infraDetach},
@@ -104,10 +119,10 @@ func (a *API) infraRoleMessage() string {
 	return "This needs the infra role " + role + ", granted in Nomen as " + from + "."
 }
 
-// infraAllowed is the configured infra role, or the local installation owner. Platform admin
-// is not implied for an IdP user.
+// infraAllowed is the configured infra role, the founder role (which passes every check), or the
+// local installation owner. Platform admin alone is not implied.
 func (a *API) infraAllowed(c *caller) bool {
-	return c != nil && (c.installOwner || c.op != "" && c.op == a.infraRole())
+	return c != nil && (c.founder || c.installOwner || c.op != "" && c.op == a.infraRole())
 }
 
 func (a *API) infraGate(h func(http.ResponseWriter, *http.Request, *caller)) http.HandlerFunc {
@@ -147,6 +162,23 @@ func (emptyHV) CreateEndpoint(context.Context, servers.Endpoint, string) (server
 	return servers.Endpoint{}, servers.ErrNotFound
 }
 func (emptyHV) Registry(context.Context) ([]servers.Ref, error) { return []servers.Ref{}, nil }
+func (emptyHV) StartOperation(context.Context, servers.Operation) (string, error) {
+	return "", servers.ErrNotFound
+}
+func (emptyHV) RunOperation(context.Context, string) error { return servers.ErrNotFound }
+func (emptyHV) FinishOperation(context.Context, string, string, string, string) error {
+	return servers.ErrNotFound
+}
+func (emptyHV) Operations(context.Context, string, int) ([]servers.Operation, error) {
+	return []servers.Operation{}, nil
+}
+func (emptyHV) AbandonOperations(context.Context) (int64, error) { return 0, nil }
+func (emptyHV) Fleets(context.Context) ([]servers.Fleet, error)  { return []servers.Fleet{}, nil }
+func (emptyHV) SaveFleet(context.Context, servers.Fleet, string) (servers.Fleet, error) {
+	return servers.Fleet{}, servers.ErrNotFound
+}
+func (emptyHV) DeleteFleet(context.Context, string) error      { return servers.ErrNotFound }
+func (emptyHV) SetFleet(context.Context, string, string) error { return servers.ErrNotFound }
 
 func (a *API) pve(ctx context.Context, id string) (*proxmox.Client, error) {
 	ep, err := a.hvDir().Endpoint(ctx, id)
@@ -175,7 +207,7 @@ func (a *API) openDriver(ep servers.Endpoint) (hv.Driver, error) {
 		}
 		return c, nil
 	case "incus":
-		c, err := openIncus(ep)
+		c, err := a.openIncus(ep)
 		if err != nil {
 			return nil, err
 		}
@@ -184,7 +216,7 @@ func (a *API) openDriver(ep servers.Endpoint) (hv.Driver, error) {
 	return nil, fmt.Errorf("%w: %q", hv.ErrUnsupported, ep.Kind)
 }
 
-func openIncus(ep servers.Endpoint) (*incus.Client, error) {
+func (a *API) openIncus(ep servers.Endpoint) (*incus.Client, error) {
 	var ca []byte
 	if ep.CAFile != "" {
 		b, err := os.ReadFile(ep.CAFile)
@@ -193,25 +225,11 @@ func openIncus(ep servers.Endpoint) (*incus.Client, error) {
 		}
 		ca = b
 	}
-	var cert *tls.Certificate
-	if ep.CertFile != "" {
-		c, err := tls.LoadX509KeyPair(ep.CertFile, ep.KeyFile)
-		if err != nil {
-			return nil, fmt.Errorf("incus: reading client certificate: %w", err)
-		}
-		cert = &c
+	cert, err := a.clientCertificate(ep)
+	if err != nil {
+		return nil, err
 	}
-	env := ep.TokenEnv
-	return incus.New(incus.Endpoint{BaseURL: ep.BaseURL, Project: ep.Node, CAPEM: ca, ClientCert: cert}, func() (string, error) {
-		if env == "" {
-			return "", nil
-		}
-		s := os.Getenv(env)
-		if s == "" {
-			return "", fmt.Errorf("incus: token env %s is empty", env)
-		}
-		return s, nil
-	})
+	return incus.New(incus.Endpoint{BaseURL: ep.BaseURL, Project: ep.Node, CAPEM: ca, TrustedPEM: []byte(ep.TrustedCert), ClientCert: cert}, a.secretFor(ep))
 }
 
 func (a *API) openEndpoint(ep servers.Endpoint) (*proxmox.Client, error) {
@@ -221,10 +239,10 @@ func (a *API) openEndpoint(ep servers.Endpoint) (*proxmox.Client, error) {
 	if a.openPVE != nil {
 		return a.openPVE(ep)
 	}
-	return openProxmox(ep)
+	return a.openProxmox(ep)
 }
 
-func openProxmox(ep servers.Endpoint) (*proxmox.Client, error) {
+func (a *API) openProxmox(ep servers.Endpoint) (*proxmox.Client, error) {
 	var ca []byte
 	if ep.CAFile != "" {
 		b, err := os.ReadFile(ep.CAFile)
@@ -233,17 +251,7 @@ func openProxmox(ep servers.Endpoint) (*proxmox.Client, error) {
 		}
 		ca = b
 	}
-	env := ep.TokenEnv
-	return proxmox.New(proxmox.Endpoint{BaseURL: ep.BaseURL, Node: ep.Node, TokenID: ep.TokenID, CAPEM: ca}, func() (string, error) {
-		if env == "" {
-			return "", fmt.Errorf("proxmox: token env is not configured")
-		}
-		s := os.Getenv(env)
-		if s == "" {
-			return "", fmt.Errorf("proxmox: token env %s is empty", env)
-		}
-		return s, nil
-	})
+	return proxmox.New(proxmox.Endpoint{BaseURL: ep.BaseURL, Node: ep.Node, TokenID: ep.TokenID, CAPEM: ca, TrustedPEM: []byte(ep.TrustedCert)}, a.secretFor(ep))
 }
 
 func (a *API) infraServers(w http.ResponseWriter, r *http.Request, _ *caller) {
@@ -279,10 +287,14 @@ type hvAttach struct {
 	CAFile   string `json:"ca_file"`
 	CertFile string `json:"cert_file"`
 	KeyFile  string `json:"key_file"`
+	// TokenSecret and TrustToken are write-only. They end at prepareEndpoint.
+	TokenSecret string `json:"token_secret"`
+	TrustToken  string `json:"trust_token"`
+	TrustedCert string `json:"trusted_cert"`
 }
 
 func (in hvAttach) endpoint() servers.Endpoint {
-	return servers.Endpoint{Kind: in.Kind, BaseURL: in.BaseURL, Node: in.Node, TokenID: in.TokenID, TokenEnv: in.TokenEnv, CAFile: in.CAFile, CertFile: in.CertFile, KeyFile: in.KeyFile}
+	return servers.Endpoint{Kind: in.Kind, BaseURL: in.BaseURL, Node: in.Node, TokenID: in.TokenID, TokenEnv: in.TokenEnv, CAFile: in.CAFile, CertFile: in.CertFile, KeyFile: in.KeyFile, TrustedCert: in.TrustedCert}
 }
 
 func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, c *caller) {
@@ -292,17 +304,39 @@ func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, c *caller) {
 	}
 	ep := in.endpoint()
 	ep.ID = r.PathValue("id")
-	if err := validateEndpoint(ep); err != nil {
+	// Re-attaching keeps what was stored unless this request replaces it.
+	if old, err := a.hvDir().Endpoint(r.Context(), ep.ID); err == nil && old.Kind == ep.Kind {
+		if in.TokenSecret == "" {
+			ep.SealedSecret = old.SealedSecret
+		}
+		if in.TrustToken == "" {
+			ep.ClientCert, ep.SealedKey = old.ClientCert, old.SealedKey
+			if ep.BaseURL == "" {
+				ep.BaseURL = old.BaseURL
+			}
+			if ep.TrustedCert == "" {
+				ep.TrustedCert = old.TrustedCert
+			}
+		}
+	}
+	if err := validateEndpoint(ep, in); err != nil {
 		auth.Problem(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if !a.permitAttach(w, r, c, ep.ID) {
 		return
 	}
+	ctx, cancel := context.WithTimeout(r.Context(), connectTimeout)
+	defer cancel()
+	if err := a.prepareEndpoint(ctx, &ep, in); err != nil {
+		auth.Problem(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	if err := a.hvDir().SetEndpoint(r.Context(), ep); err != nil {
 		infraErr(w, err)
 		return
 	}
+	ep.HasSecret = len(ep.SealedKey) > 0 || len(ep.SealedSecret) > 0
 	writeJSON(w, ep)
 }
 
@@ -331,7 +365,7 @@ func (a *API) infraGuests(w http.ResponseWriter, r *http.Request, _ *caller) {
 		infraErr(w, err)
 		return
 	}
-	writeJSON(w, map[string]any{"items": items})
+	writeJSON(w, map[string]any{"items": markSelf(items)})
 }
 
 func (a *API) infraGuest(w http.ResponseWriter, r *http.Request, _ *caller) {
@@ -387,7 +421,7 @@ func (a *API) infraCreate(w http.ResponseWriter, r *http.Request, c *caller) {
 		infraErr(w, err)
 		return
 	}
-	g, err := cl.Create(r.Context(), in.spec())
+	g, err := a.tracked(r, c, r.PathValue("id"), in.ID, "create", func(ctx context.Context) (hv.Guest, error) { return cl.Create(ctx, in.spec()) })
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -408,7 +442,9 @@ func (a *API) infraClone(w http.ResponseWriter, r *http.Request, c *caller) {
 		infraErr(w, err)
 		return
 	}
-	g, err := cl.Clone(r.Context(), r.PathValue("guest"), in.spec())
+	g, err := a.tracked(r, c, r.PathValue("id"), r.PathValue("guest"), "clone", func(ctx context.Context) (hv.Guest, error) {
+		return cl.Clone(ctx, r.PathValue("guest"), in.spec())
+	})
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -426,7 +462,7 @@ func (a *API) infraTemplate(w http.ResponseWriter, r *http.Request, c *caller) {
 		infraErr(w, err)
 		return
 	}
-	g, err := cl.Template(r.Context(), guest)
+	g, err := a.tracked(r, c, id, guest, "template", func(ctx context.Context) (hv.Guest, error) { return cl.Template(ctx, guest) })
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -444,7 +480,7 @@ func (a *API) infraDelete(w http.ResponseWriter, r *http.Request, c *caller) {
 		infraErr(w, err)
 		return
 	}
-	if err := cl.Delete(r.Context(), guest); err != nil {
+	if _, err := a.tracked(r, c, id, guest, "delete", func(ctx context.Context) (hv.Guest, error) { return hv.Guest{}, cl.Delete(ctx, guest) }); err != nil {
 		infraErr(w, err)
 		return
 	}
@@ -487,7 +523,7 @@ func (a *API) infraResize(w http.ResponseWriter, r *http.Request, c *caller) {
 		infraErr(w, err)
 		return
 	}
-	g, err := cl.Resize(r.Context(), guest, in.DiskID, in.Size)
+	g, err := a.tracked(r, c, id, guest, "resize", func(ctx context.Context) (hv.Guest, error) { return cl.Resize(ctx, guest, in.DiskID, in.Size) })
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -509,7 +545,7 @@ func (a *API) infraMigrate(w http.ResponseWriter, r *http.Request, c *caller) {
 		infraErr(w, err)
 		return
 	}
-	g, err := cl.Migrate(r.Context(), guest, in.spec())
+	g, err := a.tracked(r, c, id, guest, "migrate", func(ctx context.Context) (hv.Guest, error) { return cl.Migrate(ctx, guest, in.spec()) })
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -526,25 +562,18 @@ func (a *API) infraStatus(w http.ResponseWriter, r *http.Request, c *caller) {
 		return
 	}
 	id, guest := r.PathValue("id"), r.PathValue("guest")
-	if !a.permit(w, r, c, id, guest, verb) {
-		return
-	}
 	cl, err := a.driver(r.Context(), id)
 	if err != nil {
 		infraErr(w, err)
 		return
 	}
-	var g hv.Guest
-	switch verb {
-	case "start":
-		g, err = cl.Start(r.Context(), guest)
-	case "stop":
-		g, err = cl.Stop(r.Context(), guest)
-	case "shutdown":
-		g, err = cl.Shutdown(r.Context(), guest)
-	default:
-		g, err = cl.Reboot(r.Context(), guest)
+	if refuseSelf(w, r, cl, guest, verb) {
+		return
 	}
+	if !a.permit(w, r, c, id, guest, verb) {
+		return
+	}
+	g, err := a.tracked(r, c, id, guest, verb, func(ctx context.Context) (hv.Guest, error) { return runVerb(ctx, cl, verb, guest) })
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -580,7 +609,7 @@ func (a *API) infraSnapshot(w http.ResponseWriter, r *http.Request, c *caller) {
 		infraErr(w, err)
 		return
 	}
-	g, err := cl.Snapshot(r.Context(), guest, in.Snap)
+	g, err := a.tracked(r, c, id, guest, "snapshot", func(ctx context.Context) (hv.Guest, error) { return cl.Snapshot(ctx, guest, in.Snap) })
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -598,7 +627,7 @@ func (a *API) infraRollback(w http.ResponseWriter, r *http.Request, c *caller) {
 		infraErr(w, err)
 		return
 	}
-	g, err := cl.Rollback(r.Context(), guest, name)
+	g, err := a.tracked(r, c, id, guest, "rollback", func(ctx context.Context) (hv.Guest, error) { return cl.Rollback(ctx, guest, name) })
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -781,7 +810,7 @@ func (a *API) infraRestore(w http.ResponseWriter, r *http.Request, c *caller) {
 		infraErr(w, err)
 		return
 	}
-	g, err := cl.Restore(r.Context(), in.spec())
+	g, err := a.tracked(r, c, r.PathValue("id"), in.ID, "restore", func(ctx context.Context) (hv.Guest, error) { return cl.Restore(ctx, in.spec()) })
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -963,7 +992,7 @@ var nodeName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$`)
 var envName = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`)
 
 // validateEndpoint checks what the driver of e.Kind needs. Nothing here dials the address.
-func validateEndpoint(e servers.Endpoint) error {
+func validateEndpoint(e servers.Endpoint, in hvAttach) error {
 	spec, ok := hv.SpecFor(e.Kind)
 	if !ok {
 		kinds := []string{}
@@ -972,8 +1001,8 @@ func validateEndpoint(e servers.Endpoint) error {
 		}
 		return fmt.Errorf("kind must be one of %s", strings.Join(kinds, ", "))
 	}
-	values := map[string]string{hv.FieldBaseURL: e.BaseURL, hv.FieldNode: e.Node, hv.FieldTokenID: e.TokenID,
-		hv.FieldTokenEnv: e.TokenEnv, hv.FieldCAFile: e.CAFile, hv.FieldCertFile: e.CertFile, hv.FieldKeyFile: e.KeyFile}
+	values := map[string]string{hv.FieldBaseURL: e.BaseURL, hv.FieldNode: e.Node, hv.FieldTokenID: e.TokenID, hv.FieldTokenEnv: e.TokenEnv,
+		hv.FieldCAFile: e.CAFile, hv.FieldCertFile: e.CertFile, hv.FieldKeyFile: e.KeyFile, hv.FieldTokenSecret: in.TokenSecret, hv.FieldTrustToken: in.TrustToken}
 	allowed := map[string]bool{}
 	for _, f := range spec.Fields {
 		allowed[f.Name] = true
@@ -986,9 +1015,17 @@ func validateEndpoint(e servers.Endpoint) error {
 			return fmt.Errorf("%s does not apply to %s", name, e.Kind)
 		}
 	}
-	u, err := url.Parse(e.BaseURL)
-	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" && u.Path != "/" {
-		return fmt.Errorf("base_url must be https with a host and no user, query, or path")
+	// A trust token says where the server is; a typed address is checked either way.
+	if in.TrustToken == "" || e.BaseURL != "" {
+		u, err := url.Parse(e.BaseURL)
+		if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" && u.Path != "/" {
+			return fmt.Errorf("base_url must be https with a host and no user, query, or path")
+		}
+	}
+	if in.TrustedCert != "" {
+		if _, err := hv.ParseCertificate([]byte(in.TrustedCert)); err != nil {
+			return fmt.Errorf("trusted_cert is not a certificate")
+		}
 	}
 	if e.Node != "" && !nodeName.MatchString(e.Node) {
 		return fmt.Errorf("node must be a hostname label")
@@ -1007,8 +1044,11 @@ func validateEndpoint(e servers.Endpoint) error {
 	if (e.CertFile == "") != (e.KeyFile == "") {
 		return fmt.Errorf("cert_file and key_file go together")
 	}
-	if e.Kind == "incus" && e.CertFile == "" && e.TokenEnv == "" {
-		return fmt.Errorf("incus needs a client certificate or token_env")
+	if e.Kind == "incus" && in.TrustToken == "" && e.CertFile == "" && e.TokenEnv == "" && e.ClientCert == "" {
+		return fmt.Errorf("incus needs a trust token, a client certificate, or token_env")
+	}
+	if e.Kind == "proxmox" && in.TokenSecret == "" && e.TokenEnv == "" && len(e.SealedSecret) == 0 {
+		return fmt.Errorf("proxmox needs the API token secret")
 	}
 	return nil
 }

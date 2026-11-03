@@ -6,8 +6,6 @@ package proxmox
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,6 +24,8 @@ type Endpoint struct {
 	Node    string
 	TokenID string
 	CAPEM   []byte // extra trust anchors; system roots are always included
+	// TrustedPEM is one certificate an operator accepted. It replaces the system roots.
+	TrustedPEM []byte
 }
 
 // Client is a Proxmox driver.
@@ -41,13 +41,14 @@ type Client struct {
 
 // New builds a client. HTTP is set when CAPEM or the default transport must verify.
 func New(ep Endpoint, secret func() (string, error)) (*Client, error) {
-	if ep.BaseURL == "" || ep.Node == "" || ep.TokenID == "" || secret == nil {
-		return nil, fmt.Errorf("proxmox: base URL, node, token id, and secret resolver are required")
+	if ep.BaseURL == "" || ep.TokenID == "" || secret == nil {
+		return nil, fmt.Errorf("proxmox: base URL, token id, and secret resolver are required")
 	}
-	tr, err := transport(ep.CAPEM)
+	tlsCfg, err := hv.TLSConfig(ep.CAPEM, ep.TrustedPEM, nil)
 	if err != nil {
 		return nil, err
 	}
+	tr := &http.Transport{TLSClientConfig: tlsCfg}
 	return &Client{
 		Endpoint: ep,
 		Secret:   secret,
@@ -56,15 +57,12 @@ func New(ep Endpoint, secret func() (string, error)) (*Client, error) {
 	}, nil
 }
 
-func transport(caPEM []byte) (*http.Transport, error) {
-	pool, err := x509.SystemCertPool()
-	if err != nil || pool == nil {
-		pool = x509.NewCertPool()
+// nodeOf is where a guest actually is. In a cluster that may not be the node attached to.
+func (c *Client) nodeOf(g hv.Guest) string {
+	if g.Node != "" {
+		return g.Node
 	}
-	if len(caPEM) > 0 && !pool.AppendCertsFromPEM(caPEM) {
-		return nil, fmt.Errorf("proxmox: CA PEM was not accepted")
-	}
-	return &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}}, nil
+	return c.Endpoint.Node
 }
 
 func (c *Client) Kind() string { return "proxmox" }
@@ -186,7 +184,7 @@ func (c *Client) postStatus(ctx context.Context, g hv.Guest, verb string) ([]byt
 	if g.Kind == hv.KindCT {
 		kind = "lxc"
 	}
-	path := fmt.Sprintf("/nodes/%s/%s/%s/status/%s", c.Endpoint.Node, kind, g.ID, verb)
+	path := fmt.Sprintf("/nodes/%s/%s/%s/status/%s", c.nodeOf(g), kind, g.ID, verb)
 	body, code, err := c.do(ctx, http.MethodPost, path, url.Values{})
 	if err != nil {
 		return nil, err
@@ -213,7 +211,7 @@ func (c *Client) Snapshot(ctx context.Context, id, name string) (hv.Guest, error
 	form := url.Values{}
 	form.Set("snapname", name)
 	form.Set("description", "snapshot from shippin-console")
-	path := fmt.Sprintf("/nodes/%s/%s/%s/snapshot", c.Endpoint.Node, kind, id)
+	path := fmt.Sprintf("/nodes/%s/%s/%s/snapshot", c.nodeOf(g), kind, id)
 	body, code, err := c.do(ctx, http.MethodPost, path, form)
 	if err != nil {
 		return hv.Guest{}, err

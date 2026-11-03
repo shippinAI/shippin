@@ -8,8 +8,9 @@ import { useInfraOverview } from "../../../lib/hooks/use-infra";
 import { useNavigate, useParams } from "../../../lib/router/router";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { PageHeader } from "../../../template/page-header";
-import { OVERVIEW_TAB, providersWithHosts, selectedTab, tabHref } from "../model";
+import { FLEETS_TAB, OVERVIEW_TAB, providersWithHosts, selectedTab, tabHref } from "../model";
 import { AddHostDialog } from "./add-host-dialog";
+import { FleetsTab } from "./fleets-tab";
 import { OverviewTab } from "./overview-tab";
 import { ProviderTab } from "./provider-tab";
 
@@ -45,6 +46,7 @@ export function InfrastructurePage() {
             tabs={[
               { id: OVERVIEW_TAB, label: t("infra.tab.overview"), content: <OverviewTab data={q.data} onAdd={open} /> },
               ...providers.map((p) => ({ id: p.kind, label: `${p.label} (${p.nodes.length})`, content: <ProviderTab provider={p} /> })),
+              { id: FLEETS_TAB, label: t("infra.tab.fleets", { count: q.data.fleets.length }), content: <FleetsTab data={q.data} /> },
             ]}
           />
           <AddHostDialog data={q.data} isOpen={adding !== null} initialKind={adding?.kind} initialExisting={adding?.existing}

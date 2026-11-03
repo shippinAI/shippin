@@ -15,6 +15,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/google/uuid"
+
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/hv"
@@ -143,6 +145,8 @@ type infraNode struct {
 	Version string          `json:"version,omitempty"`
 	Error   string          `json:"error,omitempty"`
 	Guests  infraGuestCount `json:"guests"`
+	FleetID string          `json:"fleet_id,omitempty"`
+	Details *hv.NodeDetails `json:"details,omitempty"`
 }
 
 type infraTotals struct {
@@ -260,7 +264,11 @@ func (a *API) infraOverview(w http.ResponseWriter, r *http.Request, _ *caller) {
 			unattached = append(unattached, ref)
 		}
 	}
-	out := map[string]any{"providers": providers, "totals": total, "unattached": unattached,
+	fleets, err := a.hvDir().Fleets(r.Context())
+	if err != nil || fleets == nil {
+		fleets = []servers.Fleet{}
+	}
+	out := map[string]any{"providers": providers, "totals": total, "unattached": unattached, "fleets": fleets,
 		"default_site": ui.DefaultSite, "checked_at": time.Now().UTC()}
 	if agentDown != nil {
 		out["local_agent"] = agentDown
@@ -278,7 +286,7 @@ func (t *infraTotals) add(n infraNode) {
 }
 
 func (a *API) probeNode(ctx context.Context, ep servers.Endpoint) infraNode {
-	n := infraNode{ID: ep.ID, Slug: ep.Slug, Label: ep.Label, Site: ep.Site, Kind: ep.Kind, Source: sourceAPI, BaseURL: ep.BaseURL, Scope: ep.Node}
+	n := infraNode{ID: ep.ID, Slug: ep.Slug, Label: ep.Label, Site: ep.Site, Kind: ep.Kind, Source: sourceAPI, BaseURL: ep.BaseURL, Scope: ep.Node, FleetID: ep.FleetID}
 	if n.Label == "" {
 		n.Label = ep.Slug
 	}
@@ -302,6 +310,12 @@ func (a *API) probeNode(ctx context.Context, ep servers.Endpoint) infraNode {
 	for _, g := range guests {
 		if strings.EqualFold(g.Status, "running") {
 			n.Guests.Running++
+		}
+	}
+	// Missing detail is not a host that is down: a token may lack the right to read it.
+	if ins, ok := d.(hv.Inspector); ok {
+		if details, err := ins.Details(ctx); err == nil {
+			n.Details = &details
 		}
 	}
 	return n
@@ -368,11 +382,23 @@ func (a *API) infraAdd(w http.ResponseWriter, r *http.Request, c *caller) {
 	}
 	ep := in.endpoint()
 	ep.Slug, ep.Label, ep.Site = in.Slug, in.Label, in.Site
-	if err := validateEndpoint(ep); err != nil {
+	if err := validateEndpoint(ep, in.hvAttach); err != nil {
 		auth.Problem(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if !a.permitAttach(w, r, c, in.Slug) {
+		return
+	}
+	id, err := uuid.NewV7()
+	if err != nil {
+		auth.Problem(w, http.StatusServiceUnavailable, "The host could not be saved.")
+		return
+	}
+	ep.ID = id.String()
+	ctx, cancel := context.WithTimeout(r.Context(), connectTimeout)
+	defer cancel()
+	if err := a.prepareEndpoint(ctx, &ep, in.hvAttach); err != nil {
+		auth.Problem(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	out, err := a.hvDir().CreateEndpoint(r.Context(), ep, c.id.Sub)

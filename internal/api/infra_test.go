@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -158,8 +159,111 @@ func (s stubBoard) Post(context.Context, string, string, string, string, string)
 }
 
 type memHV struct {
-	mu    sync.Mutex
-	items []servers.Endpoint
+	mu     sync.Mutex
+	items  []servers.Endpoint
+	ops    []servers.Operation
+	fleets []servers.Fleet
+	// failOps makes the record fail, to prove a change does not run without one.
+	failOps bool
+}
+
+func (m *memHV) StartOperation(_ context.Context, op servers.Operation) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.failOps {
+		return "", servers.ErrNotFound
+	}
+	op.ID = fmt.Sprintf("op-%d", len(m.ops)+1)
+	if op.Status == "" {
+		op.Status = servers.OpRunning
+	}
+	m.ops = append(m.ops, op)
+	return op.ID, nil
+}
+func (m *memHV) RunOperation(_ context.Context, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.ops {
+		if m.ops[i].ID == id && m.ops[i].Status == servers.OpQueued {
+			m.ops[i].Status = servers.OpRunning
+		}
+	}
+	return nil
+}
+func (m *memHV) FinishOperation(_ context.Context, id, status, detail, guestStatus string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.ops {
+		if m.ops[i].ID == id {
+			m.ops[i].Status, m.ops[i].Detail, m.ops[i].GuestStatus = status, detail, guestStatus
+		}
+	}
+	return nil
+}
+func (m *memHV) Operations(context.Context, string, int) ([]servers.Operation, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]servers.Operation{}, m.ops...), nil
+}
+func (m *memHV) AbandonOperations(context.Context) (int64, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var n int64
+	for i := range m.ops {
+		if m.ops[i].Status == servers.OpQueued || m.ops[i].Status == servers.OpRunning {
+			m.ops[i].Status = servers.OpUnknown
+			n++
+		}
+	}
+	return n, nil
+}
+func (m *memHV) Fleets(context.Context) ([]servers.Fleet, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]servers.Fleet{}, m.fleets...), nil
+}
+func (m *memHV) SaveFleet(_ context.Context, f servers.Fleet, _ string) (servers.Fleet, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if f.ID == "" {
+		f.ID = fmt.Sprintf("fleet-%d", len(m.fleets)+1)
+		m.fleets = append(m.fleets, f)
+		return f, nil
+	}
+	for i := range m.fleets {
+		if m.fleets[i].ID == f.ID {
+			m.fleets[i] = f
+			return f, nil
+		}
+	}
+	return servers.Fleet{}, servers.ErrNotFound
+}
+func (m *memHV) DeleteFleet(_ context.Context, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.fleets {
+		if m.fleets[i].ID == id {
+			m.fleets = append(m.fleets[:i], m.fleets[i+1:]...)
+			for j := range m.items {
+				if m.items[j].FleetID == id {
+					m.items[j].FleetID = ""
+				}
+			}
+			return nil
+		}
+	}
+	return servers.ErrNotFound
+}
+func (m *memHV) SetFleet(_ context.Context, serverID, fleetID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.items {
+		if m.items[i].ID == serverID {
+			m.items[i].FleetID = fleetID
+			return nil
+		}
+	}
+	return servers.ErrNotFound
 }
 
 func (m *memHV) Endpoints(context.Context) ([]servers.Endpoint, error) {
@@ -194,7 +298,6 @@ func (m *memHV) CreateEndpoint(_ context.Context, e servers.Endpoint, _ string) 
 			return servers.Endpoint{}, servers.ErrSlugTaken
 		}
 	}
-	e.ID = "new-" + e.Slug
 	m.items = append(m.items, e)
 	return e, nil
 }
@@ -203,7 +306,7 @@ func (m *memHV) SetEndpoint(_ context.Context, e servers.Endpoint) error {
 	defer m.mu.Unlock()
 	for i := range m.items {
 		if m.items[i].ID == e.ID {
-			e.Slug, e.Label = m.items[i].Slug, m.items[i].Label
+			e.Slug, e.Label, e.FleetID = m.items[i].Slug, m.items[i].Label, m.items[i].FleetID
 			m.items[i] = e
 			return nil
 		}

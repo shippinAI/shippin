@@ -31,6 +31,8 @@ type Guest struct {
 	Status string `json:"status"`
 	Node   string `json:"node"`
 	Tags   string `json:"tags,omitempty"`
+	// Self marks the guest this panel runs on, so nothing stops it by accident.
+	Self bool `json:"self,omitempty"`
 }
 
 // Volume is one storage pool or volume.

@@ -109,15 +109,12 @@
   },
   "operator": {
     "role": "op_superadmin",
-    "host": "ops.example.invalid",
+    "host": "",
     "client_id": "",
     "origin_only": false,
     "member_limit": 200,
     "platform_org_id": "",
-    "cert_hosts": [
-      "console.example.invalid",
-      "id.example.invalid"
-    ],
+    "cert_hosts": [],
     "admin_hosts": []
   },
   "staff": {
@@ -535,9 +532,14 @@
         "description": "Containers and virtual machines on Incus servers.",
         "fields": [
           {
+            "name": "trust_token",
+            "label": "Trust token",
+            "help": "On the Incus server run: incus config trust add shippin-panel, then paste what it prints. It works once. The server needs core.https_address set to an address this panel can reach."
+          },
+          {
             "name": "base_url",
             "label": "API URL",
-            "help": "HTTPS address of the Incus API.",
+            "help": "Only without a trust token, which already says where the server is.",
             "placeholder": "https://incus.example.invalid:8443"
           },
           {
@@ -579,21 +581,25 @@
             "placeholder": "https://pve.example.invalid:8006"
           },
           {
-            "name": "node",
-            "label": "Node",
-            "help": "Name of the node in the cluster."
-          },
-          {
             "name": "token_id",
             "label": "API token ID",
             "help": "The token's id, not its secret.",
             "placeholder": "user@realm!name"
           },
           {
+            "name": "token_secret",
+            "label": "API token secret",
+            "help": "Stored encrypted and never shown again. Create a token under Datacenter, Permissions, API Tokens."
+          },
+          {
+            "name": "node",
+            "label": "Node",
+            "help": "Leave empty on a single server. In a cluster, name a node to reach it through."
+          },
+          {
             "name": "token_env",
             "label": "Token environment variable",
-            "help": "The console variable that holds the secret. The secret is not saved here.",
-            "default": "SHIPPIN_HV_TOKEN"
+            "help": "Instead of storing the secret here: the console variable that holds it."
           },
           {
             "name": "ca_file",

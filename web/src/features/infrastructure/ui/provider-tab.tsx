@@ -16,12 +16,23 @@ import { useCreateGuest, useGuestAction, useGuests, useRollback, useSnapshot, us
 import { useDetachHost, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
 import { useNavigate } from "../../../lib/router/router";
 import { useText } from "../../../lib/ui-config/use-ui-config";
-import { isRunning, isStopped } from "../model";
+import { firstAnswering, isRunning, isStopped, stoppableGuests } from "../model";
+import { ActivityCard } from "./activity-card";
+import { NodeFacts } from "./node-details";
+import { StopGuestsDialog } from "./stop-guests-dialog";
 
 function useGuestColumns(): ColumnDef<Guest>[] {
   const t = useText();
   return [
-    { id: "name", label: t("infra.guest.name"), isRowHeader: true, render: (g) => <span className="font-medium text-fg">{g.name || g.id}</span> },
+    {
+      id: "name", label: t("infra.guest.name"), isRowHeader: true,
+      render: (g) => (
+        <>
+          <span className="font-medium text-fg">{g.name || g.id}</span>
+          {g.self && <Badge tone="warning" className="ml-2">{t("infra.guest.self")}</Badge>}
+        </>
+      ),
+    },
     { id: "id", label: t("infra.guest.id"), render: (g) => <span className="font-mono text-[12.5px]">{g.id}</span> },
     { id: "kind", label: t("infra.guest.kind"), render: (g) => (g.kind === "ct" ? t("infra.guest.ct") : t("infra.guest.vm")) },
     {
@@ -88,6 +99,8 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
   const create = useCreateGuest(node.id);
   const detach = useDetachHost();
   const [confirming, setConfirming] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const [selfVerb, setSelfVerb] = useState<"stop" | "shutdown" | "reboot" | null>(null);
   const [snapName, setSnapName] = useState("");
   const [kind, setKind] = useState("ct");
   const [newId, setNewId] = useState("");
@@ -105,17 +118,22 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
           title={node.label}
           description={[node.base_url, node.scope, node.version].filter(Boolean).join(" · ")}
           actions={
-            <Button size="sm" variant="ghost" tooltip={t("infra.detach.tooltip")} onPress={() => setConfirming(true)}>{t("infra.detach")}</Button>
+            <div className="flex gap-2">
+              {can("lifecycle") && (
+                <Button size="sm" variant="secondary" tooltip={t("infra.stop.tooltip")} isDisabled={stoppableGuests(guests.data?.items ?? []).length === 0} onPress={() => setStopping(true)}>{t("infra.stop.open")}</Button>
+              )}
+              <Button size="sm" variant="ghost" tooltip={t("infra.detach.tooltip")} onPress={() => setConfirming(true)}>{t("infra.detach")}</Button>
+            </div>
           }
         />
-        {guests.isPending ? (
+        {guests.isPending && node.online ? (
           <div className="space-y-3 p-5">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-9" />)}</div>
         ) : (
           <DataTable label={node.label} columns={columns} rows={guests.data?.items ?? []} onRowAction={setGuestId}
             empty={
               <EmptyState illustration={<Cpu className="size-10 text-fg-subtle" />}
-                title={guests.isError ? t("infra.provider.empty.title") : t("infra.provider.noGuests.title")}
-                description={guests.error?.message ?? t("infra.provider.noGuests.body")} />
+                title={guests.isError || !node.online ? t("infra.provider.empty.title") : t("infra.provider.noGuests.title")}
+                description={guests.error?.message ?? node.error ?? t("infra.provider.noGuests.body")} />
             } />
         )}
       </Card>
@@ -126,7 +144,7 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
             <div className="mb-4 flex flex-wrap gap-2">
               {(provider.verbs as ("start" | "stop" | "shutdown" | "reboot")[]).map((verb) => (
                 <Button key={verb} size="sm" variant="secondary" tooltip={t("infra.guest.verbTooltip", { verb, guest: guest.id })} isDisabled={act.isPending}
-                  onPress={() => act.mutate({ guest: guest.id, verb })}>
+                  onPress={() => (guest.self && verb !== "start" ? setSelfVerb(verb) : act.mutate({ guest: guest.id, verb }))}>
                   {verb}
                 </Button>
               ))}
@@ -192,6 +210,17 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
           )}
         </div>
       )}
+      <div className="mt-6"><ActivityCard serverId={node.id} /></div>
+      <StopGuestsDialog serverId={node.id} guests={guests.data?.items ?? []} isOpen={stopping} onOpenChange={setStopping} />
+      <ModalDialog isOpen={selfVerb !== null} onOpenChange={(o) => { if (!o) setSelfVerb(null); }} title={t("infra.self.title")} description={t("infra.self.body")}>
+        <div className="flex justify-end gap-2 px-6 py-5">
+          <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={() => setSelfVerb(null)}>{t("infra.dialog.cancel")}</Button>
+          <Button variant="primary" tooltip={t("infra.self.confirmTooltip")} isDisabled={act.isPending}
+            onPress={() => { if (guest && selfVerb) act.mutate({ guest: guest.id, verb: selfVerb, confirmSelf: true }); setSelfVerb(null); }}>
+            {t("infra.self.confirm", { verb: selfVerb ?? "" })}
+          </Button>
+        </div>
+      </ModalDialog>
       <ModalDialog isOpen={confirming} onOpenChange={setConfirming} title={t("infra.detach.title", { label: node.label })} description={t("infra.detach.body")}>
         <div className="flex justify-end gap-2 px-6 py-5">
           <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={() => setConfirming(false)}>{t("infra.dialog.cancel")}</Button>
@@ -209,7 +238,7 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
 export function ProviderTab({ provider }: { provider: InfraProvider }) {
   const t = useText();
   const [picked, setPicked] = useState("");
-  const node = provider.nodes.find((n) => n.id === picked) ?? provider.nodes[0];
+  const node = provider.nodes.find((n) => n.id === picked) ?? firstAnswering(provider.nodes);
   if (!node) return null;
   return (
     <>
@@ -219,6 +248,7 @@ export function ProviderTab({ provider }: { provider: InfraProvider }) {
         </div>
       )}
       {node.error && <p role="alert" className="mb-6 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">{node.error}</p>}
+      {node.online && <NodeFacts node={node} />}
       {node.source === "agent" ? <AgentGuests node={node} /> : <ApiGuests key={node.id} provider={provider} node={node} />}
     </>
   );

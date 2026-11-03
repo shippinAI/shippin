@@ -111,7 +111,7 @@ func TestOverviewHidesAProviderTheSiteTurnedOff(t *testing.T) {
 }
 
 func TestOverviewShowsLiveCountsAndNeverHidesADeadHost(t *testing.T) {
-	t.Setenv("TEST_INCUS_TOKEN", "secret")
+	t.Setenv("TEST_INCUS_TOKEN", "s3cret-value")
 	up, ca := fakeIncus(t, "Running", "Stopped", "Running")
 	dead, deadCA := fakeIncus(t)
 	dead.Close()
@@ -140,7 +140,7 @@ func TestOverviewShowsLiveCountsAndNeverHidesADeadHost(t *testing.T) {
 	if tot := ov["totals"].(map[string]any); tot["nodes"] != 2.0 || tot["online"] != 1.0 || tot["guests"] != 3.0 || tot["running"] != 2.0 {
 		t.Fatalf("totals: %v", tot)
 	}
-	if body, _ := json.Marshal(ov); strings.Contains(string(body), "secret") {
+	if body, _ := json.Marshal(ov); strings.Contains(string(body), "s3cret-value") {
 		t.Fatal("token secret in the overview")
 	}
 }
@@ -183,7 +183,7 @@ func TestAddHostCreatesARowAndAttachesItsAPI(t *testing.T) {
 	if len(dir.items) != 1 || dir.items[0].Kind != "incus" || dir.items[0].Site != "lab" || dir.items[0].Node != "default" {
 		t.Fatalf("row: %+v", dir.items)
 	}
-	if strings.Contains(rec.Body.String(), "secret") {
+	if strings.Contains(rec.Body.String(), "s3cret-value") {
 		t.Fatalf("secret in response: %s", rec.Body)
 	}
 }
@@ -280,7 +280,7 @@ func TestDetachClearsTheAttachmentAndKeepsTheRow(t *testing.T) {
 }
 
 func TestIncusGuestsWorkThroughTheSharedRoutesButProxmoxOnlyCallsAreRefused(t *testing.T) {
-	t.Setenv("TEST_INCUS_TOKEN", "secret")
+	t.Setenv("TEST_INCUS_TOKEN", "s3cret-value")
 	srv, ca := fakeIncus(t, "Running")
 	a := infraAPI(t, "op_infra", &memHV{items: []servers.Endpoint{incusEndpoint(srv, ca, "s1", "Lab")}})
 	mux := http.NewServeMux()

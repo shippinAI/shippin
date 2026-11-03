@@ -10,6 +10,7 @@ import { useNavigate } from "../../../lib/router/router";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { StatTile } from "../../overview/ui/stat-tile";
 import { providersWithHosts, tabHref } from "../model";
+import { ActivityCard } from "./activity-card";
 import { ProviderCards } from "./provider-cards";
 
 type Row = InfraNode & { providerLabel: string };
@@ -44,6 +45,8 @@ export function OverviewTab({ data, onAdd }: Props) {
       ),
     },
     { id: "version", label: t("infra.column.version"), render: (n) => <span className="font-mono text-[12.5px]">{n.version ?? ""}</span> },
+    { id: "cluster", label: t("infra.column.cluster"), render: (n) => n.details?.cluster ?? "" },
+    { id: "fleet", label: t("infra.column.fleet"), render: (n) => data.fleets.find((f) => f.id === n.fleet_id)?.label ?? "" },
     { id: "guests", label: t("infra.column.guests"), render: (n) => <span className="tabular-nums">{n.guests.running} / {n.guests.total}</span> },
     { id: "address", label: t("infra.column.address"), render: (n) => <span className="font-mono text-[12.5px]">{n.base_url ?? n.scope ?? ""}</span> },
   ];
@@ -78,6 +81,7 @@ export function OverviewTab({ data, onAdd }: Props) {
           }
         />
       </Card>
+      <div className="mb-6"><ActivityCard showHost /></div>
       {data.unattached.length > 0 && (
         <Card className="overflow-hidden">
           <CardHeader title={t("infra.unattached.title")} description={t("infra.unattached.description")} />

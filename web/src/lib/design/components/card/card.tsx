@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 import { cn } from "../cn/cn";
 
-type Props = { children: ReactNode; className?: string; elevation?: 1 | 2 | 3 };
+type Props = { children: ReactNode; className?: string; elevation?: 1 | 2 | 3; "data-testid"?: string };
 
 /** Elevated surface with a hairline highlight. */
-export function Card({ children, className, elevation = 1 }: Props) {
+export function Card({ children, className, elevation = 1, "data-testid": testId }: Props) {
   const shadow = { 1: "shadow-[var(--shadow-e1)]", 2: "shadow-[var(--shadow-e2)]", 3: "shadow-[var(--shadow-e3)]" }[elevation];
   return (
-    <div className={cn("rounded-[var(--radius-card)] border border-line bg-surface", shadow, className)}>{children}</div>
+    <div data-testid={testId} className={cn("rounded-[var(--radius-card)] border border-line bg-surface", shadow, className)}>{children}</div>
   );
 }
 
