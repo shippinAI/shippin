@@ -1,0 +1,59 @@
+{{ define "workspaces.body" }}
+        <section class="c-workspace-map__hero">
+            <div>
+                <p class="c-workspace-map__eyebrow">Independent workspaces, explicit edges</p>
+                <h2 class="c-workspace-map__title">Workspace Map</h2>
+                <p class="c-workspace-map__copy">
+                    WardenClyffe and Clyffy stay independently registered. This page renders only the connections declared by the managed-workspace registry.
+                </p>
+            </div>
+            {{ if .Map.Available }}
+            <dl class="c-workspace-map__stats">
+                <div><dt>Workspaces</dt><dd>{{ .Map.Summary.WorkspaceCount }}</dd></div>
+                <div><dt>Projects</dt><dd>{{ .Map.Summary.ProjectCount }}</dd></div>
+                <div><dt>Edges</dt><dd>{{ .Map.Summary.ConnectionCount }}</dd></div>
+                <div><dt>Planes</dt><dd>{{ .Map.Summary.PlaneCount }}</dd></div>
+            </dl>
+            {{ end }}
+        </section>
+
+        {{ if .Map.Available }}
+        <section class="c-workspace-map__source" aria-label="Registry source">
+            <span>Source</span>
+            <code>{{ .Map.Path }}</code>
+            <span>{{ .Map.Status }}</span>
+            <span>{{ .Map.LastUpdated }}</span>
+        </section>
+
+        <section class="c-workspace-map__section" aria-labelledby="workspace-map-boundaries">
+            <div class="c-workspace-map__section-head">
+                <h3 id="workspace-map-boundaries">Workspace Boundaries</h3>
+                <p>Each card is a separate workspace identity, policy root, and MCP root.</p>
+            </div>
+            <div class="c-workspace-map__grid">
+                {{ range .Map.Workspaces }}
+                {{ template "components.workspace_card" . }}
+                {{ end }}
+            </div>
+        </section>
+
+        <section class="c-workspace-map__section" aria-labelledby="workspace-map-edges">
+            <div class="c-workspace-map__section-head">
+                <h3 id="workspace-map-edges">Connection Edges</h3>
+                <p>Projects, devstation attachment, and shared data planes are explicit registry edges.</p>
+            </div>
+            <div class="c-workspace-map__connections">
+                {{ range .Map.Connections }}
+                {{ template "components.connection_row" . }}
+                {{ end }}
+            </div>
+        </section>
+        {{ else }}
+        <section class="c-empty-state">
+            <h3 class="c-empty-state__title">Workspace registry unavailable</h3>
+            <p class="c-empty-state__message">{{ .Map.Error }}</p>
+        </section>
+        {{ end }}
+{{ end }}
+
+{{ template "components.shell" . }}

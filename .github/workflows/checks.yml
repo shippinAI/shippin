@@ -52,3 +52,133 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run check-records
+  console:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: '1.26.x'
+          cache: false
+      - run: go test ./...
+      - run: go vet ./...
+      - run: go build -o /tmp/shippin-console ./cmd/console
+      - run: go build -o /tmp/shippin-hostd ./cmd/shippin-hostd
+  identity:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: shippin
+          POSTGRES_PASSWORD: shippin
+          POSTGRES_DB: shippin
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: '1.26.x'
+          cache: false
+      - run: SHIPPIN_TEST_DATABASE_URL=postgres://shippin:shippin@127.0.0.1:5432/shippin?sslmode=disable go test -p 1 -count=1 ./internal/identity -run TestStore
+  console-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+  warden:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: third_party/warden-ct102
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: '1.26.x'
+          cache: false
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq libpam0g-dev
+      - run: go test ./...
+      - run: go vet ./...
+  public-tree:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: bash install/check-public-tree.sh
+  installer-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: '1.26.x'
+          cache: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: sudo ./install/panel/install.sh --example
+  installer-fresh-debian:
+    # A bare Debian 13 with no Go, Node.js or sudo, installed the way a site is: --site, TLS on.
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install from a site file
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 0700 /etc/shippin
+          cat > /etc/shippin/site.env <<'SITE'
+          SHIPPIN_DOMAIN=example.invalid
+          SHIPPIN_CONSOLE_HOST=panel.example.invalid
+          SHIPPIN_LISTEN=127.0.0.1:8443
+          SHIPPIN_TLS=self-signed
+          SHIPPIN_SIGNUP=waitlist
+          SITE
+          chmod 600 /etc/shippin/site.env
+          ./install/panel/install.sh --site /etc/shippin/site.env | tee /tmp/install.log
+          grep -Eq '^setup_code=.{16,}$' /tmp/install.log
+          grep -q '"signup": "waitlist"' /etc/shippin/shippin.json
+          test "$(stat -c %a /etc/shippin/console.env)" = 600
+          curl -fsS --cacert /etc/shippin/tls/panel.crt https://127.0.0.1:8443/healthz
+          code=$(sed -n 's/^setup_code=//p' /tmp/install.log)
+          # Writes need a matching https origin; a plain-http or foreign origin is refused.
+          test "$(curl -s -o /dev/null -w '%{http_code}' --cacert /etc/shippin/tls/panel.crt -H 'Origin: https://evil.example.invalid' -H 'content-type: application/json' -d '{}' https://127.0.0.1:8443/v1/setup)" = 403
+          open_setup() { curl -fsS --cacert /etc/shippin/tls/panel.crt https://127.0.0.1:8443/v1/settings/public | python3 -c 'import json,sys; print(json.load(sys.stdin).get("setup_open"))'; }
+          test "$(open_setup)" = True
+          curl -fsS --cacert /etc/shippin/tls/panel.crt -c /tmp/jar -H 'Origin: https://127.0.0.1:8443' -H 'content-type: application/json' \
+            -d "{\"code\":\"${code}\",\"email\":\"owner@example.invalid\",\"name\":\"Owner\"}" https://127.0.0.1:8443/v1/setup \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["user_id"] and len(d["recovery_codes"])==8; print("owner created")'
+          test "$(open_setup)" = False
+          # The owner's local session reaches the panel API as the platform admin, with no IdP.
+          curl -fsS --cacert /etc/shippin/tls/panel.crt -b /tmp/jar https://127.0.0.1:8443/v1/me \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["capabilities"]["operator.view"], d; print("owner signed in")'
+          # A second run keeps the owner and issues nothing.
+          SHIPPIN_SKIP_WEB=1 ./install/panel/install.sh --site /etc/shippin/site.env | tee /tmp/install2.log
+          grep -q 'an owner already exists' /tmp/install2.log
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: |
+          curl -sSfL -o /tmp/gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --exit-code 1

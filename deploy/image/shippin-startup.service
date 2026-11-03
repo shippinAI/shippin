@@ -1,0 +1,15 @@
+[Unit]
+Description=Shippin workspace startup script (template)
+After=network-online.target home.mount
+Wants=network-online.target
+
+[Service]
+User=dev
+WorkingDirectory=/home/dev
+Environment=HOME=/home/dev
+ExecStart=/usr/local/sbin/shippin-startup
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

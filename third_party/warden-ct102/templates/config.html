@@ -1,0 +1,125 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Config</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        <section class="card">
+            <h2>Export Configuration</h2>
+            <div class="help-content">
+                <p>Download all Warden settings as a single JSON file. Includes endpoints, notification channels, alert rules, and backup jobs.</p>
+                <p>Audit logs and runtime history are not included in exports.</p>
+                <div style="margin-top:1rem;">
+                    <a href="/api/config" class="btn btn-ok" download>Export Config</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Import Configuration</h2>
+            <div class="help-content">
+                <p>Restore settings from a previously exported config file.</p>
+                <div class="config-import-form">
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label for="config-file" class="label">Config File</label>
+                        <input type="file" id="config-file" accept=".json,application/json" class="form-input" />
+                    </div>
+                    <div class="form-group" style="margin-top:0.75rem;">
+                        <label class="label">Import Mode</label>
+                        <div style="display:flex;gap:1.5rem;margin-top:0.35rem;">
+                            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
+                                <input type="radio" name="import-mode" value="replace" checked /> Replace &mdash; overwrite existing settings
+                            </label>
+                            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
+                                <input type="radio" name="import-mode" value="merge" /> Merge &mdash; add new items, keep existing
+                            </label>
+                        </div>
+                    </div>
+                    <div style="margin-top:1rem;">
+                        <button class="btn btn-warn" id="import-btn" disabled onclick="importConfig()">Import Config</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>What's Included</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="label">Endpoints</span>
+                    <span class="value">Host/port monitors with labels and check intervals</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Notification Channels</span>
+                    <span class="value">Webhook, Discord, Slack, and email alert destinations</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Alert Rules</span>
+                    <span class="value">Endpoint down, cert expiry, disk full, service stopped triggers</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Backup Jobs</span>
+                    <span class="value">Tar and rsync job definitions with schedules and paths</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <span>Warden Server Management Panel</span>
+    </footer>
+
+    {{ template "scripts" }}
+    <script>
+    var fileInput = document.getElementById('config-file');
+    var importBtn = document.getElementById('import-btn');
+
+    fileInput.addEventListener('change', function() {
+        importBtn.disabled = !fileInput.files.length;
+    });
+
+    function importConfig() {
+        var file = fileInput.files[0];
+        if (!file) return;
+
+        var mode = document.querySelector('input[name="import-mode"]:checked').value;
+
+        importBtn.disabled = true;
+        importBtn.innerHTML = '<span class="btn-spinner"></span>';
+
+        var fd = new FormData();
+        fd.append('config', file);
+        fd.append('mode', mode);
+
+        fetch('/api/config', {
+            method: 'POST',
+            body: fd
+        }).then(function(resp) {
+            return resp.json();
+        }).then(function(result) {
+            if (result.error) {
+                Toast.show(result.error, 'err');
+            } else {
+                var i = result.imported;
+                var msg = 'Imported (' + result.mode + '): ' +
+                    i.endpoints + ' endpoints, ' +
+                    i.channels + ' channels, ' +
+                    i.rules + ' rules, ' +
+                    i.backup_jobs + ' backup jobs';
+                Toast.show(msg, 'ok', 6000);
+            }
+        }).catch(function(err) {
+            Toast.show('Import failed: ' + err.message, 'err');
+        }).finally(function() {
+            importBtn.disabled = false;
+            importBtn.textContent = 'Import Config';
+            fileInput.value = '';
+        });
+    }
+    </script>
+</body>
+</html>

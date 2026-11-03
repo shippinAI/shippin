@@ -1,0 +1,79 @@
+<div id="shippin-agent-discussion">
+  <style>
+    #shippin-agent-discussion .discussion-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-right: 90px; }
+    #shippin-agent-discussion .discussion-messages { padding-left: 24px; }
+    #shippin-agent-discussion .discussion-messages li { padding: 10px 0; }
+    #shippin-agent-discussion .discussion-content { white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0; }
+    #shippin-agent-discussion summary { overflow-wrap: anywhere; }
+    #shippin-agent-discussion .discussion-meta { margin: 12px 0; }
+  </style>
+  <div class="discussion-heading">
+    <button class="btn btn-primary" type="button" data-action="toggle" aria-controls="shippin-discussion-content" aria-expanded="false">View AI discussion</button>
+    <span class="viz-badge" data-field="status"></span>
+  </div>
+  <div id="shippin-discussion-content" hidden>
+    <h3 data-field="title"></h3>
+    <div class="discussion-meta text-small" data-field="captured"></div>
+    <ol class="discussion-messages" aria-label="Messages exchanged between agents"></ol>
+    <div class="viz-row">
+      <button class="btn" type="button" data-action="refresh">Check for replies</button>
+      <a class="btn btn-ghost" data-action="source" target="_blank" rel="noopener noreferrer">Open source conversation</a>
+    </div>
+    <div class="text-small discussion-meta" role="status" aria-live="polite" data-field="feedback"></div>
+  </div>
+  <script type="application/json" data-discussion>__DISCUSSION_DATA__</script>
+  <script>
+    (() => {
+      const root = document.getElementById('shippin-agent-discussion');
+      const d = JSON.parse(root.querySelector('[data-discussion]').textContent);
+      const toggle = root.querySelector('[data-action="toggle"]');
+      const panel = root.querySelector('#shippin-discussion-content');
+      const list = root.querySelector('.discussion-messages');
+      const refresh = root.querySelector('[data-action="refresh"]');
+      const feedback = root.querySelector('[data-field="feedback"]');
+      const names = {awaiting_reply:'Awaiting reply',working:'Working',complete:'Complete',blocked:'Blocked'};
+      toggle.textContent = `View AI discussion (${d.messages.length})`;
+      root.querySelector('[data-field="status"]').textContent = names[d.status];
+      root.querySelector('[data-field="title"]').textContent = d.title;
+      root.querySelector('[data-field="captured"]').textContent = `Snapshot captured ${new Date(d.captured_at).toLocaleString()} · Messages shown as exchanged`;
+      root.querySelector('[data-action="source"]').href = d.source_url;
+      for (const m of d.messages) {
+        const item = document.createElement('li');
+        const details = document.createElement('details');
+        details.dataset.messageId = m.id;
+        const summary = document.createElement('summary');
+        summary.className = 'cursor-interaction';
+        summary.textContent = `${m.sender} → ${m.recipient}${m.kind === 'result' ? ' · Reported result' : ''}`;
+        const content = document.createElement('p');
+        content.className = 'discussion-content';
+        content.textContent = m.content;
+        details.append(summary, content); item.append(details); list.append(item);
+      }
+      const state = () => ({discussionId:d.id,open:!panel.hidden,expanded:[...list.querySelectorAll('details[open]')].map(el=>el.dataset.messageId)});
+      const save = () => {
+        const value = state();
+        window.openai?.setWidgetState?.({modelContent:{discussionId:d.id,status:d.status},privateContent:value}).catch(()=>{});
+      };
+      const restore = value => {
+        const ui = value?.privateContent;
+        if (ui?.discussionId !== d.id) return;
+        panel.hidden = ui.open !== true;
+        toggle.setAttribute('aria-expanded', String(!panel.hidden));
+        list.querySelectorAll('details').forEach(el=>{el.open=Array.isArray(ui.expanded)&&ui.expanded.includes(el.dataset.messageId);});
+      };
+      restore(window.openai?.widgetState);
+      window.addEventListener('openai:set_globals', event=>restore(event.detail?.globals?.widgetState));
+      toggle.addEventListener('click',()=>{panel.hidden=!panel.hidden;toggle.setAttribute('aria-expanded',String(!panel.hidden));save();});
+      list.querySelectorAll('summary').forEach(el=>el.addEventListener('click',()=>setTimeout(save,0)));
+      refresh.addEventListener('click', async () => {
+        if (!window.openai?.sendFollowUpMessage) { feedback.textContent='Open the source conversation to check for newer replies.'; return; }
+        refresh.disabled=true;
+        try {
+          await window.openai.sendFollowUpMessage({title:'Check AI discussion',prompt:`Read newer replies in ${d.source_url} for discussion ${d.id} and refresh this discussion viewer. Do not send a new message or deploy anything.`});
+          feedback.textContent='Reply checks continue in this chat. This snapshot stays unchanged until refreshed.';
+        } catch { feedback.textContent='Could not confirm the reply check. You can try again or open the source conversation.'; }
+        finally { refresh.disabled=false; }
+      });
+    })();
+  </script>
+</div>

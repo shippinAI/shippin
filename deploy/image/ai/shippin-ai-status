@@ -1,0 +1,29 @@
+#!/bin/bash
+# Records which preinstalled AI CLIs the dev user is signed in to, as JSON for shippin-hostd.
+# Only supported status command exit codes are used; credentials are never read.
+set -u
+[ -r /etc/profile.d/shippin-ai.sh ] && . /etc/profile.d/shippin-ai.sh
+OUT=${SHIPPIN_AI_STATUS:-/run/shippin/ai/status.json}
+PROBES=${SHIPPIN_AI_PROBES:-/etc/shippin/ai-probes}
+TIMEOUT=${SHIPPIN_AI_PROBE_TIMEOUT:-20}
+mkdir -p "$(dirname "$OUT")"
+TMP=$(mktemp "$OUT.XXXXXX")
+trap 'rm -f "$TMP"' EXIT
+sep=""
+{
+  printf '{"version":2,"checked_at":"%s","providers":[' "$(date -u +%FT%TZ)"
+  while read -r p bin probe; do
+    case "$p" in ''|'#'*) continue ;; esac
+    [[ "$p" =~ ^[a-z][a-z0-9-]{1,31}$ ]] || exit 1
+    inst=false; ok=false; known=false
+    if command -v "$bin" >/dev/null 2>&1; then
+      inst=true
+      if [ "$probe" != "-" ]; then
+        timeout "$TIMEOUT" bash -c "$probe" >/dev/null 2>&1 </dev/null
+        case $? in 0) ok=true; known=true ;; 1) known=true ;; esac
+      fi
+    fi
+    printf '%s{"provider":"%s","installed":%s,"signed_in":%s,"auth_known":%s}' "$sep" "$p" "$inst" "$ok" "$known"; sep=,
+  done < "$PROBES"
+  printf ']}\n'
+} > "$TMP" && chmod 0644 "$TMP" && mv -f "$TMP" "$OUT"

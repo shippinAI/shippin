@@ -1,0 +1,11 @@
+{
+  "name": "Shippin Console",
+  "short_name": "Console",
+  "start_url": "/gold",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0f17",
+  "theme_color": "#0b0f17",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }],
+  "shortcuts": [{ "name": "Gold approvals", "url": "/gold" }]
+}

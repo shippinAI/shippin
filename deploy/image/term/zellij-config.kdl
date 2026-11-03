@@ -1,0 +1,10 @@
+// Shippin workspace defaults (ZELLIJ_CONFIG_DIR=/etc/zellij). Users override in ~/.config/zellij.
+default_layout "shippin"
+default_shell "bash"
+pane_frames false
+mouse_mode true
+copy_on_select true
+session_serialization true
+show_startup_tips false
+show_release_notes false
+theme "default"

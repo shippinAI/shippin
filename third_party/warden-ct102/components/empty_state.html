@@ -1,0 +1,12 @@
+{{/* components.empty_state — empty-list placeholder.
+     Args: {Icon, Title, Message, Cta (*ActionButtonArgs)}.
+     Spec 17 §3.12.
+*/}}
+{{ define "components.empty_state" }}
+<div class="c-empty-state">
+    {{ if .Icon }}<div class="c-empty-state__icon" aria-hidden="true">{{ .Icon }}</div>{{ end }}
+    {{ if .Title }}<h3 class="c-empty-state__title">{{ .Title }}</h3>{{ end }}
+    {{ if .Message }}<p class="c-empty-state__message">{{ .Message }}</p>{{ end }}
+    {{ if .Cta }}<div class="c-empty-state__cta">{{ template "components.action_button" .Cta }}</div>{{ end }}
+</div>
+{{ end }}

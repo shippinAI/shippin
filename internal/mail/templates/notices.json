@@ -1,0 +1,44 @@
+{
+  "access_request": {
+    "subject": "{{.Admin}} is requesting access to {{.Tenant}}",
+    "heading": "Platform access requested",
+    "intro": "{{.Admin}} from {{.Brand}} is asking for access to your project space. Nothing is opened until an owner or admin approves.",
+    "action": "Review the request"
+  },
+  "access_approved": {
+    "subject": "Your access to {{.Tenant}} was approved",
+    "heading": "Access approved",
+    "intro": "{{.Actor}} approved your access request. It ends automatically at the time below.",
+    "action": "Open the console"
+  },
+  "access_denied": {
+    "subject": "Your access request for {{.Tenant}} was denied",
+    "heading": "Access denied",
+    "intro": "{{.Actor}} denied your access request.",
+    "action": "Open the console"
+  },
+  "access_revoked": {
+    "subject": "Your access to {{.Tenant}} was revoked",
+    "heading": "Access revoked",
+    "intro": "{{.Actor}} revoked your access. Open sessions are refused from now on.",
+    "action": "Open the console"
+  },
+  "access_expired": {
+    "subject": "Access to {{.Tenant}} has ended",
+    "heading": "Access ended",
+    "intro": "The time-boxed access below reached its time limit and was closed automatically.",
+    "action": "See the audit log"
+  },
+  "breakglass": {
+    "subject": "Emergency access was used on {{.Tenant}}",
+    "heading": "Emergency (break-glass) access",
+    "intro": "{{.Admin}} from {{.Brand}} used emergency access to your project space. Every action during it is recorded in your audit log.",
+    "action": "See the audit log"
+  },
+  "workspace_ready": {
+    "subject": "Your workspace {{.Workspace}} is ready",
+    "heading": "Workspace ready",
+    "intro": "{{.Workspace}} in {{.Tenant}} finished setting up and is running.",
+    "action": "Open the workspace"
+  }
+}

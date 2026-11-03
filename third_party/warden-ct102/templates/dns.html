@@ -1,0 +1,451 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - DNS</title>
+    <style>
+        .domain-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+        .domain-stat {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.8rem;
+            background: color-mix(in srgb, var(--bg-card) 92%, var(--accent));
+        }
+        .domain-stat strong {
+            display: block;
+            font-size: 1.2rem;
+            line-height: 1.2;
+        }
+        .domain-stat span {
+            color: var(--text-dim);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .domain-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.55rem 1rem;
+            margin: 0.75rem 0 1rem;
+            color: var(--text-dim);
+            font-size: 0.82rem;
+        }
+        .domain-meta code {
+            color: var(--text);
+        }
+        .domain-status {
+            display: inline-flex;
+            max-width: 100%;
+            padding: 0.18rem 0.45rem;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            overflow-wrap: anywhere;
+        }
+    </style>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        <section class="card">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h2 style="margin:0;padding:0;border:none;">DOMAIN ESTATE</h2>
+                {{ if .DNS.DomainRegistry.Available }}
+                <span class="badge state-up">registry loaded</span>
+                {{ else }}
+                <span class="badge state-down">registry missing</span>
+                {{ end }}
+            </div>
+
+            {{ if .DNS.DomainRegistry.Available }}
+            <div class="domain-meta">
+                <div>Source <code>{{ .DNS.DomainRegistry.Path }}</code></div>
+                <div>Workspace <code>{{ .DNS.DomainRegistry.WorkspaceID }}</code></div>
+                <div>Project <code>{{ .DNS.DomainRegistry.ProjectKey }}</code></div>
+                <div>Verified <code>{{ .DNS.DomainRegistry.LastVerified }}</code></div>
+                <div>Edge <code>{{ .DNS.DomainRegistry.PublicEdge.ID }}</code></div>
+                <div>Public IP <code>{{ .DNS.DomainRegistry.PublicEdge.PublicIP }}</code></div>
+                <div>Internal edge <code>{{ .DNS.DomainRegistry.PublicEdge.InternalIP }}</code></div>
+                <div>Status <span class="domain-status">{{ .DNS.DomainRegistry.PublicEdge.Status }}</span></div>
+            </div>
+
+            <div class="domain-summary-grid">
+                <div class="domain-stat"><strong>{{ .DNS.DomainRegistry.Summary.DomainCount }}</strong><span>domains</span></div>
+                <div class="domain-stat"><strong>{{ .DNS.DomainRegistry.Summary.RecordCount }}</strong><span>records</span></div>
+                <div class="domain-stat"><strong>{{ .DNS.DomainRegistry.Summary.RouteCount }}</strong><span>routes</span></div>
+                <div class="domain-stat"><strong>{{ .DNS.DomainRegistry.Summary.InternalZoneCount }}</strong><span>internal zones</span></div>
+                <div class="domain-stat"><strong>{{ .DNS.DomainRegistry.Summary.PendingCount }}</strong><span>blocked/pending</span></div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>DOMAIN</th>
+                            <th>ROLE</th>
+                            <th>PUBLIC PROVIDER</th>
+                            <th>INTERNAL DNS</th>
+                            <th>STATUS</th>
+                            <th>RECORDS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .DNS.DomainRegistry.Domains }}
+                        <tr>
+                            <td><code>{{ .Name }}</code></td>
+                            <td>{{ .Role }}</td>
+                            <td><code>{{ .PublicProviderID }}</code></td>
+                            <td>{{ if .InternalZone }}PowerDNS{{ else }}none{{ end }}</td>
+                            <td><span class="domain-status">{{ .Status }}</span></td>
+                            <td>{{ len .Records }}</td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="table-wrapper" style="margin-top:1rem;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>FQDN</th>
+                            <th>EDGE</th>
+                            <th>BACKEND</th>
+                            <th>AUTH</th>
+                            <th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ if not .DNS.DomainRegistry.Routes }}
+                        <tr><td colspan="5" class="text-center text-dim">No Warden routes registered</td></tr>
+                        {{ else }}
+                        {{ range .DNS.DomainRegistry.Routes }}
+                        <tr>
+                            <td><code>{{ .FQDN }}</code></td>
+                            <td><code>{{ .EdgeID }}</code></td>
+                            <td><code>{{ .BackendURL }}</code></td>
+                            <td>{{ .AuthPolicy }}</td>
+                            <td><span class="domain-status">{{ .Status }}</span></td>
+                        </tr>
+                        {{ end }}
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            {{ else }}
+            <p class="text-dim">Domain registry unavailable: {{ .DNS.DomainRegistry.Error }}</p>
+            {{ end }}
+        </section>
+
+        <!-- Hosts File Section -->
+        <section class="card">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h2 style="margin:0;padding:0;border:none;">HOSTS (/etc/hosts)</h2>
+                <div class="action-btns">
+                    <button class="btn btn-primary" onclick="showAddHost()">Add Entry</button>
+                </div>
+            </div>
+
+            <!-- Add/Edit Host Form -->
+            <div id="host-form" class="cron-form" style="display:none;">
+                <div class="cron-form-header">
+                    <h3 id="host-form-title">Add Host Entry</h3>
+                    <button class="btn btn-sm" onclick="hideHostForm()">Cancel</button>
+                </div>
+                <div class="cron-form-fields">
+                    <input type="hidden" id="h-edit-line" value="">
+                    <div class="cron-schedule-row">
+                        <div class="cron-field" style="flex:1;">
+                            <label>IP Address</label>
+                            <input type="text" id="h-ip" placeholder="192.0.2.100" style="text-align:left;">
+                        </div>
+                        <div class="cron-field" style="flex:2;">
+                            <label>Hostname(s)</label>
+                            <input type="text" id="h-hosts" placeholder="myserver myserver.local" style="text-align:left;">
+                        </div>
+                        <div class="cron-field" style="flex:1;">
+                            <label>Comment</label>
+                            <input type="text" id="h-comment" placeholder="Optional" style="text-align:left;">
+                        </div>
+                    </div>
+                    <div class="cron-preset-row">
+                        <label>Presets:</label>
+                        <button class="btn btn-sm" onclick="setHostPreset('127.0.0.1','localhost','Loopback')">Localhost</button>
+                        <button class="btn btn-sm" onclick="setHostPreset('::1','localhost ip6-localhost','IPv6 loopback')">IPv6 Localhost</button>
+                    </div>
+                    <button class="btn btn-primary" onclick="submitHost()">Save</button>
+                </div>
+                <div id="host-form-message" class="cron-form-message"></div>
+            </div>
+
+            <!-- Hosts Table -->
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>IP ADDRESS</th>
+                            <th>HOSTNAME(S)</th>
+                            <th>COMMENT</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ if not .DNS.Hosts }}
+                        <tr><td colspan="5" class="text-center text-dim">No entries in /etc/hosts</td></tr>
+                        {{ else }}
+                        {{ range .DNS.Hosts }}
+                        {{ if .IsComment }}
+                        <tr class="text-dim" data-host-line="{{ .Line }}">
+                            <td>{{ .Line }}</td>
+                            <td colspan="3"><em># {{ .Comment }}</em></td>
+                            <td class="actions-cell">
+                                <button class="btn btn-sm btn-danger" onclick="deleteHost({{ .Line }})" title="Delete">Del</button>
+                            </td>
+                        </tr>
+                        {{ else }}
+                        <tr data-host-line="{{ .Line }}" data-host-ip="{{ .IP }}" data-host-names="{{ .Hosts }}" data-host-comment="{{ .Comment }}">
+                            <td>{{ .Line }}</td>
+                            <td><code>{{ .IP }}</code></td>
+                            <td><code>{{ .Hosts }}</code></td>
+                            <td class="desc-cell text-dim">{{ .Comment }}</td>
+                            <td class="actions-cell">
+                                <button class="btn btn-sm" onclick="editHost({{ .Line }})" title="Edit">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteHost({{ .Line }})" title="Delete">Del</button>
+                            </td>
+                        </tr>
+                        {{ end }}
+                        {{ end }}
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- DNS Resolvers Section -->
+        <section class="card">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h2 style="margin:0;padding:0;border:none;">
+                    DNS RESOLVERS (/etc/resolv.conf)
+                    {{ if .DNS.Available }}
+                        {{ if .DNS.Running }}
+                        <span class="badge state-up" style="margin-left:0.75rem;">{{ .DNS.ServiceName }} running</span>
+                        {{ else }}
+                        <span class="badge state-down" style="margin-left:0.75rem;">{{ .DNS.ServiceName }} stopped</span>
+                        {{ end }}
+                    {{ end }}
+                </h2>
+                <div class="action-btns">
+                    {{ if .DNS.Available }}
+                    <button class="btn" onclick="dnsServiceRestart()">Restart {{ .DNS.ServiceName }}</button>
+                    {{ end }}
+                    <button class="btn btn-primary" onclick="showEditResolv()">Edit</button>
+                </div>
+            </div>
+
+            <!-- Nameservers display -->
+            <div id="resolv-display">
+                {{ if .DNS.SearchDomains }}
+                <div style="margin-bottom:0.75rem;">
+                    <span class="text-dim">Search domains:</span>
+                    {{ range .DNS.SearchDomains }}
+                    <code style="margin-left:0.5rem;">{{ . }}</code>
+                    {{ end }}
+                </div>
+                {{ end }}
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>NAMESERVER</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ if not .DNS.Nameservers }}
+                            <tr><td class="text-center text-dim">No nameservers configured</td></tr>
+                            {{ else }}
+                            {{ range .DNS.Nameservers }}
+                            <tr><td><code>{{ . }}</code></td></tr>
+                            {{ end }}
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Edit resolv.conf form -->
+            <div id="resolv-form" class="cron-form" style="display:none;">
+                <div class="cron-form-header">
+                    <h3>Edit DNS Resolvers</h3>
+                    <button class="btn btn-sm" onclick="hideResolvForm()">Cancel</button>
+                </div>
+                <div class="cron-form-fields">
+                    <div class="cron-schedule-row">
+                        <div class="cron-field" style="flex:2;">
+                            <label>Nameservers (space-separated)</label>
+                            <input type="text" id="r-nameservers" value="{{ range $i, $ns := .DNS.Nameservers }}{{ if $i }} {{ end }}{{ $ns }}{{ end }}" placeholder="8.8.8.8 8.8.4.4" style="text-align:left;">
+                        </div>
+                        <div class="cron-field" style="flex:1;">
+                            <label>Search domains (optional)</label>
+                            <input type="text" id="r-search" value="{{ range $i, $sd := .DNS.SearchDomains }}{{ if $i }} {{ end }}{{ $sd }}{{ end }}" placeholder="example.com local" style="text-align:left;">
+                        </div>
+                    </div>
+                    <div class="cron-preset-row">
+                        <label>Presets:</label>
+                        <button class="btn btn-sm" onclick="setResolvPreset('8.8.8.8 8.8.4.4')">Google</button>
+                        <button class="btn btn-sm" onclick="setResolvPreset('1.1.1.1 1.0.0.1')">Cloudflare</button>
+                        <button class="btn btn-sm" onclick="setResolvPreset('9.9.9.9 149.112.112.112')">Quad9</button>
+                        <button class="btn btn-sm" onclick="setResolvPreset('208.67.222.222 208.67.220.220')">OpenDNS</button>
+                    </div>
+                    <button class="btn btn-primary" onclick="submitResolv()">Save</button>
+                </div>
+                <div id="resolv-form-message" class="cron-form-message"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <span>Warden DNS Manager</span>
+    </footer>
+
+    <script>
+        // Host form
+        function showAddHost() {
+            document.getElementById('host-form').style.display = '';
+            document.getElementById('host-form-title').textContent = 'Add Host Entry';
+            document.getElementById('host-form-message').textContent = '';
+            document.getElementById('h-edit-line').value = '';
+            document.getElementById('h-ip').value = '';
+            document.getElementById('h-hosts').value = '';
+            document.getElementById('h-comment').value = '';
+        }
+
+        function hideHostForm() {
+            document.getElementById('host-form').style.display = 'none';
+        }
+
+        function setHostPreset(ip, hosts, comment) {
+            document.getElementById('h-ip').value = ip;
+            document.getElementById('h-hosts').value = hosts;
+            document.getElementById('h-comment').value = comment;
+        }
+
+        function editHost(line) {
+            var row = document.querySelector('tr[data-host-line="' + line + '"]');
+            if (!row) return;
+            document.getElementById('host-form').style.display = '';
+            document.getElementById('host-form-title').textContent = 'Edit Host Entry (line ' + line + ')';
+            document.getElementById('host-form-message').textContent = '';
+            document.getElementById('h-edit-line').value = line;
+            document.getElementById('h-ip').value = row.getAttribute('data-host-ip');
+            document.getElementById('h-hosts').value = row.getAttribute('data-host-names');
+            document.getElementById('h-comment').value = row.getAttribute('data-host-comment');
+        }
+
+        function submitHost() {
+            var editLine = document.getElementById('h-edit-line').value;
+            var action = editLine ? 'edit_host' : 'add_host';
+            var body = 'action=' + action +
+                '&ip=' + encodeURIComponent(document.getElementById('h-ip').value) +
+                '&hosts=' + encodeURIComponent(document.getElementById('h-hosts').value) +
+                '&comment=' + encodeURIComponent(document.getElementById('h-comment').value);
+            if (editLine) {
+                body += '&line=' + encodeURIComponent(editLine);
+            }
+            dnsPost(body, 'host-form-message');
+        }
+
+        function deleteHost(line) {
+            Modal.confirm('Delete host entry on line ' + line + '?', {danger:true}).then(function(ok) {
+                if (!ok) return;
+                dnsPost('action=delete_host&line=' + line, null);
+            });
+        }
+
+        // Resolv.conf form
+        function showEditResolv() {
+            document.getElementById('resolv-form').style.display = '';
+            document.getElementById('resolv-form-message').textContent = '';
+        }
+
+        function hideResolvForm() {
+            document.getElementById('resolv-form').style.display = 'none';
+        }
+
+        function setResolvPreset(ns) {
+            document.getElementById('r-nameservers').value = ns;
+        }
+
+        function submitResolv() {
+            Modal.confirm('Update DNS resolvers? This will overwrite /etc/resolv.conf.', {danger:true}).then(function(ok) {
+                if (!ok) return;
+                var body = 'action=set_nameservers' +
+                    '&nameservers=' + encodeURIComponent(document.getElementById('r-nameservers').value) +
+                    '&search=' + encodeURIComponent(document.getElementById('r-search').value);
+                dnsPost(body, 'resolv-form-message');
+            });
+        }
+
+        function dnsServiceRestart() {
+            Modal.confirm('Restart DNS service?').then(function(ok) {
+                if (!ok) return;
+                dnsPost('action=restart', null);
+            });
+        }
+
+        function dnsPost(body, msgId) {
+            fetch('/api/dns', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (msgId) {
+                    var msg = document.getElementById(msgId);
+                    msg.textContent = data.message;
+                    msg.className = data.success ? 'cron-form-message cron-msg-ok' : 'cron-form-message cron-msg-error';
+                }
+                if (data.success) {
+                    setTimeout(function() { location.reload(); }, 500);
+                } else if (!msgId) {
+                    alert('Failed: ' + data.message);
+                }
+            })
+            .catch(function() {
+                if (msgId) {
+                    var el = document.getElementById(msgId);
+                    el.textContent = 'Request failed';
+                    el.className = 'cron-form-message cron-msg-error';
+                } else {
+                    alert('Request failed');
+                }
+            });
+        }
+    </script>
+{{ template "scripts" }}
+<script src="/static/contextmenu.js"></script>
+<script>
+ctxMenu.attach('tr[data-host-ip]', function(row) {
+    var line = row.getAttribute('data-host-line');
+    var ip = row.getAttribute('data-host-ip');
+    var hosts = row.getAttribute('data-host-names');
+    return [
+        {label: ip + ' → ' + hosts, disabled: true},
+        'separator',
+        {label: 'Edit', icon: '✏', action: function() { editHost(parseInt(line)); }},
+        {label: 'Delete', icon: '🗑', danger: true, action: function() { deleteHost(parseInt(line)); }}
+    ];
+});
+</script>
+
+</body>
+</html>

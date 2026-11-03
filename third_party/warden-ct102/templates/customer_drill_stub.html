@@ -1,0 +1,13 @@
+{{/* customer_drill_stub.html — placeholder for not-yet-implemented drill targets.
+     Per Spec 17 §8 Phasing — every drill destination has a route + breadcrumb
+     from day one so the navigation works; implementations land per phase. */}}
+
+{{ define "customer_drill_stub.body" }}
+    {{ template "components.empty_state" (dict
+        "Icon" "🚧"
+        "Title" (printf "%s — coming soon" .Label)
+        "Message" (printf "The /%s drill destination is registered but its handler implementation is pending per Spec 17 §8 Phasing." .Segment)
+        "Cta" (dict "Label" "Back to customer" "Href" (printf "/customers/%s" (index .Shell.Breadcrumb 1).Label | lower))) }}
+{{ end }}
+
+{{ template "components.shell" . }}

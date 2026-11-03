@@ -255,6 +255,16 @@ paths:
     $ref: paths/operator-runtime.yaml#/operatorWorkspaces
   /operator/workspaces/{workspaceId}/{action}:
     $ref: paths/operator-runtime.yaml#/operatorWorkspaceAction
+  /setup:
+    $ref: paths/directory.yaml#/setup
+  /session/magic:
+    $ref: paths/directory.yaml#/magic
+  /waitlist:
+    $ref: paths/directory.yaml#/waitlist
+  /admin/waitlist.csv:
+    $ref: paths/directory.yaml#/waitlistCsv
+  /admin/config:
+    $ref: paths/directory.yaml#/adminConfig
 components:
   schemas:
     ServiceDefinition: { $ref: schemas/service-catalog.json#/$defs/ServiceDefinition }
@@ -265,3 +275,4 @@ components:
     githubSignature: {type: apiKey, in: header, name: X-Hub-Signature-256, description: HMAC SHA-256 signature over the exact webhook body.}
     zitadel:
       $ref: components/security.yaml#/zitadel
+    apiKey: {type: http, scheme: bearer, description: Scoped directory API key (shp_).}

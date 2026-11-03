@@ -1,0 +1,6 @@
+capabilities:
+  - host.read
+  - deploy.read
+  - memory.read
+
+# hosts_allowed empty -> only hosts owned by this client (HostsOwned).

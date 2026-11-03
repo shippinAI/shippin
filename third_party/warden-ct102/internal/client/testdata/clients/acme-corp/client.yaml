@@ -1,0 +1,12 @@
+slug: acme-corp
+name: "Acme Corp"
+owner_email: ops@acme.example.com
+tier: premium
+
+hosts_owned:
+  - server2
+
+policy_ref: policy.yaml
+
+created_at: 2026-05-09T00:00:00Z
+updated_at: 2026-05-09T00:00:00Z

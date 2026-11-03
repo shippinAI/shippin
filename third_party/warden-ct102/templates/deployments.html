@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Deployments - Warden</title>
+</head>
+<body>
+    {{ template "header" . }}
+    <main class="container" style="padding: 1rem 2rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <h2 style="margin:0;font-family:'JetBrains Mono',monospace;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);">Deployments</h2>
+            <a href="/deployments/new" class="btn" style="background:var(--accent,#6c8aff);color:#fff;padding:0.45rem 0.8rem;border-radius:6px;text-decoration:none;">New Deployment</a>
+        </div>
+        <p style="color:var(--text-dim);font-size:0.84rem;">Deployment = one live instance from a Template. Substrate = provider layer. Cluster = host pool. Tenant = customer boundary.</p>
+
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:0.75rem 0;">
+            <a href="/deployments?view=deployments&tab={{ .SubTab }}" class="badge" style="text-decoration:none;{{ if eq .TopTab "deployments" }}background:var(--accent,#6c8aff);color:#fff;{{ end }}">Deployments ({{ index .TopCounts "deployments" }})</a>
+            <a href="/deployments?view=customers&tab={{ .SubTab }}" class="badge" style="text-decoration:none;{{ if eq .TopTab "customers" }}background:var(--accent,#6c8aff);color:#fff;{{ end }}">Customers ({{ index .TopCounts "customers" }})</a>
+            <a href="/deployments?view=internal&tab={{ .SubTab }}" class="badge" style="text-decoration:none;{{ if eq .TopTab "internal" }}background:var(--accent,#6c8aff);color:#fff;{{ end }}">Warden Internal ({{ index .TopCounts "internal" }})</a>
+        </div>
+
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:0.4rem 0 1rem 0;">
+            <a href="/deployments?view={{ .TopTab }}&tab=active" class="badge" style="text-decoration:none;{{ if eq .SubTab "active" }}background:var(--accent,#6c8aff);color:#fff;{{ end }}">Active ({{ index .SubCounts "active" }})</a>
+            <a href="/deployments?view={{ .TopTab }}&tab=pending" class="badge" style="text-decoration:none;{{ if eq .SubTab "pending" }}background:var(--accent,#6c8aff);color:#fff;{{ end }}">Pending / Rollouts ({{ index .SubCounts "pending" }})</a>
+            <a href="/deployments?view={{ .TopTab }}&tab=backups" class="badge" style="text-decoration:none;{{ if eq .SubTab "backups" }}background:var(--accent,#6c8aff);color:#fff;{{ end }}">Backups ({{ index .SubCounts "backups" }})</a>
+            <a href="/deployments?view={{ .TopTab }}&tab=recovery" class="badge" style="text-decoration:none;{{ if eq .SubTab "recovery" }}background:var(--accent,#6c8aff);color:#fff;{{ end }}">Recovery Drills ({{ index .SubCounts "recovery" }})</a>
+            <a href="/deployments?view={{ .TopTab }}&tab=migrations" class="badge" style="text-decoration:none;{{ if eq .SubTab "migrations" }}background:var(--accent,#6c8aff);color:#fff;{{ end }}">Migrations ({{ index .SubCounts "migrations" }})</a>
+        </div>
+
+        {{ if not .Deployments }}
+        <div class="card" style="padding:1rem;">
+            <p style="margin:0;">No rows in this view yet. Start from Catalog or create one directly.</p>
+        </div>
+        {{ else }}
+        <div class="card" style="padding:0.75rem;">
+            <table style="width:100%;">
+                <thead>
+                    <tr><th>Deployment</th><th>Template</th><th>Environment</th><th>Visibility</th><th>Substrate</th><th>Cluster</th><th>Tenant</th><th>Status</th><th>Approval</th><th>Stage</th><th>Updated</th><th></th></tr>
+                </thead>
+                <tbody>
+                {{ range .Deployments }}
+                    <tr>
+                        <td><strong>{{ .Name }}</strong><br><code>{{ .ID }}</code></td>
+                        <td>{{ .TemplateName }}</td>
+                        <td>{{ if .Estate }}{{ .Estate }}{{ else }}prod{{ end }}</td>
+                        <td><span class="badge">{{ if .Visibility }}{{ .Visibility }}{{ else }}internal{{ end }}</span></td>
+                        <td>{{ .ProviderID }}</td>
+                        <td>{{ .TargetHost }} ({{ .Runtime }})</td>
+                        <td>{{ if .CustomerSlug }}{{ .CustomerSlug }}{{ else }}Warden Internal{{ end }} {{ if .VLAN }}(vlan {{ .VLAN }}){{ end }}</td>
+                        <td><span class="badge">{{ .Status }}</span></td>
+                        <td>{{ if .Approved }}approved{{ else }}pending{{ end }}</td>
+                        <td><code>{{ .Stage }}</code></td>
+                        <td>{{ .UpdatedAt.Format "2006-01-02 15:04:05" }}</td>
+                        <td><a href="/deployments/{{ .ID }}">Open</a></td>
+                    </tr>
+                {{ end }}
+                </tbody>
+            </table>
+        </div>
+        {{ end }}
+    </main>
+    {{ template "scripts" }}
+</body>
+</html>

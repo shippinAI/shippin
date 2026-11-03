@@ -1,0 +1,456 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - {{ .Hostname }}</title>
+    <style>
+
+        .home-page {
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Blueprint grid — dual layer */
+        .home-page::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(108, 138, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 138, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(rgba(108, 138, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 138, 255, 0.015) 1px, transparent 1px);
+            background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+            mask-image: radial-gradient(ellipse 90% 80% at 50% 30%, rgba(0,0,0,0.5) 0%, transparent 75%);
+            -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 30%, rgba(0,0,0,0.5) 0%, transparent 75%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        [data-theme="light"] .home-page::before {
+            background-image:
+                linear-gradient(rgba(79, 109, 245, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 109, 245, 0.06) 1px, transparent 1px),
+                linear-gradient(rgba(79, 109, 245, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 109, 245, 0.025) 1px, transparent 1px);
+        }
+
+        /* Accent glow */
+        .home-page::after {
+            content: '';
+            position: fixed;
+            top: -30%;
+            left: 20%;
+            width: 60%;
+            height: 50%;
+            background: radial-gradient(ellipse at center, rgba(108, 138, 255, 0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        [data-theme="light"] .home-page::after {
+            background: radial-gradient(ellipse at center, rgba(79, 109, 245, 0.03) 0%, transparent 70%);
+        }
+
+        .home-page > header,
+        .home-page > .header-telemetry,
+        .home-page > .sudo-banner,
+        .home-page > .bento,
+        .home-page > .home-footer {
+            position: relative;
+            z-index: 1;
+        }
+
+        .home-page header {
+            font-family: 'Outfit', sans-serif;
+        }
+        .home-page header h1 {
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--text);
+        }
+
+        .home-page .version-info {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+        }
+
+
+        /* ── Section label ── */
+        .home-section {
+            max-width: 1260px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: h-fade 0.5s 0.1s both;
+        }
+
+        @keyframes h-fade {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .home-section-text {
+            min-width: 0;
+        }
+
+        .home-section span {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: var(--text-dim);
+            opacity: 0.5;
+            white-space: nowrap;
+        }
+
+        .home-section p {
+            margin: 0.18rem 0 0;
+            color: var(--text-dim);
+            font-size: 0.74rem;
+        }
+
+        .home-section::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, var(--border), transparent 80%);
+        }
+
+        /* ── Bento grid ── */
+        .bento {
+            max-width: 1260px;
+            margin: 0 auto;
+            padding: 0.5rem 2rem 2rem;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-auto-rows: minmax(0, auto);
+            gap: 0.75rem;
+        }
+
+        /* Card base */
+        .b-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            opacity: 0;
+            animation: b-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes b-in {
+            from { opacity: 0; transform: scale(0.97) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .b-card:nth-child(1)  { animation-delay: 0.05s; }
+        .b-card:nth-child(2)  { animation-delay: 0.08s; }
+        .b-card:nth-child(3)  { animation-delay: 0.11s; }
+        .b-card:nth-child(4)  { animation-delay: 0.14s; }
+        .b-card:nth-child(5)  { animation-delay: 0.17s; }
+        .b-card:nth-child(6)  { animation-delay: 0.20s; }
+        .b-card:nth-child(7)  { animation-delay: 0.23s; }
+        .b-card:nth-child(8)  { animation-delay: 0.26s; }
+        .b-card:nth-child(9)  { animation-delay: 0.29s; }
+        .b-card:nth-child(10) { animation-delay: 0.32s; }
+        .b-card:nth-child(11) { animation-delay: 0.35s; }
+        .b-card:nth-child(12) { animation-delay: 0.38s; }
+        .b-card:nth-child(13) { animation-delay: 0.41s; }
+        .b-card:nth-child(14) { animation-delay: 0.44s; }
+        .b-card:nth-child(15) { animation-delay: 0.47s; }
+
+        /* Inner blueprint inset on hover */
+        .b-card::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            border: 1px solid transparent;
+            border-radius: 9px;
+            pointer-events: none;
+            transition: border-color 0.3s;
+        }
+
+        .b-card:hover::after {
+            border-color: rgba(108, 138, 255, 0.06);
+        }
+
+        [data-theme="light"] .b-card:hover::after {
+            border-color: rgba(79, 109, 245, 0.05);
+        }
+
+        .b-card:hover {
+            border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1), 0 0 0 1px rgba(108, 138, 255, 0.04);
+        }
+        [data-theme="light"] .b-card:hover {
+            box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+        }
+
+        /* Card sizes */
+        .b-lg {
+            grid-column: span 4;
+            padding: 1.4rem;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .b-md {
+            grid-column: span 3;
+            padding: 1.25rem;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+
+        .b-sm {
+            grid-column: span 3;
+            padding: 1.25rem;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.9rem;
+        }
+
+        /* Icon */
+        .b-icon {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 1.35rem;
+            background: rgba(108, 138, 255, 0.03);
+            border: 1px dashed rgba(108, 138, 255, 0.1);
+            transition: all 0.3s;
+        }
+        [data-theme="light"] .b-icon {
+            background: rgba(79, 109, 245, 0.025);
+            border-color: rgba(79, 109, 245, 0.1);
+        }
+        .b-card:hover .b-icon {
+            background: rgba(108, 138, 255, 0.07);
+            border-color: rgba(108, 138, 255, 0.2);
+            border-style: solid;
+            transform: scale(1.05);
+        }
+
+        .b-lg .b-icon {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            font-size: 1.45rem;
+        }
+
+        /* Card text */
+        .b-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            min-width: 0;
+        }
+
+        .b-title {
+            font-size: 0.88rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            margin: 0;
+            padding: 0;
+            border: none;
+        }
+
+        .b-desc {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        /* Badge */
+        .b-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            font-weight: 500;
+            padding: 0.18rem 0.5rem;
+            border-radius: 5px;
+            width: fit-content;
+            letter-spacing: 0.03em;
+            margin-top: auto;
+        }
+
+        .b-badge::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .b-badge-green { background: rgba(34, 197, 94, 0.08); color: var(--green); }
+        .b-badge-green::before { background: var(--green); }
+        .b-badge-blue { background: rgba(96, 165, 250, 0.08); color: var(--blue); }
+        .b-badge-blue::before { background: var(--blue); }
+        .b-badge-red { background: rgba(239, 68, 68, 0.08); color: var(--red); }
+        .b-badge-red::before { background: var(--red); animation: b-pulse 2s ease-in-out infinite; }
+        .b-badge-orange { background: rgba(251, 146, 60, 0.08); color: var(--orange); }
+        .b-badge-orange::before { background: var(--orange); }
+
+        @keyframes b-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.25; }
+        }
+
+        /* Arrow on hover */
+        .b-arrow {
+            position: absolute;
+            top: 1.2rem;
+            right: 1.2rem;
+            width: 16px;
+            height: 16px;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            color: var(--accent);
+        }
+
+        .b-card:hover .b-arrow {
+            opacity: 0.5;
+            transform: translate(2px, -2px);
+        }
+
+        /* ── Footer ── */
+        .home-footer {
+            text-align: center;
+            padding: 0.5rem 2rem 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            color: var(--text-dim);
+            opacity: 0.2;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 1024px) {
+            .b-lg, .b-md, .b-sm { grid-column: span 6; }
+        }
+
+        @media (max-width: 768px) {
+            .bento { padding: 0.5rem 1.25rem 1.5rem; gap: 0.65rem; }
+            .home-section { padding: 1.25rem 1.25rem 0.5rem; }
+            .b-lg, .b-md, .b-sm { grid-column: span 6; }
+        }
+
+        @media (max-width: 480px) {
+            .bento { padding: 0.5rem 1rem 1rem; gap: 0.55rem; grid-template-columns: repeat(6, 1fr); }
+            .home-section { padding: 1rem 1rem 0.5rem; }
+            .b-lg, .b-md, .b-sm { grid-column: span 6; }
+            .b-sm { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="home-page">
+    {{ template "header" . }}
+
+    {{ range .Groups }}
+    <div class="home-section">
+        <div class="home-section-text">
+            <span>{{ .Name }}</span>
+            <p>{{ .Desc }}</p>
+        </div>
+    </div>
+
+    <main class="bento">
+        {{ range .Cards }}
+        <a href="{{ .URL }}" class="b-card b-{{ .Size }}">
+            <svg class="b-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
+            {{ if or (eq .Size "lg") (eq .Size "md") }}
+            <div class="b-icon">{{ .Icon }}</div>
+            <div class="b-text">
+                <h3 class="b-title">{{ .Name }}</h3>
+                <p class="b-desc">{{ .Desc }}</p>
+            </div>
+            {{ if .Badge }}<span class="b-badge b-badge-{{ .Status }}">{{ .Badge }}</span>{{ end }}
+            {{ else }}
+            <div class="b-icon">{{ .Icon }}</div>
+            <div class="b-text">
+                <h3 class="b-title">{{ .Name }}</h3>
+                <p class="b-desc">{{ .Desc }}</p>
+                {{ if .Badge }}<span class="b-badge b-badge-{{ .Status }}">{{ .Badge }}</span>{{ end }}
+            </div>
+            {{ end }}
+        </a>
+        {{ end }}
+    </main>
+    {{ end }}
+
+    <footer class="home-footer">Warden Server Management</footer>
+    </div>
+
+{{ template "scripts" }}
+<script>
+// Auto-refresh telemetry strip
+(function() {
+    function levelTextClass(pct) {
+        if (pct >= 90) return 'level-crit-text';
+        if (pct >= 75) return 'level-high-text';
+        if (pct >= 50) return 'level-warn-text';
+        return 'level-ok-text';
+    }
+
+    function updateTelemetry() {
+        fetch('/api/stats')
+            .then(function(r) { return r.json(); })
+            .then(function(s) {
+                var cpu = document.getElementById('tele-cpu');
+                var mem = document.getElementById('tele-mem');
+                var disk = document.getElementById('tele-disk');
+                var up = document.getElementById('tele-uptime');
+                if (cpu) {
+                    var cpuPct = s.CPU.UsagePerc;
+                    cpu.textContent = Math.round(cpuPct) + '%';
+                    cpu.className = 'tele-val ' + levelTextClass(cpuPct);
+                }
+                if (mem) {
+                    var memPct = s.Memory.UsedPerc;
+                    mem.textContent = Math.round(memPct) + '%';
+                    mem.className = 'tele-val ' + levelTextClass(memPct);
+                }
+                if (disk && s.Disks) {
+                    var totalSize = 0, totalUsed = 0;
+                    s.Disks.forEach(function(d) { totalSize += d.Total; totalUsed += d.Used; });
+                    var diskPct = totalSize > 0 ? (totalUsed / totalSize * 100) : 0;
+                    disk.textContent = Math.round(diskPct) + '%';
+                    disk.className = 'tele-val ' + levelTextClass(diskPct);
+                }
+                if (up && s.Uptime) {
+                    var secs = Math.floor(s.Uptime / 1000000000); // Duration is in nanoseconds
+                    var d = Math.floor(secs / 86400);
+                    var h = Math.floor((secs % 86400) / 3600);
+                    var m = Math.floor((secs % 3600) / 60);
+                    up.textContent = d + 'd ' + h + 'h ' + m + 'm';
+                }
+            })
+            .catch(function() {});
+    }
+
+    setInterval(updateTelemetry, 5000);
+})();
+</script>
+</body>
+</html>

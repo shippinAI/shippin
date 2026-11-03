@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>New Deployment - Warden</title>
+</head>
+<body>
+    {{ template "header" . }}
+    <main class="container" style="padding:1rem 2rem;">
+        <h2 style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);">New Deployment</h2>
+        <div class="card" style="padding:1rem;max-width:920px;">
+            <p style="color:var(--text-dim);margin-top:0;">Guided rollout foundation (May 2026): template-driven config, stage gates, and explicit safety checks.</p>
+            <form id="deploy-form">
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem;">
+                    <label>Name<input name="name" required></label>
+                    <label>Tenant Slug<input name="customer_slug" placeholder="acme-corp"></label>
+                    <label>Substrate
+                        <select name="provider_id">
+                            {{ range .ProviderOptions }}
+                            <option value="{{ . }}" {{ if eq . "proxmox-x" }}selected{{ end }}>{{ . }}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+                    <label>Environment
+                        <select name="estate">
+                            <option value="aiaas" selected>aiaas</option>
+                            <option value="homelab">homelab</option>
+                            <option value="mediastack">mediastack</option>
+                            <option value="wardenclyffe-control">wardenclyffe-control</option>
+                            <option value="production">production</option>
+                        </select>
+                    </label>
+                    <label>Visibility
+                        <select name="visibility">
+                            <option value="internal" selected>internal</option>
+                            <option value="public">public</option>
+                        </select>
+                    </label>
+                    <label>Tenant VLAN<input name="vlan" placeholder="120"></label>
+                    <label>Triggered By
+                        <select name="requested_by">
+                            <option value="warden" selected>warden</option>
+                            <option value="clyffe">clyffe</option>
+                        </select>
+                    </label>
+                    <label>Template
+                        <select name="template_name" required>
+                            <option value="">Select a template</option>
+                            {{ range .Templates }}
+                            {{ if not .ParseErr }}
+                            <option value="{{ .Name }}" {{ if eq $.SelectedTemplate .Name }}selected{{ end }}>{{ .Name }} ({{ .Category }})</option>
+                            {{ end }}
+                            {{ end }}
+                        </select>
+                    </label>
+                    <label>Cluster<input name="target_host" value="{{ .DefaultHost }}"></label>
+                    <label>Runtime
+                        <select name="runtime">
+                            <option value="ct" selected>ct</option>
+                            <option value="vm">vm</option>
+                        </select>
+                    </label>
+                    <label>Subdomain<input name="subdomain" placeholder="service-name"></label>
+                    <label>Automation
+                        <select name="automation">
+                            <option value="guided" selected>guided</option>
+                            <option value="auto">auto (requires WARDEN_ROLLOUT_HOOK)</option>
+                        </select>
+                    </label>
+                </div>
+                <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;">
+                    <button type="submit" style="background:var(--accent,#6c8aff);color:#fff;border:none;padding:0.45rem 0.85rem;border-radius:6px;">Create Deployment</button>
+                    <span id="create-status" style="color:var(--text-dim);font-size:0.82rem;"></span>
+                </div>
+            </form>
+        </div>
+    </main>
+    {{ template "scripts" }}
+    <script>
+    (function(){
+        var form = document.getElementById('deploy-form');
+        var status = document.getElementById('create-status');
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            var data = {};
+            new FormData(form).forEach(function(v,k){ data[k]=String(v).trim(); });
+            status.textContent = 'creating deployment...';
+            fetch('/api/deployments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(function(r){ return r.json(); })
+              .then(function(j){
+                if (j.error) {
+                    status.textContent = j.error;
+                    status.style.color = 'var(--red,#e57373)';
+                    return;
+                }
+                window.location.href = j.detail_url || '/deployments';
+              }).catch(function(err){
+                status.textContent = err.message || 'request failed';
+                status.style.color = 'var(--red,#e57373)';
+              });
+        });
+    })();
+    </script>
+</body>
+</html>

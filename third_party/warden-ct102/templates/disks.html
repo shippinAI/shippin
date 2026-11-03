@@ -1,0 +1,641 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Disks</title>
+    <style>
+        .disks-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .disks-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+
+        /* ── Mount Points ── */
+        .mount-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1rem;
+        }
+
+        .mount-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+        }
+
+        .mount-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .mount-device {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .mount-fstype {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            background: color-mix(in srgb, var(--bg) 80%, var(--accent));
+            color: var(--accent);
+            border: 1px solid color-mix(in srgb, var(--border) 70%, var(--accent));
+        }
+
+        .mount-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-bottom: 0.75rem;
+        }
+
+        .usage-bar-wrap {
+            margin-bottom: 0.5rem;
+        }
+
+        .usage-bar-info {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-bottom: 0.3rem;
+        }
+
+        .usage-bar-perc {
+            font-weight: 500;
+        }
+
+        .usage-bar {
+            height: 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .usage-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+
+        .usage-ok { background: linear-gradient(90deg, #22c55e, #4ade80); }
+        .usage-warn { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .usage-crit { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+        .mount-sizes {
+            display: flex;
+            gap: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-top: 0.5rem;
+        }
+
+        .mount-sizes span {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .mount-sizes .val {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        /* ── Block Devices ── */
+        .block-table-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .block-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .block-table th {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            background: color-mix(in srgb, var(--bg-card) 90%, var(--accent));
+        }
+
+        .block-table td {
+            padding: 0.55rem 1rem;
+            font-size: 0.82rem;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .block-table tr:last-child td { border-bottom: none; }
+        .block-table tr:hover td { background: color-mix(in srgb, var(--bg-card) 95%, var(--accent)); }
+
+        .dev-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        .dev-child {
+            padding-left: 2rem !important;
+        }
+
+        .dev-child .dev-name::before {
+            content: '├─ ';
+            color: var(--text-dim);
+            opacity: 0.5;
+        }
+
+        .dev-type {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .dev-type-disk { color: #60a5fa; background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.2); }
+        .dev-type-part { color: #a78bfa; background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.2); }
+        .dev-type-lvm { color: #2dd4bf; background: rgba(45,212,191,0.1); border: 1px solid rgba(45,212,191,0.2); }
+        .dev-type-crypt { color: #fbbf24; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2); }
+        .dev-type-rom { color: var(--text-dim); background: rgba(128,128,128,0.1); border: 1px solid rgba(128,128,128,0.2); }
+
+        .dev-mount {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .dev-model {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+        }
+
+        .btn-smart {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-smart:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ── SMART Modal ── */
+        .smart-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        .smart-overlay.open { display: flex; }
+
+        .smart-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .smart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .smart-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .smart-close {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .smart-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .smart-stat {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+        }
+
+        .smart-stat-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-dim);
+            margin-bottom: 0.25rem;
+        }
+
+        .smart-stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .smart-passed { color: #22c55e; }
+        .smart-failed { color: #ef4444; }
+
+        .smart-attrs {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .smart-attrs th {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-dim);
+            padding: 0.5rem 0.6rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .smart-attrs td {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.35rem 0.6rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .smart-attrs tr:last-child td { border-bottom: none; }
+
+        .attr-ok { color: #22c55e; }
+        .attr-warn { color: #f59e0b; }
+        .attr-fail { color: #ef4444; }
+
+        /* ── Disk Usage ── */
+        .du-section {
+            margin-top: 2rem;
+        }
+
+        .du-controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .du-path-input {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .du-path-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn-du {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-du:hover { border-color: var(--accent); color: var(--accent); }
+
+        .du-loading {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            padding: 1rem;
+            display: none;
+        }
+
+        .du-grid {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .du-row {
+            display: flex;
+            align-items: center;
+            padding: 0.55rem 1rem;
+            border-bottom: 1px solid var(--border);
+            gap: 1rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .du-row:last-child { border-bottom: none; }
+        .du-row:hover { background: color-mix(in srgb, var(--bg-card) 95%, var(--accent)); }
+
+        .du-bar-col {
+            width: 120px;
+            flex-shrink: 0;
+        }
+
+        .du-bar {
+            height: 6px;
+            background: var(--bg);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .du-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #fff));
+        }
+
+        .du-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--text);
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .du-size {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            white-space: nowrap;
+            min-width: 70px;
+            text-align: right;
+        }
+
+        /* ── Empty ── */
+        .no-smart {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            padding: 0.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <div class="disks-container">
+        <!-- Mount Points -->
+        <div class="disks-section">
+            <div class="section-title">Mount Points</div>
+            <div class="mount-grid">
+                {{ range .MountPoints }}
+                <div class="mount-card">
+                    <div class="mount-card-header">
+                        <span class="mount-device">{{ .Device }}</span>
+                        <span class="mount-fstype">{{ .FSType }}</span>
+                    </div>
+                    <div class="mount-path">{{ .MountPoint }}</div>
+                    <div class="usage-bar-wrap">
+                        <div class="usage-bar-info">
+                            <span>{{ formatBytesT .Used }} / {{ formatBytesT .Total }}</span>
+                            <span class="usage-bar-perc">{{ printf "%.1f" .UsedPerc }}%</span>
+                        </div>
+                        <div class="usage-bar">
+                            <div class="usage-bar-fill {{ if lt .UsedPerc 70.0 }}usage-ok{{ else if lt .UsedPerc 90.0 }}usage-warn{{ else }}usage-crit{{ end }}" style="width: {{ printf "%.0f" .UsedPerc }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mount-sizes">
+                        <span>Used: <span class="val">{{ formatBytesT .Used }}</span></span>
+                        <span>Free: <span class="val">{{ formatBytesT .Free }}</span></span>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+
+        <!-- Block Devices -->
+        <div class="disks-section">
+            <div class="section-title">Block Devices {{ if not .SMARTAvailable }}<span class="no-smart">(install smartmontools for SMART health)</span>{{ end }}</div>
+            <div class="block-table-wrap">
+                <table class="block-table">
+                    <thead>
+                        <tr>
+                            <th>Device</th>
+                            <th>Type</th>
+                            <th>Size</th>
+                            <th>Filesystem</th>
+                            <th>Mount</th>
+                            <th>Model</th>
+                            {{ if .SMARTAvailable }}<th>SMART</th>{{ end }}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .BlockDevices }}
+                        <tr>
+                            <td class="dev-name">{{ .Name }}</td>
+                            <td><span class="dev-type dev-type-{{ .Type }}">{{ .Type }}</span></td>
+                            <td style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;">{{ .Size }}</td>
+                            <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);">{{ .FSType }}</td>
+                            <td class="dev-mount">{{ .MountPoint }}</td>
+                            <td class="dev-model">{{ .Model }}</td>
+                            {{ if $.SMARTAvailable }}
+                            <td>
+                                {{ if eq .Type "disk" }}
+                                <button class="btn-smart" onclick="loadSMART('{{ .Path }}')">Health</button>
+                                {{ end }}
+                            </td>
+                            {{ end }}
+                        </tr>
+                        {{ range .Children }}
+                        <tr>
+                            <td class="dev-child"><span class="dev-name">{{ .Name }}</span></td>
+                            <td><span class="dev-type dev-type-{{ .Type }}">{{ .Type }}</span></td>
+                            <td style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;">{{ .Size }}</td>
+                            <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);">{{ .FSType }}</td>
+                            <td class="dev-mount">{{ .MountPoint }}</td>
+                            <td class="dev-model">{{ .Label }}</td>
+                            {{ if $.SMARTAvailable }}<td></td>{{ end }}
+                        </tr>
+                        {{ end }}
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Disk Usage -->
+        <div class="disks-section du-section">
+            <div class="section-title">Directory Usage</div>
+            <div class="du-controls">
+                <input type="text" class="du-path-input" id="du-path" value="/" placeholder="/var/log" />
+                <button class="btn-du" onclick="loadUsage()">Scan</button>
+            </div>
+            <div class="du-loading" id="du-loading">Scanning directory...</div>
+            <div class="du-grid" id="du-grid"></div>
+        </div>
+    </div>
+
+    <!-- SMART Modal -->
+    <div class="smart-overlay" id="smart-overlay" onclick="if(event.target===this)closeSMART()">
+        <div class="smart-panel" id="smart-panel">
+            <div class="smart-header">
+                <span class="smart-title" id="smart-title">SMART Health</span>
+                <button class="smart-close" onclick="closeSMART()">&times;</button>
+            </div>
+            <div id="smart-content">Loading...</div>
+        </div>
+    </div>
+
+    {{ template "scripts" }}
+    <script>
+    function loadSMART(device) {
+        var overlay = document.getElementById('smart-overlay');
+        var content = document.getElementById('smart-content');
+        var title = document.getElementById('smart-title');
+        overlay.classList.add('open');
+        content.innerHTML = '<div style="padding:1rem;color:var(--text-dim);font-family:JetBrains Mono,monospace;font-size:0.8rem;">Loading SMART data for ' + device + '...</div>';
+        title.textContent = 'SMART Health — ' + device;
+
+        fetch('/api/disks?action=smart&device=' + encodeURIComponent(device))
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if (!d.success) {
+                    content.innerHTML = '<div style="padding:1rem;color:#ef4444;font-family:JetBrains Mono,monospace;font-size:0.85rem;">' + (d.error || 'Failed to read SMART data') + '</div>';
+                    if (window.showToast) showToast(d.error || 'Failed to read SMART data', 'error');
+                    return;
+                }
+                var s = d.smart;
+                var html = '<div class="smart-summary">';
+                html += '<div class="smart-stat"><div class="smart-stat-label">Status</div><div class="smart-stat-value ' + (s.healthy ? 'smart-passed' : 'smart-failed') + '">' + s.status + '</div></div>';
+                if (s.model) html += '<div class="smart-stat"><div class="smart-stat-label">Model</div><div class="smart-stat-value">' + s.model + '</div></div>';
+                if (s.serial) html += '<div class="smart-stat"><div class="smart-stat-label">Serial</div><div class="smart-stat-value">' + s.serial + '</div></div>';
+                if (s.temperature) html += '<div class="smart-stat"><div class="smart-stat-label">Temp</div><div class="smart-stat-value">' + s.temperature + '</div></div>';
+                if (s.powerOnHrs) html += '<div class="smart-stat"><div class="smart-stat-label">Power On</div><div class="smart-stat-value">' + s.powerOnHrs + ' hrs</div></div>';
+                if (s.firmware) html += '<div class="smart-stat"><div class="smart-stat-label">Firmware</div><div class="smart-stat-value">' + s.firmware + '</div></div>';
+                html += '</div>';
+
+                if (s.attributes && s.attributes.length > 0) {
+                    html += '<table class="smart-attrs"><thead><tr><th>ID</th><th>Attribute</th><th>Value</th><th>Worst</th><th>Thresh</th><th>Raw</th></tr></thead><tbody>';
+                    s.attributes.forEach(function(a){
+                        html += '<tr><td>' + a.id + '</td><td class="attr-' + a.status + '">' + a.name + '</td><td>' + a.value + '</td><td>' + a.worst + '</td><td>' + a.threshold + '</td><td>' + a.rawValue + '</td></tr>';
+                    });
+                    html += '</tbody></table>';
+                }
+
+                content.innerHTML = html;
+            })
+            .catch(function(e){
+                content.innerHTML = '<div style="padding:1rem;color:#ef4444;">Error: ' + e.message + '</div>';
+            });
+    }
+
+    function closeSMART() {
+        document.getElementById('smart-overlay').classList.remove('open');
+    }
+
+    function loadUsage(path) {
+        if (path) document.getElementById('du-path').value = path;
+        var p = document.getElementById('du-path').value.trim() || '/';
+        var loading = document.getElementById('du-loading');
+        var grid = document.getElementById('du-grid');
+        loading.style.display = 'block';
+        grid.style.display = 'none';
+
+        fetch('/api/disks?action=usage&path=' + encodeURIComponent(p))
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                loading.style.display = 'none';
+                if (!d.success || !d.entries || d.entries.length === 0) {
+                    grid.style.display = 'block';
+                    grid.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-size:0.85rem;">No subdirectories larger than 1 MB found</div>';
+                    return;
+                }
+                var maxBytes = d.entries[0].bytes;
+                var html = '';
+                d.entries.forEach(function(e){
+                    var pct = maxBytes > 0 ? (e.bytes / maxBytes * 100) : 0;
+                    html += '<div class="du-row" onclick="loadUsage(\'' + e.path.replace(/'/g, "\\'") + '\')">';
+                    html += '<div class="du-size">' + e.size + '</div>';
+                    html += '<div class="du-bar-col"><div class="du-bar"><div class="du-bar-fill" style="width:' + pct + '%"></div></div></div>';
+                    html += '<div class="du-path" title="' + e.path + '">' + e.path + '</div>';
+                    html += '</div>';
+                });
+                grid.innerHTML = html;
+                grid.style.display = 'block';
+            })
+            .catch(function(e){
+                loading.style.display = 'none';
+                grid.style.display = 'block';
+                grid.innerHTML = '<div style="padding:1rem;color:#ef4444;">Error: ' + e.message + '</div>';
+            });
+    }
+
+    document.getElementById('du-path').addEventListener('keydown', function(e){
+        if (e.key === 'Enter') loadUsage();
+    });
+    </script>
+</body>
+</html>

@@ -6,13 +6,15 @@ its other components and uncommitted work are not automatically adopted here.
 Historical snapshot and integration branches remain candidates for separate review;
 merging current public branches does not adopt that private history.
 
-`api/openapi/` owns the draft API contract. `panel/` is an API-workbench prototype.
+`api/openapi/` owns the draft API contract. `cmd/console` and `internal/` own the
+control plane imported from shippin-console `e35ab817bbfedc626f35aa2f42760df49d4684c2`.
+`web/` owns the installed panel. `panel/` remains an API-workbench prototype and is
+not the install path. `cmd/shippin-hostd` and `internal/hostd` own the host agent.
+`agent/` owns the local Incus diagnostic. `third_party/warden-ct102` owns the
+Proxmox panel UI. `install/panel/` owns the one-command panel installer.
 `install/primary-image/` owns the development image builder. `governance/` owns the
-local plan and journal tooling. `agent/` owns the new host-side provider code; it
-currently supplies only a local Incus diagnostic. A canonical deployable control
-plane and enrolled remote host agent remain to be established. No candidate code
-is accepted merely by being present in another repository; review source provenance,
-ownership, dependencies and tests before adopting it.
+local plan and journal tooling. Site values live in an uncommitted site file.
+See [the console import](merge-from-shippin-console.md).
 
 The draft service-definition and attachment shapes live in
 `api/openapi/schemas/service-catalog.json`, registered in the OpenAPI document.

@@ -1,0 +1,52 @@
+setup:
+  post:
+    tags: [identity]
+    operationId: redeemSetupCode
+    summary: Redeem the one-time setup code printed by shippin-console setup
+    x-implementation-status: registered
+    responses:
+      "200": {description: Owner id, session, and one-time recovery codes.}
+      "401": {$ref: ../components/responses.yaml#/Problem401}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+magic:
+  post:
+    tags: [identity]
+    operationId: requestMagicLink
+    summary: Email a one-time sign-in link
+    x-implementation-status: registered
+    responses:
+      "200": {description: The link was queued.}
+      "400": {$ref: ../components/responses.yaml#/Problem400}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+waitlist:
+  post:
+    tags: [identity]
+    operationId: joinWaitlist
+    summary: Request early access. Confirmation is a second email.
+    x-implementation-status: registered
+    responses:
+      "200": {description: The address is pending confirmation.}
+      "429": {$ref: ../components/responses.yaml#/Problem429}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+waitlistCsv:
+  get:
+    tags: [identity]
+    operationId: exportWaitlist
+    summary: Export the waitlist as CSV
+    security: [{apiKey: []}, {consoleSession: []}]
+    x-implementation-status: registered
+    responses:
+      "200": {description: CSV body.}
+      "401": {$ref: ../components/responses.yaml#/Problem401}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+adminConfig:
+  get:
+    tags: [identity]
+    operationId: getDirectoryConfig
+    summary: Read the directory policy and branding overlay, with a version
+    security: [{apiKey: []}, {consoleSession: []}]
+    x-implementation-status: registered
+    responses:
+      "200": {description: Versioned directory configuration.}
+      "401": {$ref: ../components/responses.yaml#/Problem401}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}

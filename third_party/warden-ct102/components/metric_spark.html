@@ -1,0 +1,18 @@
+{{/* components.metric_spark — inline metric + sparkline.
+     Args: {Label, Value, Delta, Spark []float64}.
+     Spec 17 §3.9.
+*/}}
+{{ define "components.metric_spark" }}
+<div class="c-metric-spark">
+    <span class="c-metric-spark__label">{{ .Label }}</span>
+    <span class="c-metric-spark__value">{{ .Value }}</span>
+    {{ if .Delta }}
+        <span class="c-metric-spark__delta c-metric-spark__delta--{{ if hasPrefix .Delta "-" }}down{{ else }}up{{ end }}">{{ .Delta }}</span>
+    {{ end }}
+    {{ if .Spark }}
+        <svg class="c-metric-spark__svg" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true">
+            <polyline points="{{ sparkPoints .Spark }}" fill="none" stroke="currentColor" stroke-width="1.4"></polyline>
+        </svg>
+    {{ end }}
+</div>
+{{ end }}

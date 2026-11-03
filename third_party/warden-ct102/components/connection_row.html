@@ -1,0 +1,15 @@
+{{/* components.connection_row - explicit registry edge between boundaries.
+Expected data: ManagedWorkspaceConnection from managed_workspaces.go.
+*/}}
+
+{{ define "components.connection_row" }}
+<article class="c-connection-row c-connection-row--{{ .Kind | lower }}">
+    <span class="c-connection-row__kind">{{ .Kind }}</span>
+    <div class="c-connection-row__body">
+        <strong class="c-connection-row__label">{{ .Label }}</strong>
+        <span class="c-connection-row__path"><code>{{ .From }}</code> -> <code>{{ .To }}</code></span>
+        {{ if .Detail }}<span class="c-connection-row__detail">{{ .Detail }}</span>{{ end }}
+    </div>
+    {{ if .Status }}<span class="c-connection-row__status">{{ .Status }}</span>{{ end }}
+</article>
+{{ end }}

@@ -1,0 +1,30 @@
+@import "tailwindcss";
+@plugin "tailwindcss-react-aria-components";
+@import "./tokens.css";
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    @apply bg-canvas text-fg font-sans antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+  ::selection { background: oklch(0.66 0.16 250 / 0.4); }
+}
+
+@utility glass {
+  background: oklch(0.2 0.016 265 / 0.72);
+  backdrop-filter: blur(12px) saturate(140%);
+  @media (prefers-reduced-transparency: reduce) { background: var(--color-surface); backdrop-filter: none; }
+}
+
+@utility focus-ring {
+  outline: 2px solid transparent;
+  &[data-focus-visible] { outline-color: var(--color-focus); outline-offset: 2px; }
+}
+
+@utility grid-bg {
+  background-image:
+    linear-gradient(oklch(1 0 0 / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(1 0 0 / 0.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+}

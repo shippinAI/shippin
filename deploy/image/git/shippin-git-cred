@@ -1,0 +1,13 @@
+#!/bin/sh
+# git credential helper (git config --system credential.https://github.com.helper). Answers "get"
+# for github.com with the workspace's 1-hour GitHub App installation token, which shippin-hostd
+# keeps fresh in a tmpfs file. Nothing is stored ("store"/"erase" are ignored).
+[ "${1:-}" = get ] || exit 0
+F=${SHIPPIN_GIT_TOKEN:-/run/shippin/git/token}
+host=""
+while IFS='=' read -r k v; do
+  [ -z "$k" ] && break
+  [ "$k" = host ] && host=$v
+done
+[ "$host" = github.com ] && [ -r "$F" ] || exit 0
+printf 'username=x-access-token\npassword=%s\n' "$(head -n 1 "$F")"

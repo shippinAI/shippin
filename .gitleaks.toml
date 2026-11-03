@@ -1,0 +1,13 @@
+title = "Shippin public tree"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "RFC 6455 sample websocket key and the published Claude apt signing fingerprint."
+regexes = [
+  '''dGhlIHNhbXBsZSBub25jZQ==''',
+  '''31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE''',
+  '''SHIPPIN_S3_SECRET_KEY''',
+  '''SHIPPIN_S3_ACCESS_KEY''',
+]

@@ -1,0 +1,36 @@
+# Vaultix (rebranded Infisical) backend: Postgres + Redis + API/UI. Every value comes from .env
+# (see env.example); images are pinned by digest in .env. Host network keeps it rootless-podman
+# friendly; bind addresses come from .env (loopback or the platform bridge IP the edge reaches).
+name: vaultix
+services:
+  db:
+    image: ${VAULTIX_PG_IMAGE}
+    network_mode: host
+    restart: unless-stopped
+    command: ["postgres", "-c", "listen_addresses=${VAULTIX_BIND}", "-c", "port=${VAULTIX_PG_PORT}"]
+    environment:
+      POSTGRES_USER: ${VAULTIX_PG_USER}
+      POSTGRES_DB: ${VAULTIX_PG_DB}
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+    volumes: ["vaultix-pg:/var/lib/postgresql/data", "${VAULTIX_SECRETS_DIR}/pg_password:/run/secrets/pg_password:ro,Z"]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -h ${VAULTIX_BIND} -p ${VAULTIX_PG_PORT} -U ${VAULTIX_PG_USER}"], interval: 5s, retries: 20}
+  redis:
+    image: ${VAULTIX_REDIS_IMAGE}
+    network_mode: host
+    restart: unless-stopped
+    command: ["redis-server", "--bind", "${VAULTIX_BIND}", "--port", "${VAULTIX_REDIS_PORT}", "--save", "60", "1"]
+    volumes: ["vaultix-redis:/data"]
+  api:
+    image: ${VAULTIX_IMAGE}
+    network_mode: host
+    restart: unless-stopped
+    depends_on: {db: {condition: service_healthy}, redis: {condition: service_started}}
+    env_file: ["${VAULTIX_SECRETS_DIR}/api.env"]   # ENCRYPTION_KEY, AUTH_SECRET, DB_CONNECTION_URI (0600, from sops)
+    environment:
+      HOST: ${VAULTIX_BIND}
+      PORT: ${VAULTIX_API_PORT}
+      SITE_URL: ${VAULTIX_SITE_URL}
+      REDIS_URL: redis://${VAULTIX_BIND}:${VAULTIX_REDIS_PORT}
+      TELEMETRY_ENABLED: "false"
+      INVITE_ONLY_SIGNUP: "true"
+volumes: {vaultix-pg: {}, vaultix-redis: {}}

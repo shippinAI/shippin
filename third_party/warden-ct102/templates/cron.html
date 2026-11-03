@@ -1,0 +1,282 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - Cron Jobs</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main>
+        <section class="card">
+            <div class="card-header">
+                <h2>CRON JOBS</h2>
+                <button class="btn btn-primary" onclick="showAddForm()">Add Job</button>
+            </div>
+
+            <!-- Add/Edit Form -->
+            <div id="cron-form" class="cron-form" style="display:none;">
+                <div class="cron-form-header">
+                    <h3 id="form-title">Add Cron Job</h3>
+                    <button class="btn btn-sm" onclick="hideForm()">Cancel</button>
+                </div>
+                <div class="cron-form-fields">
+                    <div class="cron-schedule-row">
+                        <div class="cron-field">
+                            <label>Minute</label>
+                            <input type="text" id="f-minute" value="*" placeholder="0-59 or *">
+                        </div>
+                        <div class="cron-field">
+                            <label>Hour</label>
+                            <input type="text" id="f-hour" value="*" placeholder="0-23 or *">
+                        </div>
+                        <div class="cron-field">
+                            <label>Day</label>
+                            <input type="text" id="f-day" value="*" placeholder="1-31 or *">
+                        </div>
+                        <div class="cron-field">
+                            <label>Month</label>
+                            <input type="text" id="f-month" value="*" placeholder="1-12 or *">
+                        </div>
+                        <div class="cron-field">
+                            <label>Weekday</label>
+                            <input type="text" id="f-weekday" value="*" placeholder="0-6 or *">
+                        </div>
+                    </div>
+                    <div class="cron-schedule-labels">
+                        <span>min</span><span>hour</span><span>day</span><span>month</span><span>weekday</span>
+                    </div>
+                    <div class="cron-preset-row">
+                        <label>Presets:</label>
+                        <button class="btn btn-sm" onclick="setPreset('* * * * *')">Every minute</button>
+                        <button class="btn btn-sm" onclick="setPreset('*/5 * * * *')">Every 5 min</button>
+                        <button class="btn btn-sm" onclick="setPreset('0 * * * *')">Hourly</button>
+                        <button class="btn btn-sm" onclick="setPreset('0 0 * * *')">Daily</button>
+                        <button class="btn btn-sm" onclick="setPreset('0 0 * * 0')">Weekly</button>
+                        <button class="btn btn-sm" onclick="setPreset('0 0 1 * *')">Monthly</button>
+                    </div>
+                    <div class="cron-command-row">
+                        <label>Command</label>
+                        <input type="text" id="f-command" placeholder="/path/to/script.sh" class="cron-command-input">
+                    </div>
+                    <div class="cron-preview">
+                        Schedule: <code id="cron-preview">* * * * *</code>
+                    </div>
+                    <input type="hidden" id="f-old-raw" value="">
+                    <button class="btn btn-primary" id="form-submit" onclick="submitForm()">Add Job</button>
+                </div>
+                <div id="form-message" class="cron-form-message"></div>
+            </div>
+
+            <!-- Jobs Table -->
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>SCHEDULE</th>
+                            <th>MINUTE</th>
+                            <th>HOUR</th>
+                            <th>DAY</th>
+                            <th>MONTH</th>
+                            <th>WEEKDAY</th>
+                            <th>COMMAND</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cron-tbody">
+                        {{ if not .Jobs }}
+                        <tr><td colspan="8" class="text-center text-dim">No cron jobs found. {{ if not .SudoEnabled }}Enable sudo to view root crontab.{{ end }}</td></tr>
+                        {{ else }}
+                        {{ range .Jobs }}
+                        <tr data-cron-min="{{ .Minute }}" data-cron-hour="{{ .Hour }}" data-cron-day="{{ .Day }}" data-cron-month="{{ .Month }}" data-cron-weekday="{{ .Weekday }}" data-cron-command="{{ .Command }}" data-cron-raw="{{ .Raw }}">
+                            <td><code>{{ .Schedule }}</code></td>
+                            <td>{{ .Minute }}</td>
+                            <td>{{ .Hour }}</td>
+                            <td>{{ .Day }}</td>
+                            <td>{{ .Month }}</td>
+                            <td>{{ .Weekday }}</td>
+                            <td class="command-cell" title="{{ .Command }}">{{ .Command }}</td>
+                            <td class="actions-cell">
+                                <button class="btn btn-sm btn-action" onclick="editJob('{{ .Minute }}','{{ .Hour }}','{{ .Day }}','{{ .Month }}','{{ .Weekday }}',this)" data-command="{{ .Command }}" data-raw="{{ .Raw }}">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteJob(this)" data-raw="{{ .Raw }}">Delete</button>
+                            </td>
+                        </tr>
+                        {{ end }}
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <span>Warden Cron Manager</span>
+    </footer>
+
+    <script>
+        var editing = false;
+
+        function showAddForm() {
+            document.getElementById('cron-form').style.display = '';
+            document.getElementById('form-title').textContent = 'Add Cron Job';
+            document.getElementById('form-submit').textContent = 'Add Job';
+            document.getElementById('form-submit').onclick = submitForm;
+            document.getElementById('f-minute').value = '*';
+            document.getElementById('f-hour').value = '*';
+            document.getElementById('f-day').value = '*';
+            document.getElementById('f-month').value = '*';
+            document.getElementById('f-weekday').value = '*';
+            document.getElementById('f-command').value = '';
+            document.getElementById('f-old-raw').value = '';
+            document.getElementById('form-message').textContent = '';
+            editing = false;
+            updatePreview();
+        }
+
+        function hideForm() {
+            document.getElementById('cron-form').style.display = 'none';
+        }
+
+        function editJob(min, hour, day, month, weekday, btn) {
+            var command = btn.getAttribute('data-command');
+            var raw = btn.getAttribute('data-raw');
+            document.getElementById('cron-form').style.display = '';
+            document.getElementById('form-title').textContent = 'Edit Cron Job';
+            document.getElementById('form-submit').textContent = 'Save Changes';
+            document.getElementById('f-minute').value = min;
+            document.getElementById('f-hour').value = hour;
+            document.getElementById('f-day').value = day;
+            document.getElementById('f-month').value = month;
+            document.getElementById('f-weekday').value = weekday;
+            document.getElementById('f-command').value = command;
+            document.getElementById('f-old-raw').value = raw;
+            document.getElementById('form-message').textContent = '';
+            editing = true;
+            updatePreview();
+        }
+
+        function setPreset(schedule) {
+            var parts = schedule.split(' ');
+            document.getElementById('f-minute').value = parts[0];
+            document.getElementById('f-hour').value = parts[1];
+            document.getElementById('f-day').value = parts[2];
+            document.getElementById('f-month').value = parts[3];
+            document.getElementById('f-weekday').value = parts[4];
+            updatePreview();
+        }
+
+        function updatePreview() {
+            var s = [
+                document.getElementById('f-minute').value || '*',
+                document.getElementById('f-hour').value || '*',
+                document.getElementById('f-day').value || '*',
+                document.getElementById('f-month').value || '*',
+                document.getElementById('f-weekday').value || '*'
+            ].join(' ');
+            document.getElementById('cron-preview').textContent = s;
+        }
+
+        // Update preview on input
+        ['f-minute','f-hour','f-day','f-month','f-weekday'].forEach(function(id) {
+            document.getElementById(id).addEventListener('input', updatePreview);
+        });
+
+        function submitForm() {
+            var action = editing ? 'edit' : 'add';
+            var body = 'action=' + action +
+                '&minute=' + encodeURIComponent(document.getElementById('f-minute').value) +
+                '&hour=' + encodeURIComponent(document.getElementById('f-hour').value) +
+                '&day=' + encodeURIComponent(document.getElementById('f-day').value) +
+                '&month=' + encodeURIComponent(document.getElementById('f-month').value) +
+                '&weekday=' + encodeURIComponent(document.getElementById('f-weekday').value) +
+                '&command=' + encodeURIComponent(document.getElementById('f-command').value);
+
+            if (editing) {
+                body += '&old_raw=' + encodeURIComponent(document.getElementById('f-old-raw').value);
+            }
+
+            fetch('/api/cron', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var msg = document.getElementById('form-message');
+                if (data.success) {
+                    msg.textContent = data.message;
+                    msg.className = 'cron-form-message cron-msg-ok';
+                    setTimeout(function() { location.reload(); }, 500);
+                } else {
+                    msg.textContent = data.message;
+                    msg.className = 'cron-form-message cron-msg-error';
+                }
+            })
+            .catch(function() {
+                document.getElementById('form-message').textContent = 'Request failed';
+                document.getElementById('form-message').className = 'cron-form-message cron-msg-error';
+            });
+        }
+
+        function deleteJob(btn) {
+            var raw = btn.getAttribute('data-raw');
+            Modal.confirm('Delete this cron job?\n\n' + raw, {danger:true}).then(function(ok) {
+                if (!ok) return;
+                fetch('/api/cron', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'action=delete&raw=' + encodeURIComponent(raw)
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Failed: ' + data.message);
+                    }
+                });
+            });
+        }
+
+        // Submit on Enter in command field
+        document.getElementById('f-command').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') submitForm();
+        });
+    </script>
+{{ template "scripts" }}
+<script src="/static/contextmenu.js"></script>
+<script>
+ctxMenu.attach('tr[data-cron-raw]', function(row) {
+    var min = row.getAttribute('data-cron-min');
+    var hour = row.getAttribute('data-cron-hour');
+    var day = row.getAttribute('data-cron-day');
+    var month = row.getAttribute('data-cron-month');
+    var weekday = row.getAttribute('data-cron-weekday');
+    var command = row.getAttribute('data-cron-command');
+    var raw = row.getAttribute('data-cron-raw');
+    return [
+        {label: 'Edit', icon: '\u270e', action: function() {
+            var btn = row.querySelector('button[data-raw]');
+            if (btn) btn.click();
+            else editJob(min, hour, day, month, weekday, {getAttribute: function(k) { return k === 'data-command' ? command : raw; }});
+        }},
+        'separator',
+        {label: 'Delete', icon: '\ud83d\uddd1', danger: true, action: function() {
+            Modal.confirm('Delete this cron job?\n\n' + raw, {danger:true}).then(function(ok) {
+                if (!ok) return;
+                fetch('/api/cron', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'action=delete&raw=' + encodeURIComponent(raw)
+                }).then(function(r) { return r.json(); }).then(function(data) {
+                    if (data.success) location.reload();
+                    else alert('Failed: ' + data.message);
+                });
+            });
+        }}
+    ];
+});
+</script>
+
+</body>
+</html>

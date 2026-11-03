@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{ template "head" }}
+    <title>Warden - System Actions</title>
+</head>
+<body>
+    {{ template "header" . }}
+
+    <main class="sysaction-main">
+        {{ if .Message }}
+        <div class="alert {{ if contains .Message "initiated" }}alert-ok{{ else }}alert-err{{ end }}">
+            {{ .Message }}
+        </div>
+        {{ end }}
+
+        <section class="card">
+            <h2>System Actions</h2>
+
+            {{ if not .SudoEnabled }}
+            <p class="no-data">Enable sudo to perform system actions.</p>
+            {{ else }}
+
+            <div class="sysaction-grid">
+                <div class="sysaction-card">
+                    <div class="sysaction-icon sysaction-reboot">&#x21bb;</div>
+                    <h3>Reboot</h3>
+                    <p>Restart the system immediately. All connections will be lost.</p>
+                    <form method="post" action="/api/system/action" class="sysaction-form" data-confirm="Are you sure you want to REBOOT the system? All connections will be lost.">
+                        <input type="hidden" name="action" value="reboot">
+                        <button type="submit" class="btn btn-warn">Reboot Now</button>
+                    </form>
+                </div>
+
+                <div class="sysaction-card">
+                    <div class="sysaction-icon sysaction-schedule">&#x23f2;</div>
+                    <h3>Scheduled Shutdown</h3>
+                    <p>Schedule a shutdown in 1 minute. Gives time for services to stop gracefully.</p>
+                    <form method="post" action="/api/system/action" class="sysaction-form" data-confirm="Schedule shutdown in 1 minute?">
+                        <input type="hidden" name="action" value="shutdown">
+                        <button type="submit" class="btn btn-default">Schedule Shutdown</button>
+                    </form>
+                </div>
+
+                <div class="sysaction-card">
+                    <div class="sysaction-icon sysaction-poweroff">&#x23FB;</div>
+                    <h3>Power Off</h3>
+                    <p>Shut down the system immediately. The server will not restart automatically.</p>
+                    <form method="post" action="/api/system/action" class="sysaction-form" data-confirm="Are you sure you want to POWER OFF the system? The server will not restart automatically." data-confirm-danger>
+                        <input type="hidden" name="action" value="poweroff">
+                        <button type="submit" class="btn btn-danger">Power Off Now</button>
+                    </form>
+                </div>
+            </div>
+
+            {{ end }}
+        </section>
+    </main>
+{{ template "scripts" }}
+</body>
+</html>

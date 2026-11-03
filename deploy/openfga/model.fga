@@ -1,0 +1,91 @@
+# Shippin authorization model (02a RBAC, 07c section 5 sketch). Loaded by deploy/openfga/load-model.sh.
+# The console checks it through internal/authz; token facts (org roles, access grants) arrive as
+# contextual tuples, so tenant membership needs no tuple sync. Tests: model.fga.yaml (fga model test).
+model
+  schema 1.1
+
+type user
+
+type agent
+
+type platform
+  relations
+    define operator: [user]
+
+type tenant
+  relations
+    define owner: [user]
+    define admin: [user] or owner
+    define member: [user, agent] or admin
+    define billing: [user]
+    define grantee: [user]
+    define can_read: member or grantee
+    define can_manage: admin or grantee
+    define can_decide: admin
+
+type folder
+  relations
+    define tenant: [tenant]
+    define parent: [folder]
+    define blocked: [user]
+    define editor: ([user] or admin from tenant or editor from parent) but not blocked
+    define viewer: ([user] or member from tenant or editor or viewer from parent) but not blocked
+
+# A Nomen org. Each tenant maps to exactly one org (tenants.idp_org_id). R-J1a.
+type org
+  relations
+    define tenant: [tenant]
+    define owner: [user]
+    define admin: [user] or owner
+    define member: [user, agent] or admin
+
+type project
+  relations
+    define tenant: [tenant]
+    define org: [org]
+    define folder: [folder]
+    define owner: [user]
+    define can_write: owner or admin from org or admin from tenant or editor from folder
+    define can_read: can_write or member from org or member from tenant or viewer from folder
+
+# A devspace (the workspace a project runs in). Stored tuple devspace:<ws>#project@project:<prj_…>.
+type devspace
+  relations
+    define project: [project]
+    define owner: [user]
+    define can_exec: owner or can_write from project
+    define can_read: can_exec or can_read from project
+
+# A project's namespace inside its tenant's one rrflow (D36: one rrflow per tenant VM, per-project namespaces).
+type rrflow_namespace
+  relations
+    define project: [project]
+    define devspace: [devspace]
+    define can_write: can_write from project or can_exec from devspace
+    define can_read: can_write or can_read from project
+
+type workspace
+  relations
+    define tenant: [tenant]
+    define project: [project]
+    define folder: [folder]
+    define owner: [user]
+    define grantee: [user]
+    define can_manage: can_manage from tenant or grantee
+    define can_exec: owner or editor from folder or can_manage
+    define can_read: can_exec or viewer from folder or can_read from project or member from tenant
+
+# A Vaultix path. Agents (machine identities) read only paths they are bound to as reader.
+type secret_path
+  relations
+    define tenant: [tenant]
+    define reader: [user, agent]
+    define writer: [user]
+    define can_write: writer or admin from tenant
+    define can_read: reader or can_write or member from tenant
+
+type tool
+  relations
+    define tenant: [tenant]
+    define allowed: [agent]
+    define can_use: allowed
