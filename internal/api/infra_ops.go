@@ -24,6 +24,9 @@ const (
 	opTimeout = 10 * time.Minute
 	// stopGuestsMax bounds one batch.
 	stopGuestsMax = 500
+	// inventoryLag is how long a change's result outranks the hypervisor's inventory. Proxmox refreshes
+	// /cluster/resources about every ten seconds.
+	inventoryLag = 15 * time.Second
 )
 
 // tracked runs one change to a guest and records how it ended. With no record there is no change,

@@ -34,7 +34,7 @@ Every host shows its provider and the version its API reports, read live.
 
 **Done when:** a host's version and provider are visible on the overview and on its tab. A host that does not answer stays listed with the reason and is never shown as online.
 
-**Status:** Done, against simulated APIs only: provider, version, reachability and guest counts on the overview, and release, kernel, CPU, memory, uptime and native cluster members on the tab. The tab opens on a host that answers, so a dead one does not hide the others.
+**Status:** Done, and run against one real node of each: provider, version, reachability and guest counts on the overview, and release, kernel, CPU, memory, uptime and native cluster members on the tab. The tab opens on a host that answers, so a dead one does not hide the others.
 
 ### FO-4 Lifecycle operations are reliable and visible
 
@@ -42,7 +42,7 @@ Starting or stopping a guest is not finished when the request is accepted. It is
 
 **Done when:** every operation has a durable record of who asked, what they asked for, and how it ended, which survives a restart of the panel. An operator can see in-progress and recent operations for a host. Stopping many guests runs in a stated order with a per-guest result.
 
-**Status:** Done, against simulated APIs only. Every change is recorded before it runs, keeps going if the browser leaves, and shows under Activity. A restart turns open operations into unknown. Bulk stop runs one guest at a time, in order, with a result for each, and skips the guest the panel runs on. Not built: a view of the hypervisor's own running tasks, and bulk start.
+**Status:** Done, and run against one real node of each. Every change is recorded before it runs, keeps going if the browser leaves, and shows under Activity. A restart turns open operations into unknown. Bulk stop runs one guest at a time, in order, with a result for each, and skips the guest the panel runs on. Not built: a view of the hypervisor's own running tasks, and bulk start.
 
 ### FO-5 Incus and Proxmox operate as one fleet, and stay separate hosts
 
@@ -73,7 +73,7 @@ An operator pastes a Proxmox token or an Incus trust token, tests the connection
 
 **Done when:** a host can be added with nothing on the panel's disk, a wrong secret, an unreachable address, a mismatched certificate and a used token each say so, a refused attempt leaves nothing behind, and no secret appears in the database or logs in the clear.
 
-**Status:** Done, against simulated APIs only.
+**Status:** Done, and run with one real node of each in the same fleet.
 
 ### FO-8 An update keeps what the site has
 
@@ -85,6 +85,6 @@ An operator pastes a Proxmox token or an Incus trust token, tests the connection
 
 ## Order
 
-1. Run FO-3, FO-4 and FO-7 against real Incus and Proxmox servers. Nothing here has met one yet.
+1. Finish running FO-3, FO-4 and FO-7 against real servers: Incus VMs, Proxmox containers, and real clusters. See the [roadmap](../roadmap.md).
 2. FO-5: operating a fleet at once, capacity and placement.
 3. FO-2: updating from a button.

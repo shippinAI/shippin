@@ -31,9 +31,9 @@ export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Inst
         <Tooltip content={`Probe: ${probe.detail} in ${probe.latency_ms} ms`}>
           <Focusable>
             <span tabIndex={0} className="outline-none">
-              <Badge tone={probe.healthy ? "success" : "danger"}>
-                <StatusDot health={probe.healthy ? "up" : "down"} />
-                {probe.healthy ? "Operational" : "Down"}
+              <Badge tone={probe.healthy ? "success" : probe.configured === false ? "neutral" : "danger"}>
+                <StatusDot health={probe.healthy ? "up" : probe.configured === false ? "unknown" : "down"} />
+                {probe.healthy ? "Operational" : probe.configured === false ? "Not set up" : "Down"}
               </Badge>
             </span>
           </Focusable>

@@ -1,16 +1,21 @@
 export class ApiError extends Error {
   code?: string;
   cardKey?: string;
-  constructor(public status: number, message: string, extra?: { code?: string; card_key?: string }) {
+  cardId?: string;
+  constructor(public status: number, message: string, extra?: { code?: string; card_key?: string; card_id?: string }) {
     super(message);
     this.code = extra?.code;
     this.cardKey = extra?.card_key;
+    this.cardId = extra?.card_id;
   }
 }
 
-function problemMessage(data: unknown, fallback: string): { message: string; code?: string; card_key?: string } {
-  const p = data as { message?: string; code?: string; card_key?: string };
-  return { message: p?.message || fallback, code: p?.code, card_key: p?.card_key };
+/** A change that is waiting for approval. It has not failed, and the page offers a way to approve it. */
+export const isWaitingOnBoard = (e: unknown): e is ApiError => e instanceof ApiError && e.code === "waiting_on_board";
+
+function problemMessage(data: unknown, fallback: string): { message: string; code?: string; card_key?: string; card_id?: string } {
+  const p = data as { message?: string; code?: string; card_key?: string; card_id?: string };
+  return { message: p?.message || fallback, code: p?.code, card_key: p?.card_key, card_id: p?.card_id };
 }
 
 /** GET a control-plane endpoint; problem+json errors become ApiError. */

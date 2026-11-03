@@ -16,6 +16,15 @@ func TestProbeDoesNotClaimMissingTargetIsHealthy(t *testing.T) {
 	}
 }
 
+func TestProbeTellsNotSetUpFromDown(t *testing.T) {
+	if got := probe(context.Background(), config.Probe{Name: "Nomen", Kind: "nomen"}); got.Configured || got.Healthy {
+		t.Fatalf("no target must read as not set up: %+v", got)
+	}
+	if got := probe(context.Background(), config.Probe{Name: "Nomen", Kind: "nomen", TCP: "127.0.0.1:1"}); !got.Configured || got.Healthy {
+		t.Fatalf("a target that does not answer must read as down: %+v", got)
+	}
+}
+
 func TestProbeRejectsInvalidURLAndChecksConfiguredEndpoint(t *testing.T) {
 	invalid := probe(context.Background(), config.Probe{URL: "://bad"})
 	if invalid.Healthy || invalid.Detail != "invalid probe URL" {

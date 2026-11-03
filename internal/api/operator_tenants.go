@@ -41,7 +41,7 @@ func (a *API) opTenants(w http.ResponseWriter, r *http.Request, _ *caller) {
 		out = append(out, o)
 	}
 	res := map[string]any{"items": out}
-	if nerr != nil {
+	if nerr != nil && a.cfg.Incus.HostdURL != "" {
 		res["warning"] = "Host networks unavailable: " + nerr.Error()
 	}
 	writeJSON(w, res)

@@ -48,6 +48,15 @@ func (p *pve) handler(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case path == "/version":
 		writeData(w, map[string]string{"version": "8.2.2", "release": "8.2"})
+	case strings.HasSuffix(path, "/status/current"):
+		id := strings.Split(path, "/")[4]
+		for _, g := range p.guests {
+			if g.ID == id {
+				writeData(w, map[string]string{"status": g.Status})
+				return
+			}
+		}
+		http.NotFound(w, r)
 	case path == "/cluster/resources":
 		rows := []map[string]any{}
 		for _, g := range p.guests {

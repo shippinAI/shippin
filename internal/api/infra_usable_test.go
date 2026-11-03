@@ -60,6 +60,12 @@ func fakePVE(t *testing.T, status *string, sawAuth *string) *httptest.Server {
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"pveversion": "pve-manager/9.2.11/x", "kversion": "Linux 7.0.14-pve #1", "uptime": 60, "cpuinfo": map[string]any{"model": "Xeon", "cpus": 8}, "memory": map[string]any{"total": 100, "used": 40}}})
 		case r.URL.Path == "/api2/json/cluster/status":
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{{"type": "node", "name": "pve1", "online": 1, "local": 1}}})
+		case strings.HasSuffix(r.URL.Path, "/status/current"):
+			st := "running"
+			if status != nil {
+				st = *status
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": st}})
 		case r.URL.Path == "/api2/json/cluster/resources":
 			st := "running"
 			if status != nil {

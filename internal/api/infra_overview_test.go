@@ -298,7 +298,7 @@ func TestIncusGuestsWorkThroughTheSharedRoutesButProxmoxOnlyCallsAreRefused(t *t
 	if rec := call(http.MethodGet, "/v1/infra/servers/s1/health"); rec.Code != http.StatusOK {
 		t.Fatalf("health: %d %s", rec.Code, rec.Body)
 	}
-	if rec := call(http.MethodGet, "/v1/infra/servers/s1/guests/vma/snapshots"); rec.Code != http.StatusConflict {
+	if rec := call(http.MethodGet, "/v1/infra/servers/s1/storage"); rec.Code != http.StatusConflict {
 		t.Fatalf("a call only Proxmox has: %d %s", rec.Code, rec.Body)
 	}
 }

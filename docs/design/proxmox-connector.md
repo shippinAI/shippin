@@ -8,7 +8,7 @@ Open **Infrastructure → Hosts & nodes** and choose **Add host**. The overview 
 
 **Test connection** tries what the form holds and saves nothing. **Add host** creates the server row and attaches its API in one step, which is the `POST /v1/infra/servers` call below. The overview then reports whether the host answers, and keeps listing a host that does not, with the reason. **Detach** removes the API and leaves the server row and its guests alone.
 
-These steps have only been run against simulated APIs so far. Try them on a disposable guest first.
+These steps have been run as written against Incus 6.0.4 and Proxmox VE 9.2, on one node each and not yet in a cluster. Try them on a disposable guest first.
 
 ### Proxmox VE
 
@@ -55,7 +55,7 @@ Every change is recorded before it starts, and **Activity** shows who asked and 
 
 The **Fleets** tab groups hosts of any provider so you can see them together. It changes nothing on the hosts. Different providers cannot share a cluster or live-migrate, so each host keeps its own provider and its own native cluster, and the panel says so.
 
-Only start, stop, shutdown, reboot and snapshot are shared by every driver. Calls only Proxmox has answer `409` on an Incus host, and the panel does not offer them.
+Start, stop, shutdown, reboot, snapshot, listing snapshots and restoring one are shared by every driver. Calls only Proxmox has answer `409` on an Incus host, and the panel does not offer them.
 
 The local installation owner has no IdP to grant `IAM_INFRA`, so the infrastructure routes and approval rules accept them as the owner. This does not make them a founder: tenant access grants still apply.
 
@@ -83,7 +83,9 @@ The local installation owner has no IdP to grant `IAM_INFRA`, so the infrastruct
 
 ## Approval
 
-A mutation that the policy marks `needs_approval` files one factory-board card and returns `409` with `code` `waiting_on_board` and `card_key`. Approve that card. Retry the same request. There is no second confirm in the console.
+A mutation that the policy marks `needs_approval` files one factory-board card and returns `409` with `code` `waiting_on_board`, `card_key` and, when the board is on this panel, `card_id`. Approve that card and send the same request again. The panel offers both as one button, **Approve and run**.
+
+An approval covers one change. Running it spends the card, which moves to done, and the next change files a new one. A board that lives elsewhere (`approval.board.driver: http`) keeps its own rule.
 
 Adding or detaching an API is the action `hv.attach`, shipped without a board card because it changes what the console can reach, not any guest. It is still role-gated and audited. A policy with no `hv.attach` rule uses `hv.lifecycle` for it.
 

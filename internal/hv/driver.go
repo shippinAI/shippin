@@ -20,6 +20,12 @@ const (
 // ErrNoHypervisor is returned by the bare driver for every call.
 var ErrNoHypervisor = errors.New("hv: this server has no hypervisor API")
 
+// SnapshotKeeper is a driver that can list and restore the snapshots it takes.
+type SnapshotKeeper interface {
+	Snapshots(ctx context.Context, id string) ([]string, error)
+	Rollback(ctx context.Context, id, name string) (Guest, error)
+}
+
 // ErrUnsupported is a real gap, not a success. Console and exec are in this set.
 var ErrUnsupported = errors.New("hv: not implemented for this driver")
 

@@ -130,7 +130,7 @@ func (c *Client) Health(ctx context.Context) (hv.Health, error) {
 	_ = json.Unmarshal(body, &api)
 	// An untrusted client still gets 200 here, so a plain answer does not prove the panel can manage it.
 	if api.Metadata.Auth == "untrusted" {
-		h.Error = "the server does not trust this panel's certificate; add it with incus config trust"
+		h.Error = "the server no longer trusts this panel; detach this host, then add it again with a new trust token"
 		return h, fmt.Errorf("incus: %s", h.Error)
 	}
 	h.Online = true
@@ -245,6 +245,51 @@ func (c *Client) Snapshot(ctx context.Context, id, name string) (hv.Guest, error
 	}
 	if code != http.StatusOK && code != http.StatusAccepted && code != http.StatusCreated {
 		return hv.Guest{}, fmt.Errorf("incus: snapshot HTTP %d: %s", code, clip(body))
+	}
+	if err := c.wait(ctx, body); err != nil {
+		return hv.Guest{}, err
+	}
+	return c.Guest(ctx, id)
+}
+
+// Snapshots lists an instance's snapshots by name.
+func (c *Client) Snapshots(ctx context.Context, id string) ([]string, error) {
+	body, code, err := c.do(ctx, http.MethodGet, c.path(instancePath(id)+"/snapshots"), nil)
+	if err != nil {
+		return nil, err
+	}
+	if code != http.StatusOK {
+		return nil, fmt.Errorf("incus: snapshots HTTP %d: %s", code, clip(body))
+	}
+	var r struct {
+		Metadata []string `json:"metadata"`
+	}
+	if err := json.Unmarshal(body, &r); err != nil {
+		return nil, fmt.Errorf("incus: snapshots: %w", err)
+	}
+	out := make([]string, 0, len(r.Metadata))
+	for _, link := range r.Metadata {
+		name := link[strings.LastIndex(link, "/")+1:]
+		if plain, err := url.PathUnescape(name); err == nil {
+			name = plain
+		}
+		out = append(out, name)
+	}
+	return out, nil
+}
+
+// Rollback restores a snapshot and reads the instance back.
+func (c *Client) Rollback(ctx context.Context, id, name string) (hv.Guest, error) {
+	if name == "" || strings.Contains(name, "/") {
+		return hv.Guest{}, fmt.Errorf("incus: snapshot name %q is invalid", name)
+	}
+	raw, _ := json.Marshal(map[string]string{"restore": name})
+	body, code, err := c.do(ctx, http.MethodPut, c.path(instancePath(id)), raw)
+	if err != nil {
+		return hv.Guest{}, err
+	}
+	if code != http.StatusOK && code != http.StatusAccepted {
+		return hv.Guest{}, fmt.Errorf("incus: restore HTTP %d: %s", code, clip(body))
 	}
 	if err := c.wait(ctx, body); err != nil {
 		return hv.Guest{}, err

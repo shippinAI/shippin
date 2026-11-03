@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"shippin.cloud/console/internal/approval"
 	"shippin.cloud/console/internal/auth"
@@ -32,6 +34,7 @@ type hvDirectory interface {
 	RunOperation(ctx context.Context, id string) error
 	FinishOperation(ctx context.Context, id, status, detail, guestStatus string) error
 	Operations(ctx context.Context, serverID string, limit int) ([]servers.Operation, error)
+	RecentOutcomes(ctx context.Context, serverID string, within time.Duration) (map[string]string, error)
 	AbandonOperations(ctx context.Context) (int64, error)
 	Fleets(ctx context.Context) ([]servers.Fleet, error)
 	SaveFleet(ctx context.Context, f servers.Fleet, by string) (servers.Fleet, error)
@@ -168,6 +171,9 @@ func (emptyHV) StartOperation(context.Context, servers.Operation) (string, error
 func (emptyHV) RunOperation(context.Context, string) error { return servers.ErrNotFound }
 func (emptyHV) FinishOperation(context.Context, string, string, string, string) error {
 	return servers.ErrNotFound
+}
+func (emptyHV) RecentOutcomes(context.Context, string, time.Duration) (map[string]string, error) {
+	return nil, nil
 }
 func (emptyHV) Operations(context.Context, string, int) ([]servers.Operation, error) {
 	return []servers.Operation{}, nil
@@ -365,7 +371,23 @@ func (a *API) infraGuests(w http.ResponseWriter, r *http.Request, _ *caller) {
 		infraErr(w, err)
 		return
 	}
-	writeJSON(w, map[string]any{"items": markSelf(items)})
+	writeJSON(w, map[string]any{"items": markSelf(a.withRecentOutcomes(r.Context(), r.PathValue("id"), items))})
+}
+
+// withRecentOutcomes shows what a change just did while the hypervisor's inventory catches up. Without
+// it a guest the panel just stopped reads as running until the next inventory refresh.
+func (a *API) withRecentOutcomes(ctx context.Context, server string, items []hv.Guest) []hv.Guest {
+	recent, err := a.hvDir().RecentOutcomes(ctx, server, inventoryLag)
+	if err != nil {
+		log.Printf("infra recent outcomes %s: %v", server, err)
+		return items
+	}
+	for i := range items {
+		if status, ok := recent[items[i].ID]; ok {
+			items[i].Status = status
+		}
+	}
+	return items
 }
 
 func (a *API) infraGuest(w http.ResponseWriter, r *http.Request, _ *caller) {
@@ -581,8 +603,21 @@ func (a *API) infraStatus(w http.ResponseWriter, r *http.Request, c *caller) {
 	writeJSON(w, g)
 }
 
+// snapshotKeeper opens a driver that can list and restore its snapshots.
+func (a *API) snapshotKeeper(ctx context.Context, id string) (hv.SnapshotKeeper, error) {
+	d, err := a.driver(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	keeper, ok := d.(hv.SnapshotKeeper)
+	if !ok {
+		return nil, hv.ErrUnsupported
+	}
+	return keeper, nil
+}
+
 func (a *API) infraSnapshots(w http.ResponseWriter, r *http.Request, _ *caller) {
-	cl, err := a.pve(r.Context(), r.PathValue("id"))
+	cl, err := a.snapshotKeeper(r.Context(), r.PathValue("id"))
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -622,7 +657,7 @@ func (a *API) infraRollback(w http.ResponseWriter, r *http.Request, c *caller) {
 	if !a.permit(w, r, c, id, guest, "rollback") {
 		return
 	}
-	cl, err := a.pve(r.Context(), id)
+	cl, err := a.snapshotKeeper(r.Context(), id)
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -870,16 +905,26 @@ func (a *API) permitAction(w http.ResponseWriter, r *http.Request, c *caller, ac
 			writeHVProblem(w, http.StatusConflict, "waiting_on_board", "The approval board is not configured.", key, "")
 			return false
 		}
-		st, err := cards.Post(r.Context(), org, key, verb+" "+guest, "Approve this card, then retry the same request.", c.id.Sub)
+		st, err := cards.Post(r.Context(), org, key, changeTitle(verb, guest), "Approve this card, then run the change again. An approval covers one change.", c.id.Sub)
 		if err != nil {
 			infraErr(w, err)
 			return false
 		}
 		if st != "approved" {
-			writeHVProblem(w, http.StatusConflict, "waiting_on_board",
-				fmt.Sprintf("Approval card %s is %s. Approve it on the factory board, then retry this same call.", key, st),
-				key, st)
+			writeBoardWait(r.Context(), w, cards, org, key, verb, guest, st)
 			return false
+		}
+		// An approval covers one change. Only one request can take it.
+		if user, ok := cards.(cardUser); ok {
+			used, err := user.UseCard(r.Context(), org, key)
+			if err != nil {
+				infraErr(w, err)
+				return false
+			}
+			if !used {
+				writeBoardWait(r.Context(), w, cards, org, key, verb, guest, st)
+				return false
+			}
 		}
 	}
 	if a.db == nil && a.staffDB == nil {
@@ -920,6 +965,39 @@ func (a *API) boardOrg(c *caller, tenant string) string {
 type cardBoard interface {
 	Status(ctx context.Context, org, key string) (string, error)
 	Post(ctx context.Context, org, key, title, body, by string) (string, error)
+}
+
+// cardUser is a board that can spend an approval, so that it covers one change and not all later ones.
+type cardUser interface {
+	UseCard(ctx context.Context, org, key string) (bool, error)
+}
+
+// cardFinder is a board on this panel, whose cards can be decided from the page that asked.
+type cardFinder interface {
+	CardID(ctx context.Context, org, key string) (string, error)
+}
+
+// changeTitle names a change for people. A change to many guests has no one guest to name.
+func changeTitle(verb, guest string) string {
+	if guest == "*" {
+		return strings.ReplaceAll(verb, "-", " ")
+	}
+	return verb + " " + guest
+}
+
+func writeBoardWait(ctx context.Context, w http.ResponseWriter, cards cardBoard, org, key, verb, guest, st string) {
+	id := ""
+	if finder, ok := cards.(cardFinder); ok {
+		if found, err := finder.CardID(ctx, org, key); err == nil {
+			id = found
+		}
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(http.StatusConflict)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"type": "about:blank", "title": http.StatusText(http.StatusConflict), "status": http.StatusConflict, "code": "waiting_on_board",
+		"message": changeTitle(verb, guest) + " needs approval before it runs.", "card_key": key, "board_status": st, "card_id": id,
+	})
 }
 
 func (a *API) lifecycleBoard() cardBoard {
@@ -977,6 +1055,22 @@ func (d decisionBoard) Post(ctx context.Context, org, key, title, body, by strin
 		return "", err
 	}
 	return dec.Status, nil
+}
+
+// UseCard spends the approval when the source can. A board elsewhere keeps its own rule.
+func (d decisionBoard) UseCard(ctx context.Context, org, key string) (bool, error) {
+	if user, ok := d.src.(cardUser); ok {
+		return user.UseCard(ctx, org, key)
+	}
+	return true, nil
+}
+
+// CardID finds the card when it lives on this panel. A board elsewhere has none to offer.
+func (d decisionBoard) CardID(ctx context.Context, org, key string) (string, error) {
+	if finder, ok := d.src.(cardFinder); ok {
+		return finder.CardID(ctx, org, key)
+	}
+	return "", nil
 }
 
 func writeHVProblem(w http.ResponseWriter, status int, code, msg, key, board string) {

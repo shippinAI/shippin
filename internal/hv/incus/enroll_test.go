@@ -136,6 +136,44 @@ func TestLocateReportsWhenNoAddressAnswers(t *testing.T) {
 	}
 }
 
+func TestSnapshotsListAndRestore(t *testing.T) {
+	var restored string
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/web/snapshots":
+			_, _ = w.Write([]byte(`{"metadata":["/1.0/instances/web/snapshots/before","/1.0/instances/web/snapshots/with%20space"]}`))
+		case r.Method == http.MethodPut && r.URL.Path == "/1.0/instances/web":
+			var in map[string]string
+			_ = json.NewDecoder(r.Body).Decode(&in)
+			restored = in["restore"]
+			w.WriteHeader(http.StatusAccepted)
+			_, _ = w.Write([]byte(`{"type":"async","metadata":{"id":"op1"}}`))
+		case r.URL.Path == "/1.0/operations/op1/wait":
+			_, _ = w.Write([]byte(`{"metadata":{"status_code":200}}`))
+		case r.URL.Path == "/1.0/instances/web":
+			_, _ = w.Write([]byte(`{"metadata":{"name":"web","type":"container","status":"Running"}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	trusted := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: srv.Certificate().Raw})
+	c, err := New(Endpoint{BaseURL: srv.URL, TrustedPEM: trusted}, func() (string, error) { return "token", nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	names, err := c.Snapshots(context.Background(), "web")
+	if err != nil || len(names) != 2 || names[0] != "before" || names[1] != "with space" {
+		t.Fatalf("%v %v", names, err)
+	}
+	if _, err := c.Rollback(context.Background(), "web", "before"); err != nil || restored != "before" {
+		t.Fatalf("restored %q: %v", restored, err)
+	}
+	if _, err := c.Rollback(context.Background(), "web", "a/b"); err == nil {
+		t.Fatal("a name with a slash must be refused")
+	}
+}
+
 func TestHealthSaysWhenTheServerDoesNotTrustThePanel(t *testing.T) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"metadata":{"auth":"untrusted"}}`))
@@ -150,7 +188,7 @@ func TestHealthSaysWhenTheServerDoesNotTrustThePanel(t *testing.T) {
 	if err == nil || h.Online {
 		t.Fatalf("an untrusted panel must not read as online: %+v, %v", h, err)
 	}
-	if !strings.Contains(err.Error(), "does not trust") {
+	if !strings.Contains(err.Error(), "no longer trusts") {
 		t.Fatalf("the error should say what is wrong: %v", err)
 	}
 }

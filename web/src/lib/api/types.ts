@@ -40,7 +40,7 @@ export type PublicSettings = {
   login_providers?: { id: string; label: string }[];
 };
 
-export type Probe = { name: string; kind: string; instance: string; healthy: boolean; latency_ms: number; detail: string };
+export type Probe = { name: string; kind: string; instance: string; healthy: boolean; configured?: boolean; latency_ms: number; detail: string };
 
 export type Instance = {
   name: string;

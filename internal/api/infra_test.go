@@ -4,16 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"shippin.cloud/console/internal/approval"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/proxmox"
 	"shippin.cloud/console/internal/servers"
 )
@@ -70,6 +73,11 @@ func TestInfraGuestLifecycleReadsBack(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
 				{"vmid": 100, "name": "app", "type": "lxc", "status": st, "node": "n1"},
 			}})
+		case strings.HasSuffix(r.URL.Path, "/status/current"):
+			mu.Lock()
+			st := status
+			mu.Unlock()
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": st}})
 		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/status/start"):
 			mu.Lock()
 			status = "running"
@@ -151,6 +159,61 @@ func TestInfraWaitsOnTheBoardAndRejectsPlainHTTP(t *testing.T) {
 	}
 }
 
+// spendBoard is approved until its one approval has been used.
+type spendBoard struct {
+	stubBoard
+	mu    sync.Mutex
+	spent bool
+}
+
+func (s *spendBoard) UseCard(context.Context, string, string) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.spent {
+		return false, nil
+	}
+	s.spent = true
+	return true, nil
+}
+
+func (s *spendBoard) CardID(context.Context, string, string) (string, error) { return "card-1", nil }
+
+func TestAnApprovalCoversOneChange(t *testing.T) {
+	id := "019a0000-0000-7000-8000-0000000000aa"
+	dir := &memHV{items: []servers.Endpoint{{ID: id, Kind: "proxmox", BaseURL: "https://pve.example:8006", Node: "n1", TokenID: "id!tok", TokenEnv: "SHIPPIN_HV_TEST"}}}
+	a := infraAPI(t, "op_infra", dir)
+	a.cfg.Approval.Board.Driver = "hub"
+	a.cfg.Approval.Board.OrgID = "ops"
+	a.hvBoard = &spendBoard{stubBoard: stubBoard{st: "approved"}}
+	req := httptest.NewRequest(http.MethodPost, "/v1/infra/servers/"+id+"/guests/100/status/stop", nil)
+	first := a.permitAction(httptest.NewRecorder(), req, &caller{id: &auth.Identity{Sub: "u"}, op: "op_infra"}, hvAction, "", id, "100", "stop")
+	if !first {
+		t.Fatal("the approved change must run")
+	}
+	rec := httptest.NewRecorder()
+	if a.permitAction(rec, req, &caller{id: &auth.Identity{Sub: "u"}, op: "op_infra"}, hvAction, "", id, "100", "stop") {
+		t.Fatal("the same approval must not cover a second change")
+	}
+	body := rec.Body.String()
+	if rec.Code != http.StatusConflict || !strings.Contains(body, `"code":"waiting_on_board"`) || !strings.Contains(body, `"card_id":"card-1"`) || !strings.Contains(body, "stop 100 needs approval") {
+		t.Fatalf("second change: %d %s", rec.Code, body)
+	}
+}
+
+func TestGuestListShowsWhatAChangeJustDid(t *testing.T) {
+	dir := &memHV{recent: map[string]string{"100": "stopped"}}
+	a := infraAPI(t, "op_infra", dir)
+	got := a.withRecentOutcomes(context.Background(), "s1", []hv.Guest{{ID: "100", Status: "running"}, {ID: "101", Status: "running"}})
+	if got[0].Status != "stopped" || got[1].Status != "running" {
+		t.Fatalf("%+v", got)
+	}
+	dir.recent, dir.recentErr = nil, errors.New("database is down")
+	got = a.withRecentOutcomes(context.Background(), "s1", []hv.Guest{{ID: "100", Status: "running"}})
+	if got[0].Status != "running" {
+		t.Fatalf("no record must leave the inventory as it is: %+v", got)
+	}
+}
+
 type stubBoard struct{ st string }
 
 func (s stubBoard) Status(context.Context, string, string) (string, error) { return s.st, nil }
@@ -159,10 +222,12 @@ func (s stubBoard) Post(context.Context, string, string, string, string, string)
 }
 
 type memHV struct {
-	mu     sync.Mutex
-	items  []servers.Endpoint
-	ops    []servers.Operation
-	fleets []servers.Fleet
+	mu        sync.Mutex
+	items     []servers.Endpoint
+	ops       []servers.Operation
+	recent    map[string]string
+	recentErr error
+	fleets    []servers.Fleet
 	// failOps makes the record fail, to prove a change does not run without one.
 	failOps bool
 }
@@ -199,6 +264,9 @@ func (m *memHV) FinishOperation(_ context.Context, id, status, detail, guestStat
 		}
 	}
 	return nil
+}
+func (m *memHV) RecentOutcomes(context.Context, string, time.Duration) (map[string]string, error) {
+	return m.recent, m.recentErr
 }
 func (m *memHV) Operations(context.Context, string, int) ([]servers.Operation, error) {
 	m.mu.Lock()
@@ -347,6 +415,11 @@ func TestTenantGuestsStayInsideTheOrg(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
 				{"vmid": 100, "name": "app", "type": "lxc", "status": st, "node": "n1"},
 			}})
+		case strings.HasSuffix(r.URL.Path, "/status/current"):
+			mu.Lock()
+			st := status
+			mu.Unlock()
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": st}})
 		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/status/start"):
 			mu.Lock()
 			status = "running"

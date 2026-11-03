@@ -114,8 +114,10 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOp
   };
   const submit = () => {
     if (!provider) return;
-    const request = existing
-      ? { ...hostValues(), existing: existing.id, label: existing.label || existing.slug }
+    // A detached host keeps its slug, so adding it back under that slug reattaches it.
+    const detached = existing ?? data.unattached.find((s) => s.slug === slug);
+    const request = detached
+      ? { ...hostValues(), existing: detached.id, label: label.trim() || detached.label || detached.slug }
       : { ...hostValues(), label: label.trim(), slug, site };
     add.mutate(request, {
       onSuccess: () => {

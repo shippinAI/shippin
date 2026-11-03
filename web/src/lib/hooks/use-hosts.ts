@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError, apiGet, apiSend } from "../api/client";
+import { apiGet, apiSend, isWaitingOnBoard } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 
 export type Guest = { id: string; name: string; kind: string; status: string; node: string; tags?: string; self?: boolean };
@@ -29,14 +29,19 @@ export const useTask = (base: string, upid: string) =>
     refetchInterval: (q) => (q.state.data?.done ? false : 2000),
   });
 
-function hvError(fallback: string, e: Error) {
-  if (e instanceof ApiError && e.code === "waiting_on_board") return ["Approve the card, then try again", e.message] as const;
-  return [fallback, e.message] as const;
+function reportError(fallback: string, e: Error) {
+  if (!isWaitingOnBoard(e)) toast.error(fallback, e.message);
 }
+
+/** The server records a change as soon as it has the request, so Activity can show it before it ends. */
+const showStarted = (qc: ReturnType<typeof useQueryClient>) => {
+  setTimeout(() => void qc.invalidateQueries({ queryKey: ["infra", "operations"] }), 500);
+};
 
 export function useGuestAction(base: string) {
   const qc = useQueryClient();
   return useMutation({
+    onMutate: () => showStarted(qc),
     mutationFn: (v: { guest: string; verb: "start" | "stop" | "shutdown" | "reboot"; confirmSelf?: boolean }) =>
       apiSend<Guest>("POST", `${base}/guests/${v.guest}/status/${v.verb}${v.confirmSelf ? "?confirm=self" : ""}`),
     onSuccess: (g) => {
@@ -44,7 +49,7 @@ export function useGuestAction(base: string) {
       void qc.invalidateQueries({ queryKey: ["hv", base, "guests"] });
     },
     onSettled: () => void qc.invalidateQueries({ queryKey: ["infra", "operations"] }),
-    onError: (e) => toast.error(...hvError("The hypervisor did not change the guest", e)),
+    onError: (e) => reportError("The hypervisor did not change the guest", e),
   });
 }
 
@@ -57,32 +62,34 @@ export function useCreateGuest(id: string) {
       toast.info(`Guest ${g.id} is ${g.status}`, "The task finished and inventory was read again.");
       void qc.invalidateQueries({ queryKey: ["hv", `/v1/infra/servers/${id}`, "guests"] });
     },
-    onError: (e) => toast.error(...hvError("Couldn't create the guest", e)),
+    onError: (e) => reportError("Couldn't create the guest", e),
   });
 }
 
 export function useSnapshot(base: string) {
   const qc = useQueryClient();
   return useMutation({
+    onMutate: () => showStarted(qc),
     mutationFn: (v: { guest: string; snapname: string }) =>
       apiSend<Guest>("POST", `${base}/guests/${v.guest}/snapshots`, { snapname: v.snapname }),
     onSuccess: (_g, v) => {
       toast.info("Snapshot saved", v.snapname);
       void qc.invalidateQueries({ queryKey: ["hv", base, v.guest, "snapshots"] });
     },
-    onError: (e) => toast.error(...hvError("Couldn't snapshot", e)),
+    onError: (e) => reportError("Couldn't snapshot", e),
   });
 }
 
 export function useRollback(base: string) {
   const qc = useQueryClient();
   return useMutation({
+    onMutate: () => showStarted(qc),
     mutationFn: (v: { guest: string; name: string }) =>
       apiSend<Guest>("POST", `${base}/guests/${v.guest}/snapshots/${v.name}/rollback`),
     onSuccess: (g) => {
       toast.info(`Rolled back ${g.name || g.id}`, "The guest was read back after the task.");
       void qc.invalidateQueries({ queryKey: ["hv", base, "guests"] });
     },
-    onError: (e) => toast.error(...hvError("Couldn't roll back", e)),
+    onError: (e) => reportError("Couldn't roll back", e),
   });
 }

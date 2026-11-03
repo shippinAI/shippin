@@ -49,6 +49,17 @@ func (s *Store) UpsertApproval(ctx context.Context, org, externalKey, title, bod
 	return t, err
 }
 
+// UseApproval spends an approved card and reports whether this caller got it. The card moves to done
+// and gives up its key, so the next change under that key files a new card.
+func (s *Store) UseApproval(ctx context.Context, org, externalKey string) (bool, error) {
+	tag, err := s.Pool.Exec(ctx, `UPDATE hub_tasks SET status='done', external_key='', updated_at=now()
+		WHERE org_id=$1 AND external_key=$2 AND status='approved'`, org, externalKey)
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() == 1, nil
+}
+
 // ApprovalByKey returns the card posted under externalKey.
 func (s *Store) ApprovalByKey(ctx context.Context, org, externalKey string) (*Task, error) {
 	return s.approvalByKey(ctx, org, externalKey)

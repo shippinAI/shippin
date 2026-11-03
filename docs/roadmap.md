@@ -14,7 +14,7 @@ What works today, what does not, and what comes next. [The objective](objective.
 
 ## Known gaps
 
-- **Hypervisors:** the Incus and Proxmox drivers, trust-token enrollment and node detail have only been exercised against simulated APIs. The field names a real server expects may differ. Try them on a disposable guest first.
+- **Hypervisors:** adding a host, node detail, start, stop, shutdown, reboot, snapshot, restore and bulk stop have been run against Incus 6.0.4 and Proxmox VE 9.2, each on one node in a throwaway container. Incus guests were containers and Proxmox guests were QEMU VMs with no operating system. Not yet run: Incus VMs, Proxmox containers, a guest with a real operating system answering a clean shutdown on Proxmox, and any real cluster. Try it on a disposable guest first.
 - **Rollback:** migrations run forward only. Going back to an older build means restoring a backup.
 - **Local agent:** neither deployment path sets up `shippin-hostd`. The features that depend on it, including workspaces on the primary, need `incus.hostd_url` set and hostd installed by hand. See `deploy/hostd-install.sh`.
 - **Remote nodes:** node enrollment exists for a token and a heartbeat. There is no node CA and no installer for a secondary. See [node enrollment](node-enrollment.md).
@@ -27,7 +27,7 @@ What works today, what does not, and what comes next. [The objective](objective.
 
 The order is in [fleet operations](design/fleet-operations.md):
 
-1. Run all of this against real Incus and Proxmox servers, and fix what that finds.
+1. Run what is listed under Hypervisors above, and make the run against real servers repeatable in CI.
 2. Operating a fleet at once, capacity totals and placement.
 3. Updating from a button.
 

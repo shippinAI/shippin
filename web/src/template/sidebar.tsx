@@ -12,7 +12,7 @@ import { UserMenu } from "./user-menu";
 const heading = "text-[11px] font-medium tracking-wider text-fg-subtle uppercase";
 
 export function Sidebar() {
-  const { tenant, isOperator } = useTenant();
+  const { tenant, tenants, isOperator } = useTenant();
   const settings = usePublicSettings().data;
   const caps = useMe().data?.capabilities ?? {};
   const nav = useUiConfig().data?.nav;
@@ -35,11 +35,13 @@ export function Sidebar() {
         <BrandMark size={26} />
         <span className="text-[15px] font-semibold tracking-tight">{settings?.brand.name ?? ""}</span>
       </div>
-      <div className="px-3 pb-3">
-        <TenantSwitcher />
-      </div>
+      {tenants.length > 0 && (
+        <div className="px-3 pb-3">
+          <TenantSwitcher />
+        </div>
+      )}
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pt-1" aria-label="Main">
-        {!devspace.hidden && (
+        {!devspace.hidden && base && (
           <div className="space-y-0.5">
             <div className="flex items-center justify-between px-2.5 pb-1">
               <span className={heading}>{devspace.label}</span>

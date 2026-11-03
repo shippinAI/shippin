@@ -31,6 +31,10 @@ func TestStartReadsBackAndSkipsWhenRunning(t *testing.T) {
 				{"vmid": 100, "name": "ct-app", "type": "lxc", "status": status["100"], "node": "n1"},
 				{"vmid": 101, "name": "vm-db", "type": "qemu", "status": status["101"], "node": "n1"},
 			}})
+		case strings.HasSuffix(r.URL.Path, "/status/current"):
+			mu.Lock()
+			defer mu.Unlock()
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": status[strings.Split(r.URL.Path, "/")[6]]}})
 		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/status/start"):
 			mu.Lock()
 			posts++
@@ -65,6 +69,10 @@ func TestStartReadsBackAndSkipsWhenRunning(t *testing.T) {
 
 func TestStartFailsWhenReadBackDisagrees(t *testing.T) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/status/current") {
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": "stopped"}})
+			return
+		}
 		if r.URL.Path == "/api2/json/cluster/resources" {
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
 				{"vmid": 100, "name": "a", "type": "qemu", "status": "stopped", "node": "n1"},
@@ -110,6 +118,10 @@ func TestTLSRejectsUnknownCA(t *testing.T) {
 func TestSnapshotAllowsLXC(t *testing.T) {
 	var path string
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/status/current") {
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": "running"}})
+			return
+		}
 		if r.Method == http.MethodPost {
 			path = r.URL.Path
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": "UPID:n1:00000001:00000002:00000003:snapshot:100:token@pve:"})
@@ -157,6 +169,8 @@ func TestStartWaitsForTheTaskBeforeReadingBack(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
 				{"vmid": 100, "name": "a", "type": "lxc", "status": status, "node": "n1"},
 			}})
+		case strings.HasSuffix(r.URL.Path, "/status/current"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": status}})
 		case r.Method == http.MethodPost:
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": "UPID:n1:00000001:00000002:00000003:vzstart:100:token@pve:"})
 		case strings.Contains(r.URL.Path, "/tasks/") && strings.HasSuffix(r.URL.Path, "/log"):
@@ -192,6 +206,8 @@ func TestStartReportsAFailedTask(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
 				{"vmid": 100, "name": "a", "type": "lxc", "status": "stopped", "node": "n1"},
 			}})
+		case strings.HasSuffix(r.URL.Path, "/status/current"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": "stopped"}})
 		case r.Method == http.MethodPost:
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": "UPID:n1:00000001:00000002:00000003:vzstart:100:token@pve:"})
 		case strings.Contains(r.URL.Path, "/tasks/") && strings.HasSuffix(r.URL.Path, "/log"):
@@ -205,5 +221,54 @@ func TestStartReportsAFailedTask(t *testing.T) {
 	defer srv.Close()
 	if _, err := clientFor(t, srv).Start(context.Background(), "100"); err == nil || !strings.Contains(err.Error(), "no space left") {
 		t.Fatalf("got %v", err)
+	}
+}
+
+// pvestatd refreshes /cluster/resources about every ten seconds, so on a real server the inventory still
+// shows the old status after a task has finished. Only status/current is up to date.
+func TestChangesBelieveStatusCurrentOverALaggingInventory(t *testing.T) {
+	var mu sync.Mutex
+	current, posts := "stopped", 0
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		upid := map[string]any{"data": "UPID:n1:00000001:00000002:00000003:qmstart:100:token@pve:"}
+		switch {
+		case r.URL.Path == "/api2/json/cluster/resources":
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
+				{"vmid": 100, "name": "a", "type": "qemu", "status": "stopped", "node": "n1"},
+			}})
+		case strings.HasSuffix(r.URL.Path, "/status/current"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": current}})
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/status/start"):
+			posts++
+			current = "running"
+			_ = json.NewEncoder(w).Encode(upid)
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/status/stop"):
+			posts++
+			current = "stopped"
+			_ = json.NewEncoder(w).Encode(upid)
+		case strings.Contains(r.URL.Path, "/tasks/") && strings.HasSuffix(r.URL.Path, "/status"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": "stopped", "exitstatus": "OK", "type": "qmstart"}})
+		case strings.Contains(r.URL.Path, "/tasks/") && strings.HasSuffix(r.URL.Path, "/log"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]string{{"t": "TASK OK"}}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	c := clientFor(t, srv)
+	ctx := context.Background()
+	got, err := c.Start(ctx, "100")
+	if err != nil || got.Status != "running" {
+		t.Fatalf("a start that worked must not read as failed: %+v %v", got, err)
+	}
+	if _, err := c.Start(ctx, "100"); err != nil || posts != 1 {
+		t.Fatalf("already running, nothing to send: posts=%d err=%v", posts, err)
+	}
+	// The inventory still says stopped. Believing it would skip this stop and report success.
+	got, err = c.Stop(ctx, "100")
+	if err != nil || got.Status != "stopped" || posts != 2 {
+		t.Fatalf("the stop must really be sent: %+v posts=%d err=%v", got, posts, err)
 	}
 }

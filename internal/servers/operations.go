@@ -38,6 +38,30 @@ type Operation struct {
 }
 
 // StartOperation records that a change is about to happen, and returns its id.
+// RecentOutcomes is the status each guest ended in after a change finished in the last while. A
+// hypervisor's inventory can lag behind a change it has already made.
+func (s *Store) RecentOutcomes(ctx context.Context, serverID string, within time.Duration) (map[string]string, error) {
+	if uuid.Validate(serverID) != nil {
+		return nil, ErrNotFound
+	}
+	rows, err := s.Pool.Query(ctx, `SELECT DISTINCT ON (guest) guest, guest_status FROM infra_operations
+		WHERE server_id=$1 AND status=$2 AND guest_status<>'' AND finished_at > now() - make_interval(secs => $3)
+		ORDER BY guest, finished_at DESC`, serverID, OpSucceeded, within.Seconds())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]string{}
+	for rows.Next() {
+		var guest, status string
+		if err := rows.Scan(&guest, &status); err != nil {
+			return nil, err
+		}
+		out[guest] = status
+	}
+	return out, rows.Err()
+}
+
 func (s *Store) StartOperation(ctx context.Context, op Operation) (string, error) {
 	id, err := uuid.NewV7()
 	if err != nil {

@@ -110,15 +110,40 @@ func (c *Client) Guests(ctx context.Context) ([]hv.Guest, error) {
 	return out, nil
 }
 
+// Guest reads one guest and its status right now. /cluster/resources only catches up when pvestatd
+// next runs, about every ten seconds, so just after a change it still reports the old status.
 func (c *Client) Guest(ctx context.Context, id string) (hv.Guest, error) {
 	all, err := c.Guests(ctx)
 	if err != nil {
 		return hv.Guest{}, err
 	}
 	for _, g := range all {
-		if g.ID == id {
-			return g, nil
+		if g.ID != id {
+			continue
 		}
+		kind, err := apiKind(g)
+		if err != nil {
+			return hv.Guest{}, err
+		}
+		body, code, err := c.do(ctx, http.MethodGet, fmt.Sprintf("/nodes/%s/%s/%s/status/current", c.nodeOf(g), kind, id), nil)
+		if err != nil {
+			return hv.Guest{}, err
+		}
+		if code != http.StatusOK {
+			return hv.Guest{}, fmt.Errorf("proxmox: status HTTP %d: %s", code, clip(body))
+		}
+		var r struct {
+			Data struct {
+				Status string `json:"status"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(body, &r); err != nil {
+			return hv.Guest{}, fmt.Errorf("proxmox: status: %w", err)
+		}
+		if r.Data.Status != "" {
+			g.Status = r.Data.Status
+		}
+		return g, nil
 	}
 	return hv.Guest{}, fmt.Errorf("proxmox: guest %s not in inventory", id)
 }

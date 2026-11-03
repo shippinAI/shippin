@@ -15,12 +15,14 @@ import (
 )
 
 type probeResult struct {
-	Name      string `json:"name"`
-	Kind      string `json:"kind"`
-	Instance  string `json:"instance"`
-	Healthy   bool   `json:"healthy"`
-	LatencyMs int64  `json:"latency_ms"`
-	Detail    string `json:"detail"`
+	Name     string `json:"name"`
+	Kind     string `json:"kind"`
+	Instance string `json:"instance"`
+	Healthy  bool   `json:"healthy"`
+	// Configured is false when nobody has said where this service is. That is not the same as down.
+	Configured bool   `json:"configured"`
+	LatencyMs  int64  `json:"latency_ms"`
+	Detail     string `json:"detail"`
 }
 
 func (a *API) platformProbes(ctx context.Context) []config.Probe {
@@ -56,6 +58,7 @@ func probe(ctx context.Context, p config.Probe) (res probeResult) {
 		res.Detail = "not configured"
 		return res
 	}
+	res.Configured = true
 	if p.TCP != "" {
 		c, err := (&net.Dialer{Timeout: 3 * time.Second}).DialContext(ctx, "tcp", p.TCP)
 		if err == nil {

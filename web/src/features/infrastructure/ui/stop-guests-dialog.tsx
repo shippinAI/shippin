@@ -6,6 +6,7 @@ import type { Guest } from "../../../lib/hooks/use-hosts";
 import { useStopGuests } from "../../../lib/hooks/use-infra";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { stoppableGuests } from "../model";
+import { BoardNotice } from "./board-notice";
 
 type Props = { serverId: string; guests: Guest[]; isOpen: boolean; onOpenChange: (open: boolean) => void };
 
@@ -21,6 +22,7 @@ export function StopGuestsDialog({ serverId, guests, isOpen, onOpenChange }: Pro
     if (!isOpen) return;
     setChosen(new Set(candidates.filter((g) => !g.self).map((g) => g.id)));
     setForce(false);
+    stop.reset();
     // Reset only when the dialog opens: the guest list refreshes on a timer behind it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -48,6 +50,7 @@ export function StopGuestsDialog({ serverId, guests, isOpen, onOpenChange }: Pro
           ))}
         </ul>
         <Switch isSelected={force} onChange={setForce} tooltip={t("infra.stop.forceTooltip")}>{t("infra.stop.force")}</Switch>
+        <BoardNotice error={stop.error} retry={() => { if (stop.variables) stop.mutate(stop.variables, { onSuccess: () => onOpenChange(false) }); }} />
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={() => onOpenChange(false)}>{t("infra.dialog.cancel")}</Button>
           <Button variant="primary" isDisabled={ordered.length === 0 || stop.isPending} tooltip={t("infra.stop.submitTooltip")}

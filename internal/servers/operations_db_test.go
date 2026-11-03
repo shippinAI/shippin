@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -117,5 +118,37 @@ func TestSecretsAndFleetsSurviveTheDatabase(t *testing.T) {
 	}
 	if err := s.DeleteFleet(ctx, f.ID); err != ErrNotFound {
 		t.Fatalf("second delete: %v", err)
+	}
+}
+
+func TestRecentOutcomesAreTheLatestSuccessPerGuest(t *testing.T) {
+	s, ctx, tenant := testStore(t)
+	g, err := s.Create(ctx, tenant, "recent-host", "Recent", "lab", "u")
+	if err != nil {
+		t.Fatal(err)
+	}
+	finish := func(guest, status, guestStatus string) {
+		t.Helper()
+		id, err := s.StartOperation(ctx, Operation{ServerID: g.ID, Guest: guest, Verb: "stop", Actor: "u"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := s.FinishOperation(ctx, id, status, "", guestStatus); err != nil {
+			t.Fatal(err)
+		}
+	}
+	finish("a", OpSucceeded, "running")
+	finish("a", OpSucceeded, "stopped")
+	finish("b", OpFailed, "running")
+	got, err := s.RecentOutcomes(ctx, g.ID, time.Minute)
+	if err != nil || len(got) != 1 || got["a"] != "stopped" {
+		t.Fatalf("%v %v", got, err)
+	}
+	if _, err := s.Pool.Exec(ctx, `UPDATE infra_operations SET finished_at = now() - interval '1 hour'`); err != nil {
+		t.Fatal(err)
+	}
+	got, err = s.RecentOutcomes(ctx, g.ID, time.Minute)
+	if err != nil || len(got) != 0 {
+		t.Fatalf("an old result must not outrank the inventory: %v %v", got, err)
 	}
 }

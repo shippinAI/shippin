@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError, apiGet, apiSend } from "../api/client";
+import { ApiError, apiGet, apiSend, isWaitingOnBoard } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 import { useText } from "../ui-config/use-ui-config";
 
@@ -82,7 +82,7 @@ const operationsKey = ["infra", "operations"];
 export const useInfraOverview = (enabled = true) =>
   useQuery({ queryKey: overviewKey, queryFn: () => apiGet<InfraOverview>("/v1/infra/overview"), refetchInterval: 30_000, enabled });
 
-const isOpen = (o: InfraOperation) => o.status === "queued" || o.status === "running";
+export const isOpen = (o: InfraOperation) => o.status === "queued" || o.status === "running";
 
 /** Recent changes, for one host or all. Polls quickly only while something is in progress. */
 export const useOperations = (serverId?: string) =>
@@ -106,6 +106,10 @@ function useRefresh() {
 
 const boardWord = (fallback: string, e: Error) =>
   e instanceof ApiError && e.code === "waiting_on_board" ? (["Approve the card, then try again", e.message] as const) : ([fallback, e.message] as const);
+
+/** Approves one waiting change. It runs when the page asks for it again. */
+export const useApproveCard = () =>
+  useMutation({ mutationFn: (id: string) => apiSend("POST", `/v1/hub/tasks/${encodeURIComponent(id)}/decision`, { approve: true, note: "" }) });
 
 /** Tries what the form holds. Stores nothing, and does not spend a one-time token. */
 export const useTestHost = () => useMutation({ mutationFn: (v: HostValues) => apiSend<ConnectResult>("POST", "/v1/infra/servers/test", bodyOf(v)) });
@@ -150,7 +154,9 @@ export function useStopGuests(serverId: string) {
       toast.info(t("infra.stop.started", { count: r.total }), t("infra.stop.startedBody"));
       refresh();
     },
-    onError: (e) => toast.error(...boardWord(t("infra.stop.failed"), e)),
+    onError: (e) => {
+      if (!isWaitingOnBoard(e)) toast.error(t("infra.stop.failed"), e.message);
+    },
   });
 }
 

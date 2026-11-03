@@ -107,3 +107,27 @@ func TestEmptyOwnerApprovesNobody(t *testing.T) {
 		t.Fatal("unset owner must fail closed")
 	}
 }
+
+func TestAnApprovalIsSpentOnce(t *testing.T) {
+	s, ctx := testStore(t), context.Background()
+	first, err := s.UpsertApproval(ctx, "org", "hv:s1:g1:stop", "stop g1", "", "ada")
+	if err != nil || first.Status != "needs_approval" {
+		t.Fatalf("%+v %v", first, err)
+	}
+	if used, err := s.UseApproval(ctx, "org", "hv:s1:g1:stop"); err != nil || used {
+		t.Fatalf("an undecided card must not be spendable: %v %v", used, err)
+	}
+	if _, err := s.Decide(ctx, "org", first.ID, "owner", true, ""); err != nil {
+		t.Fatal(err)
+	}
+	if used, err := s.UseApproval(ctx, "org", "hv:s1:g1:stop"); err != nil || !used {
+		t.Fatalf("the approved card must be spendable: %v %v", used, err)
+	}
+	if used, err := s.UseApproval(ctx, "org", "hv:s1:g1:stop"); err != nil || used {
+		t.Fatalf("it must be spendable once: %v %v", used, err)
+	}
+	next, err := s.UpsertApproval(ctx, "org", "hv:s1:g1:stop", "stop g1", "", "ada")
+	if err != nil || next.ID == first.ID || next.Status != "needs_approval" {
+		t.Fatalf("the next change must wait on a new card: %+v %v", next, err)
+	}
+}

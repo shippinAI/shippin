@@ -50,6 +50,13 @@ export function fleetTotals(members: FleetMember[]): InfraTotals {
 }
 
 /** Running guests, the panel's own last so it is never first in line. */
+/** Whether a verb can do anything from this status. A status this panel does not know is left to the hypervisor. */
+export const verbApplies = (verb: string, status: string) => {
+  if (isRunning(status)) return verb !== "start";
+  if (isStopped(status)) return verb === "start";
+  return true;
+};
+
 export const stoppableGuests = (guests: Guest[]): Guest[] =>
   guests.filter((g) => isRunning(g.status)).sort((a, b) => Number(!!a.self) - Number(!!b.self));
 

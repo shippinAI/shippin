@@ -10,14 +10,15 @@ import { TextField } from "../../../lib/design/components/field/text-field";
 import { Select } from "../../../lib/design/components/select/select";
 import { Skeleton } from "../../../lib/design/components/skeleton/skeleton";
 import { StatusDot } from "../../../lib/design/components/status-dot/status-dot";
-import { ApiError } from "../../../lib/api/client";
+import { isWaitingOnBoard } from "../../../lib/api/client";
 import { useServices } from "../../../lib/hooks/use-api";
 import { useCreateGuest, useGuestAction, useGuests, useRollback, useSnapshot, useSnapshots, useTask, type Guest } from "../../../lib/hooks/use-hosts";
-import { useDetachHost, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
-import { useNavigate } from "../../../lib/router/router";
+import { isOpen as operationOpen, useDetachHost, useOperations, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
+
 import { useText } from "../../../lib/ui-config/use-ui-config";
-import { firstAnswering, isRunning, isStopped, stoppableGuests } from "../model";
+import { firstAnswering, isRunning, isStopped, stoppableGuests, verbApplies } from "../model";
 import { ActivityCard } from "./activity-card";
+import { BoardNotice } from "./board-notice";
 import { NodeFacts } from "./node-details";
 import { StopGuestsDialog } from "./stop-guests-dialog";
 
@@ -45,22 +46,6 @@ function useGuestColumns(): ColumnDef<Guest>[] {
     },
     { id: "node", label: t("infra.guest.node"), render: (g) => g.node },
   ];
-}
-
-function BoardNotice({ error }: { error: Error | null }) {
-  const nav = useNavigate();
-  const t = useText();
-  if (!(error instanceof ApiError) || error.code !== "waiting_on_board") return null;
-  return (
-    <Card className="mb-6 p-5">
-      <h2 className="mb-1 text-sm font-semibold text-fg">{t("infra.board.title")}</h2>
-      <p className="text-sm text-fg-muted">{error.message}</p>
-      {error.cardKey && <p className="mt-2 font-mono text-[12px] text-fg">{error.cardKey}</p>}
-      <div className="mt-3">
-        <Button size="sm" variant="primary" tooltip={t("infra.board.openTooltip")} onPress={() => nav("/hub")}>{t("infra.board.open")}</Button>
-      </div>
-    </Card>
-  );
 }
 
 /** The local agent's project. It is read-only: changes go through the agent's own job flow. */
@@ -94,6 +79,7 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
   const guest = (guests.data?.items ?? []).find((g) => g.id === guestId);
   const snaps = useSnapshots(can("snapshot_list") ? base : "", guest?.id ?? "");
   const act = useGuestAction(base);
+  const operations = useOperations(node.id);
   const snap = useSnapshot(base);
   const back = useRollback(base);
   const create = useCreateGuest(node.id);
@@ -108,11 +94,18 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
   const [upid, setUpid] = useState("");
   const [lookup, setLookup] = useState("");
   const task = useTask(can("tasks") ? base : "", lookup);
-  const notice = [act.error, snap.error, back.error, create.error].find((e) => e instanceof ApiError && e.code === "waiting_on_board") ?? null;
+  const waiting = [
+    { error: act.error, retry: () => { if (act.variables) act.mutate(act.variables); } },
+    { error: snap.error, retry: () => { if (snap.variables) snap.mutate(snap.variables); } },
+    { error: back.error, retry: () => { if (back.variables) back.mutate(back.variables); } },
+    { error: create.error, retry: () => { if (create.variables) create.mutate(create.variables); } },
+  ].find((m) => isWaitingOnBoard(m.error));
+  // One slow change holds its own guest, and only that one.
+  const guestBusy = !!guest && ((act.isPending && act.variables?.guest === guest.id) || (operations.data?.items ?? []).some((o) => operationOpen(o) && o.guest === guest.id));
   const guestKinds = [{ id: "ct", label: t("infra.guest.ct") }, { id: "vm", label: t("infra.guest.vm") }];
   return (
     <>
-      <BoardNotice error={notice} />
+      {waiting && <div className="mb-6"><BoardNotice error={waiting.error} retry={waiting.retry} /></div>}
       <Card elevation={2} className="mb-6 overflow-hidden">
         <CardHeader
           title={node.label}
@@ -143,11 +136,12 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
           {can("lifecycle") && (
             <div className="mb-4 flex flex-wrap gap-2">
               {(provider.verbs as ("start" | "stop" | "shutdown" | "reboot")[]).map((verb) => (
-                <Button key={verb} size="sm" variant="secondary" tooltip={t("infra.guest.verbTooltip", { verb, guest: guest.id })} isDisabled={act.isPending}
+                <Button key={verb} size="sm" variant="secondary" tooltip={t("infra.guest.verbTooltip", { verb, guest: guest.id })} isDisabled={guestBusy || !verbApplies(verb, guest.status)}
                   onPress={() => (guest.self && verb !== "start" ? setSelfVerb(verb) : act.mutate({ guest: guest.id, verb }))}>
                   {verb}
                 </Button>
               ))}
+              {guestBusy && <p className="basis-full text-[13px] text-fg-muted" data-testid="guest-busy">{t("infra.guest.busy")}</p>}
             </div>
           )}
           {can("snapshot") && (

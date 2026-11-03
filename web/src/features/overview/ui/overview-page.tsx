@@ -19,6 +19,7 @@ export function OverviewPage() {
   const { tenant, tenants, me, isOperator } = useTenant();
   const svc = useServices(isOperator).data;
   const healthy = svc?.probes.filter((p) => p.healthy).length;
+  const checked = svc?.probes.filter((p) => p.configured !== false).length;
   const running = svc?.instances.filter((i) => i.status === "Running").length;
   const wss = useWorkspaces(tenant?.tenant_id).data?.items;
   const first = me?.display_name.split(" ")[0] ?? "";
@@ -41,7 +42,7 @@ export function OverviewPage() {
       {tenant && wss?.length === 0 && <div className="mb-8"><TenantOnboardingCard tenantId={tenant.tenant_id} /></div>}
       {tenant && !tenant.access && <div className="mb-8"><SetupChecklist tenantId={tenant.tenant_id} scope="tenant" /></div>}
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label="Services healthy" value={isOperator ? (svc ? `${healthy}/${svc.probes.length}` : undefined) : "—"} hint="Live probes, 15 s" icon={Activity} hue="var(--color-success)" />
+        <StatTile label="Services healthy" value={isOperator ? (svc ? `${healthy}/${checked}` : undefined) : "—"} hint="Live probes, 15 s" icon={Activity} hue="var(--color-success)" />
         <StatTile label="Instances running" value={isOperator ? running : "—"} hint={svc ? `Project ${svc.project}` : t("home.instances.hint")} icon={Server} hue="var(--color-hue-edge)" />
         <StatTile label="Workspaces" value={wss?.length} hint={wss ? `${wss.filter((w) => w.state === "running").length} running` : "Loading"} icon={Boxes} hue="var(--color-hue-workspaces)" />
         <StatTile label="Tenants" value={tenants.length} hint="You're a member of" icon={Users} hue="var(--color-hue-identity)" />

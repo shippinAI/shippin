@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type { InfraField, InfraOverview, InfraProvider } from "../../lib/hooks/use-infra";
-import { firstAnswering, FLEETS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, hostsWithoutFleet, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
+import { verbApplies, firstAnswering, FLEETS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, hostsWithoutFleet, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
 
 const totals = { nodes: 0, online: 0, guests: 0, running: 0 };
 const provider = (kind: string, nodes = 0): InfraProvider => ({
@@ -80,5 +80,12 @@ assert.equal(formatUptime(90000), "1d 1h");
 assert.equal(memoryPercent({ mem_total_bytes: 200, mem_used_bytes: 50 }), 25);
 assert.equal(memoryPercent({}), null);
 assert.equal(memoryPercent(undefined), null);
+
+assert.equal(verbApplies("start", "Running"), false, "a running guest cannot be started");
+assert.equal(verbApplies("stop", "running"), true);
+assert.equal(verbApplies("start", "stopped"), true);
+assert.equal(verbApplies("reboot", "Stopped"), false, "a stopped guest cannot be rebooted");
+assert.equal(verbApplies("shutdown", "stopped"), false);
+assert.equal(verbApplies("stop", "Frozen"), true, "a status the panel does not know is left to the hypervisor");
 
 console.log("infrastructure model ok");
