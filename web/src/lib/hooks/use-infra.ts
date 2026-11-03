@@ -47,6 +47,7 @@ export type InfraProvider = {
   attachable: boolean;
   capabilities: string[];
   verbs: string[];
+  create_fields?: string[];
   fields: InfraField[];
   nodes: InfraNode[];
   totals: InfraTotals;

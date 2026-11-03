@@ -79,6 +79,7 @@ func (a *API) infraRouteTable() []infraRoute {
 		{"GET /v1/infra/servers/{id}/health", "infra.read", false, a.infraHealth},
 		{"GET /v1/infra/servers/{id}/guests", "infra.read", false, a.infraGuests},
 		{"GET /v1/infra/servers/{id}/guests/{guest}", "infra.read", false, a.infraGuest},
+		{"GET /v1/infra/servers/{id}/images", "infra.read", false, a.infraImages},
 		{"POST /v1/infra/servers/{id}/guests", "infra.guests.manage", true, a.infraCreate},
 		{"POST /v1/infra/servers/{id}/guests/{guest}/clone", "infra.guests.manage", true, a.infraClone},
 		{"POST /v1/infra/servers/{id}/guests/{guest}/template", "infra.guests.manage", true, a.infraTemplate},
@@ -496,25 +497,79 @@ func (b guestBody) spec() proxmox.Spec {
 	return proxmox.Spec{Kind: b.Kind, ID: b.ID, Name: b.Name, Memory: b.Memory, Cores: b.Cores, Disk: b.Disk, Bridge: b.Bridge, NewID: b.NewID, Target: b.Target, Online: b.Online, Storage: b.Storage, Mode: b.Mode, Archive: b.Archive, URL: b.URL, Content: b.Content, File: b.File}
 }
 
+// guestManager opens a driver that can make and remove guests.
+func (a *API) guestManager(ctx context.Context, id string) (hv.GuestManager, error) {
+	d, err := a.driver(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	m, ok := d.(hv.GuestManager)
+	if !ok {
+		return nil, hv.ErrUnsupported
+	}
+	return m, nil
+}
+
+type newGuest struct {
+	Kind   string `json:"kind"`
+	Name   string `json:"name"`
+	Image  string `json:"image"`
+	Memory int    `json:"memory"`
+	Cores  int    `json:"cores"`
+	Disk   int    `json:"disk"`
+	Start  bool   `json:"start"`
+}
+
 func (a *API) infraCreate(w http.ResponseWriter, r *http.Request, c *caller) {
-	var in guestBody
+	var in newGuest
 	if !decodeStrict(w, r, &in) {
 		return
 	}
-	if !a.permit(w, r, c, r.PathValue("id"), in.ID, "create") {
+	if in.Name == "" || (in.Kind != hv.KindCT && in.Kind != hv.KindVM) || in.Memory < 0 || in.Cores < 0 || in.Disk < 0 {
+		auth.Problem(w, http.StatusBadRequest, "A new guest needs a name and a kind, and any sizes must be whole numbers.")
 		return
 	}
-	cl, err := a.pve(r.Context(), r.PathValue("id"))
+	if !a.permit(w, r, c, r.PathValue("id"), in.Name, "create") {
+		return
+	}
+	m, err := a.guestManager(r.Context(), r.PathValue("id"))
 	if err != nil {
 		infraErr(w, err)
 		return
 	}
-	g, err := a.tracked(r, c, r.PathValue("id"), in.ID, "create", func(ctx context.Context) (hv.Guest, error) { return cl.Create(ctx, in.spec()) })
+	g, err := a.tracked(r, c, r.PathValue("id"), in.Name, "create", func(ctx context.Context) (hv.Guest, error) {
+		return m.CreateGuest(ctx, hv.GuestSpec{Kind: in.Kind, Name: in.Name, Image: in.Image, Memory: in.Memory, Cores: in.Cores, Disk: in.Disk, Start: in.Start})
+	})
 	if err != nil {
 		infraErr(w, err)
 		return
 	}
 	writeStatus(w, http.StatusCreated, g)
+}
+
+// infraImages is what a guest can be made from: what the host has, then what this installation names.
+func (a *API) infraImages(w http.ResponseWriter, r *http.Request, _ *caller) {
+	id := r.PathValue("id")
+	ep, err := a.hvDir().Endpoint(r.Context(), id)
+	if err != nil {
+		infraErr(w, err)
+		return
+	}
+	m, err := a.guestManager(r.Context(), id)
+	if err != nil {
+		infraErr(w, err)
+		return
+	}
+	items, err := m.Images(r.Context())
+	if err != nil {
+		infraErr(w, err)
+		return
+	}
+	cfg, _ := a.uiConfig(r.Context()).Provider(ep.Kind)
+	for _, i := range cfg.Images {
+		items = append(items, hv.Image{ID: i.ID, Label: i.Label, Kind: i.Kind})
+	}
+	writeJSON(w, map[string]any{"items": items})
 }
 
 func (a *API) infraClone(w http.ResponseWriter, r *http.Request, c *caller) {
@@ -563,18 +618,23 @@ func (a *API) infraTemplate(w http.ResponseWriter, r *http.Request, c *caller) {
 
 func (a *API) infraDelete(w http.ResponseWriter, r *http.Request, c *caller) {
 	id, guest := r.PathValue("id"), r.PathValue("guest")
-	cl, err := a.pve(r.Context(), id)
+	d, err := a.driver(r.Context(), id)
 	if err != nil {
 		infraErr(w, err)
 		return
 	}
-	if a.refuseSelf(w, r, c, cl, guest, "delete") {
+	if a.refuseSelf(w, r, c, d, guest, "delete") {
 		return
 	}
 	if !a.permit(w, r, c, id, guest, "delete") {
 		return
 	}
-	if _, err := a.tracked(r, c, id, guest, "delete", func(ctx context.Context) (hv.Guest, error) { return hv.Guest{}, cl.Delete(ctx, guest) }); err != nil {
+	cl, err := a.guestManager(r.Context(), id)
+	if err != nil {
+		infraErr(w, err)
+		return
+	}
+	if _, err := a.tracked(r, c, id, guest, "delete", func(ctx context.Context) (hv.Guest, error) { return hv.Guest{}, cl.DeleteGuest(ctx, guest) }); err != nil {
 		infraErr(w, err)
 		return
 	}

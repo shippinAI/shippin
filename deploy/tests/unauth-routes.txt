@@ -40,6 +40,7 @@ GET /v1/infra/servers/{id}/guests
 GET /v1/infra/servers/{id}/guests/{guest}
 GET /v1/infra/servers/{id}/guests/{guest}/snapshots
 GET /v1/infra/servers/{id}/health
+GET /v1/infra/servers/{id}/images
 GET /v1/infra/servers/{id}/network
 GET /v1/infra/servers/{id}/services
 GET /v1/infra/servers/{id}/storage

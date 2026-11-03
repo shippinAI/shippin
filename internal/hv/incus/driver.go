@@ -57,6 +57,9 @@ func (c *Client) Kind() string { return "incus" }
 // operationWait is how long Incus may hold a mutation open, in seconds.
 const operationWait = "45"
 
+// waitAgain keeps a server that answers a wait at once from being asked in a tight loop.
+var waitAgain = time.Second
+
 // path adds the configured project, so a call never lands in another project by default.
 func (c *Client) path(p string, params ...string) string {
 	q := url.Values{}
@@ -74,8 +77,20 @@ func (c *Client) path(p string, params ...string) string {
 
 func instancePath(id string) string { return "/1.0/instances/" + url.PathEscape(id) }
 
+// operationReply is an answer about an operation. Metadata is empty when Type is "error".
+type operationReply struct {
+	Type     string `json:"type"`
+	Error    string `json:"error"`
+	Metadata struct {
+		StatusCode int    `json:"status_code"`
+		Err        string `json:"err"`
+	} `json:"metadata"`
+}
+
 // wait blocks until the async operation in body ends. Reading a guest before this returns the
-// old state. A response that names no operation has nothing to wait for.
+// old state. A response that names no operation has nothing to wait for. Incus lets go after
+// operationWait even if the work is still going, as a long image download is, so this asks again until
+// it has ended or ctx has.
 func (c *Client) wait(ctx context.Context, body []byte) error {
 	var started struct {
 		Type     string `json:"type"`
@@ -86,26 +101,55 @@ func (c *Client) wait(ctx context.Context, body []byte) error {
 	if json.Unmarshal(body, &started) != nil || started.Type != "async" || started.Metadata.ID == "" {
 		return nil
 	}
-	raw, code, err := c.do(ctx, http.MethodGet, c.path("/1.0/operations/"+url.PathEscape(started.Metadata.ID)+"/wait", "timeout", operationWait), nil)
-	if err != nil {
-		return err
+	op := "/1.0/operations/" + url.PathEscape(started.Metadata.ID)
+	for {
+		raw, code, err := c.do(ctx, http.MethodGet, c.path(op+"/wait", "timeout", operationWait), nil)
+		if err != nil {
+			return err
+		}
+		if code != http.StatusOK {
+			return fmt.Errorf("incus: operation HTTP %d: %s", code, clip(raw))
+		}
+		var done operationReply
+		if err := json.Unmarshal(raw, &done); err != nil {
+			return err
+		}
+		// A wait that ran out and work that failed get the same answer here: HTTP 200, type "error", no
+		// metadata. Only reading the operation tells them apart, and Incus forgets a failed one within seconds.
+		if done.Type == "error" {
+			reason := done.Error
+			raw, code, err = c.do(ctx, http.MethodGet, c.path(op), nil)
+			if err != nil {
+				return err
+			}
+			done = operationReply{}
+			if code != http.StatusOK || json.Unmarshal(raw, &done) != nil || done.Type == "error" {
+				return fmt.Errorf("incus: %s", reason)
+			}
+		}
+		status := done.Metadata.StatusCode
+		if status == http.StatusOK {
+			return nil
+		}
+		if !stillGoing(status) {
+			return fmt.Errorf("incus: operation did not succeed: status %d: %s", status, done.Metadata.Err)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(waitAgain):
+		}
 	}
-	if code != http.StatusOK {
-		return fmt.Errorf("incus: operation HTTP %d: %s", code, clip(raw))
+}
+
+// stillGoing is an Incus status for work that has not ended: created, started, running, cancelling,
+// pending, starting, stopping or aborting.
+func stillGoing(status int) bool {
+	switch status {
+	case 100, 101, 103, 104, 105, 106, 107, 108:
+		return true
 	}
-	var done struct {
-		Metadata struct {
-			StatusCode int    `json:"status_code"`
-			Err        string `json:"err"`
-		} `json:"metadata"`
-	}
-	if err := json.Unmarshal(raw, &done); err != nil {
-		return err
-	}
-	if done.Metadata.StatusCode != http.StatusOK {
-		return fmt.Errorf("incus: operation did not succeed: status %d: %s", done.Metadata.StatusCode, done.Metadata.Err)
-	}
-	return nil
+	return false
 }
 
 func (c *Client) Health(ctx context.Context) (hv.Health, error) {

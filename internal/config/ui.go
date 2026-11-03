@@ -44,6 +44,15 @@ type UIProvider struct {
 	Description string    `json:"description,omitempty"`
 	Hidden      bool      `json:"hidden,omitempty"`
 	Fields      []UIField `json:"fields,omitempty"`
+	// Images are what a guest can be made from, beyond what the host already has.
+	Images []UIImage `json:"images,omitempty"`
+}
+
+// UIImage is one image this installation offers. The id is in the driver's own terms.
+type UIImage struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	Kind  string `json:"kind,omitempty"`
 }
 
 // UIField is the configured presentation of one attach field. Default prefills the form.

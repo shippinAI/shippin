@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type { InfraField, InfraOverview, InfraProvider } from "../../lib/hooks/use-infra";
-import { noteOK, verbApplies, firstAnswering, FLEETS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, hostsWithoutFleet, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
+import { guestNameOK, imagesFor, noteOK, verbApplies, firstAnswering, FLEETS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, hostsWithoutFleet, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
 
 const totals = { nodes: 0, online: 0, guests: 0, running: 0 };
 const provider = (kind: string, nodes = 0): InfraProvider => ({
@@ -93,5 +93,11 @@ assert.equal(noteOK("    disk    "), false, "spaces do not count");
 assert.equal(noteOK("disk is full"), true);
 assert.equal(noteOK("x".repeat(301)), false, "too long for the audit log");
 assert.equal(noteOK("é".repeat(300)), true, "the limit counts characters, not bytes");
+
+assert.equal(guestNameOK("web-1"), true);
+assert.equal(guestNameOK("1web"), false, "starts with a letter");
+assert.equal(guestNameOK("web_1"), false);
+assert.equal(guestNameOK(""), false);
+assert.deepEqual(imagesFor([{ kind: "ct" }, { kind: "vm" }, {}], "ct"), [{ kind: "ct" }, {}], "an image with no kind suits either");
 
 console.log("infrastructure model ok");

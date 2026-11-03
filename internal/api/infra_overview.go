@@ -165,6 +165,7 @@ type infraProvider struct {
 	Attachable   bool         `json:"attachable"`
 	Capabilities []string     `json:"capabilities"`
 	Verbs        []string     `json:"verbs"`
+	CreateFields []string     `json:"create_fields,omitempty"`
 	Fields       []infraField `json:"fields"`
 	Nodes        []infraNode  `json:"nodes"`
 	Totals       infraTotals  `json:"totals"`
@@ -179,7 +180,7 @@ type infraAgent struct {
 // describeProvider joins what the driver can do with how this installation names it.
 func describeProvider(spec hv.Spec, ui config.UI) (infraProvider, bool) {
 	p := infraProvider{Kind: spec.Kind, Label: spec.Kind, Attachable: len(spec.Fields) > 0,
-		Capabilities: spec.Capabilities, Verbs: spec.Verbs, Fields: []infraField{}, Nodes: []infraNode{}}
+		Capabilities: spec.Capabilities, Verbs: spec.Verbs, CreateFields: spec.CreateFields, Fields: []infraField{}, Nodes: []infraNode{}}
 	cfg, _ := ui.Provider(spec.Kind)
 	if cfg.Label != "" {
 		p.Label = cfg.Label

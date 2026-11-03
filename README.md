@@ -4,7 +4,13 @@ Shippin is a self-hosted infrastructure panel. One web panel for your Incus and 
 
 ## Try it
 
-You need Docker. Nothing else, and no configuration.
+On a Debian or Ubuntu machine, one command installs it and prints where to go. Running it again updates it:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/shippinAI/shippin/main/install.sh | sudo bash
+```
+
+Or with Docker, with nothing else and no configuration:
 
 ```sh
 git clone https://github.com/shippinAI/shippin.git

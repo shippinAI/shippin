@@ -503,6 +503,12 @@
       {
         "kind": "incus",
         "label": "Incus",
+        "images": [
+          { "id": "images:debian/13", "label": "Debian 13" },
+          { "id": "images:ubuntu/24.04", "label": "Ubuntu 24.04" },
+          { "id": "images:alpine/3.21", "label": "Alpine 3.21" },
+          { "id": "images:rockylinux/9", "label": "Rocky Linux 9" }
+        ],
         "description": "Containers and virtual machines on Incus servers.",
         "fields": [
           {
@@ -563,7 +569,7 @@
           {
             "name": "token_secret",
             "label": "API token secret",
-            "help": "Stored encrypted and never shown again. Create a token under Datacenter, Permissions, API Tokens."
+            "help": "Stored encrypted and never shown again. Create a token under Datacenter, Permissions, API Tokens. It needs the roles PVEVMAdmin, PVEAuditor, PVEDatastoreUser and PVESDNUser."
           },
           {
             "name": "node",

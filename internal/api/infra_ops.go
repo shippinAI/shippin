@@ -60,7 +60,7 @@ func operationOutcome(err error) (status, detail string) {
 	var netErr net.Error
 	var urlErr *url.Error
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) || errors.As(err, &netErr) || errors.As(err, &urlErr) {
-		return servers.OpUnknown, "The hypervisor could not be reached to confirm this. Check the guest's state before trying again. " + err.Error()
+		return servers.OpUnknown, "The panel could not confirm how this ended: the hypervisor did not answer in time, or is still working on it. Check the guest's state before trying again. " + err.Error()
 	}
 	return servers.OpFailed, err.Error()
 }

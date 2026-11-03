@@ -25,6 +25,7 @@ const (
 	CapSnapshotList = "snapshot_list"
 	CapRollback     = "rollback"
 	CapCreate       = "create"
+	CapDelete       = "delete"
 	CapTasks        = "tasks"
 )
 
@@ -44,6 +45,9 @@ type Spec struct {
 	Fields       []Field  `json:"fields"`
 	Capabilities []string `json:"capabilities"`
 	Verbs        []string `json:"verbs"`
+	// CreateFields are the optional things a new guest can be given on this driver. "blank_vm" says a
+	// virtual machine needs no image.
+	CreateFields []string `json:"create_fields,omitempty"`
 }
 
 // Specs lists the drivers that can be attached, in their default order.
@@ -60,8 +64,9 @@ func Specs() []Spec {
 				{Name: FieldTokenEnv, Advanced: true},
 				{Name: FieldCAFile, Advanced: true},
 			},
-			Capabilities: []string{CapLifecycle, CapSnapshot, CapSnapshotList, CapRollback},
+			Capabilities: []string{CapLifecycle, CapSnapshot, CapSnapshotList, CapRollback, CapCreate, CapDelete},
 			Verbs:        []string{"start", "stop", "shutdown", "reboot"},
+			CreateFields: []string{"memory", "cores"},
 		},
 		{
 			Kind: "proxmox",
@@ -73,8 +78,9 @@ func Specs() []Spec {
 				{Name: FieldTokenEnv, Advanced: true},
 				{Name: FieldCAFile, Advanced: true},
 			},
-			Capabilities: []string{CapLifecycle, CapSnapshot, CapSnapshotList, CapRollback, CapCreate, CapTasks},
+			Capabilities: []string{CapLifecycle, CapSnapshot, CapSnapshotList, CapRollback, CapCreate, CapDelete, CapTasks},
 			Verbs:        []string{"start", "stop", "shutdown", "reboot"},
+			CreateFields: []string{"memory", "cores", "disk", "blank_vm"},
 		},
 	}
 }
