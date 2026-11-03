@@ -47,7 +47,7 @@ export function CustomersPage() {
             <DataTable label="Customers" columns={cols} rows={q.data?.items ?? []} onRowAction={(id) => nav(`/admin/customers/${id}`)}
               empty={<GuidedEmpty title="No customers yet" action={write && <Button tooltip="Add the first customer" variant="primary" size="sm" onPress={() => setCreating(true)}>Add the first customer</Button>}
                 steps={["Check Plans & Tiers: each tier lists the services it includes.", "Add a customer and pick a plan; it starts as a draft.",
-                  "Review its effective config, then record a provision intent for Gold."]} />} />
+                  "Review its effective config, then record a provision intent for change control."]} />} />
           )}
         </QueryView>
       </Card>

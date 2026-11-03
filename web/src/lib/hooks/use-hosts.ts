@@ -2,44 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiGet, apiSend } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 
-export type ServerRef = { id: string; slug: string; label: string; site?: string; kind?: string };
-
-export type Host = {
-  id: string;
-  slug: string;
-  label: string;
-  kind: string;
-  base_url: string;
-  node: string;
-  token_id: string;
-  token_env: string;
-};
-
 export type Guest = { id: string; name: string; kind: string; status: string; node: string; tags?: string };
 
 export type Task = { upid: string; status: string; exitstatus: string; type: string; log?: string[]; done: boolean };
-
-export const useHosts = () =>
-  useQuery({ queryKey: ["infra", "servers"], queryFn: () => apiGet<{ items: Host[] }>("/v1/infra/servers") });
-
-export const useRegistry = () =>
-  useQuery({ queryKey: ["infra", "registry"], queryFn: () => apiGet<{ items: ServerRef[] }>("/v1/infra/servers/registry") });
-
-export function useAttach() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (body: { id: string; base_url: string; node: string; token_id: string; token_env: string; ca_file?: string }) =>
-      apiSend<Host>("PUT", `/v1/infra/servers/${body.id}`, {
-        kind: "proxmox", base_url: body.base_url, node: body.node, token_id: body.token_id, token_env: body.token_env, ca_file: body.ca_file ?? "",
-      }),
-    onSuccess: () => {
-      toast.info("Hypervisor attached", "The token secret stays in the environment variable you named.");
-      void qc.invalidateQueries({ queryKey: ["infra", "servers"] });
-      void qc.invalidateQueries({ queryKey: ["infra", "registry"] });
-    },
-    onError: (e) => toast.error(...hvError("Couldn't attach the hypervisor", e)),
-  });
-}
 
 export const useGuests = (base: string) =>
   useQuery({

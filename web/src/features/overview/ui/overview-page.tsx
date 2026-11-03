@@ -12,6 +12,8 @@ import { ServicesGrid } from "./services-grid";
 import { StatTile } from "./stat-tile";
 import { WorkspacesEmpty } from "./workspaces-empty";
 import { SparkFleet } from "../../sparks/spark-fleet";
+import { InfrastructureSummary } from "../../infrastructure/ui/infrastructure-summary";
+import { useText } from "../../../lib/ui-config/use-ui-config";
 
 export function OverviewPage() {
   const { tenant, tenants, me, isOperator } = useTenant();
@@ -20,6 +22,7 @@ export function OverviewPage() {
   const running = svc?.instances.filter((i) => i.status === "Running").length;
   const wss = useWorkspaces(tenant?.tenant_id).data?.items;
   const first = me?.display_name.split(" ")[0] ?? "";
+  const t = useText();
   return (
     <>
       <PageHeader
@@ -39,10 +42,11 @@ export function OverviewPage() {
       {tenant && !tenant.access && <div className="mb-8"><SetupChecklist tenantId={tenant.tenant_id} scope="tenant" /></div>}
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatTile label="Services healthy" value={isOperator ? (svc ? `${healthy}/${svc.probes.length}` : undefined) : "—"} hint="Live probes, 15 s" icon={Activity} hue="var(--color-success)" />
-        <StatTile label="Instances running" value={isOperator ? running : "—"} hint={svc ? `Project ${svc.project}` : "Incus"} icon={Server} hue="var(--color-hue-edge)" />
+        <StatTile label="Instances running" value={isOperator ? running : "—"} hint={svc ? `Project ${svc.project}` : t("home.instances.hint")} icon={Server} hue="var(--color-hue-edge)" />
         <StatTile label="Workspaces" value={wss?.length} hint={wss ? `${wss.filter((w) => w.state === "running").length} running` : "Loading"} icon={Boxes} hue="var(--color-hue-workspaces)" />
         <StatTile label="Tenants" value={tenants.length} hint="You're a member of" icon={Users} hue="var(--color-hue-identity)" />
       </div>
+      {me?.capabilities["infra.hosts"] && <InfrastructureSummary />}
       {isOperator && <ServicesGrid />}
       {tenant && !tenant.access && me?.capabilities["host.admin_tools"] && <SparkFleet tenantId={tenant.tenant_id} />}
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">

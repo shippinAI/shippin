@@ -16,7 +16,7 @@ import (
 // file stays the default (a cleared override falls back to it); each write is audited in its tx.
 type platformKey struct {
 	Key, Label, Help string
-	Kind             string            // "string" | "bool"
+	Kind             string            // "string" | "bool" | "json"
 	def              func(a *API) any  // the config file value
 	valid            func(v any) error // nil = ok
 }
@@ -38,6 +38,8 @@ func (a *API) platformKeys() []platformKey {
 		{Key: "services.rrflow.auto_attach", Kind: "bool", Label: "rrflow auto-attach on devspace creation",
 			Help: "New project devspaces get a namespace in the tenant VM's rrflow (only where rrflow is enabled).",
 			def:  func(a *API) any { return a.cfg.Services.RRFlow.AutoAttach }},
+		uiKeyDef(),
+		hvBoardKeyDef(),
 	}
 }
 
@@ -109,7 +111,8 @@ func (a *API) opSetPlatformSetting(w http.ResponseWriter, r *http.Request, c *ca
 		_ = json.Unmarshal(in.Value, &v)
 		_, isS := v.(string)
 		_, isB := v.(bool)
-		if (k.Kind == "string" && !isS) || (k.Kind == "bool" && !isB) {
+		_, isO := v.(map[string]any)
+		if (k.Kind == "string" && !isS) || (k.Kind == "bool" && !isB) || (k.Kind == "json" && !isO) {
 			auth.Problem(w, http.StatusBadRequest, "The value must be a "+k.Kind+".")
 			return
 		}
@@ -123,7 +126,11 @@ func (a *API) opSetPlatformSetting(w http.ResponseWriter, r *http.Request, c *ca
 		in.Value = nil
 	}
 	old := a.platformValue(r.Context(), k.Key)
-	e := teamEntry(r, c, "platform.setting", fmt.Sprintf("%s: %v → %s · %s", k.Key, old, strings.TrimSpace(string(in.Value)), in.Reason))
+	detail := fmt.Sprintf("%s: %v → %s · %s", k.Key, old, strings.TrimSpace(string(in.Value)), in.Reason)
+	if k.Kind == "json" { // the previous document is too long to read in an audit line
+		detail = fmt.Sprintf("%s → %s · %s", k.Key, strings.TrimSpace(string(in.Value)), in.Reason)
+	}
+	e := teamEntry(r, c, "platform.setting", detail)
 	if err := a.db.SetPlatformSetting(r.Context(), k.Key, in.Value, c.id.Sub, e); err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "The setting couldn't be saved.")
 		return

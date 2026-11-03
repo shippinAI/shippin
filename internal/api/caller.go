@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"strings"
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
@@ -26,6 +27,10 @@ type caller struct {
 	staff    *staffView // resolved lazily by staffOf
 	founder  bool       // Nomen founder role from the token claims: passes every check
 	fga      shadowCtx  // N2: OpenFGA shadow of every role decision (no-op when off)
+	// installOwner is the local directory owner. There is no IdP to grant them the infra or founder
+	// role, so infrastructure and approvals accept them by name. This is not founder: tenant access
+	// grants still apply to them.
+	installOwner bool
 }
 
 func (a *API) caller(w http.ResponseWriter, r *http.Request) (*caller, bool) {
@@ -101,6 +106,7 @@ func (a *API) callerFromIdentity(r *http.Request, id *auth.Identity) (*caller, e
 			return nil, err
 		}
 	}
+	c.installOwner = strings.HasPrefix(id.Sub, localSubPrefix) && c.op != "" && c.op == a.cfg.Operator.Role
 	owner := a.cfg.Roles.Owner
 	slices.SortStableFunc(c.tenants, func(x, y tenantView) int { return rank(x, owner) - rank(y, owner) })
 	a.syncAccount(r.Context(), c)

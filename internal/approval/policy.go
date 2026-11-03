@@ -53,6 +53,8 @@ func Default() Policy {
 				ApproverRoles: []string{"founder"}, NeedsApproval: true},
 			{ID: "hv-lifecycle", Actions: []string{"hv.lifecycle"},
 				ApproverRoles: []string{"founder", "op_infra", "org_owner", "org_admin"}, NeedsApproval: true},
+			{ID: "hv-attach", Actions: []string{"hv.attach"},
+				ApproverRoles: []string{"founder", "op_infra"}},
 		},
 	}
 }

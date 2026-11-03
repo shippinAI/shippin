@@ -6,9 +6,9 @@ export type PlatformSetting = {
   key: string;
   label: string;
   help: string;
-  kind: "string" | "bool";
-  config_value: string | boolean;
-  value: string | boolean;
+  kind: "string" | "bool" | "json";
+  config_value: unknown;
+  value: unknown;
   overridden: boolean;
 };
 
@@ -21,7 +21,7 @@ export const usePlatformSettings = () =>
 export function useSetPlatformSetting() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { key: string; value: string | boolean | null; reason: string }) =>
+    mutationFn: (v: { key: string; value: unknown; reason: string }) =>
       apiSend("PUT", `/v1/operator/platform-settings/${encodeURIComponent(v.key)}`, { value: v.value, reason: v.reason }),
     onSuccess: () => {
       toast.success("Setting saved");

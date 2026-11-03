@@ -186,6 +186,18 @@ func (m *memHV) Registry(context.Context) ([]servers.Ref, error) {
 	}
 	return out, nil
 }
+func (m *memHV) CreateEndpoint(_ context.Context, e servers.Endpoint, _ string) (servers.Endpoint, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, x := range m.items {
+		if x.Slug == e.Slug {
+			return servers.Endpoint{}, servers.ErrSlugTaken
+		}
+	}
+	e.ID = "new-" + e.Slug
+	m.items = append(m.items, e)
+	return e, nil
+}
 func (m *memHV) SetEndpoint(_ context.Context, e servers.Endpoint) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -237,6 +249,10 @@ func TestTenantGuestsStayInsideTheOrg(t *testing.T) {
 			status = "running"
 			mu.Unlock()
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": "UPID:n1:1:2:3:vzstart:100:u@pve:"})
+		case strings.Contains(r.URL.Path, "/tasks/") && strings.HasSuffix(r.URL.Path, "/status"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": "stopped", "exitstatus": "OK", "type": "vzstart"}})
+		case strings.Contains(r.URL.Path, "/tasks/") && strings.HasSuffix(r.URL.Path, "/log"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]string{{"t": "TASK OK"}}})
 		default:
 			http.NotFound(w, r)
 		}

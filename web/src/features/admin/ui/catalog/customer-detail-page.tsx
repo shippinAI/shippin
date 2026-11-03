@@ -18,7 +18,7 @@ export function CustomerDetailPage() {
   const { customerId = "" } = useParams();
   const q = useCustomer(customerId);
   const intents = useIntents(customerId);
-  const record = useCatalogWrite("Provision intent recorded (pending Gold ticket)");
+  const record = useCatalogWrite("Provision intent recorded (pending change approval)");
   const [editing, setEditing] = useState(false);
   const can = useCan();
   const c = q.data;
@@ -39,7 +39,7 @@ export function CustomerDetailPage() {
               </span>}
               actions={<>
                 {can(CatalogPerm.customersWrite) && <Button variant="secondary" size="sm" tooltip="Edit name, plan, contacts and endpoints" onPress={() => setEditing(true)}><Pencil className="size-4" /> Edit</Button>}
-                {can(CatalogPerm.intentCreate) && <Button variant="primary" size="sm" isDisabled={record.isPending} tooltip="Snapshot the effective config as desired state; Gold applies it later"
+                {can(CatalogPerm.intentCreate) && <Button variant="primary" size="sm" isDisabled={record.isPending} tooltip="Snapshot the effective config as desired state; change control applies it later"
                   onPress={() => record.mutate({ method: "POST", path: catalogPaths.intent(c.id), body: { note: "from admin panel" } })}>
                   <Send className="size-4" /> Record provision intent
                 </Button>}

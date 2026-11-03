@@ -1,3 +1,4 @@
+DELETE /v1/infra/servers/{id}/attachment
 DELETE /v1/infra/servers/{id}/guests/{guest}
 DELETE /v1/me/bridge-sessions/{id}
 DELETE /v1/me/ssh-keys/{keyId}
@@ -28,6 +29,7 @@ GET /v1/chat/sessions/{id}/ready
 GET /v1/chat/tips
 GET /v1/github/callback
 GET /v1/github/setup
+GET /v1/infra/overview
 GET /v1/infra/servers
 GET /v1/infra/servers/registry
 GET /v1/infra/servers/{id}/backups
@@ -82,6 +84,7 @@ GET /v1/ops/servers
 GET /v1/ops/support-grants
 GET /v1/orgs
 GET /v1/platform/services
+GET /v1/settings/ui
 GET /v1/templates
 GET /v1/tenants
 GET /v1/tenants/{tenantId}
@@ -131,6 +134,7 @@ PATCH /v1/tenants/{tenantId}/members/{userId}
 POST /v1/bridge/device/{code}
 POST /v1/chat/sessions
 POST /v1/chat/sessions/{id}/messages
+POST /v1/infra/servers
 POST /v1/infra/servers/{id}/backups
 POST /v1/infra/servers/{id}/guests
 POST /v1/infra/servers/{id}/guests/{guest}/clone

@@ -79,3 +79,72 @@ func clientFor(t *testing.T, srv *httptest.Server) *Client {
 	}
 	return c
 }
+
+func TestMutationWaitsForTheOperationAndReportsItsFailure(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		wait    string
+		wantErr string
+	}{
+		{"success", `{"metadata":{"status_code":200}}`, ""},
+		{"failure", `{"metadata":{"status_code":400,"err":"disk full"}}`, "disk full"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var mu sync.Mutex
+			status, waited := "Stopped", ""
+			srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				defer mu.Unlock()
+				switch {
+				case r.Method == http.MethodPut:
+					if got := r.URL.Query().Get("project"); got != "lab" {
+						t.Errorf("project %q", got)
+					}
+					w.WriteHeader(http.StatusAccepted)
+					_ = json.NewEncoder(w).Encode(map[string]any{"type": "async", "metadata": map[string]string{"id": "op-1"}})
+				case r.URL.Path == "/1.0/operations/op-1/wait":
+					waited = r.URL.Query().Get("project")
+					if tc.wantErr == "" {
+						status = "Running"
+					}
+					_, _ = io.WriteString(w, tc.wait)
+				case r.URL.Path == "/1.0/instances/app":
+					_ = json.NewEncoder(w).Encode(map[string]any{"metadata": map[string]string{"name": "app", "status": status, "type": "container"}})
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer srv.Close()
+			c := clientFor(t, srv)
+			c.Endpoint.Project = "lab"
+			got, err := c.Start(context.Background(), "app")
+			if waited != "lab" {
+				t.Fatalf("did not wait on the operation in its project: %q", waited)
+			}
+			if tc.wantErr == "" {
+				if err != nil || got.Status != "Running" {
+					t.Fatalf("%+v %v", got, err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("want %q, got %v", tc.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestGuestIDIsEscapedSoItCannotReachAnotherEndpoint(t *testing.T) {
+	var saw string
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		saw = r.URL.EscapedPath()
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+	if _, err := clientFor(t, srv).Guest(context.Background(), "../certificates"); err == nil {
+		t.Fatal("expected not found")
+	}
+	if saw != "/1.0/instances/..%2Fcertificates" {
+		t.Fatalf("path %q", saw)
+	}
+}

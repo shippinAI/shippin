@@ -139,7 +139,7 @@ func (c *Client) Reboot(ctx context.Context, id string) (hv.Guest, error) {
 	if err != nil {
 		return hv.Guest{}, err
 	}
-	if _, err := c.postStatus(ctx, g, "reboot"); err != nil {
+	if err := c.postStatusAndWait(ctx, g, "reboot"); err != nil {
 		return hv.Guest{}, err
 	}
 	return c.Guest(ctx, id)
@@ -153,7 +153,7 @@ func (c *Client) act(ctx context.Context, id, verb, want string) (hv.Guest, erro
 	if g.Status == want {
 		return g, nil
 	}
-	if _, err := c.postStatus(ctx, g, verb); err != nil {
+	if err := c.postStatusAndWait(ctx, g, verb); err != nil {
 		return hv.Guest{}, err
 	}
 	got, err := c.Guest(ctx, id)
@@ -164,6 +164,21 @@ func (c *Client) act(ctx context.Context, id, verb, want string) (hv.Guest, erro
 		return got, fmt.Errorf("proxmox: %s %s: hypervisor reports %q", verb, id, got.Status)
 	}
 	return got, nil
+}
+
+// postStatusAndWait posts verb and waits for the task it started. Reading the guest before this
+// returns the old state: a start takes seconds on a real host.
+func (c *Client) postStatusAndWait(ctx context.Context, g hv.Guest, verb string) error {
+	body, err := c.postStatus(ctx, g, verb)
+	if err != nil {
+		return err
+	}
+	upid, err := upidOf(body)
+	if err != nil {
+		return err
+	}
+	_, err = c.Wait(ctx, upid)
+	return err
 }
 
 func (c *Client) postStatus(ctx context.Context, g hv.Guest, verb string) ([]byte, error) {

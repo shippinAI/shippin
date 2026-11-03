@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/hub"
 	"shippin.cloud/console/internal/hv"
+	"shippin.cloud/console/internal/hv/incus"
 	"shippin.cloud/console/internal/hv/proxmox"
 	"shippin.cloud/console/internal/servers"
 )
@@ -25,6 +27,7 @@ type hvDirectory interface {
 	Endpoints(ctx context.Context) ([]servers.Endpoint, error)
 	Endpoint(ctx context.Context, id string) (servers.Endpoint, error)
 	SetEndpoint(ctx context.Context, e servers.Endpoint) error
+	CreateEndpoint(ctx context.Context, e servers.Endpoint, by string) (servers.Endpoint, error)
 	Registry(ctx context.Context) ([]servers.Ref, error)
 }
 
@@ -42,9 +45,12 @@ func (a *API) infraRoutes(mux Router) {
 
 func (a *API) infraRouteTable() []infraRoute {
 	return []infraRoute{
+		{"GET /v1/infra/overview", a.infraOverview},
 		{"GET /v1/infra/servers", a.infraServers},
+		{"POST /v1/infra/servers", a.infraAdd},
 		{"GET /v1/infra/servers/registry", a.infraRegistry},
 		{"PUT /v1/infra/servers/{id}", a.infraAttach},
+		{"DELETE /v1/infra/servers/{id}/attachment", a.infraDetach},
 		{"GET /v1/infra/servers/{id}/health", a.infraHealth},
 		{"GET /v1/infra/servers/{id}/guests", a.infraGuests},
 		{"GET /v1/infra/servers/{id}/guests/{guest}", a.infraGuest},
@@ -98,9 +104,10 @@ func (a *API) infraRoleMessage() string {
 	return "This needs the infra role " + role + ", granted in Nomen as " + from + "."
 }
 
-// infraAllowed is the configured infra role only. Platform admin is not implied.
+// infraAllowed is the configured infra role, or the local installation owner. Platform admin
+// is not implied for an IdP user.
 func (a *API) infraAllowed(c *caller) bool {
-	return c != nil && c.op != "" && c.op == a.infraRole()
+	return c != nil && (c.installOwner || c.op != "" && c.op == a.infraRole())
 }
 
 func (a *API) infraGate(h func(http.ResponseWriter, *http.Request, *caller)) http.HandlerFunc {
@@ -136,7 +143,10 @@ func (emptyHV) Endpoint(context.Context, string) (servers.Endpoint, error) {
 	return servers.Endpoint{}, servers.ErrNotFound
 }
 func (emptyHV) SetEndpoint(context.Context, servers.Endpoint) error { return servers.ErrNotFound }
-func (emptyHV) Registry(context.Context) ([]servers.Ref, error)     { return []servers.Ref{}, nil }
+func (emptyHV) CreateEndpoint(context.Context, servers.Endpoint, string) (servers.Endpoint, error) {
+	return servers.Endpoint{}, servers.ErrNotFound
+}
+func (emptyHV) Registry(context.Context) ([]servers.Ref, error) { return []servers.Ref{}, nil }
 
 func (a *API) pve(ctx context.Context, id string) (*proxmox.Client, error) {
 	ep, err := a.hvDir().Endpoint(ctx, id)
@@ -146,9 +156,67 @@ func (a *API) pve(ctx context.Context, id string) (*proxmox.Client, error) {
 	return a.openEndpoint(ep)
 }
 
+// driver opens the attached hypervisor for the calls every driver shares. Calls only one driver
+// has go through pve, which answers ErrUnsupported for the others.
+func (a *API) driver(ctx context.Context, id string) (hv.Driver, error) {
+	ep, err := a.hvDir().Endpoint(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return a.openDriver(ep)
+}
+
+func (a *API) openDriver(ep servers.Endpoint) (hv.Driver, error) {
+	switch ep.Kind {
+	case "proxmox":
+		c, err := a.openEndpoint(ep)
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
+	case "incus":
+		c, err := openIncus(ep)
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
+	}
+	return nil, fmt.Errorf("%w: %q", hv.ErrUnsupported, ep.Kind)
+}
+
+func openIncus(ep servers.Endpoint) (*incus.Client, error) {
+	var ca []byte
+	if ep.CAFile != "" {
+		b, err := os.ReadFile(ep.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("incus: reading CA file: %w", err)
+		}
+		ca = b
+	}
+	var cert *tls.Certificate
+	if ep.CertFile != "" {
+		c, err := tls.LoadX509KeyPair(ep.CertFile, ep.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("incus: reading client certificate: %w", err)
+		}
+		cert = &c
+	}
+	env := ep.TokenEnv
+	return incus.New(incus.Endpoint{BaseURL: ep.BaseURL, Project: ep.Node, CAPEM: ca, ClientCert: cert}, func() (string, error) {
+		if env == "" {
+			return "", nil
+		}
+		s := os.Getenv(env)
+		if s == "" {
+			return "", fmt.Errorf("incus: token env %s is empty", env)
+		}
+		return s, nil
+	})
+}
+
 func (a *API) openEndpoint(ep servers.Endpoint) (*proxmox.Client, error) {
 	if ep.Kind != "proxmox" {
-		return nil, fmt.Errorf("hv: this phase speaks proxmox; %q is documented for a later phase", ep.Kind)
+		return nil, fmt.Errorf("%w: %q", hv.ErrUnsupported, ep.Kind)
 	}
 	if a.openPVE != nil {
 		return a.openPVE(ep)
@@ -209,6 +277,12 @@ type hvAttach struct {
 	TokenID  string `json:"token_id"`
 	TokenEnv string `json:"token_env"`
 	CAFile   string `json:"ca_file"`
+	CertFile string `json:"cert_file"`
+	KeyFile  string `json:"key_file"`
+}
+
+func (in hvAttach) endpoint() servers.Endpoint {
+	return servers.Endpoint{Kind: in.Kind, BaseURL: in.BaseURL, Node: in.Node, TokenID: in.TokenID, TokenEnv: in.TokenEnv, CAFile: in.CAFile, CertFile: in.CertFile, KeyFile: in.KeyFile}
 }
 
 func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, c *caller) {
@@ -216,12 +290,13 @@ func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, c *caller) {
 	if !decodeStrict(w, r, &in) {
 		return
 	}
-	ep := servers.Endpoint{ID: r.PathValue("id"), Kind: in.Kind, BaseURL: in.BaseURL, Node: in.Node, TokenID: in.TokenID, TokenEnv: in.TokenEnv, CAFile: in.CAFile}
+	ep := in.endpoint()
+	ep.ID = r.PathValue("id")
 	if err := validateEndpoint(ep); err != nil {
 		auth.Problem(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if !a.permit(w, r, c, ep.ID, ep.ID, "endpoint") {
+	if !a.permitAttach(w, r, c, ep.ID) {
 		return
 	}
 	if err := a.hvDir().SetEndpoint(r.Context(), ep); err != nil {
@@ -232,7 +307,7 @@ func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, c *caller) {
 }
 
 func (a *API) infraHealth(w http.ResponseWriter, r *http.Request, _ *caller) {
-	c, err := a.pve(r.Context(), r.PathValue("id"))
+	c, err := a.driver(r.Context(), r.PathValue("id"))
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -246,7 +321,7 @@ func (a *API) infraHealth(w http.ResponseWriter, r *http.Request, _ *caller) {
 }
 
 func (a *API) infraGuests(w http.ResponseWriter, r *http.Request, _ *caller) {
-	c, err := a.pve(r.Context(), r.PathValue("id"))
+	c, err := a.driver(r.Context(), r.PathValue("id"))
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -260,7 +335,7 @@ func (a *API) infraGuests(w http.ResponseWriter, r *http.Request, _ *caller) {
 }
 
 func (a *API) infraGuest(w http.ResponseWriter, r *http.Request, _ *caller) {
-	c, err := a.pve(r.Context(), r.PathValue("id"))
+	c, err := a.driver(r.Context(), r.PathValue("id"))
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -454,7 +529,7 @@ func (a *API) infraStatus(w http.ResponseWriter, r *http.Request, c *caller) {
 	if !a.permit(w, r, c, id, guest, verb) {
 		return
 	}
-	cl, err := a.pve(r.Context(), id)
+	cl, err := a.driver(r.Context(), id)
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -500,7 +575,7 @@ func (a *API) infraSnapshot(w http.ResponseWriter, r *http.Request, c *caller) {
 	if !a.permit(w, r, c, id, guest, "snapshot") {
 		return
 	}
-	cl, err := a.pve(r.Context(), id)
+	cl, err := a.driver(r.Context(), id)
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -735,13 +810,27 @@ func (a *API) permit(w http.ResponseWriter, r *http.Request, c *caller, server, 
 	return a.permitFor(w, r, c, "", server, guest, verb)
 }
 
+// permitAttach gates adding or detaching an API. Sites whose policy predates hv.attach keep
+// their lifecycle rule for it.
+func (a *API) permitAttach(w http.ResponseWriter, r *http.Request, c *caller, server string) bool {
+	action := hv.ActionAttach
+	if !a.cfg.Approval.HasAction(action) {
+		action = hv.ActionLifecycle
+	}
+	return a.permitAction(w, r, c, action, "", server, server, "endpoint")
+}
+
 func (a *API) permitFor(w http.ResponseWriter, r *http.Request, c *caller, tenant, server, guest, verb string) bool {
-	if !a.cfg.Approval.Allows(hvSubject(a, c, tenant), hv.ActionLifecycle, server) {
+	return a.permitAction(w, r, c, hv.ActionLifecycle, tenant, server, guest, verb)
+}
+
+func (a *API) permitAction(w http.ResponseWriter, r *http.Request, c *caller, action, tenant, server, guest, verb string) bool {
+	if !a.cfg.Approval.Allows(hvSubject(a, c, tenant), action, server) {
 		writeHVProblem(w, http.StatusForbidden, "approval_denied", "The approval policy does not allow this action.", "", "")
 		return false
 	}
-	key := fmt.Sprintf("%s:%s:%s:%s", hv.ActionLifecycle, server, guest, verb)
-	if a.cfg.Approval.NeedsBoard(hv.ActionLifecycle, server) {
+	key := fmt.Sprintf("%s:%s:%s:%s", action, server, guest, verb)
+	if a.hvNeedsBoard(r.Context(), action, server) {
 		org := a.boardOrg(c, tenant)
 		if org == "" {
 			writeHVProblem(w, http.StatusConflict, "board_org_missing", "Set approval.board.org_id so the console can file the approval card.", key, "")
@@ -873,25 +962,53 @@ func writeHVProblem(w http.ResponseWriter, status int, code, msg, key, board str
 var nodeName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$`)
 var envName = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`)
 
+// validateEndpoint checks what the driver of e.Kind needs. Nothing here dials the address.
 func validateEndpoint(e servers.Endpoint) error {
-	if e.Kind != "proxmox" {
-		return fmt.Errorf("kind must be proxmox in this phase")
+	spec, ok := hv.SpecFor(e.Kind)
+	if !ok {
+		kinds := []string{}
+		for _, s := range hv.Specs() {
+			kinds = append(kinds, s.Kind)
+		}
+		return fmt.Errorf("kind must be one of %s", strings.Join(kinds, ", "))
+	}
+	values := map[string]string{hv.FieldBaseURL: e.BaseURL, hv.FieldNode: e.Node, hv.FieldTokenID: e.TokenID,
+		hv.FieldTokenEnv: e.TokenEnv, hv.FieldCAFile: e.CAFile, hv.FieldCertFile: e.CertFile, hv.FieldKeyFile: e.KeyFile}
+	allowed := map[string]bool{}
+	for _, f := range spec.Fields {
+		allowed[f.Name] = true
+		if f.Required && values[f.Name] == "" {
+			return fmt.Errorf("%s is required for %s", f.Name, e.Kind)
+		}
+	}
+	for name, v := range values {
+		if v != "" && !allowed[name] {
+			return fmt.Errorf("%s does not apply to %s", name, e.Kind)
+		}
 	}
 	u, err := url.Parse(e.BaseURL)
 	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" && u.Path != "/" {
 		return fmt.Errorf("base_url must be https with a host and no user, query, or path")
 	}
-	if !nodeName.MatchString(e.Node) {
+	if e.Node != "" && !nodeName.MatchString(e.Node) {
 		return fmt.Errorf("node must be a hostname label")
 	}
-	if e.TokenID == "" || strings.ContainsAny(e.TokenID, " \t\r\n") || strings.Contains(e.TokenID, "://") {
+	if e.TokenID != "" && (strings.ContainsAny(e.TokenID, " \t\r\n") || strings.Contains(e.TokenID, "://")) {
 		return fmt.Errorf("token_id must be the API token id, not a secret or URL")
 	}
-	if !envName.MatchString(e.TokenEnv) {
+	if e.TokenEnv != "" && !envName.MatchString(e.TokenEnv) {
 		return fmt.Errorf("token_env must name an environment variable")
 	}
-	if e.CAFile != "" && (strings.Contains(e.CAFile, "..") || strings.Contains(e.CAFile, "://")) {
-		return fmt.Errorf("ca_file must be a PEM path")
+	for name, p := range map[string]string{hv.FieldCAFile: e.CAFile, hv.FieldCertFile: e.CertFile, hv.FieldKeyFile: e.KeyFile} {
+		if p != "" && (strings.Contains(p, "..") || strings.Contains(p, "://")) {
+			return fmt.Errorf("%s must be a PEM path", name)
+		}
+	}
+	if (e.CertFile == "") != (e.KeyFile == "") {
+		return fmt.Errorf("cert_file and key_file go together")
+	}
+	if e.Kind == "incus" && e.CertFile == "" && e.TokenEnv == "" {
+		return fmt.Errorf("incus needs a client certificate or token_env")
 	}
 	return nil
 }
@@ -904,6 +1021,8 @@ func infraErr(w http.ResponseWriter, err error) {
 		auth.Problem(w, http.StatusForbidden, "The approval policy does not allow this.")
 	case errors.Is(err, hv.ErrWaiting):
 		auth.Problem(w, http.StatusConflict, "This is waiting on the factory board.")
+	case errors.Is(err, hv.ErrUnsupported):
+		auth.Problem(w, http.StatusConflict, "This provider does not offer that action.")
 	case strings.Contains(err.Error(), "not in inventory"):
 		auth.Problem(w, http.StatusNotFound, "The hypervisor has no guest with that id.")
 	default:

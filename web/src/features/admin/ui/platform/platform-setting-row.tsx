@@ -8,7 +8,7 @@ import { type PlatformSetting, useSetPlatformSetting } from "../../../../lib/hoo
 /** One ops-editable config key: new value plus a reason (both audited), or reset to the config file. */
 export function PlatformSettingRow({ s, canWrite }: { s: PlatformSetting; canWrite: boolean }) {
   const save = useSetPlatformSetting();
-  const [value, setValue] = useState<string | boolean>(s.value);
+  const [value, setValue] = useState<string | boolean>(s.value as string | boolean);
   const [reason, setReason] = useState("");
   const ok = reason.trim().length >= 5 && value !== s.value;
   return (
@@ -35,7 +35,7 @@ export function PlatformSettingRow({ s, canWrite }: { s: PlatformSetting; canWri
             onPress={() => save.mutate({ key: s.key, value, reason }, { onSuccess: () => setReason("") })}>Save</Button>
           {s.overridden && (
             <Button size="sm" variant="ghost" isDisabled={reason.trim().length < 5 || save.isPending} tooltip="Clear the override; the config file value applies again"
-              onPress={() => save.mutate({ key: s.key, value: null, reason }, { onSuccess: () => { setReason(""); setValue(s.config_value); } })}>Reset to config</Button>
+              onPress={() => save.mutate({ key: s.key, value: null, reason }, { onSuccess: () => { setReason(""); setValue(s.config_value as string | boolean); } })}>Reset to config</Button>
           )}
         </div>
       )}

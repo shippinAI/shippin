@@ -45,6 +45,11 @@ func oauthApp(cfg *config.Config, clientID, host string) oauth2.Config {
 func (f *Flow) Login(w http.ResponseWriter, r *http.Request) {
 	aud, oa := f.app(r)
 	if oa.ClientID == "" {
+		// With no IdP there is nothing to re-authenticate at; the local sign-in page is the way back.
+		if r.URL.Query().Get("reauth") == "1" {
+			http.Redirect(w, r, "/login", http.StatusFound)
+			return
+		}
 		Problem(w, http.StatusServiceUnavailable, "Sign-in for this app isn't set up yet.")
 		return
 	}

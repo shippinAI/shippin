@@ -47,9 +47,16 @@ func (a *API) opStaffMode(w http.ResponseWriter, r *http.Request, c *caller) {
 	writeJSON(w, a.staffModeView(s))
 }
 
-// freshAuth reports whether the caller signed in at the IdP within the re-auth window.
+// freshAuth reports whether the caller signed in within the re-auth window.
 func freshAuth(at, now time.Time, window time.Duration) bool {
 	return !at.IsZero() && now.Sub(at) <= window && !at.After(now.Add(time.Minute))
+}
+
+func (a *API) staffReauthWindow(c *caller) time.Duration {
+	if c.installOwner {
+		return a.cfg.Staff.Session.LocalReauth()
+	}
+	return a.cfg.Staff.Session.Reauth()
 }
 
 func (a *API) opStaffEnter(w http.ResponseWriter, r *http.Request, c *caller) {
@@ -64,7 +71,7 @@ func (a *API) opStaffEnter(w http.ResponseWriter, r *http.Request, c *caller) {
 		return
 	}
 	at := a.authTime(r)
-	if !freshAuth(at, time.Now(), a.cfg.Staff.Session.Reauth()) {
+	if !freshAuth(at, time.Now(), a.staffReauthWindow(c)) {
 		auth.Problem(w, http.StatusPreconditionRequired, "Sign in again to enter staff mode.")
 		return
 	}

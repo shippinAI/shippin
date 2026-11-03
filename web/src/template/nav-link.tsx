@@ -7,7 +7,7 @@ import type { NavItem } from "./nav-items";
 /** Sidebar entry; "soon" items are disabled with a tooltip saying why. */
 export function NavLink({ item, href }: { item: NavItem; href?: string }) {
   const { pathname } = useLocation();
-  const active = !!href && (pathname === href || (href.split("/").length > 3 && pathname.startsWith(href)));
+  const active = !!href && (pathname === href || ((item.prefix || href.split("/").length > 3) && pathname.startsWith(`${href}/`)));
   const Icon = item.icon;
   return (
     <Tooltip content={item.soon ?? `Open ${item.label}`} placement="right">

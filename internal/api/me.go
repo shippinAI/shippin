@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -49,6 +50,7 @@ func (a *API) capabilities(r *http.Request, c *caller) map[string]bool {
 	return map[string]bool{"operator.view": c.op != "", "tenants.create": create, "ops.view": ops,
 		"host.admin_tools": tools,
 		"infra.hosts":      a.infraAllowed(c),
+		"gold.sign":        goldSignStore(os.Getenv) != nil,
 		"provider.panel":   a.panelAllowed(r, c),
 		"onboarding":       len(c.tenants) == 0 && c.op == "" && !ops && a.cfg.Onboarding.Enabled && a.cfg.IDPServiceToken != ""}
 }

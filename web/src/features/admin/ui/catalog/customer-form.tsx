@@ -30,7 +30,7 @@ export function CustomerForm({ initial, onClose }: { initial?: Customer; onClose
     { onSuccess: onClose });
   return (
     <Drawer isOpen onOpenChange={(o) => !o && onClose()} title={initial ? `Edit ${initial.name}` : "New customer"}
-      subtitle="New customers start as drafts. Provisioning happens later through a Gold ticket."
+      subtitle="New customers start as drafts. Provisioning happens later through change control."
       footer={<>
         <div className="flex-1" />
         <Button tooltip="Cancel" variant="ghost" onPress={onClose}>Cancel</Button>

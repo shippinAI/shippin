@@ -34,17 +34,17 @@ export function AddServerDialog({ tenantId, isOpen, onOpenChange }: Props) {
       description={token ? "Give this to hostd on the new server." : "Register a machine. It stays Waiting to enroll until hostd checks in."}>
       {token ? <TokenReveal token={token} onDone={close} /> : (
         <div className="space-y-4 px-6 py-5">
-          <TextField label="Name" value={label} onChange={setLabel} placeholder="Gold (home)" autoFocus />
-          <TextField label="Slug" value={slug} onChange={(v) => setSlug(v.toLowerCase())} placeholder="gold" mono
+          <TextField label="Name" value={label} onChange={setLabel} placeholder="Rack 1" autoFocus />
+          <TextField label="Slug" value={slug} onChange={(v) => setSlug(v.toLowerCase())} placeholder="rack-1" mono
             description="Lowercase letters, digits and dashes. Used in IDs and logs." />
           <div className="flex items-end gap-2">
             <div className="flex-1">
-              <TextField label="Site" value={site} onChange={(v) => setSite(v.toLowerCase())} placeholder="gold" mono />
+              <TextField label="Site" value={site} onChange={(v) => setSite(v.toLowerCase())} placeholder="main" mono />
             </div>
             <HelpPopover title="Sites and enrollment">
-              <p className="text-[13px] text-fg-muted">A site is where the machine lives (for example <code>gold</code> at home). After you add it you get a
+              <p className="text-[13px] text-fg-muted">A site is where the machine lives (for example <code>main</code>). After you add it you get a
                 one-time token. hostd trades it for its own credential and then sends a heartbeat on a fixed interval. A server that misses
-                several heartbeats shows as <em>Stale</em>. Planned sites (Texas, Wisconsin, Virginia) are listed but never contacted.</p>
+                several heartbeats shows as <em>Stale</em>. Planned sites are listed but never contacted.</p>
             </HelpPopover>
           </div>
           <div className="flex justify-end gap-2 border-t border-line pt-4">

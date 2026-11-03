@@ -381,7 +381,7 @@
         "label": "GitHub",
         "vendor": "GitHub CLI (gh)",
         "token_label": "Personal access token",
-        "token_hint": "A fine-grained or classic PAT (ghp_\u2026 or github_pat_\u2026).",
+        "token_hint": "A fine-grained or classic PAT (ghp_… or github_pat_…).",
         "token_url": "https://github.com/settings/tokens",
         "vaultix_key": "GITHUB_TOKEN",
         "browser_note": "Device code: open github.com/login/device and enter the code."
@@ -389,9 +389,9 @@
       {
         "id": "claude",
         "label": "Claude",
-        "vendor": "Anthropic \u00b7 Claude Code",
+        "vendor": "Anthropic · Claude Code",
         "token_label": "Claude Code OAuth token",
-        "token_hint": "Run `claude setup-token` on any machine and paste the sk-ant-oat01-\u2026 token.",
+        "token_hint": "Run `claude setup-token` on any machine and paste the sk-ant-oat01-… token.",
         "token_url": "https://docs.anthropic.com/en/docs/claude-code/setup",
         "vaultix_key": "CLAUDE_CODE_OAUTH_TOKEN",
         "browser_note": "Sign in on claude.com, then paste the code it shows back here."
@@ -399,9 +399,9 @@
       {
         "id": "codex",
         "label": "Codex",
-        "vendor": "OpenAI \u00b7 Codex CLI",
+        "vendor": "OpenAI · Codex CLI",
         "token_label": "OpenAI API key",
-        "token_hint": "An sk-\u2026 key from platform.openai.com.",
+        "token_hint": "An sk-… key from platform.openai.com.",
         "token_url": "https://platform.openai.com/api-keys",
         "vaultix_key": "OPENAI_API_KEY",
         "browser_note": "Device code: open auth.openai.com/codex/device and enter the code."
@@ -409,9 +409,9 @@
       {
         "id": "grok",
         "label": "Grok",
-        "vendor": "xAI \u00b7 Grok Build",
+        "vendor": "xAI · Grok Build",
         "token_label": "xAI API key",
-        "token_hint": "An xai-\u2026 key from console.x.ai.",
+        "token_hint": "An xai-… key from console.x.ai.",
         "token_url": "https://console.x.ai",
         "vaultix_key": "XAI_API_KEY",
         "browser_note": "Device code: open the x.ai link and enter the code."
@@ -487,6 +487,20 @@
         "approver_subs": [],
         "approver_emails": [],
         "needs_approval": true
+      },
+      {
+        "id": "hv-attach",
+        "actions": [
+          "hv.attach"
+        ],
+        "hosts": [],
+        "approver_roles": [
+          "founder",
+          "op_infra"
+        ],
+        "approver_subs": [],
+        "approver_emails": [],
+        "needs_approval": false
       }
     ]
   },
@@ -511,5 +525,83 @@
       }
     ],
     "webhook_skew_seconds": 300
+  },
+  "ui": {
+    "default_site": "main",
+    "providers": [
+      {
+        "kind": "incus",
+        "label": "Incus",
+        "description": "Containers and virtual machines on Incus servers.",
+        "fields": [
+          {
+            "name": "base_url",
+            "label": "API URL",
+            "help": "HTTPS address of the Incus API.",
+            "placeholder": "https://incus.example.invalid:8443"
+          },
+          {
+            "name": "node",
+            "label": "Project",
+            "help": "Incus project to manage. Empty uses the server's default project."
+          },
+          {
+            "name": "cert_file",
+            "label": "Client certificate file",
+            "help": "PEM path on the console host. Trust it on the server with incus config trust add-certificate."
+          },
+          {
+            "name": "key_file",
+            "label": "Client key file",
+            "help": "PEM path on the console host. The key is not copied or stored."
+          },
+          {
+            "name": "token_env",
+            "label": "Token environment variable",
+            "help": "Instead of a certificate: the console variable that holds a bearer token."
+          },
+          {
+            "name": "ca_file",
+            "label": "Server CA file",
+            "help": "PEM path on the console host, for a server with a private certificate."
+          }
+        ]
+      },
+      {
+        "kind": "proxmox",
+        "label": "Proxmox VE",
+        "description": "Virtual machines and containers on a Proxmox VE cluster.",
+        "fields": [
+          {
+            "name": "base_url",
+            "label": "API URL",
+            "help": "HTTPS address of the Proxmox API.",
+            "placeholder": "https://pve.example.invalid:8006"
+          },
+          {
+            "name": "node",
+            "label": "Node",
+            "help": "Name of the node in the cluster."
+          },
+          {
+            "name": "token_id",
+            "label": "API token ID",
+            "help": "The token's id, not its secret.",
+            "placeholder": "user@realm!name"
+          },
+          {
+            "name": "token_env",
+            "label": "Token environment variable",
+            "help": "The console variable that holds the secret. The secret is not saved here.",
+            "default": "SHIPPIN_HV_TOKEN"
+          },
+          {
+            "name": "ca_file",
+            "label": "Server CA file",
+            "help": "PEM path on the console host, for a server with a private certificate."
+          }
+        ]
+      }
+    ]
   }
 }

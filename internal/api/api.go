@@ -95,6 +95,7 @@ func (a *API) Register(mux Router) {
 	mux.HandleFunc("GET /healthz", a.health)
 	mux.HandleFunc("GET /v1/health", a.health)
 	mux.HandleFunc("GET /v1/settings/public", a.publicSettings)
+	mux.HandleFunc("GET /v1/settings/ui", a.flow.Require(a.uiSettings))
 	mux.HandleFunc("GET /v1/me", a.flow.Require(a.me))
 	mux.HandleFunc("GET /v1/platform/services", a.flow.Require(a.services))
 	mux.HandleFunc("POST /v1/tenants", a.flow.Require(a.createTenant))

@@ -142,6 +142,7 @@ type Config struct {
 	TenantDBSecrets   map[string]string `json:"-"`
 	Migrations        Migrations        `json:"migrations"` // hold: files a change ticket releases later
 	Approval          approval.Policy   `json:"approval"`
+	UI                UI                `json:"ui"`
 	DatabaseURL       string            `json:"-"`
 	SessionKey        string            `json:"-"`
 	Listen            string            `json:"-"`
@@ -219,6 +220,9 @@ func (c *Config) Check() error {
 		return errors.New("idp.name is required (the identity product name users see)")
 	}
 	if err := c.Sparks.Check(c.Operator.AdminHosts); err != nil {
+		return err
+	}
+	if err := c.UI.Check(); err != nil {
 		return err
 	}
 	return c.Workspaces.Check()

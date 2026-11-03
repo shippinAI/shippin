@@ -16,7 +16,7 @@ export function PlatformSettingsPage() {
         <Card>
           <CardHeader title="Settings" description="Reset returns a key to the value in the config file." />
           <ul className="divide-y divide-border" aria-label="Platform settings">
-            {q.data.items.map((s) => <PlatformSettingRow key={s.key} s={s} canWrite={canWrite} />)}
+            {q.data.items.filter((s) => s.kind !== "json").map((s) => <PlatformSettingRow key={s.key} s={s} canWrite={canWrite} />)}
           </ul>
         </Card>
       )}

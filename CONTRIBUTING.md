@@ -42,6 +42,8 @@ to pass on an up-to-date branch before merging, and no human approval. The other
 `Checks` jobs are not required, so confirm they passed before merging. The baseline
 auto-merge workflow has not enabled itself on any pull request so far, so merge by hand.
 
+Panel names and labels belong in configuration, not code: navigation in `ui.nav`, wording in `ui.text` (register a key in `web/src/lib/ui-config/text-keys.ts`), and providers in `ui.providers`. Owners can change them from **Provider panel → Interface**. `web/scripts/check-hardcoding.mjs` fails the web tests on an installation-specific name in the panel.
+
 File names must stay unique ignoring case. A pair differing only by case is one file on
 Windows and macOS, and a checkout there overwrites one with the other.
 

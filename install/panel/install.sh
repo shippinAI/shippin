@@ -263,6 +263,9 @@ if [ -f /etc/shippin/console.env ]; then
   done
 fi
 
+# Hypervisor tokens (SHIPPIN_HV_*) are added by the operator and named from the panel; keep them too.
+hv_env=$(grep -E '^SHIPPIN_HV_[A-Z0-9_]*=' /etc/shippin/console.env 2>/dev/null || true)
+
 umask 077
 cat > /etc/shippin/console.env <<EOF
 SHIPPIN_CONFIG=/etc/shippin/shippin.json
@@ -283,6 +286,7 @@ SHIPPIN_IDP_SERVICE_TOKEN=${SHIPPIN_IDP_SERVICE_TOKEN:-}
 SHIPPIN_IDP_READ_TOKEN=${SHIPPIN_IDP_READ_TOKEN:-}
 SHIPPIN_IDP_TEAM_TOKEN=${SHIPPIN_IDP_TEAM_TOKEN:-}
 EOF
+if [ -n "$hv_env" ]; then printf '%s\n' "$hv_env" >> /etc/shippin/console.env; fi
 chmod 600 /etc/shippin/console.env
 
 if [ "$skip_web" != 1 ]; then

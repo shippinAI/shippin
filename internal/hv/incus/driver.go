@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -19,8 +20,10 @@ import (
 
 // Endpoint is one Incus API.
 type Endpoint struct {
-	BaseURL string // https://host:8443
-	CAPEM   []byte
+	BaseURL    string // https://host:8443
+	Project    string // "" is the server's default project
+	CAPEM      []byte
+	ClientCert *tls.Certificate // Incus trusts remotes by certificate; nil uses the bearer secret alone
 }
 
 // Client is an Incus driver.
@@ -43,17 +46,74 @@ func New(ep Endpoint, secret func() (string, error)) (*Client, error) {
 	if len(ep.CAPEM) > 0 && !pool.AppendCertsFromPEM(ep.CAPEM) {
 		return nil, fmt.Errorf("incus: CA PEM was not accepted")
 	}
+	tlsCfg := &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
+	if ep.ClientCert != nil {
+		tlsCfg.Certificates = []tls.Certificate{*ep.ClientCert}
+	}
 	return &Client{
 		Endpoint: ep,
 		Secret:   secret,
-		HTTP: &http.Client{Timeout: 15 * time.Second, Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
-		}},
-		Now: time.Now,
+		// Longer than operationWait: a mutation holds this request open until Incus finishes.
+		HTTP: &http.Client{Timeout: 60 * time.Second, Transport: &http.Transport{TLSClientConfig: tlsCfg}},
+		Now:  time.Now,
 	}, nil
 }
 
 func (c *Client) Kind() string { return "incus" }
+
+// operationWait is how long Incus may hold a mutation open, in seconds.
+const operationWait = "45"
+
+// path adds the configured project, so a call never lands in another project by default.
+func (c *Client) path(p string, params ...string) string {
+	q := url.Values{}
+	for i := 0; i+1 < len(params); i += 2 {
+		q.Set(params[i], params[i+1])
+	}
+	if c.Endpoint.Project != "" {
+		q.Set("project", c.Endpoint.Project)
+	}
+	if len(q) == 0 {
+		return p
+	}
+	return p + "?" + q.Encode()
+}
+
+func instancePath(id string) string { return "/1.0/instances/" + url.PathEscape(id) }
+
+// wait blocks until the async operation in body ends. Reading a guest before this returns the
+// old state. A response that names no operation has nothing to wait for.
+func (c *Client) wait(ctx context.Context, body []byte) error {
+	var started struct {
+		Type     string `json:"type"`
+		Metadata struct {
+			ID string `json:"id"`
+		} `json:"metadata"`
+	}
+	if json.Unmarshal(body, &started) != nil || started.Type != "async" || started.Metadata.ID == "" {
+		return nil
+	}
+	raw, code, err := c.do(ctx, http.MethodGet, c.path("/1.0/operations/"+url.PathEscape(started.Metadata.ID)+"/wait", "timeout", operationWait), nil)
+	if err != nil {
+		return err
+	}
+	if code != http.StatusOK {
+		return fmt.Errorf("incus: operation HTTP %d: %s", code, clip(raw))
+	}
+	var done struct {
+		Metadata struct {
+			StatusCode int    `json:"status_code"`
+			Err        string `json:"err"`
+		} `json:"metadata"`
+	}
+	if err := json.Unmarshal(raw, &done); err != nil {
+		return err
+	}
+	if done.Metadata.StatusCode != http.StatusOK {
+		return fmt.Errorf("incus: operation did not succeed: status %d: %s", done.Metadata.StatusCode, done.Metadata.Err)
+	}
+	return nil
+}
 
 func (c *Client) Health(ctx context.Context) (hv.Health, error) {
 	h := hv.Health{Checked: c.now()}
@@ -80,7 +140,7 @@ func (c *Client) Health(ctx context.Context) (hv.Health, error) {
 }
 
 func (c *Client) Guests(ctx context.Context) ([]hv.Guest, error) {
-	body, code, err := c.do(ctx, http.MethodGet, "/1.0/instances?recursion=1", nil)
+	body, code, err := c.do(ctx, http.MethodGet, c.path("/1.0/instances", "recursion", "1"), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +161,7 @@ func (c *Client) Guests(ctx context.Context) ([]hv.Guest, error) {
 }
 
 func (c *Client) Guest(ctx context.Context, id string) (hv.Guest, error) {
-	body, code, err := c.do(ctx, http.MethodGet, "/1.0/instances/"+id, nil)
+	body, code, err := c.do(ctx, http.MethodGet, c.path(instancePath(id)), nil)
 	if err != nil {
 		return hv.Guest{}, err
 	}
@@ -162,14 +222,14 @@ func (c *Client) act(ctx context.Context, id, action, want string) (hv.Guest, er
 
 func (c *Client) putState(ctx context.Context, id, action string) error {
 	raw, _ := json.Marshal(map[string]any{"action": action, "timeout": 30})
-	body, code, err := c.do(ctx, http.MethodPut, "/1.0/instances/"+id+"/state", raw)
+	body, code, err := c.do(ctx, http.MethodPut, c.path(instancePath(id)+"/state"), raw)
 	if err != nil {
 		return err
 	}
 	if code != http.StatusOK && code != http.StatusAccepted {
 		return fmt.Errorf("incus: %s HTTP %d: %s", action, code, clip(body))
 	}
-	return nil
+	return c.wait(ctx, body)
 }
 
 func (c *Client) Snapshot(ctx context.Context, id, name string) (hv.Guest, error) {
@@ -180,18 +240,21 @@ func (c *Client) Snapshot(ctx context.Context, id, name string) (hv.Guest, error
 		return hv.Guest{}, fmt.Errorf("incus: snapshot name %q is invalid", name)
 	}
 	raw, _ := json.Marshal(map[string]string{"name": name})
-	body, code, err := c.do(ctx, http.MethodPost, "/1.0/instances/"+id+"/snapshots", raw)
+	body, code, err := c.do(ctx, http.MethodPost, c.path(instancePath(id)+"/snapshots"), raw)
 	if err != nil {
 		return hv.Guest{}, err
 	}
 	if code != http.StatusOK && code != http.StatusAccepted && code != http.StatusCreated {
 		return hv.Guest{}, fmt.Errorf("incus: snapshot HTTP %d: %s", code, clip(body))
 	}
+	if err := c.wait(ctx, body); err != nil {
+		return hv.Guest{}, err
+	}
 	return c.Guest(ctx, id)
 }
 
 func (c *Client) Storage(ctx context.Context) ([]hv.Volume, error) {
-	body, code, err := c.do(ctx, http.MethodGet, "/1.0/storage-pools?recursion=1", nil)
+	body, code, err := c.do(ctx, http.MethodGet, c.path("/1.0/storage-pools", "recursion", "1"), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +278,7 @@ func (c *Client) Storage(ctx context.Context) ([]hv.Volume, error) {
 }
 
 func (c *Client) Networks(ctx context.Context) ([]hv.Network, error) {
-	body, code, err := c.do(ctx, http.MethodGet, "/1.0/networks?recursion=1", nil)
+	body, code, err := c.do(ctx, http.MethodGet, c.path("/1.0/networks", "recursion", "1"), nil)
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,7 @@ const OverviewPage = lazy(() => import("../features/overview/ui/overview-page").
 const AppShell = lazy(() => import("../template/app-shell").then((m) => ({ default: m.AppShell })));
 const AdminOrigin = lazy(() => import("../template/admin/admin-origin").then((m) => ({ default: m.AdminOrigin })));
 const InstancesPage = lazy(() => import("../features/instances/ui/instances-page").then((m) => ({ default: m.InstancesPage })));
-const HostsPage = lazy(() => import("../features/hosts/ui/hosts-page").then((m) => ({ default: m.HostsPage })));
+const InfrastructurePage = lazy(() => import("../features/infrastructure/ui/infrastructure-page").then((m) => ({ default: m.InfrastructurePage })));
 const PlatformPage = lazy(() => import("../features/instances/ui/platform-page").then((m) => ({ default: m.PlatformPage })));
 const SettingsPage = lazy(() => import("../features/settings/ui/settings-page").then((m) => ({ default: m.SettingsPage })));
 const WorkspacesPage = lazy(() => import("../features/workspaces/ui/workspaces-page").then((m) => ({ default: m.WorkspacesPage })));
@@ -84,7 +84,8 @@ export const router = createBrowserRouter([
               { path: "/chat/:sessionId", element: <ChatPage /> },
               { path: "/operator", element: <PlatformPage /> },
               { path: "/operator/instances", element: <InstancesPage /> },
-              { path: "/operator/hosts", element: <Suspense fallback={null}><HostsPage /></Suspense> },
+              { path: "/operator/hosts", element: <Suspense fallback={null}><InfrastructurePage /></Suspense> },
+              { path: "/operator/hosts/:tab", element: <Suspense fallback={null}><InfrastructurePage /></Suspense> },
             ],
           },
         ],

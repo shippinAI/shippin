@@ -28,9 +28,10 @@ type Staff struct {
 // StaffSession: Minutes is the session length; ReauthMinutes how recent the IdP sign-in must be
 // to open one; Required makes every permissioned operator route need an open session.
 type StaffSession struct {
-	Minutes       int  `json:"minutes"`
-	ReauthMinutes int  `json:"reauth_minutes"`
-	Required      bool `json:"required"`
+	Minutes            int  `json:"minutes"`
+	ReauthMinutes      int  `json:"reauth_minutes"`
+	LocalReauthMinutes int  `json:"local_reauth_minutes"`
+	Required           bool `json:"required"`
 }
 
 // Modes are the authorization modes, in rollout order.
@@ -73,6 +74,10 @@ func (s StaffSession) TTL() time.Duration { return minutesOr(s.Minutes, 60) }
 
 // Reauth is how recent the IdP sign-in must be to open a session (default 5 minutes).
 func (s StaffSession) Reauth() time.Duration { return minutesOr(s.ReauthMinutes, 5) }
+
+// LocalReauth is the same for the local installation owner (default 12 hours, the life of a local
+// session). They may have no mail or passkey, and each recovery code works only once.
+func (s StaffSession) LocalReauth() time.Duration { return minutesOr(s.LocalReauthMinutes, 720) }
 
 func minutesOr(n, def int) time.Duration {
 	if n <= 0 {

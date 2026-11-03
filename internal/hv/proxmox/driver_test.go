@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestStartReadsBackAndSkipsWhenRunning(t *testing.T) {
@@ -35,7 +36,11 @@ func TestStartReadsBackAndSkipsWhenRunning(t *testing.T) {
 			posts++
 			status["100"] = "running"
 			mu.Unlock()
-			_ = json.NewEncoder(w).Encode(map[string]any{"data": "UPID:n1"})
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": "UPID:n1:00000001:00000002:00000003:vzstart:100:token@pve:"})
+		case strings.Contains(r.URL.Path, "/tasks/") && strings.HasSuffix(r.URL.Path, "/status"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": "stopped", "exitstatus": "OK", "type": "vzstart"}})
+		case strings.Contains(r.URL.Path, "/tasks/") && strings.HasSuffix(r.URL.Path, "/log"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]string{{"t": "TASK OK"}}})
 		default:
 			http.NotFound(w, r)
 		}
@@ -67,7 +72,15 @@ func TestStartFailsWhenReadBackDisagrees(t *testing.T) {
 			return
 		}
 		if r.Method == http.MethodPost {
-			_ = json.NewEncoder(w).Encode(map[string]any{"data": "UPID"})
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": "UPID:n1:00000001:00000002:00000003:vzstart:100:token@pve:"})
+			return
+		}
+		if strings.Contains(r.URL.Path, "/tasks/") && strings.HasSuffix(r.URL.Path, "/status") {
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": "stopped", "exitstatus": "OK", "type": "vzstart"}})
+			return
+		}
+		if strings.Contains(r.URL.Path, "/tasks/") && strings.HasSuffix(r.URL.Path, "/log") {
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]string{{"t": "TASK OK"}}})
 			return
 		}
 		http.NotFound(w, r)
@@ -130,4 +143,67 @@ func clientFor(t *testing.T, srv *httptest.Server) *Client {
 		t.Fatal(err)
 	}
 	return c
+}
+
+// A start takes seconds on a real host. The state must be read after the task, not after the POST.
+func TestStartWaitsForTheTaskBeforeReadingBack(t *testing.T) {
+	var mu sync.Mutex
+	status, polls := "stopped", 0
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		switch {
+		case r.URL.Path == "/api2/json/cluster/resources":
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
+				{"vmid": 100, "name": "a", "type": "lxc", "status": status, "node": "n1"},
+			}})
+		case r.Method == http.MethodPost:
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": "UPID:n1:00000001:00000002:00000003:vzstart:100:token@pve:"})
+		case strings.Contains(r.URL.Path, "/tasks/") && strings.HasSuffix(r.URL.Path, "/log"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]string{{"t": "TASK OK"}}})
+		case strings.Contains(r.URL.Path, "/tasks/"):
+			polls++
+			if polls < 3 {
+				_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": "running", "type": "vzstart"}})
+				return
+			}
+			status = "running"
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": "stopped", "exitstatus": "OK", "type": "vzstart"}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	c := clientFor(t, srv)
+	c.PollBase, c.PollMax = time.Millisecond, 2*time.Millisecond
+	got, err := c.Start(context.Background(), "100")
+	if err != nil || got.Status != "running" {
+		t.Fatalf("got %+v err %v", got, err)
+	}
+	if polls < 3 {
+		t.Fatalf("read back before the task ended: %d polls", polls)
+	}
+}
+
+func TestStartReportsAFailedTask(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/api2/json/cluster/resources":
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
+				{"vmid": 100, "name": "a", "type": "lxc", "status": "stopped", "node": "n1"},
+			}})
+		case r.Method == http.MethodPost:
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": "UPID:n1:00000001:00000002:00000003:vzstart:100:token@pve:"})
+		case strings.Contains(r.URL.Path, "/tasks/") && strings.HasSuffix(r.URL.Path, "/log"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]string{{"t": "no space"}}})
+		case strings.Contains(r.URL.Path, "/tasks/"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": "stopped", "exitstatus": "no space left", "type": "vzstart"}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	if _, err := clientFor(t, srv).Start(context.Background(), "100"); err == nil || !strings.Contains(err.Error(), "no space left") {
+		t.Fatalf("got %v", err)
+	}
 }

@@ -1,6 +1,6 @@
 # Hypervisor drivers
 
-Status: the console is the product. Phase 1 of the Proxmox driver is mounted on the server registry (`internal/db/migrations/036_server_hypervisor.sql`), `/v1/infra/servers`, and `/operator/hosts`. The capture of every imported file is `docs/design/warden-capture-matrix.md`. The full API plan is `docs/design/proxmox-full-coverage.md`.
+Status: the console is the product. The Proxmox and Incus drivers are mounted on the server registry (`internal/db/migrations/036_server_hypervisor.sql`), `/v1/infra/servers`, and `/operator/hosts`. The Incus driver has only been exercised against a simulated API, not a real server. The capture of every imported file is `docs/design/warden-capture-matrix.md`. The full API plan is `docs/design/proxmox-full-coverage.md`.
 
 The panel that runs on Wisconsin CT 102 is the Go+HTML tree imported at `third_party/warden-ct102` (built 2026-08-27). Its Proxmox client is `proxmox.go`. The files `internal/host/kinds/proxmox`, `wardenclyffe`, and `bare` are registered stubs that return "not yet implemented". "Wardenclyffe" in that tree is not a second hypervisor. Shippin-mesh notes treated it as a product name. In this console it is provenance only.
 
@@ -26,6 +26,12 @@ Every mutating method:
 4. If the second GET does not show the requested state, returns an error that includes the status the API actually reported.
 
 Errors are returned to the caller. Nothing logs the same failure on a timer except the reconciler rule below.
+
+## What a driver declares
+
+`internal/hv/catalog.go` states what each driver needs and can do: attach fields, capabilities and verbs. Those are facts about the code. What a person reads about a driver comes from configuration (`ui.providers`), so a site can rename one and a new driver needs no panel change. `GET /v1/infra/overview` joins the two. The panel draws its tabs, add form and actions from that response and names no provider itself; `web/scripts/check-hardcoding.mjs` fails the web tests if that stops being true.
+
+The local agent's Incus project is listed as a read-only node when hostd answers. A hostd that does not answer is reported as a note, not as a host: a fresh install has none.
 
 `Console` and `Exec` are not on the interface yet. The panel's terminal is a host PTY, and Proxmox VNC is a websocket proxy. Both need a session broker. They are left out rather than stubbed as success.
 

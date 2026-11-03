@@ -69,7 +69,7 @@ func (a *API) visibleEndpoint(ctx context.Context, tenant, id string) (servers.E
 }
 
 func (a *API) tenantHealth(w http.ResponseWriter, r *http.Request, _ *caller, tenant string) {
-	cl, err := a.tenantClient(r.Context(), tenant, r.PathValue("serverId"))
+	cl, err := a.tenantDriver(r.Context(), tenant, r.PathValue("serverId"))
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -83,7 +83,7 @@ func (a *API) tenantHealth(w http.ResponseWriter, r *http.Request, _ *caller, te
 }
 
 func (a *API) tenantGuests(w http.ResponseWriter, r *http.Request, _ *caller, tenant string) {
-	cl, err := a.tenantClient(r.Context(), tenant, r.PathValue("serverId"))
+	cl, err := a.tenantDriver(r.Context(), tenant, r.PathValue("serverId"))
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -97,7 +97,7 @@ func (a *API) tenantGuests(w http.ResponseWriter, r *http.Request, _ *caller, te
 }
 
 func (a *API) tenantGuest(w http.ResponseWriter, r *http.Request, _ *caller, tenant string) {
-	cl, err := a.tenantClient(r.Context(), tenant, r.PathValue("serverId"))
+	cl, err := a.tenantDriver(r.Context(), tenant, r.PathValue("serverId"))
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -108,6 +108,14 @@ func (a *API) tenantGuest(w http.ResponseWriter, r *http.Request, _ *caller, ten
 		return
 	}
 	writeJSON(w, g)
+}
+
+func (a *API) tenantDriver(ctx context.Context, tenant, id string) (hv.Driver, error) {
+	ep, err := a.visibleEndpoint(ctx, tenant, id)
+	if err != nil {
+		return nil, err
+	}
+	return a.openDriver(ep)
 }
 
 func (a *API) tenantClient(ctx context.Context, tenant, id string) (*proxmox.Client, error) {
@@ -130,7 +138,7 @@ func (a *API) tenantStatus(w http.ResponseWriter, r *http.Request, c *caller, te
 	if !a.permitFor(w, r, c, tenant, id, guest, verb) {
 		return
 	}
-	cl, err := a.tenantClient(r.Context(), tenant, id)
+	cl, err := a.tenantDriver(r.Context(), tenant, id)
 	if err != nil {
 		infraErr(w, err)
 		return
@@ -179,7 +187,7 @@ func (a *API) tenantSnapshot(w http.ResponseWriter, r *http.Request, c *caller, 
 	if !a.permitFor(w, r, c, tenant, id, guest, "snapshot") {
 		return
 	}
-	cl, err := a.tenantClient(r.Context(), tenant, id)
+	cl, err := a.tenantDriver(r.Context(), tenant, id)
 	if err != nil {
 		infraErr(w, err)
 		return

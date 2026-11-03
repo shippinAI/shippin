@@ -36,7 +36,7 @@ func idTokenAuthTime(raw string) time.Time {
 	return time.Unix(claims.AuthTime, 0)
 }
 
-// AuthTime is when the caller of r last signed in at the IdP. Only console cookie sessions
+// AuthTime is when the caller of r last signed in, at the IdP or locally. Only console cookie sessions
 // carry it; bearer tokens (PATs) return zero and can never pass a re-authentication check.
 func (f *Flow) AuthTime(r *http.Request) time.Time {
 	if strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {

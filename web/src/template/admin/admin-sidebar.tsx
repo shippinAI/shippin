@@ -1,6 +1,8 @@
 import { ShieldCheck } from "lucide-react";
 import { usePublicSettings } from "../../lib/hooks/use-api";
 import { useAdminAccess } from "../../lib/hooks/use-admin";
+import { applyNav } from "../../lib/ui-config/model";
+import { useUiConfig } from "../../lib/ui-config/use-ui-config";
 import { BrandMark } from "../brand-mark";
 import { NavLink } from "../nav-link";
 import { UserMenu } from "../user-menu";
@@ -11,7 +13,8 @@ export function AdminSidebar() {
   const brand = usePublicSettings().data?.brand.name ?? "";
   const perms = useAdminAccess().data?.staff?.permissions ?? [];
   // Sections the caller can't use are hidden (the API refuses them anyway).
-  const items = adminNav.filter((i) => !i.cap || i.cap.split("|").some((p) => perms.includes(p)));
+  const overrides = useUiConfig().data?.nav?.items;
+  const items = applyNav(adminNav.filter((i) => !i.cap || i.cap.split("|").some((p) => perms.includes(p))), overrides);
   return (
     <aside className="hidden w-60 shrink-0 md:flex flex-col border-r border-line bg-surface/60">
       <div className="flex h-14 items-center gap-2.5 px-5">
@@ -25,7 +28,7 @@ export function AdminSidebar() {
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pt-3" aria-label="Provider panel">
         {items.map((item) => (
-          <NavLink key={item.label} item={item} href={item.to} />
+          <NavLink key={item.id} item={item} href={item.to} />
         ))}
       </nav>
       <WorkspaceSwitch />

@@ -50,7 +50,7 @@ func (a *API) hubWho(w http.ResponseWriter, r *http.Request) (*hub.Principal, bo
 
 func approverRoles(a *API, c *caller) []string {
 	var roles []string
-	if c.founder && a.cfg.Identity.FounderRole != "" {
+	if (c.founder || c.installOwner) && a.cfg.Identity.FounderRole != "" {
 		roles = append(roles, a.cfg.Identity.FounderRole)
 	}
 	if c.op != "" {

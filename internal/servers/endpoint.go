@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // Endpoint is the hypervisor API attached to one server. TokenEnv names the
@@ -14,19 +15,22 @@ type Endpoint struct {
 	ID       string `json:"id"`
 	Slug     string `json:"slug"`
 	Label    string `json:"label"`
+	Site     string `json:"site"`
 	Kind     string `json:"kind"`
 	BaseURL  string `json:"base_url"`
 	Node     string `json:"node"`
 	TokenID  string `json:"token_id"`
 	TokenEnv string `json:"token_env"`
 	CAFile   string `json:"ca_file,omitempty"`
+	CertFile string `json:"cert_file,omitempty"`
+	KeyFile  string `json:"key_file,omitempty"`
 }
 
-const epCols = `id, slug, label, coalesce(hv_kind,''), coalesce(hv_api_url,''), coalesce(hv_node,''), coalesce(hv_token_id,''), coalesce(hv_token_env,''), coalesce(hv_ca_file,'')`
+const epCols = `id, slug, label, site, coalesce(hv_kind,''), coalesce(hv_api_url,''), coalesce(hv_node,''), coalesce(hv_token_id,''), coalesce(hv_token_env,''), coalesce(hv_ca_file,''), coalesce(hv_cert_file,''), coalesce(hv_key_file,'')`
 
 func scanEndpoint(row pgx.Row) (Endpoint, error) {
 	var e Endpoint
-	err := row.Scan(&e.ID, &e.Slug, &e.Label, &e.Kind, &e.BaseURL, &e.Node, &e.TokenID, &e.TokenEnv, &e.CAFile)
+	err := row.Scan(&e.ID, &e.Slug, &e.Label, &e.Site, &e.Kind, &e.BaseURL, &e.Node, &e.TokenID, &e.TokenEnv, &e.CAFile, &e.CertFile, &e.KeyFile)
 	return e, err
 }
 
@@ -114,8 +118,8 @@ func (s *Store) SetEndpoint(ctx context.Context, e Endpoint) error {
 	if e.Kind != "" {
 		kind = e.Kind
 	}
-	tag, err := s.Pool.Exec(ctx, `UPDATE servers SET hv_kind=$2, hv_api_url=$3, hv_node=$4, hv_token_id=$5, hv_token_env=$6, hv_ca_file=$7 WHERE id=$1`,
-		e.ID, kind, e.BaseURL, e.Node, e.TokenID, e.TokenEnv, e.CAFile)
+	tag, err := s.Pool.Exec(ctx, `UPDATE servers SET hv_kind=$2, hv_api_url=$3, hv_node=$4, hv_token_id=$5, hv_token_env=$6, hv_ca_file=$7, hv_cert_file=$8, hv_key_file=$9 WHERE id=$1`,
+		e.ID, kind, e.BaseURL, e.Node, e.TokenID, e.TokenEnv, e.CAFile, e.CertFile, e.KeyFile)
 	if err != nil {
 		return err
 	}
@@ -123,4 +127,24 @@ func (s *Store) SetEndpoint(ctx context.Context, e Endpoint) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+// CreateEndpoint adds an estate row that is reached through its hypervisor API. It stays planned:
+// no agent enrolls on it and no enrollment token can be issued. The operator page owns these rows.
+func (s *Store) CreateEndpoint(ctx context.Context, e Endpoint, by string) (Endpoint, error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return Endpoint{}, err
+	}
+	_, err = s.Pool.Exec(ctx, `INSERT INTO servers(id, slug, label, site, state, created_by, hv_kind, hv_api_url, hv_node, hv_token_id, hv_token_env, hv_ca_file, hv_cert_file, hv_key_file)
+		VALUES($1,$2,$3,$4,'planned',$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+		id, e.Slug, e.Label, e.Site, by, e.Kind, e.BaseURL, e.Node, e.TokenID, e.TokenEnv, e.CAFile, e.CertFile, e.KeyFile)
+	var pg *pgconn.PgError
+	if errors.As(err, &pg) && pg.Code == "23505" {
+		return Endpoint{}, ErrSlugTaken
+	}
+	if err != nil {
+		return Endpoint{}, err
+	}
+	return s.Endpoint(ctx, id.String())
 }

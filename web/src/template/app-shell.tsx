@@ -1,3 +1,4 @@
+import { useText } from "../lib/ui-config/use-ui-config";
 import { lazy, Suspense } from "react";
 import { Outlet, useLocation } from "../lib/router/router";
 import { AccessBanner } from "../features/access/ui/access-banner";
@@ -26,7 +27,8 @@ const crumbs: [RegExp, string][] = [
 
 export function AppShell() {
   const { pathname } = useLocation();
-  const crumb = crumbs.find(([re]) => re.test(pathname))?.[1] ?? "Home";
+  const t = useText();
+  const crumb = pathname.startsWith("/operator/hosts") ? t("infra.title") : crumbs.find(([re]) => re.test(pathname))?.[1] ?? "Home";
   return (
     <div className="flex h-full">
       <Sidebar />
