@@ -27,17 +27,17 @@ func TestServerAdminAPI(t *testing.T) {
 	_, d, tn, srv := serverTestAPI(t, "org_owner")
 	ctx := context.Background()
 	base := "/v1/tenants/" + tn.ID + "/servers"
-	for body, want := range map[string]int{`nope`: 400, `{"slug":"Gold","label":"g","site":"gold"}`: 400,
-		`{"slug":"gold","label":"","site":"gold"}`: 400, `{"slug":"gold","label":"a\nb","site":"gold"}`: 400} {
+	for body, want := range map[string]int{`nope`: 400, `{"slug":"Edge","label":"g","site":"edge"}`: 400,
+		`{"slug":"edge","label":"","site":"edge"}`: 400, `{"slug":"edge","label":"a\nb","site":"edge"}`: 400} {
 		if code, _, _ := srvCall(t, srv, "POST", base, body, ""); code != want {
 			t.Errorf("%s: %d, want %d", body, code, want)
 		}
 	}
-	code, g, _ := srvCall(t, srv, "POST", base, `{"slug":"gold","label":"Gold (home)","site":"gold"}`, "")
+	code, g, _ := srvCall(t, srv, "POST", base, `{"slug":"edge","label":"Edge (home)","site":"edge"}`, "")
 	if code != 201 || g["state"] != "pending" || g["estate"] != false {
 		t.Fatalf("create: %d %v", code, g)
 	}
-	if code, _, _ := srvCall(t, srv, "POST", base, `{"slug":"gold","label":"again","site":"gold"}`, ""); code != 409 {
+	if code, _, _ := srvCall(t, srv, "POST", base, `{"slug":"edge","label":"again","site":"edge"}`, ""); code != 409 {
 		t.Fatalf("duplicate slug: %d", code)
 	}
 	id := g["id"].(string)

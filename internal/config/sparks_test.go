@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func goldSparks(t *testing.T) Sparks {
+func exampleSparks(t *testing.T) Sparks {
 	t.Helper()
 	raw, err := os.ReadFile("../../config/sparks.example.json")
 	if err != nil {
@@ -19,8 +19,8 @@ func goldSparks(t *testing.T) Sparks {
 	return c.Sparks
 }
 
-func TestGoldSparksAdvertiseNoUnverifiedURLs(t *testing.T) {
-	s := goldSparks(t)
+func TestSparksAdvertiseNoUnverifiedURLs(t *testing.T) {
+	s := exampleSparks(t)
 	if err := s.Check(nil); err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestSparkConfigNeedsCompleteInventory(t *testing.T) {
 		"unknown state":      func(s *Sparks) { s.ModelAPI.State = "online" },
 	} {
 		t.Run(name, func(t *testing.T) {
-			s := goldSparks(t)
+			s := exampleSparks(t)
 			change(&s)
 			if s.Check(nil) == nil {
 				t.Fatal("accepted incomplete inventory")

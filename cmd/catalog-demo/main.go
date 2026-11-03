@@ -1,6 +1,6 @@
 // catalog-demo serves the admin SPA and the customer catalog API against a local database
 // with a fixed demo identity. It exists for screenshots and local review only: it refuses to
-// listen on anything but loopback, and it never talks to the IdP, hostd or Gold.
+// listen on anything but loopback, and it never talks to the IdP or hostd.
 package main
 
 import (

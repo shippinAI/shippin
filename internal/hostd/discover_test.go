@@ -95,7 +95,7 @@ func TestDiscoverScriptNested(t *testing.T) {
 			_ = os.WriteFile(filepath.Join(d, file), []byte("{}"), 0o644)
 		}
 	}
-	for _, r := range []string{"box-work/projects/shippin-console", "box-work/projects/rrflow", "box-work/gold-homebase"} {
+	for _, r := range []string{"box-work/projects/shippin-console", "box-work/projects/rrflow", "box-work/homebase"} {
 		mk(r, "")
 		if b, err := exec.Command("git", "init", "-q", filepath.Join(home, r)).CombinedOutput(); err != nil {
 			t.Fatalf("%v %s", err, b)
@@ -119,7 +119,7 @@ func TestDiscoverScriptNested(t *testing.T) {
 	for _, f := range parseDiscover(string(b)) {
 		names = append(names, strings.TrimPrefix(f.Path, "/home/dev/"))
 	}
-	want := "a/b/c/d/five,box-work/apps/site,box-work/gold-homebase,box-work/projects/rrflow,box-work/projects/shippin-console"
+	want := "a/b/c/d/five,box-work/apps/site,box-work/homebase,box-work/projects/rrflow,box-work/projects/shippin-console"
 	if got := strings.Join(names, ","); got != want {
 		t.Fatalf("got  %s\nwant %s\nraw %q", got, want, b)
 	}

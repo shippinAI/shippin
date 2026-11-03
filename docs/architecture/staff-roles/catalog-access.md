@@ -17,7 +17,7 @@ Anyone else needs a direct grant: one permission, for one person, audited, revoc
 | `customers.write` | Create, edit, delete draft customers |
 | `customers.services.write` | A customer's service overrides |
 | `config.effective.read` | A customer's effective configuration |
-| `provision.intent.create` | Record a provision intent (desired state for a later Gold ticket) |
+| `provision.intent.create` | Record a provision intent (desired state for an operator to apply) |
 
 `billing.read` and `billing.write` are reserved again (they gate nothing).
 

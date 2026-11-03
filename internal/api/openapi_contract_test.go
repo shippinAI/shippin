@@ -64,7 +64,7 @@ func specPaths(t *testing.T, file string) []string {
 
 // TestOpenAPIContract: every API route is in the spec and every spec path is served, except the
 // recorded drift (testdata/openapi-drift.txt: "code <path>" or "spec <path>"), which may only
-// shrink. Set OPENAPI_SPEC to the openapi.yaml path (gold-homebase/SHIPPIN-CLOUD/console/openapi).
+// shrink. Set OPENAPI_SPEC to the openapi.yaml path.
 func TestOpenAPIContract(t *testing.T) {
 	file := os.Getenv("OPENAPI_SPEC")
 	if file == "" {

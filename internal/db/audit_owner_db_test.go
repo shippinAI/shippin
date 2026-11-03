@@ -11,7 +11,7 @@ import (
 const appRole = "shippin_test_app"
 
 // asApp hardens the test schema for a stand-in app role that owns everything else (like the
-// console role on Gold) and returns a DB that logs in as that role (not SET ROLE, which a
+// console role on a real install) and returns a DB that logs in as that role (not SET ROLE, which a
 // superuser session could undo). pre runs as the superuser before hardening.
 func asApp(t *testing.T, pre ...func(*DB)) (*DB, *DB) {
 	t.Helper()

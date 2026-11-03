@@ -43,11 +43,13 @@ func main() {
 	mux := http.NewServeMux()
 	consoleAPI := api.New(cfg, flow, database)
 	consoleAPI.SetDirectory(identity.New(database.Pool, cfg, mailSender(cfg), captcha(cfg)))
+	if msg := api.RetiredNotice(os.Getenv); msg != "" {
+		log.Print(msg)
+	}
 	consoleAPI.StartJobs(ctx)
 	consoleAPI.SeedTemplates(ctx)
 	consoleAPI.SyncStaff(ctx)
 	consoleAPI.Register(mux)
-	consoleAPI.RegisterGoldSign(mux)
 	consoleAPI.RegisterHub(mux)
 	consoleAPI.RegisterVaultixHosted(mux)
 	go consoleAPI.RunSweeper(ctx)

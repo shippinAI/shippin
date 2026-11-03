@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Resource naming (GOLD-INCUS-BUILD-LOG 2026-10-19): an immutable public id prj_<ULID> plus a
+// Resource naming: an immutable public id prj_<ULID> plus a
 // display slug that is DNS-safe (GCP project-id / Vercel style) and unique per Nomen org.
 var slugShape = regexp.MustCompile(`^[a-z][a-z0-9-]{1,28}[a-z0-9]$`)
 

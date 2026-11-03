@@ -20,7 +20,6 @@ What works today, what does not, and what comes next. [The objective](objective.
 - **Rollback:** migrations run forward only. Going back to an older build means restoring a backup.
 - **Local agent:** neither deployment path sets up `shippin-hostd`. The features that depend on it, including workspaces on the primary, need `incus.hostd_url` set and hostd installed by hand. See `deploy/hostd-install.sh`.
 - **Remote nodes:** node enrollment exists for a token and a heartbeat. There is no node CA and no installer for a secondary. See [node enrollment](node-enrollment.md).
-- **Change approvals:** the Gold signing code is still in the tree, off unless configured. It must be retired through a reviewed migration. See [the plan](system-identity-human-review-plan.md).
 - **Reference panel:** `third_party/warden-ct102` still has features to port. See [the ledger](panel-variants.md).
 - **Wording:** pages other than infrastructure and navigation still have their text in code.
 - **Primary image:** the ISO builder in `install/primary-image/` is unsigned and does not install the panel.

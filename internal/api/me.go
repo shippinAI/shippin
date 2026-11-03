@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"os"
 	"strings"
 	"time"
 )
@@ -51,7 +50,6 @@ func (a *API) capabilities(r *http.Request, c *caller) map[string]bool {
 	out := map[string]bool{"operator.view": c.op != "", "tenants.create": create, "ops.view": ops,
 		"host.admin_tools": tools,
 		"infra.hosts":      a.infraCan(r.Context(), c, "infra.read"),
-		"gold.sign":        goldSignStore(os.Getenv) != nil,
 		"provider.panel":   a.panelAllowed(r, c),
 		"onboarding":       len(c.tenants) == 0 && c.op == "" && !ops && a.cfg.Onboarding.Enabled && a.cfg.IDPServiceToken != ""}
 	for _, p := range permCatalog {

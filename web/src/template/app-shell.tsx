@@ -22,8 +22,6 @@ const crumbs: [RegExp, string][] = [
   [/\/operator\/instances$/, "Instances"],
   [/\/operator$/, "Platform health"],
   [/^\/hub$/, "Agent hub"],
-  [/^\/gold\/passkeys$/, "Passkeys"],
-  [/^\/gold/, "Change approvals"],
 ];
 
 export function AppShell() {
@@ -41,7 +39,7 @@ export function AppShell() {
           <AccessBanner />
           <Suspense fallback={null}>
             <Outlet />
-            {chatOn && !pathname.startsWith("/gold") && <Suspense fallback={null}><ChatLauncher /></Suspense>}
+            {chatOn && <Suspense fallback={null}><ChatLauncher /></Suspense>}
           </Suspense>
         </main>
       </div>

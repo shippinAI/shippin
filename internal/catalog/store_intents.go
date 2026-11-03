@@ -8,7 +8,7 @@ import (
 )
 
 // RecordIntent snapshots the tenant's effective config as the desired state. It stays
-// "pending" until a Gold ticket applies it; nothing is provisioned here.
+// "pending" until an operator applies it; nothing is provisioned here.
 func (s *Store) RecordIntent(ctx context.Context, tenant, actor string, note string) (json.RawMessage, error) {
 	eff, err := s.Effective(ctx, tenant, "")
 	if err != nil {
