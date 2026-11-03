@@ -144,11 +144,17 @@ type Config struct {
 	Approval          approval.Policy   `json:"approval"`
 	UI                UI                `json:"ui"`
 	Updates           Updates           `json:"updates"`
+	Catalog           Catalog           `json:"catalog"`
 	DatabaseURL       string            `json:"-"`
 	SessionKey        string            `json:"-"`
 	Listen            string            `json:"-"`
 	StaticDir         string            `json:"-"`
 	BuildSections
+}
+
+// Catalog turns on selling hosting from this panel: customers, plans and the service catalog.
+type Catalog struct {
+	Enabled bool `json:"enabled"`
 }
 
 // Load reads SHIPPIN_CONFIG (default config/shippin.example.json) and env overrides.
@@ -218,8 +224,8 @@ func (c *Config) Check() error {
 	if c.IDP.Dialect != "" && !dialectRE.MatchString(c.IDP.Dialect) {
 		return errors.New("idp.dialect must be a short lowercase word such as nomen or zitadel")
 	}
-	if c.IDP.Name == "" {
-		return errors.New("idp.name is required (the identity product name users see)")
+	if c.IDP.Name == "" && c.IDP.ClientID != "" {
+		return errors.New("idp.name is required with idp.client_id (the identity product name users see)")
 	}
 	if err := c.Sparks.Check(c.Operator.AdminHosts); err != nil {
 		return err

@@ -70,12 +70,15 @@ func validateProbes(value any) error {
 }
 
 func (a *API) platformKeys() []platformKey {
-	return []platformKey{
-		{Key: "services.probes", Kind: "array", Label: "Platform service probes",
+	keys := []platformKey{
+		{Key: "services.probes", Kind: "array", Label: "Services to watch",
 			Help: "Live HTTP or TCP health targets. Saved in PostgreSQL and audited. Probe credentials are not supported.",
 			def:  func(a *API) any { return a.cfg.Probes }, valid: validateProbes},
-		issuerKey(a.cfg),
-		{Key: "idp.account_path", Kind: "string", Label: "IdP account page path",
+		uiKeyDef(),
+		hvBoardKeyDef(),
+	}
+	if a.cfg.IDP.ClientID != "" {
+		keys = append(keys, issuerKey(a.cfg), platformKey{Key: "idp.account_path", Kind: "string", Label: "IdP account page path",
 			Help: "Path under the IdP issuer for the user's own account page; empty hides the link.",
 			def:  func(a *API) any { return a.cfg.IDP.AccountPath },
 			valid: func(v any) error {
@@ -83,13 +86,14 @@ func (a *API) platformKeys() []platformKey {
 					return fmt.Errorf("must be a path like /ui/console/users/me")
 				}
 				return nil
-			}},
-		{Key: "services.rrflow.auto_attach", Kind: "bool", Label: "rrflow auto-attach on devspace creation",
-			Help: "New project devspaces get a namespace in the tenant VM's rrflow (only where rrflow is enabled).",
-			def:  func(a *API) any { return a.cfg.Services.RRFlow.AutoAttach }},
-		uiKeyDef(),
-		hvBoardKeyDef(),
+			}})
 	}
+	if a.cfg.Services.RRFlow.Enabled {
+		keys = append(keys, platformKey{Key: "services.rrflow.auto_attach", Kind: "bool", Label: "rrflow auto-attach on devspace creation",
+			Help: "New project devspaces get a namespace in the tenant VM's rrflow (only where rrflow is enabled).",
+			def:  func(a *API) any { return a.cfg.Services.RRFlow.AutoAttach }})
+	}
+	return keys
 }
 
 func (a *API) platformRoutes() []opRoute {

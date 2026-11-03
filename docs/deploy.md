@@ -119,6 +119,17 @@ sudo ./install/panel/install.sh --example
 
 Host agent settings, hypervisor tokens, and SMTP passwords stay in that uncommitted file or in `/etc/shippin/hostd.json` copied from [deploy/hostd.example.json](../deploy/hostd.example.json). The Proxmox panel reads `/etc/warden/warden.env`, copied from [third_party/warden-ct102/warden.env.example](../third_party/warden-ct102/warden.env.example), with TLS verification left on.
 
+## What is switched on
+
+A fresh install offers hosts, guests, fleets, approvals and the provider panel, and nothing that needs something else. The rest appears when you configure it:
+
+| Feature | Turn it on with |
+| --- | --- |
+| Workspaces, projects, templates, the host and edge pages | `SHIPPIN_HOSTD_URL`, with the host agent installed |
+| Customers, plans and the service catalog | `SHIPPIN_CATALOG_ENABLED=1` |
+| Enrolling servers from a tenant | `SHIPPIN_SERVERS_ENABLED=1` |
+| Chat, AI subscriptions, bridge sessions, secrets, orgs | `chat`, `ai`, `bridge`, `vaultix` and `orgs` set to `enabled` in the config file |
+
 ## Watching other services
 
 **Platform health** shows a card for each service you ask it to watch, and none until you do. Add them under **Provider panel → Platform settings**, or in `probes` in the config file, each with a name, a kind and either an HTTP `url` or a `tcp` address. A kind of `identity`, `secrets`, `mail`, `dns`, `proxy` or `database` picks a matching icon, and anything else gets a plain one. Set `instance` to tie a card to an Incus instance and show its memory and address.

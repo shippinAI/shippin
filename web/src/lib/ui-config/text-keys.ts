@@ -182,6 +182,8 @@ export const textDefaults = {
   "infra.task.lookup": "Look up",
   "infra.task.lookupTooltip": "Read this task",
   "infra.task.done": "done",
+  "hub.eyebrow": "Approvals",
+  "hub.description": "Changes waiting for a decision. Agents can also check out tasks here, under a lease.",
   "services.title": "Services",
   "services.live": "Live",
   "services.checked": "checked {when}",

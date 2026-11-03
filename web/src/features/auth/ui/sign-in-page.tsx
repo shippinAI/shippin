@@ -35,24 +35,24 @@ export function SignInPage() {
             {s?.app === "operator" ? "Sign in to the provider panel. Staff roles only; every action is audited." : "Sign in to your console. You'll land in your own tenant."}
           </p>
           <div className="mt-8 rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-e2)]">
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full"
-              isDisabled={!s?.login_ready}
-              tooltip={s?.login_ready ? `Continue to ${idpHost}` : "Login isn't configured yet"}
-              onPress={() => window.location.assign("/auth/login")}
-            >
-              Continue with {s?.idp_name ?? ""} <ArrowRight className="size-4" />
-            </Button>
-            {(s?.login_providers ?? []).map((p) => (
+            {s?.login_ready && (
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full"
+                tooltip={`Continue to ${idpHost}`}
+                onPress={() => window.location.assign("/auth/login")}
+              >
+                Continue with {s.idp_name || idpHost} <ArrowRight className="size-4" />
+              </Button>
+            )}
+            {s?.login_ready && (s.login_providers ?? []).map((p) => (
               <Button
                 key={p.id}
                 variant="secondary"
                 size="lg"
                 className="mt-3 w-full"
-                isDisabled={!s?.login_ready}
-                tooltip={s?.login_ready ? `Sign in with ${p.label} via ${idpHost}` : "Login isn't configured yet"}
+                tooltip={`Sign in with ${p.label} via ${idpHost}`}
                 onPress={() => window.location.assign(`/auth/login?idp=${encodeURIComponent(p.id)}`)}
               >
                 Continue with {p.label} <ArrowRight className="size-4" />
@@ -98,10 +98,12 @@ export function SignInPage() {
                 </form>
               </details>
             )}
-            <div className="mt-4 flex items-center gap-2 text-xs text-fg-subtle">
-              <LockKeyhole className="size-3.5" />
-              {s?.idp_name} · OpenID Connect with PKCE via <span className="font-mono text-fg-muted">{idpHost}</span>
-            </div>
+            {s?.login_ready && (
+              <div className="mt-4 flex items-center gap-2 text-xs text-fg-subtle">
+                <LockKeyhole className="size-3.5" />
+                {s.idp_name} · OpenID Connect with PKCE via <span className="font-mono text-fg-muted">{idpHost}</span>
+              </div>
+            )}
           </div>
           {s?.setup_open && (
             <p className="mt-6 text-sm">

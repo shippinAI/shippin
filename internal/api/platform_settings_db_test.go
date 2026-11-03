@@ -14,6 +14,7 @@ func TestPlatformSettings(t *testing.T) {
 	ctx := t.Context()
 	_, _ = d.Pool.Exec(ctx, `DELETE FROM platform_settings`)
 	t.Cleanup(func() { _, _ = d.Pool.Exec(ctx, `DELETE FROM platform_settings`) })
+	a.cfg.IDP.ClientID = "client"
 	a.cfg.IDP.Issuer, a.cfg.IDP.AccountPath = "https://idp.example.test", "/ui/console/users/me"
 	a.cfg.Services.RRFlow.Enabled, a.cfg.Services.RRFlow.Tenants, a.cfg.Services.RRFlow.AutoAttach = true, []string{"t1"}, false
 	c := &caller{id: &auth.Identity{Sub: "ops-" + newUUID()}}

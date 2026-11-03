@@ -47,6 +47,8 @@ if captcha:
     if captcha not in ("none", "turnstile"):
         sys.exit("SHIPPIN_CAPTCHA_PROVIDER must be none or turnstile")
     dr.setdefault("captcha", {})["provider"] = captcha
+if os.environ.get("SHIPPIN_CATALOG_ENABLED") in ("1", "true", "yes"):
+    cfg.setdefault("catalog", {})["enabled"] = True
 if os.environ.get("SHIPPIN_SERVERS_ENABLED") in ("1", "true", "yes"):
     cfg.setdefault("servers", {})["enabled"] = True
 dest = os.environ.get("SHIPPIN_CONFIG_OUT") or "/etc/shippin/shippin.json"

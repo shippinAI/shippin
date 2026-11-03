@@ -1,3 +1,4 @@
+import { useMe } from "../../../../lib/hooks/use-api";
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "../../../../lib/design/components/badge/badge";
@@ -12,7 +13,7 @@ import { compactUi, type NavEntryConfig, type ProviderConfig, type ProviderField
 import { textDefaults, type TextKey } from "../../../../lib/ui-config/text-keys";
 import { uiConfigKey, useUiConfig } from "../../../../lib/ui-config/use-ui-config";
 import { adminNav } from "../../../../template/admin/admin-nav";
-import { accountNav, infrastructureNav, navSections, operatorNav, tenantNav } from "../../../../template/nav-items";
+import { accountNav, featureOn, infrastructureNav, navSections, operatorNav, tenantNav } from "../../../../template/nav-items";
 import { PageHeader } from "../../../../template/page-header";
 
 const UI_KEY = "ui.config";
@@ -71,6 +72,7 @@ function ProviderCardForm({ kind, fieldNames, entry, disabled, onChange }: { kin
 
 /** Provider panel: what the panel calls things and shows. Saved through the audited platform setting. */
 export function InterfacePage() {
+  const caps = useMe().data?.capabilities ?? {};
   const qc = useQueryClient();
   const config = useUiConfig();
   const setting = usePlatformSettings().data?.items.find((s) => s.key === UI_KEY);
@@ -132,7 +134,7 @@ export function InterfacePage() {
                 <Card className="overflow-hidden">
                   <CardHeader title="Items" description="Leave a name empty to keep the default. A lower position moves an item up; hiding an item does not grant or remove access." />
                   <ul className="divide-y divide-line">
-                    {allItems.map((i) => (
+                    {allItems.filter(featureOn(caps)).map((i) => (
                       <NavRow key={i.id} id={i.id} fallback={i.label} disabled={disabled} entry={draft.nav?.items?.find((e) => e.id === i.id)} onChange={(p) => setNav("items", i.id, p)} />
                     ))}
                   </ul>

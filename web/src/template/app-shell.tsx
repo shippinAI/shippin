@@ -1,3 +1,4 @@
+import { useMe } from "../lib/hooks/use-api";
 import { useText } from "../lib/ui-config/use-ui-config";
 import { lazy, Suspense } from "react";
 import { Outlet, useLocation } from "../lib/router/router";
@@ -26,6 +27,7 @@ const crumbs: [RegExp, string][] = [
 ];
 
 export function AppShell() {
+  const chatOn = useMe().data?.capabilities["feature.chat"] === true;
   const { pathname } = useLocation();
   const t = useText();
   const crumb = pathname.startsWith("/operator/hosts") ? t("infra.title") : crumbs.find(([re]) => re.test(pathname))?.[1] ?? "Home";
@@ -39,7 +41,7 @@ export function AppShell() {
           <AccessBanner />
           <Suspense fallback={null}>
             <Outlet />
-            {!pathname.startsWith("/gold") && <Suspense fallback={null}><ChatLauncher /></Suspense>}
+            {chatOn && !pathname.startsWith("/gold") && <Suspense fallback={null}><ChatLauncher /></Suspense>}
           </Suspense>
         </main>
       </div>

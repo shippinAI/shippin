@@ -58,5 +58,8 @@ func (a *API) capabilities(r *http.Request, c *caller) map[string]bool {
 			out[p.Key] = a.infraCan(r.Context(), c, p.Key)
 		}
 	}
+	for k, on := range a.features() {
+		out[k] = on
+	}
 	return out
 }

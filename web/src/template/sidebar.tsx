@@ -48,7 +48,7 @@ export function Sidebar() {
               <HelpPopover title="Getting around" label="About the sidebar" placement="right">
                 <p>Everything for this devspace lives here: workspaces, projects and the terminal.</p>
                 <p>Hover any entry for a hint. Items marked <em>Soon</em> are not available yet.</p>
-                <p>The chat button (bottom right) opens Clyffy on every page; it knows which page you're on.</p>
+                
               </HelpPopover>
             </div>
             {items(tenantNav).map((item) => (

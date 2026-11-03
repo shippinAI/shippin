@@ -2,7 +2,7 @@
   "brand": {
     "name": "Shippin",
     "short": "Shippin",
-    "tagline": "Dev workspaces, identity and secrets on your own metal."
+    "tagline": "Incus and Proxmox, from one panel."
   },
   "domain": "example.invalid",
   "governance_domains": [
@@ -10,7 +10,7 @@
   ],
   "console_host": "console.example.invalid",
   "idp": {
-    "name": "Nomen",
+    "name": "",
     "issuer": "https://id.example.invalid",
     "client_id": "",
     "dial": "",
@@ -24,6 +24,9 @@
     "host_label": "primary"
   },
   "probes": [],
+  "catalog": {
+    "enabled": false
+  },
   "plan_name": "Founder",
   "workspaces": {
     "user": "dev",
@@ -335,9 +338,9 @@
   },
   "services": {
     "rrflow": {
-      "enabled": true,
+      "enabled": false,
       "tenants": [],
-      "auto_attach": true,
+      "auto_attach": false,
       "listed_only": true
     }
   },
@@ -491,15 +494,7 @@
       "provider": "none",
       "secret_env": "SHIPPIN_CAPTCHA_SECRET"
     },
-    "upstreams": [
-      {
-        "id": "nomen",
-        "label": "Nomen",
-        "issuer": "",
-        "client_id": "",
-        "secret_env": "SHIPPIN_OIDC_CLIENT_SECRET"
-      }
-    ],
+    "upstreams": [],
     "webhook_skew_seconds": 300
   },
   "ui": {
