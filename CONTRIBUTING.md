@@ -28,17 +28,22 @@ settings rather than hardcoding them.
 
 ## Working with the public remote
 
-Clone `https://github.com/shippinAI/shippin.git` and work from a topic branch.
-Push that branch and open a pull request to `main`. GitHub requires the `agent`,
-`panel` and `governance` checks to pass on an up-to-date branch before merging. No human
-approval is required by the current branch rule. Administrators can bypass the
-rule, so use the checks for ordinary changes and document any emergency bypass.
-During baseline development, GitHub auto-merge is enabled for non-draft pull
-requests authored by repository maintainers from branches in this repository.
-The workflow runs from the base branch, does not execute pull request code, and
-binds its request to the observed head commit. Fork pull requests and drafts do
-not get auto-merge from this workflow. A failing or missing required check blocks
-the merge. After merging, switch to `main` and run `git pull --ff-only`.
+Clone `https://github.com/shippinAI/shippin.git`. During baseline development,
+repository administrators commit directly to `main` and push; topic branches and
+pull requests are optional. Run the checks above first, because GitHub records an
+administrator's push as bypassing the branch rule and nothing stops a broken commit.
+The `Checks` workflow still runs on every push, and only then covers the console,
+installer, public-tree and secret-scanning jobs that have no local command above.
+Fix a red `main` before adding anything else.
+
+Anyone without administrator rights, including automation, pushes a branch and opens a
+pull request to `main`. GitHub requires the `agent`, `panel` and `governance` checks
+to pass on an up-to-date branch before merging, and no human approval. The other
+`Checks` jobs are not required, so confirm they passed before merging. The baseline
+auto-merge workflow has not enabled itself on any pull request so far, so merge by hand.
+
+File names must stay unique ignoring case. A pair differing only by case is one file on
+Windows and macOS, and a checkout there overwrites one with the other.
 
 Do not repoint a historical checkout with unrelated history at the public repository
 and push it. Review and selectively adopt historical work into the canonical checkout
