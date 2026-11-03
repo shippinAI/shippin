@@ -1,41 +1,63 @@
-# Roadmap
+# Roadmap to a release
 
-`main` is the only line. Every open pull request is merged. `b2-release` and `approve-p1-only` are joined into `main` as history only. Their trees were already here. Do not branch new work from them.
+Shippin is an early-stage infrastructure platform. The repository contains a static
+panel workbench, a draft API contract, governance tooling and an unsigned Debian/Incus
+development image builder. It does not yet provide a deployable management system.
+The public repository is the source of truth for accepted code; historical material
+is a candidate for review, not an implementation dependency. The [release objective](objective.md)
+defines the desired primary-to-secondary outcome and evidence required to ship.
+The [platform integration plan](platform-integration-plan.md) maps the historical
+code to the target owners and details the implementation and acceptance sequence.
 
-## Where we are
+## Next: build the primary service and prove the OS foundation
 
-The console on `main` can:
+Establish the canonical control-plane and host-agent ownership after reviewing
+candidate code. Build the primary service, durable state, authorization and
+first-owner flow in small, independently verified slices. The current panel is a
+workbench and cannot yet manage real infrastructure.
 
-- Sign people in with Nomen, run the operator shell, and enroll servers with a one-time token and a bearer heartbeat.
-- Show an org its servers, and show guests on a server that org owns or is assigned.
-- Attach a Proxmox VE API from **Hosts** (`/operator/hosts`). The token secret stays in an environment variable. TLS is verified.
-- Create, clone, template, delete, resize, and migrate qemu and lxc guests, snapshot and roll them back, read node services, network, and firewall, list storage, upload or download an image, and start a vzdump or restore. Async work is a Proxmox task id. If the approval rule asks for the factory board, the console files the card and the same call is retried after it is approved.
-- Browse a tenant database that already exists. It does not create that database.
+In parallel, prove the installation foundation:
 
-Texas and Platinum are **no-go**. Evidence is `docs/design/deploy-readiness-texas-platinum.md`. No deploy is part of this roadmap until that checklist is pass.
+Complete an unattended test of a **disposable virtual machine** that boots the existing
+development ISO, installs Debian and Incus from a verified package mirror, reboots,
+and proves an Incus container can start and be removed. Retain command output and
+identify failures separately from successes. The test must isolate its disk and use
+throwaway credentials. Follow the [implementation handoff](../install/primary-image/implementation-plan.md).
+A successful image build or installer boot alone does not establish this milestone.
 
-## The path
+## Follow-on milestones
 
-Do these in order. Do not start a later step by opening a side branch off an old release.
+1. **Establish service ownership.** Review candidate control-plane and host-agent
+   code for provenance, license, security, dependencies and behavior before adopting
+   it. Define canonical modules, configuration, contracts and migration boundaries.
+2. **Bootstrap a primary.** Build the control plane, persistent data and secure
+   first-owner setup. The first owner establishes their own credentials using a
+   unique, short-lived bootstrap mechanism; no shared default password. Require
+   trusted HTTPS, recovery and a documented backup and restore path. Treat identity
+   provider integration as a recoverable multi-step operation.
+3. **Enroll infrastructure.** Generate a secondary installer or enrollment command
+   from the primary. Authenticate each node using short-lived enrollment credentials
+   and unique node identity, protect its connection, allow revocation, and expose
+   clear host and VM roles and user-defined tags. Prevent accidental data loss or
+   cluster membership changes. Support both Incus and Proxmox through explicit,
+   provider-specific adapters and verified capabilities.
+4. **Manage actual workloads.** Implement and test authorized Incus and Proxmox
+   operations, isolation and failure handling end to end. Neither provider is
+   supported until its adapter and real-host tests exist. OpenTofu, Coder, chatmaton.io,
+   shippin.bot and other services are optional integrations, configured by users.
+5. **Package and release.** Produce an installable, versioned image and node
+   artifacts through a documented build, with signed artifacts, independently
+   distributed verification keys, provenance and an SBOM. Define supported upgrades,
+   backup and restore, and a published security response process. Select a license
+   before describing the repository as open source or granting reuse rights.
 
-1. **CI on `main`.** There is no `.github` workflow. Add one that runs `go build ./...`, `go vet ./...`, `go test ./...`, and `web` `npm run build`. Database tests stay gated on `SHIPPIN_TEST_DATABASE_URL`.
-2. **Release only from a clean `main`.** `deploy/release/build.sh` builds whatever checkout is current, including a dirty tree. It should refuse that.
-3. **Take Gold addresses out of the install path.** `config/shippin.json`, `deploy/hostd.json`, and `deploy/console-container.sh` still carry site addresses and org ids. A Texas file must get those from the environment. Turn probe and operator-host TLS verification on with the site CA.
-4. **Stop the reconciler from logging the same error every tick.** Then, and only then, consider `jobs.enabled`. It ships false.
-5. **Texas installer.** One config file, migrations on empty Postgres, no embedded host. Platinum does not get a join script until Texas exists. Enroll is a token exchange, not mTLS.
-6. **Hypervisor phase 2.** Specified in `docs/design/proxmox-full-coverage.md` and not routed: node disks, apt read, certificate read, DNS and time, syslog, task list, firewall write, backup jobs, pools read, HA read, replication read, and a per-server rate limit. This is also where the 13 `to-author` rows in `docs/design/warden-capture-matrix.md` go (backup copy jobs, disks, packages, certs, logs). Do not copy the panel's shell scripts.
-7. **Hypervisor phase 3.** SDN, Ceph, ACME, subscription, notifications, metrics, wake-on-lan, cloud-init, guest agent, consoles, move-disk, prune. Consoles need a session broker. They are not a copied terminal page.
-8. **Hypervisor phase 4.** One pool per org, tenant guests filtered by that pool, PBS verify, prune, and sync. PVE users are not a second directory. Shippin roles stay in Nomen. `IAM_INFRA` maps to `op_infra` and is created in Nomen, not in this repo.
-9. **Managed data services.** Design only, in `docs/design/managed-services.md`. Postgres, Dragonfly, and Redis are not provisioned by the console yet. Build them on the server registry and the infra role after Texas, not as a second control plane.
+## Release evidence
 
-## How a change ships
-
-Branch from `main`. Mutations that the approval policy marks `hv.lifecycle` file one hub card and return `409` with `code` `waiting_on_board` and `card_key`. Approve it, then send the same request again. The roles that may ask are `founder`, `op_infra`, `org_owner`, and `org_admin`.
-
-An agent follows `docs/agents/hypervisor.md`. A person attaching a cluster follows `docs/design/proxmox-connector.md`.
-
-## What not to revive
-
-- Panel login, PAM, the env file, and the HTML templates under `third_party/warden-ct102`. The capture matrix says where each file went.
-- `b2-release` and `approve-p1-only` as a place to commit. They exist so the old pull requests could close. `main` has the files.
-- A deploy of this tree to Texas or Platinum before steps 1–5 pass.
+A release candidate needs evidence from a clean checkout and representative disposable
+infrastructure: verified build and artifact signatures; clean primary install and
+reboot; first-owner setup and recovery; authenticated enrollment, revocation and
+clear tags; real Incus and Proxmox workload lifecycle and isolation; upgrade and rollback or
+recovery; backup and restore; and tests for network interruption and invalid or
+expired credentials. Document platform, firmware and network prerequisites and known
+limitations. Tests must observe system behavior, not only mocked API calls or the
+presence of files. No production readiness claim follows from this roadmap alone.
