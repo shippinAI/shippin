@@ -38,7 +38,7 @@ Use it with `cd web && npm run dev` to change both sides at once. It runs in Git
 scripts/check.sh
 ```
 
-CI also runs the Debian installer, `docker compose up` with the first-owner flow, and a secret scan. Run `go test -p 1 ./...` with `SHIPPIN_TEST_DATABASE_URL` pointing at a disposable Postgres to include the database tests.
+CI also runs the Debian installer, an update from an older build (`scripts/check-upgrade.sh`, disposable machines only), `docker compose up` with the first-owner flow, and a secret scan. Run `go test -p 1 ./...` with `SHIPPIN_TEST_DATABASE_URL` pointing at a disposable Postgres to include the database tests.
 
 ## Rules that are easy to miss
 

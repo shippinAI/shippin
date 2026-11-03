@@ -8,7 +8,7 @@ What an operator running Shippin against real Incus and Proxmox servers needs fr
 - **Provider:** a kind of hypervisor, such as Incus or Proxmox VE. A driver in `internal/hv` implements it.
 - **Guest:** a virtual machine or container on a host.
 - **Native cluster:** a cluster the hypervisor forms itself. Proxmox uses corosync and pmxcfs. Incus uses its own raft database. They own quorum, shared state and live migration.
-- **Fleet:** a group of hosts in the panel, for operating them together. It is a management-plane idea and changes nothing on the hosts.
+- **Fleet:** a group of hosts in the panel, for seeing them together. It is a management-plane idea and changes nothing on the hosts.
 
 ## Requirements
 
@@ -34,7 +34,7 @@ Every host shows its provider and the version its API reports, read live.
 
 **Done when:** a host's version and provider are visible on the overview and on its tab. A host that does not answer stays listed with the reason and is never shown as online.
 
-**Status:** Done for provider, version, reachability and guest counts. Kernel, uptime, CPU and memory per node, and the members of a native cluster, are not built.
+**Status:** Done, against simulated APIs only: provider, version, reachability and guest counts on the overview, and release, kernel, CPU, memory, uptime and native cluster members on the tab. The tab opens on a host that answers, so a dead one does not hide the others.
 
 ### FO-4 Lifecycle operations are reliable and visible
 
@@ -42,7 +42,7 @@ Starting or stopping a guest is not finished when the request is accepted. It is
 
 **Done when:** every operation has a durable record of who asked, what they asked for, and how it ended, which survives a restart of the panel. An operator can see in-progress and recent operations for a host. Stopping many guests runs in a stated order with a per-guest result.
 
-**Status:** Partial. Both drivers wait for the task and read back, and every change is audited before it runs. The durable operation history, its UI and ordered bulk stop are not built.
+**Status:** Done, against simulated APIs only. Every change is recorded before it runs, keeps going if the browser leaves, and shows under Activity. A restart turns open operations into unknown. Bulk stop runs one guest at a time, in order, with a result for each, and skips the guest the panel runs on. Not built: a view of the hypervisor's own running tasks, and bulk start.
 
 ### FO-5 Incus and Proxmox operate as one fleet, and stay separate hosts
 
@@ -57,7 +57,7 @@ A fleet gives:
 
 **Done when:** an operator can group hosts of both providers, sees them separately labelled in one fleet view, and is never offered an action a host's provider cannot do. Native clusters are untouched and keep their own quorum.
 
-**Status:** Partial. Both providers appear side by side, separately labelled, on the overview, and actions already follow each driver's capabilities. Named fleets, placement policy and cross-provider moves are not built.
+**Status:** Partial. Named fleets group hosts of both providers, each labelled with its own provider, version and native cluster, with a rollup of hosts and guests, and actions follow each driver's capabilities. Shared tags, placement policy, capacity totals, operating a whole fleet at once, and cross-provider moves are not built.
 
 ### FO-6 Everything is configurable, and owned by the server
 
@@ -67,9 +67,24 @@ What an installation calls things and shows is set in its config file, and owner
 
 **Status:** Done for navigation, providers and the infrastructure pages. Other pages still have their wording in code; they move to text keys as they are touched.
 
+### FO-7 A host is added from the panel, with no shell on the panel's machine
+
+An operator pastes a Proxmox token or an Incus trust token, tests the connection before saving, and decides whether to trust a self-signed certificate after seeing its fingerprint. A test saves nothing and does not use up a one-time token. Certificate checks are never turned off: trusting a certificate pins exactly that one. Secrets are sealed at rest, never returned, and survive an update.
+
+**Done when:** a host can be added with nothing on the panel's disk, a wrong secret, an unreachable address, a mismatched certificate and a used token each say so, a refused attempt leaves nothing behind, and no secret appears in the database or logs in the clear.
+
+**Status:** Done, against simulated APIs only.
+
+### FO-8 An update keeps what the site has
+
+`git pull --ff-only` and re-running the installer keep the owner, sessions, hosts and saved secrets, and leave the checkout clean for the next pull.
+
+**Done when:** CI installs an older build under systemd, creates the owner, updates, and checks each of those.
+
+**Status:** Done. Rollback is not automated: migrations run forward only, so going back means restoring a backup.
+
 ## Order
 
-1. FO-4: the operation history. Everything else about trust depends on it.
-2. FO-3: node detail.
-3. FO-5: named fleets.
-4. FO-2: updating from a button.
+1. Run FO-3, FO-4 and FO-7 against real Incus and Proxmox servers. Nothing here has met one yet.
+2. FO-5: operating a fleet at once, capacity and placement.
+3. FO-2: updating from a button.

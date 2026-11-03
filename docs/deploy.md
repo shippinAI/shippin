@@ -109,7 +109,8 @@ sudo ./install/panel/install.sh --example
 | `SHIPPIN_CAPTCHA_PROVIDER` | no | `none` or `turnstile`. Sets `directory.captcha.provider` |
 | `SHIPPIN_SERVERS_ENABLED` | no | `1` turns on server enrollment (`servers.enabled`) |
 | `SHIPPIN_DATABASE_URL` | no | Postgres URL. Empty means the installer creates a local database |
-| `SHIPPIN_SESSION_KEY` | no | 64 hex characters. Empty means the installer generates one |
+| `SHIPPIN_SELF_GUEST` | no | The guest this panel runs on, as a hypervisor names it. Bulk stop always skips it and a single stop asks first. Empty uses the machine's hostname |
+| `SHIPPIN_SESSION_KEY` | no | 64 hex characters. Empty means the installer generates one and keeps it across re-runs. It signs sessions and seals secrets saved in the panel: changing it signs everyone out and those secrets must be entered again |
 | `SHIPPIN_SMTP_PASSWORD` | only if mail is enabled in JSON | Named by `mail.password_env` |
 | `SHIPPIN_NOMEN_ISSUER` | when Nomen is the upstream issuer | Sets `idp.issuer` |
 | `SHIPPIN_OIDC_CLIENT_SECRET` | when that issuer requires a secret | Not stored in the JSON file |
@@ -120,6 +121,17 @@ Host agent settings, hypervisor tokens, and SMTP passwords stay in that uncommit
 
 ## Updates
 
-Build a new binary from `main`, replace `/usr/local/bin/shippin-console`, and restart the service. If the new process fails its health check, start the previous binary again. The older Incus release scripts under `deploy/` can still roll a release back when `CONSOLE_IP`, `DOMAIN`, and `SECRETS_FILE` are set in the environment. They no longer default to a site address.
+From the checkout the panel was installed from:
 
-GitHub Actions on pull requests and `main` runs the Go tests, the web tests and build, the Warden module tests, the public-tree literal scan, gitleaks, and this installer with `--example`.
+```sh
+git pull --ff-only
+sudo ./install/panel/install.sh --site /etc/shippin/site.env
+```
+
+That rebuilds the panel, applies database migrations and restarts it. The owner, sessions, hosts and saved secrets stay. `scripts/check-upgrade.sh <older commit> <target commit>` proves this on a disposable machine, and CI runs it under systemd. The panel's top bar shows when a newer build exists.
+
+Migrations run forward only, so going back to an older build means restoring a database backup taken before the update. Take one first.
+
+If the new process fails its health check, the installer says so and stops. Start the previous binary again, or fix what it reports and re-run. The older Incus release scripts under `deploy/` can still roll a release back when `CONSOLE_IP`, `DOMAIN`, and `SECRETS_FILE` are set in the environment. They no longer default to a site address.
+
+GitHub Actions on pull requests and `main` runs the Go tests, the web tests and build, the Warden module tests, the public-tree literal scan, gitleaks, this installer with `--example`, and an update from an older build under systemd.
