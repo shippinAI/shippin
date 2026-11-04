@@ -485,8 +485,8 @@
       },
       {
         "kind": "proxmox",
-        "label": "Proxmox VE",
-        "description": "Virtual machines and containers on a Proxmox VE cluster.",
+        "label": "Shippin Prox",
+        "description": "Configure and manage virtual machines and containers on connected Proxmox VE systems.",
         "fields": [
           {
             "name": "base_url",
