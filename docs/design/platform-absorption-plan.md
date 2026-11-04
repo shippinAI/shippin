@@ -145,9 +145,9 @@ logs or API response.
 3. Implement AgentHub service identity and the review adapter against a verified
    typed decision/ticket contract. Exercise allow, require-review, deny, stale,
    timeout and unavailable paths before any provider write.
-4. Add a bounded, configurable builder and immutable Git-to-OCI resolution. Prove
-   egress denial, CPU/memory/disk/time limits, cleanup, secret non-persistence,
-   digest/provenance capture, cancellation and worker restart.
+ 4. Add a bounded, configurable builder and immutable Git-to-OCI resolution. Prove
+    egress denial, CPU/memory/disk/time limits, cleanup, no credential values in
+    build state or logs, artifact digest/provenance capture, cancellation and restart.
 5. Add the Incus OCI adapter and verify create/configure/start/read-back/health,
    update, rollback and deletion on a disposable Incus host.
 6. Add a separate Proxmox guest bootstrap/hostd adapter. Verify template capability,
