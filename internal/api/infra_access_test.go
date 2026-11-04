@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/servers"
 )
 
@@ -135,6 +134,7 @@ func TestANoteReachesTheAuditLogTheCardAndActivity(t *testing.T) {
 	a.staffDB = store
 	a.cfg.Approval.Board.Driver = "hub"
 	a.cfg.Approval.Board.OrgID = "ops"
+	a.cfg.Approval.Rules[0].NeedsApproval = true
 	board := &recordingBoard{stubBoard: stubBoard{st: "needs_approval"}}
 	a.hvBoard = board
 	c := &caller{id: &auth.Identity{Sub: "u1", Name: "Ada"}, op: "op_infra", note: "The disk is full"}
@@ -147,21 +147,22 @@ func TestANoteReachesTheAuditLogTheCardAndActivity(t *testing.T) {
 	}
 	a.hvBoard = nil
 	a.cfg.Approval.Board.Driver = "off"
-	if !a.permitAction(httptest.NewRecorder(), req, c, hvAction, "", "s1", "g", "stop") {
-		t.Fatal("with the board off the change runs")
+	rec := httptest.NewRecorder()
+	if a.permitAction(rec, req, c, hvAction, "", "s1", "g", "stop") {
+		t.Fatal("a required review must not be bypassed when the board is off")
+	}
+	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "waiting_on_board") {
+		t.Fatalf("missing review mechanism must fail closed: %d %s", rec.Code, rec.Body.String())
 	}
 	found := false
 	for _, e := range store.audit {
 		found = found || e.Action == "hv.lifecycle" && strings.Contains(e.Detail, "The disk is full")
 	}
-	if !found {
-		t.Fatalf("audit: %+v", store.audit)
+	if found {
+		t.Fatalf("blocked change must not be audited as applied: %+v", store.audit)
 	}
-	if _, err := a.tracked(req, c, "s1", "g", "stop", func(context.Context) (hv.Guest, error) { return hv.Guest{}, nil }); err != nil {
-		t.Fatal(err)
-	}
-	if ops, _ := dir.Operations(context.Background(), "", 0); len(ops) != 1 || ops[0].Note != "The disk is full" {
-		t.Fatalf("activity: %+v", ops)
+	if ops, _ := dir.Operations(context.Background(), "", 0); len(ops) != 0 {
+		t.Fatalf("blocked change must not create an operation: %+v", ops)
 	}
 }
 

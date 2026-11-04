@@ -78,7 +78,6 @@ func (a *API) platformKeys() []platformKey {
 			Help: "Live HTTP or TCP health targets. Saved in PostgreSQL and audited. Probe credentials are not supported.",
 			def:  func(a *API) any { return a.cfg.Probes }, valid: validateProbes},
 		uiKeyDef(),
-		hvBoardKeyDef(),
 	}
 	if a.cfg.IDP.ClientID != "" {
 		keys = append(keys, issuerKey(a.cfg), platformKey{Key: "idp.account_path", Kind: "string", Label: "IdP account page path",

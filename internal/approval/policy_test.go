@@ -21,3 +21,14 @@ func TestHostRuleDoesNotSpill(t *testing.T) {
 		t.Fatal("other host must not match")
 	}
 }
+
+func TestRequiredReviewCannotBeDisabledByBoardDriver(t *testing.T) {
+	for _, driver := range []string{"", "off", "hub", "http"} {
+		p := Policy{Board: BoardConfig{Driver: driver}, Rules: []Rule{{
+			ID: "lifecycle", Actions: []string{"hv.lifecycle"}, NeedsApproval: true,
+		}}}
+		if !p.RequiresReview("hv.lifecycle", "host-a") {
+			t.Fatalf("board driver %q disabled a policy-required review", driver)
+		}
+	}
+}

@@ -146,6 +146,7 @@ func TestInfraWaitsOnTheBoardAndRejectsPlainHTTP(t *testing.T) {
 	a := infraAPI(t, "op_infra", dir)
 	a.cfg.Approval.Board.Driver = "hub"
 	a.cfg.Approval.Board.OrgID = "ops"
+	a.cfg.Approval.Rules[0].NeedsApproval = true
 	a.hvBoard = stubBoard{st: "pending"}
 	mux := http.NewServeMux()
 	a.infraRoutes(mux)
@@ -184,6 +185,7 @@ func TestAnApprovalCoversOneChange(t *testing.T) {
 	a := infraAPI(t, "op_infra", dir)
 	a.cfg.Approval.Board.Driver = "hub"
 	a.cfg.Approval.Board.OrgID = "ops"
+	a.cfg.Approval.Rules[0].NeedsApproval = true
 	a.hvBoard = &spendBoard{stubBoard: stubBoard{st: "approved"}}
 	a.cfg.Approval.Rules = append(a.cfg.Approval.Rules, approval.Rule{ID: "decide", Actions: []string{"hub.decide"}, ApproverRoles: []string{"op_infra"}})
 	req := httptest.NewRequest(http.MethodPost, "/v1/infra/servers/"+id+"/guests/100/status/stop", nil)
@@ -205,6 +207,7 @@ func TestOnlySomeoneWhoCanDecideIsOfferedTheCard(t *testing.T) {
 	a := infraAPI(t, "op_infra", &memHV{})
 	a.cfg.Approval.Board.Driver = "hub"
 	a.cfg.Approval.Board.OrgID = "ops"
+	a.cfg.Approval.Rules[0].NeedsApproval = true
 	a.hvBoard = &spendBoard{stubBoard: stubBoard{st: "needs_approval"}}
 	req := httptest.NewRequest(http.MethodPost, "/x", nil)
 	rec := httptest.NewRecorder()
@@ -412,7 +415,7 @@ func infraAPI(t *testing.T, op string, dir hvDirectory) *API {
 		Enabled: true,
 		Board:   approval.BoardConfig{Driver: "off"},
 		Rules: []approval.Rule{{
-			ID: "hv", Actions: []string{hvAction}, ApproverRoles: []string{"op_infra"}, NeedsApproval: true,
+			ID: "hv", Actions: []string{hvAction}, ApproverRoles: []string{"op_infra"}, NeedsApproval: false,
 		}},
 	}
 	return &API{

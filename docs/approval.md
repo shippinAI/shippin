@@ -24,6 +24,12 @@ The current board drivers are also not AgentHub:
 - `http` speaks this console's `/v1/hub/approvals` contract.
 - `off` disables the board; it is not a human-review policy source.
 
+The legacy `approval.hv_board` operator override has been removed. Its old stored
+value is ignored, so an operator setting cannot turn off a review requirement in
+the installation policy and make a guest lifecycle action apply directly. This
+does not make the local board an AgentHub integration; provider writes remain
+blocked until the configured AgentHub gate is implemented.
+
 Read-only source review of AgentHub commit `97172d9` on
 `feat/devspace-bridge-contract` confirms authenticated
 `/api/v1/policy/decide` and `/api/v1/change-tickets` routes for policy decisions,

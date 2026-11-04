@@ -36,7 +36,7 @@ func (g Guard) Allow(ctx context.Context, verb, guest string) error {
 	if !g.Policy.Allows(g.Subject, ActionLifecycle, g.Host) {
 		return ErrDenied
 	}
-	if !g.Policy.NeedsBoard(ActionLifecycle, g.Host) {
+	if !g.Policy.RequiresReview(ActionLifecycle, g.Host) {
 		return nil
 	}
 	if g.Board == nil {

@@ -5,7 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"shippin.cloud/console/internal/approval"
 	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/hv"
 )
 
 // Ops overrides of config keys: validated, audited with the write, cleared back to the config value.
@@ -17,6 +19,13 @@ func TestPlatformSettings(t *testing.T) {
 	a.cfg.IDP.ClientID = "client"
 	a.cfg.IDP.Issuer, a.cfg.IDP.AccountPath = "https://idp.example.test", "/ui/console/users/me"
 	a.cfg.Services.RRFlow.Enabled, a.cfg.Services.RRFlow.Tenants, a.cfg.Services.RRFlow.AutoAttach = true, []string{"t1"}, false
+	a.cfg.Approval = approval.Policy{Enabled: true, Board: approval.BoardConfig{Driver: "hub"}, Rules: []approval.Rule{{
+		ID: "lifecycle-review", Actions: []string{hv.ActionLifecycle}, ApproverRoles: []string{"op_infra"}, NeedsApproval: true,
+	}}}
+	if _, err := d.Pool.Exec(ctx, `INSERT INTO platform_settings(key,value,updated_by) VALUES('approval.hv_board','false','legacy')
+		ON CONFLICT (key) DO UPDATE SET value=excluded.value,updated_by=excluded.updated_by`); err != nil {
+		t.Fatal(err)
+	}
 	c := &caller{id: &auth.Identity{Sub: "ops-" + newUUID()}}
 	put := func(key, body string) int {
 		r := httptest.NewRequest("PUT", "/x", strings.NewReader(body))
@@ -32,8 +41,12 @@ func TestPlatformSettings(t *testing.T) {
 	if a.idpAccountURL(ctx) != "https://idp.example.test/ui/console/users/me" || a.rrflowAutoAttach(ctx, "t1") {
 		t.Fatal("config defaults not used")
 	}
+	if !a.hvNeedsBoard(ctx, hv.ActionLifecycle, "configured-host") {
+		t.Fatal("legacy UI override must not disable configured lifecycle review")
+	}
 	for _, bad := range []struct{ k, b string }{{"idp.account_path", `{"value":"https://evil.test/x","reason":"test change"}`},
 		{"idp.account_path", `{"value":true,"reason":"test change"}`}, {"nope", `{"value":1,"reason":"test change"}`},
+		{"approval.hv_board", `{"value":false,"reason":"disable approval"}`},
 		{"services.rrflow.auto_attach", `{"value":true}`},
 		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"file:///etc/passwd"}],"reason":"bad target"}`},
 		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"https://user:pass@example.test/health"}],"reason":"bad credentials"}`},

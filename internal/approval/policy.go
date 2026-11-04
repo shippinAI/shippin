@@ -50,10 +50,11 @@ func (p Policy) HasAction(action string) bool {
 	return false
 }
 
-// NeedsBoard reports whether a matching rule asks for a factory-board decision.
-func (p Policy) NeedsBoard(action, host string) bool {
+// RequiresReview reports whether a matching rule requires a human review.
+// The board driver's configuration must never turn a required review into direct apply.
+func (p Policy) RequiresReview(action, host string) bool {
 	r, ok := p.match(action, host)
-	return ok && r.NeedsApproval && p.Board.Driver != "" && p.Board.Driver != "off"
+	return ok && r.NeedsApproval
 }
 
 // Allows reports whether sub may perform action on host.

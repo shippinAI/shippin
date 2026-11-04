@@ -218,6 +218,40 @@ func TestAddHostAnswersConflictOnATakenSlug(t *testing.T) {
 	}
 }
 
+func TestLifecycleReviewCannotBeDisabledByPlatformSetting(t *testing.T) {
+	a := &API{cfg: &config.Config{Approval: approval.Policy{
+		Enabled: true,
+		Board:   approval.BoardConfig{Driver: "hub"},
+		Rules: []approval.Rule{{ID: "lifecycle-review", Actions: []string{hv.ActionLifecycle},
+			ApproverRoles: []string{"op_infra"}, NeedsApproval: true}},
+	}}}
+	if !a.hvNeedsBoard(t.Context(), hv.ActionLifecycle, "any-configured-host") {
+		t.Fatal("configured lifecycle review must stay mandatory")
+	}
+	for _, setting := range a.platformKeys() {
+		if setting.Key == "approval.hv_board" {
+			t.Fatal("the platform panel must not expose a switch that bypasses configured review")
+		}
+	}
+}
+
+func TestRequiredLifecycleReviewFailsClosedWithoutBoard(t *testing.T) {
+	id := "019a0000-0000-7000-8000-0000000000aa"
+	dir := &memHV{items: []servers.Endpoint{{ID: id, Kind: "proxmox", BaseURL: "https://pve.example:8006", Node: "n1"}}}
+	a := infraAPI(t, "op_infra", dir)
+	a.cfg.Approval = approval.Policy{Enabled: true, Board: approval.BoardConfig{Driver: "off"}, Rules: []approval.Rule{{
+		ID: "lifecycle-review", Actions: []string{hv.ActionLifecycle}, ApproverRoles: []string{"op_infra"}, NeedsApproval: true,
+	}}}
+	if rec := addRequest(t, a, `{"kind":"proxmox","label":"PVE","slug":"pve-a","base_url":"https://pve.example:8006","node":"n1","token_id":"pve!token","token_env":"PVE_TOKEN"}`); rec.Code != http.StatusCreated {
+		t.Fatalf("attach: %d %s", rec.Code, rec.Body)
+	}
+	rec := httptest.NewRecorder()
+	ok := a.permitAction(rec, httptest.NewRequest(http.MethodPost, "/x", nil), &caller{id: &auth.Identity{Sub: "operator"}, op: "op_infra"}, hv.ActionLifecycle, "", id, "100", "stop")
+	if ok || rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "board_org_missing") {
+		t.Fatalf("configured review with board off must fail closed: ok=%v status=%d body=%s", ok, rec.Code, rec.Body)
+	}
+}
+
 func TestHostConfigurationDoesNotUseTheLifecycleReviewBoard(t *testing.T) {
 	dir := &memHV{}
 	a := infraAPI(t, "op_infra", dir)

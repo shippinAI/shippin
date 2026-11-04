@@ -27,10 +27,9 @@ import (
 const probeTimeout = 5 * time.Second
 
 const (
-	uiSettingKey      = "ui.config"
-	hvBoardSettingKey = "approval.hv_board"
-	sourceAPI         = "api"
-	sourceAgent       = "agent"
+	uiSettingKey = "ui.config"
+	sourceAPI    = "api"
+	sourceAgent  = "agent"
 )
 
 var (
@@ -46,12 +45,6 @@ func uiKeyDef() platformKey {
 			_, err := parseUI(v)
 			return err
 		}}
-}
-
-func hvBoardKeyDef() platformKey {
-	return platformKey{Key: hvBoardSettingKey, Kind: "bool", Label: "Board approval for hypervisor changes",
-		Help: "Start, stop, snapshot and other guest changes wait for a factory-board card. Turning this off makes them apply directly; each one is still audited.",
-		def:  func(a *API) any { return a.cfg.Approval.NeedsBoard(hv.ActionLifecycle, "") }}
 }
 
 // parseUI accepts only the documented shape, so a typo is refused rather than silently ignored.
@@ -105,17 +98,10 @@ func (a *API) uiSettings(w http.ResponseWriter, r *http.Request) {
 	}{a.uiConfig(r.Context()), hv.Specs()})
 }
 
-// hvNeedsBoard is the approval rule, which the panel can switch off but not on: the config file
-// stays the strictest word.
-func (a *API) hvNeedsBoard(ctx context.Context, action, server string) bool {
-	if !a.cfg.Approval.NeedsBoard(action, server) {
-		return false
-	}
-	if a.db == nil {
-		return true
-	}
-	on, ok := a.platformValue(ctx, hvBoardSettingKey).(bool)
-	return !ok || on
+// hvNeedsBoard follows installation policy. A panel override must never disable a configured
+// review requirement; missing review integration therefore leaves the operation fail-closed.
+func (a *API) hvNeedsBoard(_ context.Context, action, server string) bool {
+	return a.cfg.Approval.RequiresReview(action, server)
 }
 
 type infraField struct {
