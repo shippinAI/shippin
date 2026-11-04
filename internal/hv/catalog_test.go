@@ -11,7 +11,7 @@ func TestStorageInventoryCapabilityIsProviderDeclared(t *testing.T) {
 		t.Fatalf("Proxmox storage inventory capability missing: %+v", proxmox)
 	}
 	incus, ok := SpecFor("incus")
-	if !ok || slices.Contains(incus.Capabilities, CapStorageInventory) {
-		t.Fatalf("Incus must not advertise the Proxmox-only storage inventory route: %+v", incus)
+	if !ok || !slices.Contains(incus.Capabilities, CapStorageInventory) {
+		t.Fatalf("Incus storage inventory capability missing: %+v", incus)
 	}
 }

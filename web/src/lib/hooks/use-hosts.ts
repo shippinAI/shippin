@@ -63,7 +63,7 @@ export function useGuestAction(base: string) {
 export type NewGuest = { kind: string; name: string; image: string; storage?: string; network?: string; memory: number; cores: number; disk: number; start: boolean };
 export type GuestImage = { id: string; label: string; kind?: string };
 export type GuestStorage = { name: string; type: string; content?: string; node?: string };
-export type StorageVolume = GuestStorage & { node: string; used_bytes: number; total_bytes: number };
+export type StorageVolume = GuestStorage & { used_bytes: number; total_bytes: number };
 export type GuestNetwork = { name: string; type: string; node?: string };
 
 /** What a guest can be made from on this host. */

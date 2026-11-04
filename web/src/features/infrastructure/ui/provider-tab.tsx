@@ -159,7 +159,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
                   <li key={`${volume.node}:${volume.name}`} className="grid gap-3 px-5 py-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                     <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.name")}</dt><dd className="font-medium text-fg">{volume.name}</dd></div>
                     <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.type")}</dt><dd className="text-fg">{volume.type}</dd></div>
-                    <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.node")}</dt><dd className="text-fg">{volume.node}</dd></div>
+                    <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.node")}</dt><dd className="text-fg">{volume.node || "—"}</dd></div>
                     <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.content")}</dt><dd className="break-words text-fg">{volume.content || "—"}</dd></div>
                     <div className="sm:col-span-2 lg:col-span-4">
                       {measured ? <>

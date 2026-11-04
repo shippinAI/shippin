@@ -916,7 +916,7 @@ func (a *API) infraRollback(w http.ResponseWriter, r *http.Request, c *caller) {
 }
 
 func (a *API) infraStorage(w http.ResponseWriter, r *http.Request, _ *caller) {
-	cl, err := a.pve(r.Context(), r.PathValue("id"))
+	cl, err := a.driver(r.Context(), r.PathValue("id"))
 	if err != nil {
 		infraErr(w, err)
 		return

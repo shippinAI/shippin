@@ -33,6 +33,8 @@ func fakeIncus(t *testing.T, statuses ...string) (*httptest.Server, string) {
 				items = append(items, map[string]string{"name": "vm" + string(rune('a'+i)), "status": st, "type": "container"})
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"metadata": items})
+		case "/1.0/storage-pools":
+			_ = json.NewEncoder(w).Encode(map[string]any{"metadata": []map[string]string{{"name": "default", "driver": "dir"}}})
 		default:
 			http.NotFound(w, r)
 		}
@@ -327,7 +329,7 @@ func TestDetachClearsTheAttachmentAndKeepsTheRow(t *testing.T) {
 	}
 }
 
-func TestIncusGuestsWorkThroughTheSharedRoutesButProxmoxOnlyCallsAreRefused(t *testing.T) {
+func TestIncusGuestsAndStorageWorkThroughSharedRoutesButProxmoxContentIsRefused(t *testing.T) {
 	t.Setenv("TEST_INCUS_TOKEN", "s3cret-value")
 	srv, ca := fakeIncus(t, "Running")
 	a := infraAPI(t, "op_infra", &memHV{items: []servers.Endpoint{incusEndpoint(srv, ca, "s1", "Lab")}})
@@ -347,8 +349,11 @@ func TestIncusGuestsWorkThroughTheSharedRoutesButProxmoxOnlyCallsAreRefused(t *t
 	if rec := call(http.MethodGet, "/v1/infra/servers/s1/health"); rec.Code != http.StatusOK {
 		t.Fatalf("health: %d %s", rec.Code, rec.Body)
 	}
-	if rec := call(http.MethodGet, "/v1/infra/servers/s1/storage"); rec.Code != http.StatusConflict {
-		t.Fatalf("a call only Proxmox has: %d %s", rec.Code, rec.Body)
+	if rec := call(http.MethodGet, "/v1/infra/servers/s1/storage"); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"name":"default"`) || !strings.Contains(rec.Body.String(), `"type":"dir"`) {
+		t.Fatalf("shared storage inventory: %d %s", rec.Code, rec.Body)
+	}
+	if rec := call(http.MethodGet, "/v1/infra/servers/s1/storage/default/content?content=backup"); rec.Code != http.StatusConflict {
+		t.Fatalf("Proxmox-only content call: %d %s", rec.Code, rec.Body)
 	}
 }
 

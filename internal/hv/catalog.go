@@ -65,7 +65,7 @@ func Specs() []Spec {
 				{Name: FieldTokenEnv, Advanced: true},
 				{Name: FieldCAFile, Advanced: true},
 			},
-			Capabilities: []string{CapLifecycle, CapSnapshot, CapSnapshotList, CapRollback, CapCreate, CapDelete},
+			Capabilities: []string{CapLifecycle, CapSnapshot, CapSnapshotList, CapRollback, CapCreate, CapDelete, CapStorageInventory},
 			Verbs:        []string{"start", "stop", "shutdown", "reboot"},
 			CreateFields: []string{"memory", "cores"},
 		},
