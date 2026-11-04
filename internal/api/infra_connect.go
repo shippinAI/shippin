@@ -108,8 +108,11 @@ func (a *API) infraTest(w http.ResponseWriter, r *http.Request, _ *caller) {
 			return
 		}
 		ep.ID = old.ID
-		if in.TokenSecret == "" {
-			ep.SealedSecret, ep.SealedKey, ep.ClientCert = old.SealedSecret, old.SealedKey, old.ClientCert
+		if in.TokenSecret == "" && in.TokenEnv == old.TokenEnv {
+			ep.SealedSecret = old.SealedSecret
+		}
+		if in.TrustToken == "" && in.TokenEnv == old.TokenEnv {
+			ep.SealedKey, ep.ClientCert = old.SealedKey, old.ClientCert
 		}
 		if ep.TrustedCert == "" {
 			ep.TrustedCert = old.TrustedCert

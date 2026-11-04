@@ -442,11 +442,13 @@ func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, _ *caller) {
 	ep.ID = r.PathValue("id")
 	// Re-attaching keeps what was stored unless this request replaces it.
 	if old, err := a.hvDir().Endpoint(r.Context(), ep.ID); err == nil && old.Kind == ep.Kind {
-		if in.TokenSecret == "" {
+		if in.TokenSecret == "" && in.TokenEnv == old.TokenEnv {
 			ep.SealedSecret = old.SealedSecret
 		}
 		if in.TrustToken == "" {
-			ep.ClientCert, ep.SealedKey = old.ClientCert, old.SealedKey
+			if in.TokenEnv == old.TokenEnv {
+				ep.ClientCert, ep.SealedKey = old.ClientCert, old.SealedKey
+			}
 			if ep.BaseURL == "" {
 				ep.BaseURL = old.BaseURL
 			}

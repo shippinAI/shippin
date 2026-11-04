@@ -217,6 +217,37 @@ func TestEditDoesNotReplaceAWorkingAttachmentWhenNewEndpointFails(t *testing.T) 
 	}
 }
 
+func TestEditSwitchesCredentialSourceFromSealedTokenToEnvironment(t *testing.T) {
+	t.Setenv("TEST_NEXT_PVE_TOKEN", "new-environment-token")
+	var sawAuth string
+	srv := fakePVE(t, nil, &sawAuth)
+	a := usableAPI(t, &memHV{})
+	box, err := a.sealer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldSecret, err := box.Seal([]byte("old-sealed-token"), "server-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cert := hv.DescribeCertificate(srv.Certificate()).PEM
+	dir := &memHV{items: []servers.Endpoint{{ID: "server-1", Slug: "lab", Label: "Lab", Kind: "proxmox", BaseURL: srv.URL, Node: "pve1", TokenID: "u@pam!t", TrustedCert: cert, SealedSecret: oldSecret}}}
+	a = usableAPI(t, dir)
+	body := fmt.Sprintf(`{"server_id":"server-1","kind":"proxmox","base_url":%q,"node":"pve1","token_id":"u@pam!t","token_env":"TEST_NEXT_PVE_TOKEN"}`, srv.URL)
+	rec := infraCall(t, a, http.MethodPost, "/v1/infra/servers/test", body)
+	var tested connectResult
+	if err := json.Unmarshal(rec.Body.Bytes(), &tested); err != nil || rec.Code != http.StatusOK || !tested.OK {
+		t.Fatalf("environment-backed test failed: %d %s (%v)", rec.Code, rec.Body, err)
+	}
+	if !strings.HasSuffix(sawAuth, "=new-environment-token") {
+		t.Fatalf("test reused the previous sealed credential instead of the selected environment source: %q", sawAuth)
+	}
+	rec = infraCall(t, a, http.MethodPut, "/v1/infra/servers/server-1", strings.Replace(body, `"server_id":"server-1",`, ``, 1))
+	if rec.Code != http.StatusOK || len(dir.items[0].SealedSecret) != 0 || dir.items[0].TokenEnv != "TEST_NEXT_PVE_TOKEN" {
+		t.Fatalf("environment credential source was not saved: %d %s %+v", rec.Code, rec.Body, dir.items[0])
+	}
+}
+
 func TestIncusTrustTokenAddsAHostFromThePanelAlone(t *testing.T) {
 	var mu sync.Mutex
 	trusted := map[string]bool{}
