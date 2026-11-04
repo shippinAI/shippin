@@ -11,10 +11,6 @@ import (
 // ActionLifecycle is the approval action for start, stop, shutdown, reboot, and snapshot.
 const ActionLifecycle = "hv.lifecycle"
 
-// ActionAttach is the approval action for adding or detaching a hypervisor API. It changes what
-// the console can reach, not any guest. A policy with no rule for it uses ActionLifecycle.
-const ActionAttach = "hv.attach"
-
 // ErrDenied means the approval policy does not allow this subject.
 var ErrDenied = errors.New("hv: approval policy denied this action")
 

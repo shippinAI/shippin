@@ -25,7 +25,7 @@ var usableKey = strings.Repeat("ab", 32)
 
 func usableAPI(t *testing.T, dir hvDirectory) *API {
 	t.Helper()
-	a := attachPolicyAPI(t, "op_infra", dir)
+	a := infraAPI(t, "op_infra", dir)
 	a.cfg.SessionKey = usableKey
 	return a
 }

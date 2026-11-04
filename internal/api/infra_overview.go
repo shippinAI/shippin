@@ -392,9 +392,6 @@ func (a *API) infraAdd(w http.ResponseWriter, r *http.Request, c *caller) {
 		auth.Problem(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if !a.permitAttach(w, r, c, in.Slug) {
-		return
-	}
 	id, err := uuid.NewV7()
 	if err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "The host could not be saved.")
@@ -420,13 +417,10 @@ func (a *API) infraAdd(w http.ResponseWriter, r *http.Request, c *caller) {
 }
 
 // infraDetach removes the API from a host. The server row and its guests are untouched.
-func (a *API) infraDetach(w http.ResponseWriter, r *http.Request, c *caller) {
+func (a *API) infraDetach(w http.ResponseWriter, r *http.Request, _ *caller) {
 	id := r.PathValue("id")
 	if _, err := a.hvDir().Endpoint(r.Context(), id); err != nil {
 		infraErr(w, err)
-		return
-	}
-	if !a.permitAttach(w, r, c, id) {
 		return
 	}
 	if err := a.hvDir().SetEndpoint(r.Context(), servers.Endpoint{ID: id}); err != nil {

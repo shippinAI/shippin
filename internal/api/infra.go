@@ -377,7 +377,7 @@ func (in hvAttach) endpoint() servers.Endpoint {
 	return servers.Endpoint{Kind: in.Kind, BaseURL: in.BaseURL, Node: in.Node, TokenID: in.TokenID, TokenEnv: in.TokenEnv, CAFile: in.CAFile, CertFile: in.CertFile, KeyFile: in.KeyFile, TrustedCert: in.TrustedCert}
 }
 
-func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, c *caller) {
+func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, _ *caller) {
 	var in hvAttach
 	if !decodeStrict(w, r, &in) {
 		return
@@ -401,9 +401,6 @@ func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, c *caller) {
 	}
 	if err := validateEndpoint(ep, in); err != nil {
 		auth.Problem(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	if !a.permitAttach(w, r, c, ep.ID) {
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), connectTimeout)
@@ -1058,16 +1055,6 @@ func (a *API) infraTask(w http.ResponseWriter, r *http.Request, _ *caller) {
 // An approved card is the whole gate. The caller retries the same request.
 func (a *API) permit(w http.ResponseWriter, r *http.Request, c *caller, server, guest, verb string) bool {
 	return a.permitFor(w, r, c, "", server, guest, verb)
-}
-
-// permitAttach gates adding or detaching an API. Sites whose policy predates hv.attach keep
-// their lifecycle rule for it.
-func (a *API) permitAttach(w http.ResponseWriter, r *http.Request, c *caller, server string) bool {
-	action := hv.ActionAttach
-	if !a.cfg.Approval.HasAction(action) {
-		action = hv.ActionLifecycle
-	}
-	return a.permitAction(w, r, c, action, "", server, server, "endpoint")
 }
 
 func (a *API) permitFor(w http.ResponseWriter, r *http.Request, c *caller, tenant, server, guest, verb string) bool {

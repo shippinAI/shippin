@@ -16,6 +16,7 @@ import (
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/servers"
 )
 
@@ -167,16 +168,9 @@ func addRequest(t *testing.T, a *API, body string) *httptest.ResponseRecorder {
 	return rec
 }
 
-func attachPolicyAPI(t *testing.T, op string, dir hvDirectory) *API {
-	t.Helper()
-	a := infraAPI(t, op, dir)
-	a.cfg.Approval.Rules = append(a.cfg.Approval.Rules, approval.Rule{ID: "attach", Actions: []string{"hv.attach"}, ApproverRoles: []string{"op_infra"}})
-	return a
-}
-
 func TestAddHostCreatesARowAndAttachesItsAPI(t *testing.T) {
 	dir := &memHV{}
-	a := attachPolicyAPI(t, "op_infra", dir)
+	a := infraAPI(t, "op_infra", dir)
 	a.cfg.UI.DefaultSite = "lab"
 	rec := addRequest(t, a, `{"kind":"incus","label":"Lab","slug":"lab-1","base_url":"https://incus.invalid:8443","node":"default","token_env":"TEST_INCUS_TOKEN"}`)
 	if rec.Code != http.StatusCreated {
@@ -206,7 +200,7 @@ func TestAddHostRefusesBadInput(t *testing.T) {
 		"unknown field":   `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid","token_env":"T","password":"x"}`,
 	} {
 		dir := &memHV{}
-		rec := addRequest(t, attachPolicyAPI(t, "op_infra", dir), body)
+		rec := addRequest(t, infraAPI(t, "op_infra", dir), body)
 		if rec.Code != http.StatusBadRequest {
 			t.Errorf("%s: got %d %s", name, rec.Code, rec.Body)
 		}
@@ -218,16 +212,18 @@ func TestAddHostRefusesBadInput(t *testing.T) {
 
 func TestAddHostAnswersConflictOnATakenSlug(t *testing.T) {
 	dir := &memHV{items: []servers.Endpoint{{ID: "x", Slug: "lab-1"}}}
-	rec := addRequest(t, attachPolicyAPI(t, "op_infra", dir), `{"kind":"incus","label":"Lab","slug":"lab-1","base_url":"https://x.invalid","token_env":"T"}`)
+	rec := addRequest(t, infraAPI(t, "op_infra", dir), `{"kind":"incus","label":"Lab","slug":"lab-1","base_url":"https://x.invalid","token_env":"T"}`)
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 }
 
-func TestAttachDoesNotNeedABoardCardButGuestChangesStillDo(t *testing.T) {
+func TestHostConfigurationDoesNotUseTheLifecycleReviewBoard(t *testing.T) {
 	dir := &memHV{}
-	a := attachPolicyAPI(t, "op_infra", dir)
-	a.cfg.Approval.Board.Driver = "hub"
+	a := infraAPI(t, "op_infra", dir)
+	a.cfg.Approval = approval.Policy{Enabled: true, Board: approval.BoardConfig{Driver: "hub"}, Rules: []approval.Rule{{
+		ID: "test-lifecycle", Actions: []string{hv.ActionLifecycle}, ApproverRoles: []string{"op_infra"}, NeedsApproval: true,
+	}}}
 	a.hvBoard = stubBoard{st: "pending"}
 	a.cfg.Operator.PlatformOrgID = "org1"
 	rec := addRequest(t, a, `{"kind":"incus","label":"Lab","slug":"lab-1","base_url":"https://x.invalid","token_env":"T"}`)
@@ -246,21 +242,21 @@ func TestAttachDoesNotNeedABoardCardButGuestChangesStillDo(t *testing.T) {
 	}
 }
 
-func TestAttachFallsBackToTheLifecycleRuleOnOlderPolicies(t *testing.T) {
-	a := infraAPI(t, "op_infra", &memHV{}) // policy has no hv.attach rule
-	if rec := addRequest(t, a, `{"kind":"incus","label":"Lab","slug":"lab-1","base_url":"https://x.invalid","token_env":"T"}`); rec.Code != http.StatusCreated {
-		t.Fatalf("op_infra under an older policy: %d %s", rec.Code, rec.Body)
+func TestHostConfigurationIsRoleGatedButNeedsNoLocalApprover(t *testing.T) {
+	dir := &memHV{}
+	noPolicy := infraAPI(t, "op_infra", dir)
+	if rec := addRequest(t, noPolicy, `{"kind":"incus","label":"Lab","slug":"lab-1","base_url":"https://x.invalid","token_env":"T"}`); rec.Code != http.StatusCreated {
+		t.Fatalf("host configuration should not need a local approval rule: %d %s", rec.Code, rec.Body)
 	}
-	denied := infraAPI(t, "op_infra", &memHV{})
-	denied.cfg.Approval.Rules = denied.cfg.Approval.Rules[:0]
-	if rec := addRequest(t, denied, `{"kind":"incus","label":"Lab","slug":"lab-1","base_url":"https://x.invalid","token_env":"T"}`); rec.Code != http.StatusForbidden {
-		t.Fatalf("no matching rule must deny: %d %s", rec.Code, rec.Body)
+	noRole := infraAPI(t, "", &memHV{})
+	if rec := addRequest(t, noRole, `{"kind":"incus","label":"Lab","slug":"lab-1","base_url":"https://x.invalid","token_env":"T"}`); rec.Code != http.StatusForbidden {
+		t.Fatalf("missing infra authorization must deny host configuration: %d %s", rec.Code, rec.Body)
 	}
 }
 
 func TestDetachClearsTheAttachmentAndKeepsTheRow(t *testing.T) {
 	dir := &memHV{items: []servers.Endpoint{{ID: "s1", Slug: "a", Label: "A", Kind: "incus", BaseURL: "https://x.invalid"}}}
-	a := attachPolicyAPI(t, "op_infra", dir)
+	a := infraAPI(t, "op_infra", dir)
 	mux := http.NewServeMux()
 	a.infraRoutes(mux)
 	req := httptest.NewRequest(http.MethodDelete, "/v1/infra/servers/s1/attachment", nil)
