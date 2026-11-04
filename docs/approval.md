@@ -24,11 +24,27 @@ The current board drivers are also not AgentHub:
 - `http` speaks this console's `/v1/hub/approvals` contract.
 - `off` disables the board; it is not a human-review policy source.
 
-The existing adapter has no proven compatibility with AgentHub's
-`/api/v1/policy/*` and `/api/v1/change-tickets/*` API, tenant model, authenticated
-principal, ticket hash, evidence or review version. No integrated AgentHub
-review flow exists yet. Do not describe the local task board as AgentHub or as
-the source of policy.
+Read-only source review of AgentHub commit `97172d9` on
+`feat/devspace-bridge-contract` confirms authenticated
+`/api/v1/policy/decide` and `/api/v1/change-tickets` routes for policy decisions,
+ticket create/read/update, evidence, submission and hash-bound reviews. Bearer
+tokens resolve ordinary enabled AgentHub principals. Ticket creation is controlled
+by AgentHub's `change.ticket` data policy; reviews by `change.review`. This is
+not a distinct OAuth service-principal protocol: a dedicated non-human principal
+and an administrator-issued expiring token appear possible, but their exact
+roles and tenant access must be verified in an isolated AgentHub instance.
+
+The current decision contract returns a boolean `allow`, policy hash/version,
+decision ID and failure details. It does not return a typed `review_required`
+outcome. A denial can mean a missing review or any other configured check. Ticket
+status is also insufficient by itself: it is derived from whether any reviewer
+has passed/blocked/found issues on the current hash, while policy rules can require
+multiple passes or specific reviewer roles. Shippin must not infer authorization
+from status or parse human-readable failures. AgentHub needs a stable typed result
+that distinguishes allow, review-required and deny (with policy/ticket hashes and
+failure codes) before provider execution can be enabled. The AgentHub checkout is
+dirty and remains untouched. No integrated AgentHub review flow exists yet.
+Do not describe the local task board as AgentHub or as the source of policy.
 
 ## Target request flow
 
@@ -58,9 +74,10 @@ AgentHub decisions.
 - Configure AgentHub URL, authentication credential reference, tenant mapping,
   timeout and supported capabilities per installation. Never commit token
   values or tenant IDs.
-- Discover and validate supported policy/ticket APIs from current AgentHub source
-  and published contract. Do not copy AgentHub policy code or create a second
-  policy store in Shippin.
+- Validate the current policy/ticket API and add the typed decision result and
+  service-principal authorization contract in its owning system before connecting
+  provider writes. Do not copy AgentHub policy code or create a second policy
+  store in Shippin.
 - Keep one system ID across Incus, Proxmox, host enrollment, health, resource
   display, action tickets and audit. Store observed hostname with source and
   timestamp; nickname/aliases/tags remain operator metadata.
