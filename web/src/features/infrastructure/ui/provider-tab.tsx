@@ -10,7 +10,6 @@ import { Select } from "../../../lib/design/components/select/select";
 import { Skeleton } from "../../../lib/design/components/skeleton/skeleton";
 import { StatusDot } from "../../../lib/design/components/status-dot/status-dot";
 import { formatBytes } from "../../../lib/format";
-import { isWaitingOnBoard } from "../../../lib/api/client";
 import { useServices } from "../../../lib/hooks/use-api";
 import { useCreateGuest, useDeleteGuest, useGuestAction, useGuests, useRollback, useSnapshot, useSnapshots, useStorageInventory, useTask, type Guest } from "../../../lib/hooks/use-hosts";
 import { isOpen as operationOpen, useDetachHost, useInfraCan, useOperations, useSaveSystemIdentity, useSystemIdentity, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
@@ -18,7 +17,6 @@ import { isOpen as operationOpen, useDetachHost, useInfraCan, useOperations, use
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { firstAnswering, formatUptime, isRunning, isStopped, stoppableGuests, verbApplies } from "../model";
 import { ActivityCard } from "./activity-card";
-import { BoardNotice } from "./board-notice";
 import { ChangeNoteDialog, type PendingChange } from "./change-note-dialog";
 import { CreateGuestCard } from "./create-guest-card";
 import { NodeFacts } from "./node-details";
@@ -95,18 +93,10 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
   const [upid, setUpid] = useState("");
   const [lookup, setLookup] = useState("");
   const task = useTask(can("tasks") ? base : "", lookup);
-  const waiting = [
-    { error: act.error, retry: () => { if (act.variables) act.mutate(act.variables); } },
-    { error: snap.error, retry: () => { if (snap.variables) snap.mutate(snap.variables); } },
-    { error: back.error, retry: () => { if (back.variables) back.mutate(back.variables); } },
-    { error: create.error, retry: () => { if (create.variables) create.mutate(create.variables); } },
-    { error: remove.error, retry: () => { if (remove.variables) remove.mutate(remove.variables); } },
-  ].find((m) => isWaitingOnBoard(m.error));
   // One slow change holds its own guest, and only that one.
   const guestBusy = !!guest && ((act.isPending && act.variables?.guest === guest.id) || (operations.data?.items ?? []).some((o) => operationOpen(o) && o.guest === guest.id));
   return (
     <>
-      {waiting && <div className="mb-6"><BoardNotice error={waiting.error} retry={waiting.retry} /></div>}
       <Card elevation={2} className="mb-6 overflow-hidden">
         <CardHeader
           title={node.label}

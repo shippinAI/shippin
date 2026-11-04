@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError, apiGet, apiSend, isWaitingOnBoard } from "../api/client";
+import { apiGet, apiSend } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 import { useText } from "../ui-config/use-ui-config";
 import { useMe } from "./use-api";
@@ -219,18 +219,11 @@ function useRefresh() {
   };
 }
 
-const boardWord = (fallback: string, e: Error) =>
-  e instanceof ApiError && e.code === "waiting_on_board" ? (["Approve the card, then try again", e.message] as const) : ([fallback, e.message] as const);
-
 /** can(p) for one infrastructure permission. The API decides the same thing again; this only hides what would be refused. */
 export function useInfraCan() {
   const caps = useMe().data?.capabilities;
   return (p: string) => caps?.[p] === true;
 }
-
-/** Approves one waiting change. It runs when the page asks for it again. */
-export const useApproveCard = () =>
-  useMutation({ mutationFn: (id: string) => apiSend("POST", `/v1/hub/tasks/${encodeURIComponent(id)}/decision`, { approve: true, note: "" }) });
 
 /** Tries what the form holds. Stores nothing, and does not spend a one-time token. */
 export const useTestHost = () => useMutation({ mutationFn: (v: HostValues) => apiSend<ConnectResult>("POST", "/v1/infra/servers/test", bodyOf(v)) });
@@ -248,7 +241,7 @@ export function useAddHost() {
       toast.success(t("infra.toast.added", { label: v.label }), t("infra.toast.addedBody"));
       refresh();
     },
-    onError: (e) => toast.error(...boardWord(t("infra.toast.addFailed"), e)),
+    onError: (e) => toast.error(t("infra.toast.addFailed"), e.message),
   });
 }
 
@@ -261,7 +254,7 @@ export function useDetachHost() {
       toast.info(t("infra.toast.detached", { label: v.label }), t("infra.toast.detachedBody"));
       refresh();
     },
-    onError: (e) => toast.error(...boardWord(t("infra.toast.detachFailed"), e)),
+    onError: (e) => toast.error(t("infra.toast.detachFailed"), e.message),
   });
 }
 
@@ -275,9 +268,7 @@ export function useStopGuests(serverId: string) {
       toast.info(t("infra.stop.started", { count: r.total }), t("infra.stop.startedBody"));
       refresh();
     },
-    onError: (e) => {
-      if (!isWaitingOnBoard(e)) toast.error(t("infra.stop.failed"), e.message);
-    },
+    onError: (e) => toast.error(t("infra.stop.failed"), e.message),
   });
 }
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiSend, isWaitingOnBoard } from "../api/client";
+import { apiGet, apiSend } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 
 export type GuestMetrics = {
@@ -37,10 +37,10 @@ export const useTask = (base: string, upid: string) =>
   });
 
 function reportError(fallback: string, e: Error) {
-  if (!isWaitingOnBoard(e)) toast.error(fallback, e.message);
+  toast.error(fallback, e.message);
 }
 
-/** The server records a change as soon as it has the request, so Activity can show it before it ends. */
+/** Refresh operations after a mutation request has had time to be accepted. */
 const showStarted = (qc: ReturnType<typeof useQueryClient>) => {
   setTimeout(() => void qc.invalidateQueries({ queryKey: ["infra", "operations"] }), 500);
 };

@@ -14,7 +14,7 @@ export type PendingChange = {
   run: (note: string) => void;
 };
 
-/** Asks why before a change goes ahead. The answer goes in the audit log, on the approval card and in Activity. */
+/** Captures the operator's reason before the API evaluates a provider change request. */
 export function ChangeNoteDialog({ change, onClose }: { change: PendingChange | null; onClose: () => void }) {
   const t = useText();
   const [note, setNote] = useState("");
