@@ -23,6 +23,16 @@ custom inventory connections. It persists configuration and observed resource ro
 under `shippin_` table names, seals credentials through the configured installation
 key, and treats remote inventory as observation rather than a deployed change.
 
+`internal/catalog/` owns reusable service definitions, customer plan/configuration
+and pinned source provenance. The planned `internal/deployments/` bounded context
+owns tenant-scoped deployment generations, provider targets, desired/observed state,
+reconciliation and deployment events. `internal/jobs/` remains the durable worker
+lease/retry mechanism, not deployment truth. `internal/hv/incus/` and
+`internal/hv/proxmox/` retain provider-specific guest behavior; `internal/hostd/`
+owns only the bounded in-guest bootstrap and workload operations exposed through its
+authenticated contract. No provider or builder implementation may be hidden in the
+catalog handlers or the React panel.
+
 The [capability absorption ledger](design/capability-absorption.md) records which
 behaviors from historical console and mesh sources are already owned here, which
 need implementation, and the evidence required before those sources are archive-ready.

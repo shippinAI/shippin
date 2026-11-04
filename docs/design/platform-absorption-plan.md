@@ -80,6 +80,90 @@ Navigation visibility follows server-side capabilities and tenant scope. Buttons
 must call persisted APIs, show provider-backed results and expose recovery/error
 states. A design-only screen or saved catalog source is not a deployment.
 
+## Deployment runtime implementation contract
+
+The saved catalog source is metadata only. A deploy operation must create a durable
+desired generation, preserve the exact source and target snapshot, pass AgentHub's
+configured review gate, then dispatch a provider-capability-specific operation. The
+reconciler owns the transition from desired to observed state; the UI never infers
+success from an accepted request or a completed job alone.
+
+### Artifact and provider paths
+
+- **OCI image on Incus:** use Incus's native OCI application-container path when the
+  attached server advertises it. Require an explicit registry and sha256 digest,
+  record the resolved digest, and use provider read-back plus the configured health
+  check. Incus distinguishes OCI application containers from full-system containers
+  and VMs; keep those instance types separate in Shippin. See the
+  [Incus instance model](https://linuxcontainers.org/incus/docs/main/explanation/instances/),
+  [image references](https://linuxcontainers.org/incus/docs/main/howto/images_remote/),
+  and [OCI application launch workflow](https://linuxcontainers.org/incus/docs/main/howto/instances_create/).
+- **OCI image on Proxmox:** use an explicitly supported guest runtime and a
+  provider-specific bootstrap path. The current Proxmox guest API creates VMs or
+  system containers; it does not yet provide a Shippin application-container
+  executor. Do not pass arbitrary OCI references to its template field. Require a
+  supported guest template, one-time enrollment, and a constrained Shippin hostd
+  workload contract before advertising this path.
+- **GitHub/custom Git build:** fetch the pinned commit in a short-lived isolated
+  worker, produce an OCI artifact, and record its digest and build provenance before
+  target mutation. The builder must be a separately configurable service with
+  resource, concurrency, storage, and egress bounds. A rootless builder reduces
+  daemon privilege but is not itself an egress policy. Build credentials use secret
+  mounts; never pass them as build arguments or ordinary environment variables.
+  See Docker's [BuildKit configuration](https://docs.docker.com/build/buildkit/toml-configuration/),
+  [rootless mode](https://docs.docker.com/engine/security/rootless/), and
+  [build-secret handling](https://docs.docker.com/build/building/secrets/).
+
+### Required durable operation contract
+
+Each `shippin_` deployment instance stores tenant, catalog service, stable target
+system, source snapshot, desired generation, typed resource/config values, secret
+references, desired state and current observed state. An append-only event row stores
+actor, generation, operation, provider result, health result, redacted failure and
+time. Job rows remain the worker lease/retry mechanism; they are not deployment
+truth. A repeated request with the same idempotency key returns the same generation;
+an update with a stale base generation conflicts. A retry reuses the generation and
+provider operation key. Deletion records desired absence, then confirms provider
+absence before reporting deleted. Restart recovery resumes by reading current
+provider state and reconciling the durable generation.
+
+No generation may execute until the exact target system/provider, catalog service
+revision, artifact digest, resource bounds, secret references, health contract,
+requesting actor and rollback strategy are bound to the AgentHub ticket/review. A
+policy denial, missing mapping, unavailable AgentHub, stale ticket hash, missing
+provider capability, ambiguous provider outcome, failed health check or failed
+read-back leaves the deployment pending/degraded/failed as appropriate and blocks
+`ready`. Never store secret bytes in the definition, generation, job, result, event,
+logs or API response.
+
+### Runtime delivery packets
+
+1. Finalize the typed deployment-instance/config contract, target capability matrix,
+   idempotency semantics, event/redaction contract, and additive migration tests.
+2. Implement tenant-scoped desired generations, optimistic update, request replay,
+   append-only events, and read APIs. Confirm authorization and cross-tenant denial.
+3. Implement AgentHub service identity and the review adapter against a verified
+   typed decision/ticket contract. Exercise allow, require-review, deny, stale,
+   timeout and unavailable paths before any provider write.
+4. Add a bounded, configurable builder and immutable Git-to-OCI resolution. Prove
+   egress denial, CPU/memory/disk/time limits, cleanup, secret non-persistence,
+   digest/provenance capture, cancellation and worker restart.
+5. Add the Incus OCI adapter and verify create/configure/start/read-back/health,
+   update, rollback and deletion on a disposable Incus host.
+6. Add a separate Proxmox guest bootstrap/hostd adapter. Verify template capability,
+   enrollment, resource bounds, create/update/restart/health/delete on a disposable
+   Proxmox host. If the environment cannot provide the guest prerequisites, keep
+   this provider capability visibly unsupported rather than simulating it.
+7. Wire user/operator forms, dashboards, operation events and retry/rollback actions
+   to those persisted APIs. Verify tenant scoping and four-action navigation.
+8. Build managed PostgreSQL, Dragonfly, Redis and ClickHouse as versioned catalog
+   definitions and engine-specific contracts on the verified runtime, including
+   storage, credential rotation, backups, restore proof and upgrade behavior.
+
+Packets 1–3 gate every provider write. Packets 4–6 establish a real runtime. Package
+templates and product cards do not count as deployed services until provider
+read-back and configured health observations prove the requested generation.
+
 ## Ordered implementation phases
 
 ### 0. Source inventory and ownership
