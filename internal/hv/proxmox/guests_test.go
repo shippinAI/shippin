@@ -30,7 +30,7 @@ func guestServer(t *testing.T, sent *url.Values) *httptest.Server {
 		case strings.HasSuffix(r.URL.Path, "/storage"):
 			data([]map[string]string{{"storage": "backups", "content": "backup"}, {"storage": "local", "content": "images,rootdir,vztmpl,iso"}})
 		case strings.HasSuffix(r.URL.Path, "/network"):
-			data([]map[string]string{{"iface": "eth0", "type": "eth"}, {"iface": "vmbr0", "type": "bridge"}})
+			data([]map[string]string{{"iface": "eth0", "type": "eth"}, {"iface": "vmbr0", "type": "bridge"}, {"iface": "vmbr1", "type": "OVSBridge"}})
 		case r.Method == http.MethodPost && (strings.HasSuffix(r.URL.Path, "/lxc") || strings.HasSuffix(r.URL.Path, "/qemu")):
 			_ = r.ParseForm()
 			*sent = r.PostForm
@@ -60,7 +60,7 @@ func TestCreateContainerSendsWhatARealNodeNeeds(t *testing.T) {
 	srv := guestServer(t, &sent)
 	defer srv.Close()
 	c := clientFor(t, srv)
-	g, err := c.CreateGuest(context.Background(), hv.GuestSpec{Kind: hv.KindCT, Name: "web", Image: "local:vztmpl/debian.tar.zst", Memory: 512, Cores: 2, Disk: 4})
+	g, err := c.CreateGuest(context.Background(), hv.GuestSpec{Kind: hv.KindCT, Name: "web", Image: "local:vztmpl/debian.tar.zst", Storage: "local", Network: "vmbr0", Memory: 512, Cores: 2, Disk: 4})
 	if err != nil || g.ID != "107" {
 		t.Fatalf("a guest the inventory is slow to show is still a guest: %+v %v", g, err)
 	}
@@ -76,10 +76,10 @@ func TestCreateVirtualMachineNeedsNoImage(t *testing.T) {
 	srv := guestServer(t, &sent)
 	defer srv.Close()
 	c := clientFor(t, srv)
-	if _, err := c.CreateGuest(context.Background(), hv.GuestSpec{Kind: hv.KindVM, Name: "web"}); err != nil {
+	if _, err := c.CreateGuest(context.Background(), hv.GuestSpec{Kind: hv.KindVM, Name: "web", Storage: "local", Network: "vmbr0", Disk: 12}); err != nil {
 		t.Fatal(err)
 	}
-	for k, want := range map[string]string{"name": "web", "scsi0": "local:8", "net0": "virtio,bridge=vmbr0"} {
+	for k, want := range map[string]string{"name": "web", "scsi0": "local:12", "net0": "virtio,bridge=vmbr0"} {
 		if sent.Get(k) != want {
 			t.Errorf("%s = %q, want %q", k, sent.Get(k), want)
 		}
@@ -97,6 +97,11 @@ func TestCreateRefusesBeforeSendingAnything(t *testing.T) {
 	for name, spec := range map[string]hv.GuestSpec{
 		"a bad name":            {Kind: hv.KindVM, Name: "1 bad"},
 		"a container, no image": {Kind: hv.KindCT, Name: "web"},
+		"no explicit storage":   {Kind: hv.KindVM, Name: "web", Network: "vmbr0", Disk: 8},
+		"no explicit network":   {Kind: hv.KindVM, Name: "web", Storage: "local", Disk: 8},
+		"no disk size":          {Kind: hv.KindVM, Name: "web", Storage: "local", Network: "vmbr0"},
+		"storage lacks images":  {Kind: hv.KindVM, Name: "web", Storage: "backups", Network: "vmbr0", Disk: 8},
+		"network is not bridge": {Kind: hv.KindVM, Name: "web", Storage: "local", Network: "eth0", Disk: 8},
 	} {
 		if _, err := c.CreateGuest(context.Background(), spec); err == nil {
 			t.Errorf("%s must be refused", name)
@@ -104,6 +109,19 @@ func TestCreateRefusesBeforeSendingAnything(t *testing.T) {
 	}
 	if sent != nil {
 		t.Fatalf("nothing should have been sent: %v", sent)
+	}
+}
+
+func TestCreateAcceptsProviderReportedOVSBridge(t *testing.T) {
+	var sent url.Values
+	srv := guestServer(t, &sent)
+	defer srv.Close()
+	c := clientFor(t, srv)
+	if _, err := c.CreateGuest(context.Background(), hv.GuestSpec{Kind: hv.KindVM, Name: "web", Storage: "local", Network: "vmbr1", Disk: 8}); err != nil {
+		t.Fatal(err)
+	}
+	if sent.Get("net0") != "virtio,bridge=vmbr1" {
+		t.Fatalf("selected OVS bridge was not used: %s", sent.Get("net0"))
 	}
 }
 

@@ -80,7 +80,7 @@ func Specs() []Spec {
 			},
 			Capabilities: []string{CapLifecycle, CapSnapshot, CapSnapshotList, CapRollback, CapCreate, CapDelete, CapTasks},
 			Verbs:        []string{"start", "stop", "shutdown", "reboot"},
-			CreateFields: []string{"memory", "cores", "disk", "blank_vm"},
+			CreateFields: []string{"memory", "cores", "disk", "storage", "network", "blank_vm"},
 		},
 	}
 }

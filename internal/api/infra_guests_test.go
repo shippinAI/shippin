@@ -102,6 +102,9 @@ func TestABadNewGuestIsRefusedBeforeAnythingHappens(t *testing.T) {
 		"negative memory":      `{"kind":"vm","name":"web","memory":-1}`,
 		"negative cores":       `{"kind":"vm","name":"web","cores":-1}`,
 		"negative disk":        `{"kind":"vm","name":"web","disk":-1}`,
+		"missing placement":    `{"kind":"vm","name":"web","disk":8}`,
+		"storage only":         `{"kind":"vm","name":"web","disk":8,"storage":"local"}`,
+		"network only":         `{"kind":"vm","name":"web","disk":8,"network":"vmbr0"}`,
 		"a field nobody knows": `{"kind":"vm","name":"web","root_password":"x"}`,
 	} {
 		rec := infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", body)
@@ -117,7 +120,7 @@ func TestABadNewGuestIsRefusedBeforeAnythingHappens(t *testing.T) {
 
 func TestANewGuestIsRecordedAndReadBack(t *testing.T) {
 	h := newGuestsHarness(t)
-	rec := infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", `{"kind":"vm","name":"web","memory":512}`)
+	rec := infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", `{"kind":"vm","name":"web","memory":512,"disk":8,"storage":"local","network":"vmbr0"}`)
 	if rec.Code != http.StatusCreated || !strings.Contains(rec.Body.String(), `"id":"107"`) {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
@@ -130,7 +133,7 @@ func TestANewGuestIsRecordedAndReadBack(t *testing.T) {
 func TestARefusedGuestSaysWhyAndKeepsTheSecret(t *testing.T) {
 	h := newGuestsHarness(t)
 	h.refuse = `{"data":null,"message":"Permission check failed (/storage/local, Datastore.AllocateSpace)\n"}`
-	rec := infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", `{"kind":"vm","name":"web"}`)
+	rec := infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", `{"kind":"vm","name":"web","disk":8,"storage":"local","network":"vmbr0"}`)
 	if rec.Code != http.StatusBadGateway || !strings.Contains(rec.Body.String(), "Datastore.AllocateSpace") || strings.Contains(rec.Body.String(), "s3cret") {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
@@ -160,7 +163,7 @@ func TestImagesAreWhatTheHostHasThenWhatThisInstallationNames(t *testing.T) {
 func TestDeletingThePanelsOwnGuestNeedsMoreThanAPermission(t *testing.T) {
 	t.Setenv("SHIPPIN_SELF_GUEST", "web")
 	h := newGuestsHarness(t)
-	rec := infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", `{"kind":"vm","name":"web"}`)
+	rec := infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", `{"kind":"vm","name":"web","disk":8,"storage":"local","network":"vmbr0"}`)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}

@@ -518,13 +518,35 @@ func (a *API) guestManager(ctx context.Context, id string) (hv.GuestManager, err
 }
 
 type newGuest struct {
-	Kind   string `json:"kind"`
-	Name   string `json:"name"`
-	Image  string `json:"image"`
-	Memory int    `json:"memory"`
-	Cores  int    `json:"cores"`
-	Disk   int    `json:"disk"`
-	Start  bool   `json:"start"`
+	Kind    string `json:"kind"`
+	Name    string `json:"name"`
+	Image   string `json:"image"`
+	Storage string `json:"storage"`
+	Network string `json:"network"`
+	Memory  int    `json:"memory"`
+	Cores   int    `json:"cores"`
+	Disk    int    `json:"disk"`
+	Start   bool   `json:"start"`
+}
+
+func validateGuestPlacement(in newGuest, fields []string) error {
+	provided := map[string]string{"storage": in.Storage, "network": in.Network}
+	allowed := map[string]bool{}
+	for _, field := range fields {
+		allowed[field] = true
+	}
+	for name, value := range provided {
+		if allowed[name] && strings.TrimSpace(value) == "" {
+			return fmt.Errorf("choose a %s for this guest", name)
+		}
+		if !allowed[name] && value != "" {
+			return fmt.Errorf("%s does not apply to this provider", name)
+		}
+	}
+	if allowed["disk"] && in.Disk == 0 {
+		return errors.New("choose a positive disk size in GiB")
+	}
+	return nil
 }
 
 func (a *API) infraCreate(w http.ResponseWriter, r *http.Request, c *caller) {
@@ -536,6 +558,20 @@ func (a *API) infraCreate(w http.ResponseWriter, r *http.Request, c *caller) {
 		auth.Problem(w, http.StatusBadRequest, "A new guest needs a name and a kind, and any sizes must be whole numbers.")
 		return
 	}
+	ep, err := a.hvDir().Endpoint(r.Context(), r.PathValue("id"))
+	if err != nil {
+		infraErr(w, err)
+		return
+	}
+	spec, known := hv.SpecFor(ep.Kind)
+	if !known {
+		auth.Problem(w, http.StatusBadRequest, "The attached provider has no guest creation contract.")
+		return
+	}
+	if err := validateGuestPlacement(in, spec.CreateFields); err != nil {
+		auth.Problem(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	if !a.permit(w, r, c, r.PathValue("id"), in.Name, "create") {
 		return
 	}
@@ -545,7 +581,7 @@ func (a *API) infraCreate(w http.ResponseWriter, r *http.Request, c *caller) {
 		return
 	}
 	g, err := a.tracked(r, c, r.PathValue("id"), in.Name, "create", func(ctx context.Context) (hv.Guest, error) {
-		return m.CreateGuest(ctx, hv.GuestSpec{Kind: in.Kind, Name: in.Name, Image: in.Image, Memory: in.Memory, Cores: in.Cores, Disk: in.Disk, Start: in.Start})
+		return m.CreateGuest(ctx, hv.GuestSpec{Kind: in.Kind, Name: in.Name, Image: in.Image, Storage: in.Storage, Network: in.Network, Memory: in.Memory, Cores: in.Cores, Disk: in.Disk, Start: in.Start})
 	})
 	if err != nil {
 		infraErr(w, err)
@@ -1320,6 +1356,8 @@ func infraErr(w http.ResponseWriter, err error) {
 		auth.Problem(w, http.StatusConflict, "This is waiting on the factory board.")
 	case errors.Is(err, hv.ErrUnsupported):
 		auth.Problem(w, http.StatusConflict, "This provider does not offer that action.")
+	case errors.Is(err, hv.ErrGuestNotFound):
+		auth.Problem(w, http.StatusNotFound, "The hypervisor has no guest with that id.")
 	case strings.Contains(err.Error(), "not in inventory"):
 		auth.Problem(w, http.StatusNotFound, "The hypervisor has no guest with that id.")
 	default:

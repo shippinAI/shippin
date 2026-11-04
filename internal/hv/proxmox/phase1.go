@@ -3,6 +3,7 @@ package proxmox
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -221,6 +222,8 @@ func (c *Client) Delete(ctx context.Context, id string) error {
 	_, err = c.Guest(ctx, id)
 	if err == nil {
 		return fmt.Errorf("proxmox: guest %s still present after delete", id)
+	} else if !errors.Is(err, hv.ErrGuestNotFound) {
+		return fmt.Errorf("proxmox: couldn't confirm guest %s was deleted: %w", id, err)
 	}
 	return nil
 }

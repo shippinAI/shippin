@@ -134,6 +134,8 @@ func (c *Client) DeleteGuest(ctx context.Context, id string) error {
 	}
 	if _, err := c.Guest(ctx, id); err == nil {
 		return fmt.Errorf("incus: guest %s still present after delete", id)
+	} else if !errors.Is(err, hv.ErrGuestNotFound) {
+		return fmt.Errorf("incus: couldn't confirm guest %s was deleted: %w", id, err)
 	}
 	return nil
 }

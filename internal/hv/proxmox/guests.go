@@ -28,6 +28,10 @@ func hasContent(v hv.Volume, kind string) bool {
 	return false
 }
 
+func isBridge(n hv.Network) bool {
+	return strings.EqualFold(n.Type, "bridge") || strings.EqualFold(n.Type, "ovsbridge")
+}
+
 // Images lists the container templates and installer images already on this node's storage.
 func (c *Client) Images(ctx context.Context) ([]hv.Image, error) {
 	vols, err := c.Storage(ctx)
@@ -69,36 +73,34 @@ func (c *Client) nextID(ctx context.Context) (string, error) {
 	return strings.Trim(string(r.Data), "\""), nil
 }
 
-func (c *Client) storageFor(ctx context.Context, content string) (string, error) {
+func (c *Client) storageFor(ctx context.Context, name, content string) (string, error) {
 	vols, err := c.Storage(ctx)
 	if err != nil {
 		return "", err
 	}
 	for _, v := range vols {
-		if hasContent(v, content) {
+		if v.Name == name && hasContent(v, content) {
 			return v.Name, nil
 		}
 	}
-	return "", fmt.Errorf("proxmox: no storage on this node holds %s", content)
+	return "", fmt.Errorf("proxmox: storage %q on this node does not provide %s content", name, content)
 }
 
-func (c *Client) firstBridge(ctx context.Context) (string, error) {
+func (c *Client) bridge(ctx context.Context, name string) (string, error) {
 	nets, err := c.Networks(ctx)
 	if err != nil {
 		return "", err
 	}
 	for _, n := range nets {
-		if n.Type == "bridge" {
+		if n.Name == name && isBridge(n) {
 			return n.Name, nil
 		}
 	}
-	return "", errors.New("proxmox: this node reports no network bridge; add one under System, Network on the node")
+	return "", fmt.Errorf("proxmox: network %q is not a bridge on the configured node", name)
 }
 
-const defaultDiskGiB = 8
-
 // CreateGuest makes a container from a template, or a virtual machine with an empty disk and an
-// optional installer image, and waits for the task. It finds the next free id, storage and bridge itself.
+// optional installer image. Placement is explicit; it never guesses storage or a bridge.
 func (c *Client) CreateGuest(ctx context.Context, s hv.GuestSpec) (hv.Guest, error) {
 	if !guestName.MatchString(s.Name) {
 		return hv.Guest{}, errors.New("proxmox: a guest name starts with a letter and uses letters, digits and dashes")
@@ -106,18 +108,18 @@ func (c *Client) CreateGuest(ctx context.Context, s hv.GuestSpec) (hv.Guest, err
 	if s.Kind == hv.KindCT && s.Image == "" {
 		return hv.Guest{}, errors.New("proxmox: a container needs a template; download one to this node first")
 	}
+	if s.Disk <= 0 {
+		return hv.Guest{}, errors.New("proxmox: disk size must be greater than zero GiB")
+	}
 	id, err := c.nextID(ctx)
 	if err != nil {
 		return hv.Guest{}, err
 	}
-	bridge, err := c.firstBridge(ctx)
+	bridge, err := c.bridge(ctx, s.Network)
 	if err != nil {
 		return hv.Guest{}, err
 	}
 	disk := s.Disk
-	if disk <= 0 {
-		disk = defaultDiskGiB
-	}
 	form := url.Values{}
 	form.Set("vmid", id)
 	if s.Memory > 0 {
@@ -129,7 +131,7 @@ func (c *Client) CreateGuest(ctx context.Context, s hv.GuestSpec) (hv.Guest, err
 	kind := "qemu"
 	if s.Kind == hv.KindCT {
 		kind = "lxc"
-		storage, err := c.storageFor(ctx, "rootdir")
+		storage, err := c.storageFor(ctx, s.Storage, "rootdir")
 		if err != nil {
 			return hv.Guest{}, err
 		}
@@ -138,7 +140,7 @@ func (c *Client) CreateGuest(ctx context.Context, s hv.GuestSpec) (hv.Guest, err
 		form.Set("rootfs", storage+":"+strconv.Itoa(disk))
 		form.Set("net0", "name=eth0,bridge="+bridge+",ip=dhcp")
 	} else {
-		storage, err := c.storageFor(ctx, "images")
+		storage, err := c.storageFor(ctx, s.Storage, "images")
 		if err != nil {
 			return hv.Guest{}, err
 		}

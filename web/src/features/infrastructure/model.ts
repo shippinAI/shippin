@@ -58,6 +58,9 @@ export const guestNameOK = (name: string) => /^[a-zA-Z][a-zA-Z0-9-]{0,62}$/.test
 /** The images that suit this kind of guest. An image with no kind suits either. */
 export const imagesFor = <T extends { kind?: string }>(images: T[], kind: string) => images.filter((i) => !i.kind || i.kind === kind);
 
+/** Network types that can attach a guest to a software bridge. */
+export const guestNetworks = <T extends { type: string }>(networks: T[]) => networks.filter((n) => ["bridge", "ovsbridge"].includes(n.type.toLowerCase()));
+
 /** A change must say why. The server applies the same limits. */
 export const noteOK = (note: string) => {
   const n = [...note.trim()].length;

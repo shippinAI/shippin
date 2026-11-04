@@ -209,7 +209,7 @@ func (c *Client) Guest(ctx context.Context, id string) (hv.Guest, error) {
 		return hv.Guest{}, err
 	}
 	if code == http.StatusNotFound {
-		return hv.Guest{}, fmt.Errorf("incus: guest %s not found", id)
+		return hv.Guest{}, fmt.Errorf("incus: guest %s: %w", id, hv.ErrGuestNotFound)
 	}
 	if code != http.StatusOK {
 		return hv.Guest{}, fmt.Errorf("incus: guest HTTP %d: %s", code, clip(body))

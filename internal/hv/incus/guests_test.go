@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -193,5 +194,50 @@ func TestAGuestThatWillNotStartIsStillSaidToExist(t *testing.T) {
 	_, err := c.CreateGuest(context.Background(), hv.GuestSpec{Kind: hv.KindCT, Name: "web-1", Image: "images:alpine/3.21", Start: true})
 	if err == nil || !strings.Contains(err.Error(), "web-1 was created but did not start") || !strings.Contains(err.Error(), "exit status 1") {
 		t.Fatalf("%v", err)
+	}
+}
+
+func TestDeleteRequiresNotFoundReadback(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		statusCode int
+		wantError  bool
+	}{
+		{name: "confirmed absent", statusCode: http.StatusNotFound},
+		{name: "server cannot confirm", statusCode: http.StatusBadGateway, wantError: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			deleted := false
+			srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/web-1":
+					if deleted {
+						w.WriteHeader(tc.statusCode)
+						_, _ = w.Write([]byte("read-back unavailable"))
+						return
+					}
+					_, _ = w.Write([]byte(`{"metadata":{"name":"web-1","type":"container","status":"Stopped"}}`))
+				case r.Method == http.MethodDelete && r.URL.Path == "/1.0/instances/web-1":
+					deleted = true
+					w.WriteHeader(http.StatusAccepted)
+					_, _ = w.Write([]byte(`{"type":"async","metadata":{"id":"delete-1"}}`))
+				case r.Method == http.MethodGet && r.URL.Path == "/1.0/operations/delete-1/wait":
+					_, _ = w.Write([]byte(opDone))
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer srv.Close()
+			err := guestClient(t, srv).DeleteGuest(context.Background(), "web-1")
+			if tc.wantError {
+				if err == nil || errors.Is(err, hv.ErrGuestNotFound) || !strings.Contains(err.Error(), "couldn't confirm guest web-1 was deleted") {
+					t.Fatalf("want unconfirmed deletion error, got %v", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("explicit 404 confirms deletion: %v", err)
+			}
+		})
 	}
 }

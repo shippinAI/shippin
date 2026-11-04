@@ -37,6 +37,8 @@ The local agent's Incus project is listed as a read-only node when hostd answers
 
 ## Drivers
 
+Guest creation is configured from the attached provider's observed resources. The Proxmox form requires a storage that supports the selected guest kind, a bridge present on the attached node, and an explicit positive disk size. The driver validates these values again at execution. Incus creation continues to use its configured project and selected Incus image; it does not inherit Proxmox placement rules.
+
 | Kind | Code | Source of truth |
 |---|---|---|
 | `proxmox` | `internal/hv/proxmox` | PVE `/api2/json`. Phase 1: version, cluster resources, qemu and lxc lifecycle, create/clone/template/delete/config/resize/migrate, snapshots and rollback, storage content, upload, download-url, node services and network, firewall read, vzdump, backup list, restore, UPID status and log. |

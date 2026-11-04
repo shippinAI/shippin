@@ -3,6 +3,7 @@ package proxmox
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,13 +17,15 @@ import (
 
 // pve is a small stand-in with the JSON shapes the PVE 8 API returns.
 type pve struct {
-	mu        sync.Mutex
-	guests    map[string]hv.Guest
-	snaps     map[string][]string
-	cfg       map[string]map[string]any
-	tasks     map[string]int
-	uploads   int
-	downloads int
+	mu                     sync.Mutex
+	guests                 map[string]hv.Guest
+	missingInventoryStatus int
+	deleteCalled           bool
+	snaps                  map[string][]string
+	cfg                    map[string]map[string]any
+	tasks                  map[string]int
+	uploads                int
+	downloads              int
 }
 
 func newPVE() *pve {
@@ -58,6 +61,11 @@ func (p *pve) handler(w http.ResponseWriter, r *http.Request) {
 		}
 		http.NotFound(w, r)
 	case path == "/cluster/resources":
+		if p.deleteCalled && p.missingInventoryStatus != 0 {
+			w.WriteHeader(p.missingInventoryStatus)
+			_, _ = w.Write([]byte("inventory unavailable"))
+			return
+		}
 		rows := []map[string]any{}
 		for _, g := range p.guests {
 			typ := "lxc"
@@ -141,6 +149,7 @@ func (p *pve) guestRoutes(w http.ResponseWriter, r *http.Request, path string) {
 		writeData(w, "UPID:n1:00000001:00000002:00000003:qmcreate:"+id+":token@pve:")
 	case r.Method == http.MethodDelete && tail == "":
 		delete(p.guests, id)
+		p.deleteCalled = true
 		writeData(w, "UPID:n1:00000001:00000002:00000003:qmdestroy:"+id+":token@pve:")
 	case tail == "clone":
 		_ = r.ParseForm()
@@ -277,6 +286,21 @@ func TestPhase1AgainstRecordedShapes(t *testing.T) {
 	}
 	if p.uploads != 1 || p.downloads != 1 {
 		t.Fatalf("upload %d download %d", p.uploads, p.downloads)
+	}
+}
+
+func TestDeleteDoesNotTreatInventoryFailureAsGuestAbsence(t *testing.T) {
+	p := newPVE()
+	p.missingInventoryStatus = http.StatusBadGateway
+	srv := httptest.NewTLSServer(http.HandlerFunc(p.handler))
+	defer srv.Close()
+	c := clientFor(t, srv)
+	c.PollBase = time.Millisecond
+	c.PollMax = 4 * time.Millisecond
+
+	err := c.Delete(context.Background(), "100")
+	if err == nil || errors.Is(err, hv.ErrGuestNotFound) || !strings.Contains(err.Error(), "couldn't confirm guest 100 was deleted") {
+		t.Fatalf("an inventory failure must leave delete outcome unconfirmed, got %v", err)
 	}
 }
 

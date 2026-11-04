@@ -20,15 +20,21 @@ const (
 // ErrNoHypervisor is returned by the bare driver for every call.
 var ErrNoHypervisor = errors.New("hv: this server has no hypervisor API")
 
+// ErrGuestNotFound means the provider confirmed that an addressed guest is absent.
+// Callers must not infer absence from an arbitrary API or network error.
+var ErrGuestNotFound = errors.New("hv: guest not found")
+
 // GuestSpec is a guest to make. A driver uses what applies to it, and zero leaves its default.
 type GuestSpec struct {
-	Kind   string
-	Name   string
-	Image  string
-	Memory int // MiB
-	Cores  int
-	Disk   int // GiB
-	Start  bool
+	Kind    string
+	Name    string
+	Image   string
+	Storage string
+	Network string
+	Memory  int // MiB
+	Cores   int
+	Disk    int // GiB
+	Start   bool
 }
 
 // Image is something a guest can be made from.

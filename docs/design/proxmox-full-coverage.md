@@ -18,6 +18,8 @@ Official shape used below is the PVE 8 API, which PVE 9 still serves under `/api
 
 **Read-back.** A lifecycle call that finds the guest already in the requested state does not POST. After a POST it GETs inventory and returns that body. If the status is not the one requested, the error includes the status the API reported. Delete waits, then requires the id to be absent.
 
+**Guest placement.** Creating a guest requires a storage selected from the attached node's reported storage and suitable for that guest kind (`rootdir` for LXC, `images` for QEMU), a Linux or Open vSwitch bridge selected from the node's reported network interfaces, and a positive disk size. The panel sends those choices; the driver checks them against the provider again before it creates anything. It never selects the first storage or network and never inserts a disk-size default. Incus keeps its own instance image and project behavior and does not receive these Proxmox-only placement fields.
+
 **Who may call.** `/v1/infra/servers` requires `roles.infra` (`op_infra` unless config says otherwise). Platform admin is not implied. Reads stop there. Mutations also pass `hv.Guard` with action `hv.lifecycle`. The shipped rule names approver role `founder` and `needs_approval: true` with board driver `hub`, so a card `hv.lifecycle:<server id>:<guest or storage>:<verb>` must be `approved`. A deployment that wants the infra role to pass without a board changes that rule. The code does not special-case a person.
 
 **Audit.** Each permitted mutation writes one audit row, action `hv.lifecycle`, detail `<server id> <verb> <guest id>`. The token id, the secret, and the API URL are not in the detail. If the audit write fails, the hypervisor is not called.
@@ -65,7 +67,7 @@ Exposure is `operator` (infra role) or `tenant` (org member, only their pool). A
 | Tasks | `/nodes/{node}/tasks`, `/tasks/{upid}/status`, `/tasks/{upid}/log` | 1 status and log; list 2 | operator | | | poll | exit status |
 | Consoles | `termproxy`, `vncproxy`, `vncshell`, `spiceproxy` on the node and on qemu/lxc | 3 | operator | a tenant console waits until pools exist, then only that org's guest | `console` | proxy ticket, short lived | not a guest status |
 | Wake-on-LAN | `POST /nodes/{node}/wakeonlan` | 3 | operator | operator-only | `power` | | a later status GET, which may fail until the node answers |
-| QEMU create | `POST /nodes/{node}/qemu` | 1 | operator; tenant in phase 4 | new guest's pool is the org | `create` | UPID | guest in resources |
+| QEMU create | `POST /nodes/{node}/qemu` | 1 | operator; tenant in phase 4 | new guest's pool is the org; storage and bridge selected from this node's live inventory | `create` | UPID | guest in resources |
 | QEMU clone | `POST /nodes/{node}/qemu/{vmid}/clone` | 1 | operator; tenant in phase 4 | clone stays in the source pool | `clone` | UPID | new id in resources |
 | QEMU template | `POST /nodes/{node}/qemu/{vmid}/template` | 1 | operator | templates are operator-owned until phase 4 names an org | `template` | UPID | guest tags or template flag from config |
 | QEMU delete | `DELETE /nodes/{node}/qemu/{vmid}` | 1 | operator; tenant in phase 4 | only the org's guest | `delete` | UPID | id absent |
@@ -79,7 +81,7 @@ Exposure is `operator` (infra role) or `tenant` (org member, only their pool). A
 | QEMU firewall | `/nodes/{node}/qemu/{vmid}/firewall/rules`, `options`, `aliases`, `ipset` | 1 read of rules; write 2 | operator; tenant read in phase 4 | org guest | `firewall` | | rules GET |
 | QEMU console and rrd | `vncproxy`, `termproxy`, `spiceproxy`, `rrd`, `rrddata`, `status/current` | 3 (rrd 2) | operator | org guest in phase 4 | `console` for proxies | ticket | |
 | QEMU power | `status/start`, `stop`, `shutdown`, `reboot`, `reset`, `suspend`, `resume` | 1 start/stop/shutdown/reboot; reset/suspend/resume 2 | operator; tenant in phase 4 | org guest | the verb | UPID, then inventory | status string |
-| LXC create | `POST /nodes/{node}/lxc` (`ostemplate`) | 1 | operator; tenant in phase 4 | pool = org | `create` | UPID | guest in resources |
+| LXC create | `POST /nodes/{node}/lxc` (`ostemplate`) | 1 | operator; tenant in phase 4 | pool = org; rootdir storage and bridge selected from this node's live inventory | `create` | UPID | guest in resources |
 | LXC clone, template, delete, config, migrate, resize | same paths under `/lxc/{vmid}` | 1 | same as QEMU | same as QEMU | same verbs | UPID | same |
 | LXC snapshots and rollback | `/lxc/{vmid}/snapshot` | 1 | same as QEMU | same | `snapshot`, `rollback` | UPID | snapshot list |
 | LXC mount points | config `mpN`, `unusedN`; `move_volume` | 3 | operator | org guest | `config` | move is UPID | config GET |

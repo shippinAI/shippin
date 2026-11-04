@@ -145,7 +145,7 @@ func (c *Client) Guest(ctx context.Context, id string) (hv.Guest, error) {
 		}
 		return g, nil
 	}
-	return hv.Guest{}, fmt.Errorf("proxmox: guest %s not in inventory", id)
+	return hv.Guest{}, fmt.Errorf("proxmox: guest %s: %w", id, hv.ErrGuestNotFound)
 }
 
 func (c *Client) Start(ctx context.Context, id string) (hv.Guest, error) {

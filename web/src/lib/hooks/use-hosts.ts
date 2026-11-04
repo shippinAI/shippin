@@ -60,12 +60,21 @@ export function useGuestAction(base: string) {
   });
 }
 
-export type NewGuest = { kind: string; name: string; image: string; memory: number; cores: number; disk: number; start: boolean };
+export type NewGuest = { kind: string; name: string; image: string; storage?: string; network?: string; memory: number; cores: number; disk: number; start: boolean };
 export type GuestImage = { id: string; label: string; kind?: string };
+export type GuestStorage = { name: string; type: string; content?: string; node?: string };
+export type GuestNetwork = { name: string; type: string; node?: string };
 
 /** What a guest can be made from on this host. */
 export const useGuestImages = (base: string) =>
   useQuery({ queryKey: ["hv", base, "images"], queryFn: () => apiGet<{ items: GuestImage[] }>(`${base}/images`), enabled: base !== "" });
+
+/** Placement choices are read from this attached provider, never supplied as panel defaults. */
+export const useGuestStorage = (base: string) =>
+  useQuery({ queryKey: ["hv", base, "storage"], queryFn: () => apiGet<{ items: GuestStorage[] }>(`${base}/storage`), enabled: base !== "" });
+
+export const useGuestNetworks = (base: string) =>
+  useQuery({ queryKey: ["hv", base, "networks"], queryFn: () => apiGet<{ items: GuestNetwork[] }>(`${base}/network`), enabled: base !== "" });
 
 /** Removes a guest, stopping it first if it has to. */
 export function useDeleteGuest(base: string) {

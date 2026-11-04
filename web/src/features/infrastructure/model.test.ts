@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type { InfraField, InfraOverview, InfraProvider } from "../../lib/hooks/use-infra";
-import { noteOK, verbApplies, firstAnswering, FLEETS_TAB, NETWORKS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, guestNameOK, hostsWithoutFleet, imagesFor, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
+import { guestNetworks, noteOK, verbApplies, firstAnswering, FLEETS_TAB, NETWORKS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, guestNameOK, hostsWithoutFleet, imagesFor, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
 
 const totals = { nodes: 0, online: 0, guests: 0, running: 0 };
 const provider = (kind: string, nodes = 0): InfraProvider => ({
@@ -100,5 +100,6 @@ assert.equal(guestNameOK("1web"), false, "starts with a letter");
 assert.equal(guestNameOK("web_1"), false);
 assert.equal(guestNameOK(""), false);
 assert.deepEqual(imagesFor([{ kind: "ct" }, { kind: "vm" }, {}], "ct"), [{ kind: "ct" }, {}], "an image with no kind suits either");
+assert.deepEqual(guestNetworks([{ name: "vmbr0", type: "bridge" }, { name: "vmbr1", type: "OVSBridge" }, { name: "eth0", type: "eth" }]).map((n) => n.name), ["vmbr0", "vmbr1"]);
 
 console.log("infrastructure model ok");
