@@ -31,6 +31,9 @@ func (d *DB) AgentHubConnection(ctx context.Context) (AgentHubConnection, error)
 
 // SaveAgentHubConnection updates endpoint and encrypted token with its audit row atomically.
 func (d *DB) SaveAgentHubConnection(ctx context.Context, baseURL string, tokenCiphertext []byte, keepCredential bool, by string, es ...AuditEntry) error {
+	if tokenCiphertext == nil {
+		tokenCiphertext = []byte{}
+	}
 	return d.inTx(ctx, es, func(tx pgx.Tx) (int64, error) {
 		var tag pgconn.CommandTag
 		var err error

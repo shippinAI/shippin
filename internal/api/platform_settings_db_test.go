@@ -73,6 +73,7 @@ func TestPlatformSettings(t *testing.T) {
 
 func TestAgentHubConnectionConfigurationIsSealedAuditedAndWriteOnly(t *testing.T) {
 	a, d, _ := notifyAPI(t)
+	a.cfg.SessionKey = strings.Repeat("ab", 32)
 	ctx := t.Context()
 	_, _ = d.Pool.Exec(ctx, `DELETE FROM shippin_agenthub_connection`)
 	c := &caller{id: &auth.Identity{Sub: "ops-" + newUUID()}}
