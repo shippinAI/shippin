@@ -26,7 +26,7 @@ Official shape used below is the PVE 8 API, which PVE 9 still serves under `/api
 
 **Rate limits.** Not implemented in phase 1. Phase 2 adds a per-server token bucket in the client: 10 requests per second, `Retry-After` and HTTP 429 double the wait, and the same error string does not get a new log line (the reconciler rule in `internal/hv`). No limiter is mounted half-finished.
 
-**Tenants.** A tenant lists and operates guests only on a server it owns or is assigned (`server_assignments`). Estate rows with no assignment stay on the operator routes. Create, delete, migrate, upload, and attaching the API token stay operator-only. Everyday power and snapshots are on `/v1/tenants/{tenantId}/servers/{serverId}/...` for an org owner or admin, with the same lifecycle policy gate. The sample policy is empty and therefore denies these mutations until AgentHub review is integrated. Pool ACL (`/pools/{org}`) is still phase 4: until then the server assignment is the isolation boundary, and the console does not show another org's guests.
+**Tenants.** A tenant lists guests only on a server it owns or is assigned (`server_assignments`). Estate rows with no assignment stay on the operator routes. Create, delete, migrate, upload, and attaching the API token stay operator-only. Tenant lifecycle routes are role- and assignment-scoped, but every provider mutation currently fails closed with `503 agenthub_review_unavailable`; a local Shippin policy is not a substitute for AgentHub. Pool ACL (`/pools/{org}`) remains future work; until then server assignment is the isolation boundary, and the console does not show another org's guests.
 
 ## Phase plan
 

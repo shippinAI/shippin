@@ -47,7 +47,7 @@ export function ServerGuestsPage() {
       <PageHeader
         eyebrow="Servers"
         title="Guests"
-        description="Machines on this server. Start, stop, and snapshot wait for the hypervisor to report the new state. If a change needs approval, the console files the card and you retry the same action after it is approved."
+        description="Machines on this server. Inventory is available now; provider changes are unavailable until AgentHub review is integrated."
         actions={<Button variant="ghost" size="sm" tooltip="Back to the server list" onPress={() => nav(`/t/${tenantId}/servers`)}>All servers</Button>}
       />
       <Card elevation={2} className="mb-6 overflow-hidden">
@@ -60,7 +60,7 @@ export function ServerGuestsPage() {
           <h2 className="mb-3 text-sm font-semibold text-fg">{guest.name || guest.id}</h2>
           <div className="mb-4 flex flex-wrap gap-2">
             {(["start", "stop", "shutdown", "reboot"] as const).map((verb) => (
-              <Button key={verb} size="sm" variant="secondary" tooltip={`${verb} ${guest.id}. Retry the same button after the approval card is approved.`} isDisabled={act.isPending}
+              <Button key={verb} size="sm" variant="secondary" tooltip={`${verb} ${guest.id}. Provider changes are unavailable until AgentHub review is integrated.`} isDisabled={act.isPending}
                 onPress={() => act.mutate({ guest: guest.id, verb })}>
                 {verb}
               </Button>

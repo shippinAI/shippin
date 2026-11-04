@@ -14,7 +14,7 @@ Three rules keep it safe:
 
 ```
 Staff roles ─────────grant──▶ permissions ──gate──▶ every /v1/infra and /v1/operator route
-                                                          │ note + audit, then approval
+                                                          │ AgentHub authorization (not yet integrated)
                                                           ▼
 System tenant ──owns──▶ hosts, the panel's guest      Customer tenants ──own──▶ their own servers
       (kind = system, never listed to customers)            (see only what is theirs or assigned)
@@ -51,7 +51,7 @@ The panel holds staff roles itself: add people and give them roles under **Provi
 
 ### CP-4: Every change says why
 
-**Status:** Done for infrastructure. A change to a host or guest needs a note of 5 to 300 characters, sent as the `X-Change-Note` header, percent-encoded. Without one the server answers `400` with code `note_required` before anything happens. The note goes in the audit log, on the approval card and in Activity. Fleets change nothing on a host, so they are audited without a note.
+**Status:** Partly done. The API validates infrastructure change notes (5 to 300 characters, percent-encoded in `X-Change-Note`) and returns `400 note_required` if missing. Provider mutations currently return `503 agenthub_review_unavailable` before audit or provider calls, so a rejected request does not create an audit entry, activity event or local approval card. Once AgentHub review is integrated, an accepted request must retain its exact reason and review provenance in the audit record. Fleet metadata changes do not alter provider state and remain separately audited.
 
 **Not built:** notes on the provider panel's own risky actions, such as suspending a tenant. Those are covered by staff mode's reason for the session, not one per change.
 
@@ -71,7 +71,7 @@ The panel holds staff roles itself: add people and give them roles under **Provi
 
 ### CP-7: Asking and approving are different people
 
-**Status:** Not built. An approval covers one change, but the person who asked can approve it. That is the only option for a sole owner. With a team, it should take a second person, with self-approval only as an explicit setting.
+**Status:** Not integrated. AgentHub owns reviewer eligibility, self-review rules and quorum as installation policy. Shippin must consume a typed, current decision for the exact action and resource; it must not infer reviewer policy from local roles or board status. Provider changes currently fail closed until this integration exists.
 
 ### CP-8: The platform acts under its own identity
 

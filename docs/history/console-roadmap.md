@@ -1,5 +1,10 @@
 # Roadmap
 
+Historical snapshot imported from the earlier console. Its status and workflow
+instructions are not current Shippin guidance; see
+[`platform-absorption-plan.md`](../design/platform-absorption-plan.md) and
+[`approval.md`](../approval.md) for current state.
+
 `main` is the only line. Every open pull request is merged. `b2-release` and `approve-p1-only` are joined into `main` as history only. Their trees were already here. Do not branch new work from them.
 
 ## Where we are
@@ -9,7 +14,7 @@ The console on `main` can:
 - Sign people in with Nomen, run the operator shell, and enroll servers with a one-time token and a bearer heartbeat.
 - Show an org its servers, and show guests on a server that org owns or is assigned.
 - Attach a Proxmox VE API from **Hosts** (`/operator/hosts`). The token secret stays in an environment variable. TLS is verified.
-- Create, clone, template, delete, resize, and migrate qemu and lxc guests, snapshot and roll them back, read node services, network, and firewall, list storage, upload or download an image, and start a vzdump or restore. Async work is a Proxmox task id. If the approval rule asks for the factory board, the console files the card and the same call is retried after it is approved.
+- This snapshot listed create, clone, template, delete, resize, migrate, snapshot, rollback, node reads and Proxmox task actions as available. Provider mutations are currently blocked with `503 agenthub_review_unavailable` until AgentHub review is integrated; the former local factory-board flow is not supported.
 - Browse a tenant database that already exists. It does not create that database.
 
 Texas and Platinum are **no-go**. Evidence is `docs/design/deploy-readiness-texas-platinum.md`. No deploy is part of this roadmap until that checklist is pass.

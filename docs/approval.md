@@ -98,9 +98,10 @@ AgentHub decisions.
 - Test no policy, invalid policy, policy version changes, stale tickets, wrong
   tenant/system, reviewer denial, self-review, unauthorized reviewer, expired
   credentials, AgentHub timeout, retry/replay, provider failure and restart.
-- Replace the remaining local Shippin policy and board decision path with the
-  AgentHub adapter only after its service-principal authentication, tenant/system
-  mapping, idempotent ticket lifecycle and failure behavior are implemented.
+- Keep the local Shippin task-board policy scoped to its own task workflow. Add a
+  separate AgentHub adapter for provider actions only after service-principal
+  authentication, tenant/system mapping, idempotent ticket lifecycle and failure
+  behavior are implemented.
   Preserve existing task/audit records; do not reset dirty AgentHub worktrees.
 
 Historical Gold signing settings and routes were removed from Shippin main.

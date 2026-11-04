@@ -60,7 +60,7 @@ From `BACKLOG.md` in the import. Checked items the console already covers are re
 | Favicon | intentionally replaced | console brand | The panel icon is not served. |
 | Quicknav (Ctrl+K) | intentionally replaced | sidebar and phone nav | `static/quicknav.js` is not loaded. |
 | CSV export | to-author | a console table action, if the product needs it | Not copied off the panel tables. |
-| Confirm dangerous actions | intentionally replaced | button tooltips; approval board for mutations | Browser `confirm()` is not added. Mutations wait on the policy. |
+| Confirm dangerous actions | intentionally replaced | explicit confirmation in the console; AgentHub review is pending | Browser `confirm()` is not added. Provider mutations currently fail closed until AgentHub integration is complete. |
 | Connection indicator | ported | Hosts empty and error states | The page shows the hypervisor error. It does not invent an online status. |
 
 ## Imported files
