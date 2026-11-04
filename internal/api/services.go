@@ -41,6 +41,60 @@ type serviceResource struct {
 	Metrics   *hv.GuestMetrics `json:"metrics,omitempty"`
 }
 
+type probeConcurrencyGate struct {
+	mu      sync.Mutex
+	active  int
+	limit   int
+	changed chan struct{}
+}
+
+func newProbeConcurrencyGate(limit int) *probeConcurrencyGate {
+	if limit < 1 || limit > config.MaxProbeConcurrency {
+		limit = config.DefaultProbeConcurrency
+	}
+	return &probeConcurrencyGate{limit: limit, changed: make(chan struct{})}
+}
+
+func (g *probeConcurrencyGate) setLimit(limit int) {
+	if limit < 1 || limit > config.MaxProbeConcurrency {
+		limit = config.DefaultProbeConcurrency
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.limit == limit {
+		return
+	}
+	g.limit = limit
+	close(g.changed)
+	g.changed = make(chan struct{})
+}
+
+func (g *probeConcurrencyGate) acquire(ctx context.Context) bool {
+	for {
+		g.mu.Lock()
+		if g.active < g.limit {
+			g.active++
+			g.mu.Unlock()
+			return true
+		}
+		changed := g.changed
+		g.mu.Unlock()
+		select {
+		case <-ctx.Done():
+			return false
+		case <-changed:
+		}
+	}
+}
+
+func (g *probeConcurrencyGate) release() {
+	g.mu.Lock()
+	g.active--
+	close(g.changed)
+	g.changed = make(chan struct{})
+	g.mu.Unlock()
+}
+
 func (a *API) serviceProbe(ctx context.Context, p config.Probe) probeResult {
 	res := probe(ctx, p)
 	if p.ServerID == "" {
@@ -88,15 +142,21 @@ func (a *API) platformProbes(ctx context.Context) []config.Probe {
 }
 
 func (a *API) platformProbeConcurrency(ctx context.Context) int {
+	a.probeLimitMu.Lock()
+	defer a.probeLimitMu.Unlock()
+	limit := config.DefaultProbeConcurrency
 	switch value := a.platformValue(ctx, "services.probe_concurrency").(type) {
 	case int:
-		return value
+		if value >= 1 && value <= config.MaxProbeConcurrency {
+			limit = value
+		}
 	case float64: // PostgreSQL JSON values are decoded as float64.
 		if value >= 1 && value <= config.MaxProbeConcurrency && value == float64(int(value)) {
-			return int(value)
+			limit = int(value)
 		}
 	}
-	return config.DefaultProbeConcurrency
+	a.probeGate.setLimit(limit)
+	return limit
 }
 
 func (a *API) serviceProbes(ctx context.Context, definitions []config.Probe, limit int) []probeResult {
@@ -117,7 +177,13 @@ func (a *API) serviceProbes(ctx context.Context, definitions []config.Probe, lim
 		go func() {
 			defer workers.Done()
 			for i := range indices {
+				if !a.probeGate.acquire(ctx) {
+					results[i] = probeResult{Name: definitions[i].Name, Kind: definitions[i].Kind,
+						TimeoutSeconds: definitions[i].TimeoutSeconds, Detail: "check cancelled"}
+					continue
+				}
 				results[i] = a.serviceProbe(ctx, definitions[i])
+				a.probeGate.release()
 			}
 		}()
 	}

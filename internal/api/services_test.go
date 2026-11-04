@@ -159,7 +159,7 @@ func TestServiceProbesRespectConfiguredConcurrency(t *testing.T) {
 	for i := range definitions {
 		definitions[i] = config.Probe{Name: fmt.Sprintf("service-%d", i), Kind: "database", URL: server.URL}
 	}
-	api := &API{}
+	api := &API{probeGate: newProbeConcurrencyGate(2)}
 	done := make(chan []probeResult, 1)
 	go func() { done <- api.serviceProbes(context.Background(), definitions, 2) }()
 	select {
@@ -196,5 +196,54 @@ func TestPlatformProbeConcurrencySettingHasSafeBounds(t *testing.T) {
 		if err := validate(value); err != nil {
 			t.Fatalf("valid boundary rejected (%v): %v", value, err)
 		}
+	}
+}
+
+func TestServiceProbeConcurrencyIsSharedAcrossRequests(t *testing.T) {
+	var active, maximum atomic.Int32
+	release := make(chan struct{})
+	ready := make(chan struct{})
+	var once sync.Once
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		current := active.Add(1)
+		for previous := maximum.Load(); current > previous && !maximum.CompareAndSwap(previous, current); previous = maximum.Load() {
+		}
+		if current == 2 {
+			once.Do(func() { close(ready) })
+		}
+		<-release
+		active.Add(-1)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+	definitions := func(prefix string) []config.Probe {
+		probes := make([]config.Probe, 4)
+		for i := range probes {
+			probes[i] = config.Probe{Name: fmt.Sprintf("%s-%d", prefix, i), Kind: "database", URL: server.URL}
+		}
+		return probes
+	}
+	api := &API{probeGate: newProbeConcurrencyGate(2)}
+	var workers sync.WaitGroup
+	workers.Add(2)
+	for _, prefix := range []string{"first", "second"} {
+		go func(prefix string) {
+			defer workers.Done()
+			results := api.serviceProbes(context.Background(), definitions(prefix), 2)
+			if len(results) != 4 {
+				t.Errorf("request %s got %d observations", prefix, len(results))
+			}
+		}(prefix)
+	}
+	select {
+	case <-ready:
+	case <-time.After(2 * time.Second):
+		close(release)
+		t.Fatal("shared gate did not admit two concurrent probes")
+	}
+	close(release)
+	workers.Wait()
+	if maximum.Load() != 2 {
+		t.Fatalf("concurrent requests exceeded the shared configured limit: max=%d", maximum.Load())
 	}
 }

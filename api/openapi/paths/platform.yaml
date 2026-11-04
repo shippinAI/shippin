@@ -5,7 +5,7 @@ services:
     summary: Live service probes and optional Incus or Proxmox guest resource observations (operators only)
     responses:
       "200":
-        description: Service reachability, provider guest metrics when explicitly configured, and local Incus instances. Probe and provider-resource work is bounded by the configured per-request concurrency limit.
+        description: Service reachability, provider guest metrics when explicitly configured, and local Incus instances. Probe and provider-resource work is bounded by the configured process-wide concurrency limit.
         content: { application/json: { schema: { $ref: ../schemas/platform.yaml#/PlatformServices } } }
       "401": { $ref: ../components/responses.yaml#/Problem401 }
       "403": { $ref: ../components/responses.yaml#/Problem403 }

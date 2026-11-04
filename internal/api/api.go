@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"shippin.cloud/console/internal/agentruns"
@@ -26,12 +27,14 @@ import (
 )
 
 type API struct {
-	cfg     *config.Config
-	flow    *auth.Flow
-	db      *db.DB
-	host    *hostclient.Client
-	updates updateChecker
-	started time.Time
+	cfg          *config.Config
+	flow         *auth.Flow
+	db           *db.DB
+	host         *hostclient.Client
+	updates      updateChecker
+	started      time.Time
+	probeGate    *probeConcurrencyGate
+	probeLimitMu sync.Mutex
 	// seen dedupes per-request grant access entries from forward_auth.
 	seen seenCache
 	// resolveCaller overrides the IdP caller lookup in tests only.
@@ -89,7 +92,7 @@ func (a *API) authTime(r *http.Request) time.Time {
 }
 
 func New(cfg *config.Config, flow *auth.Flow, d *db.DB) *API {
-	a := &API{cfg: cfg, flow: flow, db: d, host: hostclient.New(cfg.Incus.HostdURL), started: time.Now(),
+	a := &API{cfg: cfg, flow: flow, db: d, host: hostclient.New(cfg.Incus.HostdURL), started: time.Now(), probeGate: newProbeConcurrencyGate(cfg.ProbeConcurrency),
 		jobs: jobs.NewStore(d.Pool), subs: &subs.Store{Pool: d.Pool}, gh: newGitHub(cfg.GitHub),
 		runs: &agentruns.Store{Pool: d.Pool}, svcs: rrflowStore(d), n2: newN2(cfg, d)}
 	a.tenantDB = tenantdb.NewGate(tenantdb.DialerFrom(cfg.TenantDB.Host, cfg.TenantDB.PortOrDefault(), cfg.TenantDB.SSL(), cfg.TenantDB.Timeout(), cfg.TenantDBSecrets),
