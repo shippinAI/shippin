@@ -41,14 +41,12 @@ type Policy struct {
 }
 
 // Default is the shipped behavior: founder role (and any subject/e-mail supplied by env at
-// startup) may approve Gold changes and hub decisions. No host, IP, or person is named here.
+// startup) may approve hub decisions. No host, IP, or person is named here.
 func Default() Policy {
 	return Policy{
 		Enabled: true,
 		Board:   BoardConfig{Driver: "hub", TokenEnv: "SHIPPIN_HUB_TOKEN"},
 		Rules: []Rule{
-			{ID: "gold", Actions: []string{"gold.ticket", "gold.passkey", "gold.relay", "gold.bypass"},
-				ApproverRoles: []string{"founder"}, NeedsApproval: true},
 			{ID: "hub-decide", Actions: []string{"hub.decide"},
 				ApproverRoles: []string{"founder"}, NeedsApproval: true},
 			{ID: "hv-lifecycle", Actions: []string{"hv.lifecycle"},
@@ -65,13 +63,9 @@ func (p Policy) WithRuntime(getenv func(string) string) Policy {
 	if getenv == nil {
 		return p
 	}
-	goldSub := strings.TrimSpace(getenv("GOLDSIGN_OWNER_SUB"))
 	hubSub := strings.TrimSpace(getenv("HUB_OWNER_SUB"))
 	hubEmail := strings.TrimSpace(getenv("HUB_OWNER_EMAIL"))
 	for i := range p.Rules {
-		if goldSub != "" && has(p.Rules[i].Actions, "gold.ticket") {
-			p.Rules[i].ApproverSubs = add(p.Rules[i].ApproverSubs, goldSub)
-		}
 		if has(p.Rules[i].Actions, "hub.decide") {
 			if hubSub != "" {
 				p.Rules[i].ApproverSubs = add(p.Rules[i].ApproverSubs, hubSub)

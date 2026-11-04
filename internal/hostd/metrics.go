@@ -37,7 +37,7 @@ func labels(s string) map[string]string {
 // ParseMetrics folds Incus metrics into per-instance usage. Unknown series are ignored; loopback
 // traffic and filesystems other than / and /home are left out so numbers match what a user is billed for.
 
-// billedMount: the root disk plus the workspace home volume (B2 precheck on Gold: a devspace's
+// billedMount: the root disk plus the workspace home volume (B2 precheck: a devspace's
 // h-<w> custom volume is reported as a second incus_filesystem_* series with mountpoint="/home").
 func billedMount(m string) bool { return m == "/" || m == "/home" }
 func ParseMetrics(text string) []Usage {

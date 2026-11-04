@@ -77,7 +77,7 @@ func TestTenantMetricsVMTenant(t *testing.T) {
 	}
 }
 
-// Gold (B2 precheck): a devspace's home volume is a second filesystem series at /home; it is billed disk.
+// B2 precheck: a devspace's home volume is a second filesystem series at /home; it is billed disk.
 func TestParseMetricsCountsHomeVolume(t *testing.T) {
 	us := ParseMetrics(`incus_filesystem_size_bytes{device="r",fstype="zfs",mountpoint="/",name="w-9",project="t-a",type="container"} 3
 incus_filesystem_avail_bytes{device="r",fstype="zfs",mountpoint="/",name="w-9",project="t-a",type="container"} 1

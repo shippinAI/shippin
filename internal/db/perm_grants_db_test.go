@@ -9,7 +9,7 @@ var granular = []string{"catalog.plans.read", "catalog.prices.read", "catalog.pl
 	"customers.read", "customers.contacts.read", "customers.notes.read", "customers.write",
 	"customers.services.write", "config.effective.read", "provision.intent.create"}
 
-// Migration 012 on a database that already has the presets (as on Gold): only staff.owner
+// Migration 012 on a database that already has the presets (as on an older install): only staff.owner
 // gains the granular permissions; every other row is unchanged.
 func TestMigration012OnlyOwnerGains(t *testing.T) {
 	d, ctx := testDB(t)

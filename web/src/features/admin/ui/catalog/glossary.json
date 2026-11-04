@@ -7,7 +7,7 @@
   "overridable": "Overridable: a child layer replaces the value outright.",
   "mergeable": "Mergeable: lists combine. Children add entries; a parent deny (!entry) can't be removed.",
   "bounded": "Bounded: children may change the value only within min/max (or an allowed set). Out-of-range values are clamped and flagged.",
-  "provision_intent": "Provision intent: a recorded desired state. It stays pending until a Gold ticket applies it; nothing is created from this screen.",
+  "provision_intent": "Provision intent: a recorded desired state. It stays pending until an operator applies it; nothing is created from this screen.",
   "effective": "Effective config: the value a customer actually gets after merging every layer.",
   "draft": "Draft: created here, not yet linked to a sign-in org or provisioned.",
   "matrix": "Service matrix: which services each tier includes and the limits it grants."

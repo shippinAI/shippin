@@ -32,12 +32,11 @@ and lifecycle operations must be implemented and verified independently.
 Shippin is self-hosted software for operators to install on their own infrastructure;
 it does not require a commercial hosted service. Server addresses, identities and
 human-review policy are installation configuration. AgentHub owns its policy
-documents, change tickets and reviews. Gold approvals are not a product feature,
-policy, navigation destination or default. The Gold-specific routes and signing store
-imported from the console (`internal/api/goldsign_*`, `internal/goldsign/` and related
-packages) and AgentHub's Gold-specific seed and runner assumptions must be retired
-through a reviewed migration. Preserve historical records and
-verify their meaning without treating them as new AgentHub decisions. No common
+documents, change tickets and reviews. The Gold signing routes and store imported from
+the console have been removed; see [the approval policy](approval.md) for what became
+of a site's records. AgentHub's Gold-specific seed and runner assumptions live in
+AgentHub and must be retired there through a reviewed migration. Preserve historical
+records and verify their meaning without treating them as new AgentHub decisions. No common
 review backend or integrated navigation exists here yet. See the
 [system identity and human review plan](system-identity-human-review-plan.md).
 

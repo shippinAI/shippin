@@ -41,11 +41,11 @@ func testStore(t *testing.T) (*Store, context.Context, string) {
 // only ever stored hashed.
 func TestEnrollmentLifecycle(t *testing.T) {
 	s, ctx, tid := testStore(t)
-	g, err := s.Create(ctx, tid, "gold", "Gold", "gold", "u")
+	g, err := s.Create(ctx, tid, "edge", "Edge", "edge", "u")
 	if err != nil || g.State != Pending {
 		t.Fatalf("create: %+v %v", g, err)
 	}
-	if _, err := s.Create(ctx, tid, "gold", "Gold 2", "gold", "u"); err != ErrSlugTaken {
+	if _, err := s.Create(ctx, tid, "edge", "Edge 2", "edge", "u"); err != ErrSlugTaken {
 		t.Fatalf("dup slug: %v", err)
 	}
 	old, _ := s.IssueToken(ctx, tid, g.ID, "u", time.Hour)
@@ -64,7 +64,7 @@ func TestEnrollmentLifecycle(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if e, err := s.Enroll(ctx, tok.Token, "gold", "1", time.Minute); err == nil {
+			if e, err := s.Enroll(ctx, tok.Token, "edge", "1", time.Minute); err == nil {
 				wins <- e
 			}
 		}()
@@ -79,7 +79,7 @@ func TestEnrollmentLifecycle(t *testing.T) {
 		t.Fatalf("enrolled: %+v", e)
 	}
 	got, _ := s.Get(ctx, tid, g.ID)
-	if got.State != Active || got.Hostname != "gold" {
+	if got.State != Active || got.Hostname != "edge" {
 		t.Fatalf("after enroll: %+v", got)
 	}
 	start := time.Now()
@@ -115,7 +115,7 @@ func TestEnrollmentLifecycle(t *testing.T) {
 // TestExpiredToken: a token past its TTL can't be redeemed.
 func TestExpiredToken(t *testing.T) {
 	s, ctx, tid := testStore(t)
-	g, _ := s.Create(ctx, tid, "gold", "Gold", "gold", "u")
+	g, _ := s.Create(ctx, tid, "edge", "Edge", "edge", "u")
 	tok, _ := s.IssueToken(ctx, tid, g.ID, "u", time.Minute)
 	s.Now = func() time.Time { return time.Now().Add(2 * time.Minute) }
 	if _, err := s.Enroll(ctx, tok.Token, "h", "v", time.Minute); err != ErrBadToken {

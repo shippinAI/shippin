@@ -17,7 +17,7 @@ import (
 func TestEnrollEndToEnd(t *testing.T) {
 	_, _, tn, srv := serverTestAPI(t, "org_admin")
 	base := "/v1/tenants/" + tn.ID + "/servers"
-	_, g, _ := srvCall(t, srv, "POST", base, `{"slug":"gold","label":"Gold","site":"gold"}`, "")
+	_, g, _ := srvCall(t, srv, "POST", base, `{"slug":"edge","label":"Edge","site":"edge"}`, "")
 	id := g["id"].(string)
 	_, tok, _ := srvCall(t, srv, "POST", base+"/"+id+"/enroll-token", ``, "")
 	dir := t.TempDir()
@@ -26,7 +26,7 @@ func TestEnrollEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = os.WriteFile(cfg.TokenFile, []byte(tok["token"].(string)), 0o600)
-	agent := &enroll.Agent{Cfg: cfg, Version: "test-1", Hostname: func() (string, error) { return "gold-test", nil }}
+	agent := &enroll.Agent{Cfg: cfg, Version: "test-1", Hostname: func() (string, error) { return "edge-test", nil }}
 	if st := stateOf(t, srv, tn.ID, id); st != "pending" {
 		t.Fatalf("before enroll: %s", st)
 	}

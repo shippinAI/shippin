@@ -64,7 +64,7 @@ func (h *Handler) listIntents(w http.ResponseWriter, r *http.Request, _ string) 
 	items(w, raw, err, "Provision intents")
 }
 
-// provisionIntent records desired state only; Gold tickets apply it later.
+// provisionIntent records desired state only; an operator applies it later.
 func (h *Handler) provisionIntent(w http.ResponseWriter, r *http.Request, actor string) {
 	var body struct {
 		Note string `json:"note"`

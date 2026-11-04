@@ -423,22 +423,6 @@
     },
     "rules": [
       {
-        "id": "gold",
-        "actions": [
-          "gold.ticket",
-          "gold.passkey",
-          "gold.relay",
-          "gold.bypass"
-        ],
-        "hosts": [],
-        "approver_roles": [
-          "founder"
-        ],
-        "approver_subs": [],
-        "approver_emails": [],
-        "needs_approval": true
-      },
-      {
         "id": "hub-decide",
         "actions": [
           "hub.decide"

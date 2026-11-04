@@ -32,9 +32,6 @@ const ChatPage = lazy(() => import("../features/chat/ui/chat-page").then((m) => 
 const DevicePage = lazy(() => import("../features/bridge/ui/device-page").then((m) => ({ default: m.DevicePage })));
 const ConnectAccountsPage = lazy(() => import("../features/connect/ui/connect-accounts-page").then((m) => ({ default: m.ConnectAccountsPage })));
 const TerminalPage = lazy(() => import("../features/terminal/ui/terminal-page").then((m) => ({ default: m.TerminalPage })));
-const GoldPendingPage = lazy(() => import("../features/gold-sign/ui/pending-page").then((m) => ({ default: m.PendingPage })));
-const GoldTicketPage = lazy(() => import("../features/gold-sign/ui/ticket-page").then((m) => ({ default: m.TicketPage })));
-const GoldPasskeysPage = lazy(() => import("../features/gold-sign/ui/passkeys-page").then((m) => ({ default: m.PasskeysPage })));
 const HubPage = lazy(() => import("../features/hub/ui/hub-page").then((m) => ({ default: m.HubPage })));
 const VaultixPage = lazy(() => import("../features/vaultix/ui/vaultix-page").then((m) => ({ default: m.VaultixPage })));
 const TeamPage = lazy(() => import("../features/team/ui/team-page").then((m) => ({ default: m.TeamPage })));
@@ -81,9 +78,6 @@ export const router = createBrowserRouter([
               { path: "/account/bridge", element: <BridgeSessionsPage /> },
               { path: "/hub", element: <Suspense fallback={null}><HubPage /></Suspense> },
               { path: "/vaultix", element: <Suspense fallback={null}><VaultixPage /></Suspense> },
-              { path: "/gold", element: <Suspense fallback={null}><GoldPendingPage /></Suspense> },
-              { path: "/gold/passkeys", element: <Suspense fallback={null}><GoldPasskeysPage /></Suspense> },
-              { path: "/gold/:ticketId", element: <Suspense fallback={null}><GoldTicketPage /></Suspense> },
               { path: "/chat", element: <ChatPage /> },
               { path: "/chat/:sessionId", element: <ChatPage /> },
               { path: "/operator", element: <PlatformPage /> },

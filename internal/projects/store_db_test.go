@@ -38,7 +38,7 @@ func testStore(t *testing.T) (*Store, context.Context, string) {
 
 func TestProjectLifecycle(t *testing.T) {
 	s, ctx, tid := testStore(t)
-	id, err := s.CreateProject(ctx, tid, "gold-dev", "dev", "sub-1")
+	id, err := s.CreateProject(ctx, tid, "site-dev", "dev", "sub-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestProjectLifecycle(t *testing.T) {
 	if p.State != "pending" || p.Placed || len(p.Environments) != 1 || p.Environments[0].Name != "dev" {
 		t.Fatalf("no boundary yet: %s", raw)
 	}
-	if _, err := s.CreateProject(ctx, tid, "gold-dev", "dev", "sub-1"); err != ErrNameTaken {
+	if _, err := s.CreateProject(ctx, tid, "site-dev", "dev", "sub-1"); err != ErrNameTaken {
 		t.Fatalf("duplicate name: %v", err)
 	}
 	if _, err := s.Place(ctx, tid, id, "dev"); err == nil {
@@ -89,13 +89,13 @@ func TestProjectLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	if raw, _ := s.Projects(ctx, tid); string(raw) == "[]" {
-		t.Fatal("gold-dev should still list")
+		t.Fatal("site-dev should still list")
 	}
 }
 
 func TestAdoptVM(t *testing.T) {
 	s, ctx, tid := testStore(t)
-	pj, _ := s.CreateProject(ctx, tid, "gold-dev", "dev", "sub-1")
+	pj, _ := s.CreateProject(ctx, tid, "site-dev", "dev", "sub-1")
 	b1, err := s.AdoptVM(ctx, tid, "tvm-"+tid, "16", "32GiB", "20GiB", "150GiB")
 	if err != nil {
 		t.Fatal(err)

@@ -1,8 +1,8 @@
 # Approval policy and the factory board
 
-Gold changes and hub decisions follow `approval` in `config/shippin.json`. The Go code does not
-name an approver, a host, or a network. A deployment adds subjects with `GOLDSIGN_OWNER_SUB`,
-`HUB_OWNER_SUB`, and `HUB_OWNER_EMAIL`. Those values are copied onto the matching rules at
+Hub decisions and infrastructure changes follow `approval` in `config/shippin.json`. The Go code does not
+name an approver, a host, or a network. A deployment adds subjects with
+`HUB_OWNER_SUB` and `HUB_OWNER_EMAIL`. Those values are copied onto the matching rules at
 startup (`approval.Policy.WithRuntime`).
 
 ```json
@@ -11,8 +11,8 @@ startup (`approval.Policy.WithRuntime`).
   "board": { "driver": "hub", "base_url": "", "org_id": "", "token_env": "SHIPPIN_HUB_TOKEN" },
   "rules": [
     {
-      "id": "gold",
-      "actions": ["gold.ticket", "gold.passkey", "gold.relay", "gold.bypass"],
+      "id": "hv-lifecycle",
+      "actions": ["hv.lifecycle"],
       "hosts": [],
       "approver_roles": ["founder"],
       "approver_subs": [],
@@ -57,3 +57,15 @@ the agent checkout board (`/v1/hub`). The HTTP client therefore speaks this cons
   passkey (`cmd/gold-passkey-verify`, approver user `GOLD_APPROVER`) before that file exists.
 - `driver: hub` does nothing without `SHIPPIN_DATABASE_URL` and migration 035. Ticket reads
   then report `board_status: unavailable` and relay stays on the passkey path.
+
+## Removed: change signing
+
+Earlier versions carried a change-signing feature written for one installation: the `/gold` pages, `/v1/gold-sign/*` and the `GOLDSIGN_*` settings. It was off unless every one of those settings was present, and it is gone.
+
+If your site used it:
+
+- **Your records are untouched.** They were always files in `GOLDSIGN_DIR` and `GOLDSIGN_FACTS_DIR`, not panel data, and the panel no longer reads them. While those settings remain, it logs a notice at start. Remove the settings when you are ready; keep the files as long as you need them.
+- **An old envelope stays what it was:** a record of what was approved then. It is not an approval here, and nothing in the panel treats it as one.
+- **To verify one**, use the verifier as it last existed, in this repository's history: `git show 189697c:internal/goldverify/verify.go`.
+- **Signing passkeys lived in those files too.** They are separate from sign-in passkeys, which still work.
+- **A leftover `gold` rule in your configuration grants nothing,** because no route asks for those actions. It can be deleted.

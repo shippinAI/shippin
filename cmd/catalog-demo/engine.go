@@ -12,7 +12,7 @@ import (
 
 // engines runs one real VS Code server (code-server) per demo workspace on loopback, standing in
 // for the engine inside the workspace container. Each workspace keeps its own home and editor
-// state directory, so stop + start resumes exactly like the home volume h-<uuid> does on Gold.
+// state directory, so stop + start resumes exactly like the home volume h-<uuid> does on a real host.
 type engines struct {
 	bin, root string
 	mu        sync.Mutex

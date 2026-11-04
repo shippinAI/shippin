@@ -7,7 +7,7 @@ PlatformSettings:
     brands: { type: array, items: { $ref: '#/Brand' } }
     governance_domains:
       type: array
-      description: Domains shown on the governance screen (e.g. example.invalid, rroflow.ai, shippin.ai).
+      description: Domains shown on the governance screen (e.g. example.invalid, rroflow.ai, shippin.cloud).
       items: { type: string }
 Brand:
   type: object

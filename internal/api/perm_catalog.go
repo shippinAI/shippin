@@ -53,7 +53,7 @@ var permCatalog = []Perm{
 	{Key: "customers.write", Section: "Customers", Label: "Create, edit and delete draft customers", Risk: true, Grantable: true},
 	{Key: "customers.services.write", Section: "Customers", Label: "Change a customer's service overrides", Risk: true, Grantable: true},
 	{Key: "config.effective.read", Section: "Customers", Label: "View a customer's effective configuration", Grantable: true},
-	{Key: "provision.intent.create", Section: "Customers", Label: "Record a provision intent (desired state for a later Gold ticket)", Risk: true, Grantable: true},
+	{Key: "provision.intent.create", Section: "Customers", Label: "Record a provision intent (desired state for an operator to apply)", Risk: true, Grantable: true},
 	{Key: "platform.settings.read", Section: "Platform", Label: "View ops-editable platform settings (IdP account page, rrflow auto-attach)", Grantable: true},
 	{Key: "platform.settings.write", Section: "Platform", Label: "Change ops-editable platform settings (audited)", Risk: true, Grantable: true},
 	{Key: "infra.read", Section: "Infrastructure", Label: "View hosts, guests, node detail and the change history"},

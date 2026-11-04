@@ -39,7 +39,7 @@ func TestAgentAgainstFake(t *testing.T) {
 		case "/v1/servers/enroll":
 			var in map[string]string
 			_ = json.NewDecoder(r.Body).Decode(&in)
-			if in["token"] != "shpe_x" || in["hostname"] != "gold" {
+			if in["token"] != "shpe_x" || in["hostname"] != "edge" {
 				w.WriteHeader(401)
 				return
 			}
@@ -56,7 +56,7 @@ func TestAgentAgainstFake(t *testing.T) {
 	dir := t.TempDir()
 	cfg := Config{ConsoleURL: srv.URL, TokenFile: filepath.Join(dir, "token"), CredentialFile: filepath.Join(dir, "cred")}
 	_ = os.WriteFile(cfg.TokenFile, []byte("shpe_x\n"), 0o600)
-	a := &Agent{Cfg: cfg, Version: "t", Hostname: func() (string, error) { return "gold", nil }}
+	a := &Agent{Cfg: cfg, Version: "t", Hostname: func() (string, error) { return "edge", nil }}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := a.Run(ctx); err != ErrRejected || beats.Load() != 3 {

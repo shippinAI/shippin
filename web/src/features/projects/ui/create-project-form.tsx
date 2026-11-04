@@ -19,7 +19,7 @@ export function CreateProjectForm({ tenantId }: { tenantId: string }) {
         create.mutate({ name, environment: env }, { onSuccess: () => setName("") });
       }}
     >
-      <TextField label="Name" placeholder="gold-dev" value={name} onChange={setName} isRequired pattern={pattern} maxLength={40} description="Lowercase letters, digits and dashes." />
+      <TextField label="Name" placeholder="my-project" value={name} onChange={setName} isRequired pattern={pattern} maxLength={40} description="Lowercase letters, digits and dashes." />
       <TextField label="First environment" value={env} onChange={setEnv} isRequired pattern={pattern} maxLength={24} />
       <Button type="submit" variant="primary" size="sm" isDisabled={create.isPending} tooltip="Create the project and its first environment">
         Create project

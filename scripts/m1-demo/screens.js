@@ -3,7 +3,7 @@ const T = "ef848043-1a75-4e09-bbc6-cd1cdc351efa", B = "http://127.0.0.1:8098", O
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const api = (m, path, body) => fetch(B + path, { method: m, body: body && JSON.stringify(body) }).then((r) => r.json());
 (async () => {
-  for (const n of ["gold-dev", "site"]) console.log("create", n, (await api("POST", `/v1/tenants/${T}/projects`, { name: n, environment: "dev" })).state);
+  for (const n of ["site-dev", "site"]) console.log("create", n, (await api("POST", `/v1/tenants/${T}/projects`, { name: n, environment: "dev" })).state);
   const ctx = await chromium.launchPersistentContext("/tmp/m1-profile", { executablePath: "/usr/bin/google-chrome", viewport: { width: 1440, height: 900 }, args: ["--no-sandbox"] });
   const p = ctx.pages()[0] || (await ctx.newPage());
   const shot = async (n) => { await p.screenshot({ path: O + n + ".png" }); console.log("shot", n, new Date().toISOString()); };
@@ -13,26 +13,26 @@ const api = (m, path, body) => fetch(B + path, { method: m, body: body && JSON.s
     for (const t of ["Yes, I trust the authors", "Never"]) { const b = f.getByRole("button", { name: t, exact: true }); if (await b.count()) await b.first().click().catch(() => {}); } };
   const sw = async (name) => { await p.getByRole("button", { name: /Project/ }).first().click(); await p.getByRole("option", { name }).click(); };
 
-  await p.goto(`${B}/t/${T}/projects`); await p.getByText("gold-dev").first().waitFor(); await sleep(800); await shot("01-projects-list");
-  await p.locator("div", { hasText: /^gold-dev/ }).getByRole("button", { name: "Open" }).first().click().catch(async () => p.getByRole("button", { name: "Open" }).first().click());
-  await p.getByText("Your devspace is running").waitFor({ timeout: 60000 }); await shot("02-one-click-gold-dev-devspace");
-  await surface("Code"); await engine(); await shot("03-gold-dev-code-surface");
+  await p.goto(`${B}/t/${T}/projects`); await p.getByText("site-dev").first().waitFor(); await sleep(800); await shot("01-projects-list");
+  await p.locator("div", { hasText: /^site-dev/ }).getByRole("button", { name: "Open" }).first().click().catch(async () => p.getByRole("button", { name: "Open" }).first().click());
+  await p.getByText("Your devspace is running").waitFor({ timeout: 60000 }); await shot("02-one-click-site-dev-devspace");
+  await surface("Code"); await engine(); await shot("03-site-dev-code-surface");
   await surface("Terminal"); await f.locator(".monaco-workbench").click({ position: { x: 500, y: 250 } });
   await p.keyboard.press("Control+Shift+Backquote"); await sleep(4000);
   await f.locator(".xterm").last().click(); await sleep(500);
-  await p.keyboard.type("echo 'resume check from gold-dev' > notes.txt; cat notes.txt", { delay: 20 }); await p.keyboard.press("Enter"); await sleep(2000);
-  await shot("04-gold-dev-terminal-wrote-notes");
+  await p.keyboard.type("echo 'resume check from site-dev' > notes.txt; cat notes.txt", { delay: 20 }); await p.keyboard.press("Enter"); await sleep(2000);
+  await shot("04-site-dev-terminal-wrote-notes");
   await sw("site"); await sleep(1000);
   await p.getByText("Your devspace is running").waitFor({ timeout: 90000 }); await sleep(3000); await shot("05-switched-to-site");
-  const ws = (await api("GET", `/v1/tenants/${T}/workspaces`)).items.find((w) => w.name === "gold-dev-dev");
-  await api("POST", `/v1/tenants/${T}/workspaces/${ws.id}/actions/stop`); console.log("stopped gold-dev engine", new Date().toISOString());
-  await sleep(2000); await sw("gold-dev"); await sleep(1500);
+  const ws = (await api("GET", `/v1/tenants/${T}/workspaces`)).items.find((w) => w.name === "site-dev-dev");
+  await api("POST", `/v1/tenants/${T}/workspaces/${ws.id}/actions/stop`); console.log("stopped site-dev engine", new Date().toISOString());
+  await sleep(2000); await sw("site-dev"); await sleep(1500);
   console.log("after switch-back state:", (await api("GET", `/v1/tenants/${T}/workspaces`)).items.map((w) => w.name + "=" + w.state).join(","));
   await f.locator(".monaco-workbench").waitFor({ timeout: 90000 }); await sleep(6000);
-  await shot("06-back-to-gold-dev-resumed");
+  await shot("06-back-to-site-dev-resumed");
   await f.locator(".monaco-workbench").click({ position: { x: 500, y: 250 } });
   await p.keyboard.press("Control+Shift+Backquote"); await sleep(3000); await f.locator(".xterm").last().click();
   await p.keyboard.type("cat notes.txt", { delay: 20 }); await p.keyboard.press("Enter"); await sleep(2000);
-  await shot("07-gold-dev-state-intact-after-restart");
+  await shot("07-site-dev-state-intact-after-restart");
   await ctx.close();
 })().catch(async (e) => { console.error(String(e).slice(0,300)); process.exit(1); });
