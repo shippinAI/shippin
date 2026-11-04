@@ -17,6 +17,9 @@ records; the control plane owns the authoritative system inventory.
 > AgentHub tenant/machine mappings on the existing infrastructure screen for
 > attached and unattached registered systems; this
 > does not yet verify mappings with AgentHub or run its review workflow.
+> The new `internal/agenthub` client is also not wired into the API: its tests
+> use a simulated REST server and do not establish live AgentHub compatibility.
+> Provider mutations therefore remain unavailable.
 > Source ownership is defined by [source of truth](source-of-truth.md).
 
 ## Grounded starting point
@@ -37,6 +40,13 @@ records; the control plane owns the authoritative system inventory.
   tickets, evidence and reviews. A review binds to a ticket hash. Its current
   preset contains installation-specific rules and a named principal, and
   `server/internal/policyrules/eval.go` recognizes a Gold-specific runner.
+- The currently reviewed REST decision response is boolean plus a policy hash,
+  version, decision ID and matched rule IDs. No match defaults to allow. The
+  `ticket` policy check proves only that a ticket exists; it does not bind the
+  request's machine or command to that ticket. `passed` status alone is not a
+  configured quorum. Shippin's adapter must verify exact ticket binding and the
+  current policy's matched rule semantics; only AgentHub evaluates reviewer
+  eligibility and configured quorum.
 - Historical console `web/src/features/gold-sign/`, `internal/goldsign/` and
   `internal/api/goldsign_routes.go` implement separate Gold-specific screens,
   storage, signing and routes. They are not the AgentHub policy authority and
