@@ -13,7 +13,7 @@ func TestDeployableConfigSchemaValidatesClosedValuesAndSecretReferences(t *testi
 	if err := ValidateDeploymentConfig(schema, defaults); err != nil {
 		t.Fatalf("valid definition rejected: %v", err)
 	}
-	if err := ValidateDeploymentConfigValues(schema, json.RawMessage(`{"port":5433,"password":"sops://services/postgres/password"}`)); err != nil {
+	if err := ValidateDeploymentConfigValues(schema, json.RawMessage(`{"port":5433,"password":"sops://runtime/secrets.yaml#/postgres/password"}`)); err != nil {
 		t.Fatalf("valid instance configuration rejected: %v", err)
 	}
 	for name, values := range map[string]string{
@@ -54,12 +54,19 @@ func TestSecretReferenceFormatRejectsCredentialsAndFragments(t *testing.T) {
 	for _, value := range []string{
 		"vaultix://user:password@platform/db",
 		"vaultix:plaintext",
-		"sops://platform/db#fragment",
+		"vaultix://platform/db#unexpected",
+		"sops://runtime/secrets.yaml#fragment",
+		"sops://runtime/secrets.yaml",
 		"https://secrets.example/db",
 		"vaultix://platform/db?token=value",
 	} {
 		if err := validateSecretReferenceValue(value); err == nil {
 			t.Errorf("accepted unsafe reference %q", value)
+		}
+	}
+	for _, value := range []string{"vaultix://org/project/env/key", "sops://runtime/secrets.yaml#/registry/token"} {
+		if err := validateSecretReferenceValue(value); err != nil {
+			t.Errorf("rejected valid reference %q: %v", value, err)
 		}
 	}
 }

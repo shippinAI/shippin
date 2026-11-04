@@ -25,6 +25,8 @@ func TestDeploymentSourceRejectsFloatingOrUnsafeReferences(t *testing.T) {
 		"query string":                       {Kind: "git", Reference: "https://git.example.net/acme/app?token=value", Commit: "0123456789abcdef0123456789abcdef01234567"},
 		"parent path":                        {Kind: "git", Reference: "https://git.example.net/acme/app", Commit: "0123456789abcdef0123456789abcdef01234567", ContextPath: "../secret"},
 		"credential literal":                 {Kind: "git", Reference: "https://git.example.net/acme/app", Commit: "0123456789abcdef0123456789abcdef01234567", CredentialRef: "password-value"},
+		"SOPS reference without key pointer": {Kind: "git", Reference: "https://git.example.net/acme/app", Commit: "0123456789abcdef0123456789abcdef01234567", CredentialRef: "sops://runtime/secrets.yaml"},
+		"Vaultix reference with fragment":    {Kind: "git", Reference: "https://git.example.net/acme/app", Commit: "0123456789abcdef0123456789abcdef01234567", CredentialRef: "vaultix://org/project/key#/unexpected"},
 		"floating OCI tag":                   {Kind: "oci", Reference: "registry.example.net/data/postgres:latest"},
 		"OCI with a git commit":              {Kind: "oci", Reference: "registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", Commit: "0123456789abcdef0123456789abcdef01234567"},
 	}

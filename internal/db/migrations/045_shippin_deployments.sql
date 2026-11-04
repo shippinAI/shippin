@@ -29,9 +29,9 @@ CREATE TABLE shippin_deployment_generations (
   desired_state      text NOT NULL CHECK (desired_state IN ('present','absent')),
   definition_sha256  text NOT NULL CHECK (definition_sha256 ~ '^[a-f0-9]{64}$'),
   definition_snapshot jsonb NOT NULL CHECK (jsonb_typeof(definition_snapshot) = 'object'
-    AND octet_length(definition_snapshot::text) <= 65536),
+    AND octet_length(definition_snapshot::text) <= 262144),
   config             jsonb NOT NULL CHECK (jsonb_typeof(config) = 'object'
-    AND octet_length(config::text) <= 65536),
+    AND octet_length(config::text) <= 131072),
   idempotency_key    uuid NOT NULL,
   request_sha256     text NOT NULL CHECK (request_sha256 ~ '^[a-f0-9]{64}$'),
   created_by         text NOT NULL CHECK (length(created_by) BETWEEN 1 AND 255),

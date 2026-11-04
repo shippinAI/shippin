@@ -88,15 +88,5 @@ func validContextPath(value string) bool {
 }
 
 func validCredentialRef(value string) bool {
-	if len(value) > 1024 || strings.ContainsAny(value, "\r\n\x00") {
-		return false
-	}
-	u, err := url.Parse(value)
-	if err != nil || u.User != nil || u.RawQuery != "" || u.Scheme == "" {
-		return false
-	}
-	if u.Scheme != "vaultix" && u.Scheme != "sops" {
-		return false
-	}
-	return u.Host != "" || u.Path != ""
+	return validateSecretReferenceValue(value) == nil
 }

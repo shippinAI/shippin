@@ -225,3 +225,12 @@ func canonicalJSON(value any) ([]byte, error) {
 	}
 	return json.Marshal(normalized)
 }
+
+func hashCanonical(value any) (string, error) {
+	canonical, err := canonicalJSON(value)
+	if err != nil {
+		return "", err
+	}
+	digest := sha256.Sum256(canonical)
+	return hex.EncodeToString(digest[:]), nil
+}

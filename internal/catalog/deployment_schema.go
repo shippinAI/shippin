@@ -239,7 +239,19 @@ func validateSecretReferenceValue(value any) error {
 		return errors.New("must be a Vaultix or SOPS secret reference")
 	}
 	parsed, err := url.Parse(text)
-	if err != nil || (parsed.Scheme != "vaultix" && parsed.Scheme != "sops") || parsed.Opaque != "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Host == "" && parsed.Path == "") {
+	if err != nil || parsed.Opaque != "" || parsed.User != nil || parsed.RawQuery != "" || (parsed.Host == "" && parsed.Path == "") {
+		return errors.New("must be a Vaultix or SOPS secret reference")
+	}
+	switch parsed.Scheme {
+	case "vaultix":
+		if parsed.Fragment != "" {
+			return errors.New("Vaultix secret references cannot contain a fragment")
+		}
+	case "sops":
+		if !strings.HasPrefix(parsed.Fragment, "/") {
+			return errors.New("SOPS secret references must select a key with a JSON pointer fragment")
+		}
+	default:
 		return errors.New("must be a Vaultix or SOPS secret reference")
 	}
 	return nil

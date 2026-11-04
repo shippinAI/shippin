@@ -74,8 +74,8 @@ function validCredentialRef(value: string): boolean {
   if (value.length > 1024) return false;
   try {
     const url = new URL(value);
-    return (url.protocol === "vaultix:" || url.protocol === "sops:") && !url.username && !url.password && !url.search &&
-      (!!url.host || !!url.pathname);
+    if (!(url.protocol === "vaultix:" || url.protocol === "sops:") || url.username || url.password || url.search || (!url.host && !url.pathname)) return false;
+    return url.protocol === "vaultix:" ? !url.hash : url.hash.startsWith("#/");
   } catch {
     return false;
   }
