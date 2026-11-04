@@ -17,6 +17,14 @@ func TestDetailsReadNodeAndCluster(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{
 				"pveversion": "pve-manager/9.2.11/abc (running kernel: 7.0.14-14-pve)", "kversion": "Linux 7.0.14-14-pve #1 SMP", "uptime": 3600,
 				"cpuinfo": map[string]any{"model": "Xeon", "cpus": 8}, "memory": map[string]any{"total": 100, "used": 40}}})
+		case "/api2/json/nodes/n1/disks/list":
+			if r.URL.Query().Get("skipsmart") != "1" {
+				t.Errorf("overview disk inventory must skip SMART probes: %s", r.URL.RawQuery)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
+				{"devpath": "/dev/nvme0n1", "model": "Example NVMe", "size": 1000000, "used": "LVM", "mounted": true, "gpt": true},
+				{"devpath": "", "size": 42},
+			}})
 		case "/api2/json/cluster/status":
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
 				{"type": "cluster", "name": "lab", "nodes": 2}, {"type": "node", "name": "n2", "online": 0}, {"type": "node", "name": "n1", "online": 1, "local": 1}}})
@@ -41,6 +49,9 @@ func TestDetailsReadNodeAndCluster(t *testing.T) {
 	if d.Cluster != "lab" || len(d.Members) != 2 || d.Members[0].Name != "n1" || !d.Members[0].Online || !d.Members[0].Local || d.Members[1].Online {
 		t.Fatalf("cluster: %+v", d)
 	}
+	if len(d.Disks) != 1 || d.Disks[0].Path != "/dev/nvme0n1" || d.Disks[0].Model != "Example NVMe" || d.Disks[0].Size != 1000000 || d.Disks[0].Used != "LVM" || !d.Disks[0].Mounted || !d.Disks[0].GPT {
+		t.Fatalf("disk inventory: %+v", d.Disks)
+	}
 }
 
 func TestDetailsSurviveATokenThatCannotReadTheCluster(t *testing.T) {
@@ -55,7 +66,7 @@ func TestDetailsSurviveATokenThatCannotReadTheCluster(t *testing.T) {
 	c := clientFor(t, srv)
 	c.Endpoint.Node = "n1"
 	d, err := c.Details(context.Background())
-	if err != nil || d.Release != "pve-manager/9" || d.Cluster != "" || d.Members != nil {
+	if err != nil || d.Release != "pve-manager/9" || d.Cluster != "" || d.Members != nil || d.Disks != nil {
 		t.Fatalf("%+v %v", d, err)
 	}
 }

@@ -82,6 +82,9 @@ func (c *Client) Details(ctx context.Context) (hv.NodeDetails, error) {
 		Hostname: node, Release: st.Data.PVEVersion, Kernel: st.Data.CurrentKernel.Release, CPUModel: st.Data.CPUInfo.Model, CPUs: st.Data.CPUInfo.CPUs,
 		MemTotal: st.Data.Memory.Total, MemUsed: st.Data.Memory.Used, Uptime: st.Data.Uptime,
 	}
+	// Disk inventory is best-effort: restricted provider tokens can still read node facts.
+	// Skip SMART probes on overview reads; they are slower and are not required for capacity.
+	d.Disks, _ = c.nodeDisks(ctx, node)
 	if d.Kernel == "" {
 		if f := strings.Fields(st.Data.KVersion); len(f) >= 2 {
 			d.Kernel = f[1]
@@ -89,6 +92,41 @@ func (c *Client) Details(ctx context.Context) (hv.NodeDetails, error) {
 	}
 	c.addCluster(ctx, &d)
 	return d, nil
+}
+
+func (c *Client) nodeDisks(ctx context.Context, node string) ([]hv.NodeDisk, error) {
+	path := "/nodes/" + url.PathEscape(node) + "/disks/list?skipsmart=1"
+	body, code, err := c.do(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+	if code != http.StatusOK {
+		return nil, fmt.Errorf("proxmox: node disks HTTP %d: %s", code, clip(body))
+	}
+	var result struct {
+		Data []struct {
+			DevPath string `json:"devpath"`
+			Model   string `json:"model"`
+			Size    int64  `json:"size"`
+			Used    string `json:"used"`
+			Mounted bool   `json:"mounted"`
+			GPT     bool   `json:"gpt"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("proxmox: node disks: %w", err)
+	}
+	disks := make([]hv.NodeDisk, 0, len(result.Data))
+	for _, disk := range result.Data {
+		if disk.DevPath == "" {
+			continue
+		}
+		disks = append(disks, hv.NodeDisk{
+			Path: disk.DevPath, Model: disk.Model, Size: disk.Size,
+			Used: disk.Used, Mounted: disk.Mounted, GPT: disk.GPT,
+		})
+	}
+	return disks, nil
 }
 
 // addCluster is best effort: a token that may read the node may not read the cluster.

@@ -56,6 +56,24 @@ export function NodeFacts({ node }: { node: InfraNode }) {
           </ul>
         </div>
       )}
+      {d?.disks && d.disks.length > 0 && (
+        <div className="mt-5" data-testid="node-disks">
+          <h3 className="text-sm font-medium text-fg">{t("infra.fact.disks")}</h3>
+          <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+            {d.disks.map((disk) => (
+              <li key={disk.path} className="grid gap-2 px-3 py-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                <div className="min-w-0"><dt className="text-[12px] text-fg-subtle">{t("infra.fact.diskModel")}</dt><dd className="break-words text-fg">{disk.model || disk.path}</dd>{disk.model && <dd className="break-words text-xs text-fg-muted">{disk.path}</dd>}</div>
+                <div><dt className="text-[12px] text-fg-subtle">{t("infra.fact.diskCapacity")}</dt><dd className="text-fg">{formatBytes(disk.size_bytes)}</dd></div>
+                <div><dt className="text-[12px] text-fg-subtle">{t("infra.fact.diskUsage")}</dt><dd className="text-fg">{disk.used || "—"}</dd></div>
+                <div className="flex gap-3 text-xs text-fg-muted">
+                  <span>{t("infra.fact.diskMounted")}: {t(disk.mounted ? "infra.fact.yes" : "infra.fact.no")}</span>
+                  <span>{t("infra.fact.diskGPT")}: {t(disk.gpt ? "infra.fact.yes" : "infra.fact.no")}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Card>
   );
 }

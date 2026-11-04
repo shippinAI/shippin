@@ -102,6 +102,17 @@ type ClusterMember struct {
 	Local  bool   `json:"local,omitempty"`
 }
 
+// NodeDisk is a physical disk as reported by the provider. It contains descriptive and
+// allocation metadata only; Shippin does not infer a host filesystem or issue disk writes.
+type NodeDisk struct {
+	Path    string `json:"path"`
+	Model   string `json:"model,omitempty"`
+	Size    int64  `json:"size_bytes"`
+	Used    string `json:"used,omitempty"`
+	Mounted bool   `json:"mounted,omitempty"`
+	GPT     bool   `json:"gpt,omitempty"`
+}
+
 // NodeDetails is what a host says about itself. Anything it did not report stays empty.
 type NodeDetails struct {
 	Hostname string          `json:"hostname,omitempty"`
@@ -115,6 +126,7 @@ type NodeDetails struct {
 	Uptime   int64           `json:"uptime_seconds,omitempty"`
 	Cluster  string          `json:"cluster,omitempty"`
 	Members  []ClusterMember `json:"members,omitempty"`
+	Disks    []NodeDisk      `json:"disks,omitempty"`
 }
 
 // Inspector is a driver that can describe its host. A token may lack the right to, so the overview

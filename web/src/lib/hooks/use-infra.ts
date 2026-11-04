@@ -11,6 +11,7 @@ export type InfraGuest = { id: string; name: string; kind: string; status: strin
   disk_used_bytes: number; disk_total_bytes: number; network_in_bytes?: number; network_out_bytes?: number;
 } };
 export type ClusterMember = { name: string; online: boolean; local?: boolean };
+export type NodeDisk = { path: string; model?: string; size_bytes: number; used?: string; mounted?: boolean; gpt?: boolean };
 export type NodeDetails = {
   hostname?: string;
   release?: string;
@@ -23,6 +24,7 @@ export type NodeDetails = {
   uptime_seconds?: number;
   cluster?: string;
   members?: ClusterMember[];
+  disks?: NodeDisk[];
 };
 export type InfraNode = {
   id: string;
