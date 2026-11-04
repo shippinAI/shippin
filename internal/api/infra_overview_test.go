@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -169,10 +170,12 @@ func addRequest(t *testing.T, a *API, body string) *httptest.ResponseRecorder {
 }
 
 func TestAddHostCreatesARowAndAttachesItsAPI(t *testing.T) {
+	t.Setenv("TEST_INCUS_TOKEN", "test-token")
+	srv, ca := fakeIncus(t)
 	dir := &memHV{}
 	a := infraAPI(t, "op_infra", dir)
 	a.cfg.UI.DefaultSite = "lab"
-	rec := addRequest(t, a, `{"kind":"incus","label":"Lab","slug":"lab-1","base_url":"https://incus.invalid:8443","node":"default","token_env":"TEST_INCUS_TOKEN"}`)
+	rec := addRequest(t, a, fmt.Sprintf(`{"kind":"incus","label":"Lab","slug":"lab-1","base_url":%q,"node":"default","token_env":"TEST_INCUS_TOKEN","ca_file":%q}`, srv.URL, ca))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
@@ -211,8 +214,10 @@ func TestAddHostRefusesBadInput(t *testing.T) {
 }
 
 func TestAddHostAnswersConflictOnATakenSlug(t *testing.T) {
+	t.Setenv("TEST_INCUS_TOKEN", "test-token")
+	srv, ca := fakeIncus(t)
 	dir := &memHV{items: []servers.Endpoint{{ID: "x", Slug: "lab-1"}}}
-	rec := addRequest(t, infraAPI(t, "op_infra", dir), `{"kind":"incus","label":"Lab","slug":"lab-1","base_url":"https://x.invalid","token_env":"T"}`)
+	rec := addRequest(t, infraAPI(t, "op_infra", dir), fmt.Sprintf(`{"kind":"incus","label":"Lab","slug":"lab-1","base_url":%q,"token_env":"TEST_INCUS_TOKEN","ca_file":%q}`, srv.URL, ca))
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
@@ -236,13 +241,17 @@ func TestLifecycleReviewCannotBeDisabledByPlatformSetting(t *testing.T) {
 }
 
 func TestRequiredLifecycleReviewFailsClosedWithoutBoard(t *testing.T) {
+	srv := fakePVE(t, nil, nil)
+	trusted, _ := json.Marshal(hv.DescribeCertificate(srv.Certificate()).PEM)
 	id := "019a0000-0000-7000-8000-0000000000aa"
 	dir := &memHV{items: []servers.Endpoint{{ID: id, Kind: "proxmox", BaseURL: "https://pve.example:8006", Node: "n1"}}}
 	a := infraAPI(t, "op_infra", dir)
+	a.cfg.SessionKey = strings.Repeat("ab", 32)
 	a.cfg.Approval = approval.Policy{Enabled: true, Board: approval.BoardConfig{Driver: "off"}, Rules: []approval.Rule{{
 		ID: "lifecycle-review", Actions: []string{hv.ActionLifecycle}, ApproverRoles: []string{"op_infra"}, NeedsApproval: true,
 	}}}
-	if rec := addRequest(t, a, `{"kind":"proxmox","label":"PVE","slug":"pve-a","base_url":"https://pve.example:8006","node":"n1","token_id":"pve!token","token_env":"PVE_TOKEN"}`); rec.Code != http.StatusCreated {
+	body := fmt.Sprintf(`{"kind":"proxmox","label":"PVE","slug":"pve-a","base_url":%q,"node":"pve1","token_id":"u@pam!t","token_secret":"test-secret","trusted_cert":%s}`, srv.URL, trusted)
+	if rec := addRequest(t, a, body); rec.Code != http.StatusCreated {
 		t.Fatalf("attach: %d %s", rec.Code, rec.Body)
 	}
 	rec := httptest.NewRecorder()
@@ -253,6 +262,8 @@ func TestRequiredLifecycleReviewFailsClosedWithoutBoard(t *testing.T) {
 }
 
 func TestHostConfigurationDoesNotUseTheLifecycleReviewBoard(t *testing.T) {
+	t.Setenv("TEST_INCUS_TOKEN", "test-token")
+	srv, ca := fakeIncus(t)
 	dir := &memHV{}
 	a := infraAPI(t, "op_infra", dir)
 	a.cfg.Approval = approval.Policy{Enabled: true, Board: approval.BoardConfig{Driver: "hub"}, Rules: []approval.Rule{{
@@ -260,7 +271,7 @@ func TestHostConfigurationDoesNotUseTheLifecycleReviewBoard(t *testing.T) {
 	}}}
 	a.hvBoard = stubBoard{st: "pending"}
 	a.cfg.Operator.PlatformOrgID = "org1"
-	rec := addRequest(t, a, `{"kind":"incus","label":"Lab","slug":"lab-1","base_url":"https://x.invalid","token_env":"T"}`)
+	rec := addRequest(t, a, fmt.Sprintf(`{"kind":"incus","label":"Lab","slug":"lab-1","base_url":%q,"token_env":"TEST_INCUS_TOKEN","ca_file":%q}`, srv.URL, ca))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("attach: %d %s", rec.Code, rec.Body)
 	}
@@ -277,9 +288,11 @@ func TestHostConfigurationDoesNotUseTheLifecycleReviewBoard(t *testing.T) {
 }
 
 func TestHostConfigurationIsRoleGatedButNeedsNoLocalApprover(t *testing.T) {
+	t.Setenv("TEST_INCUS_TOKEN", "test-token")
+	srv, ca := fakeIncus(t)
 	dir := &memHV{}
 	noPolicy := infraAPI(t, "op_infra", dir)
-	if rec := addRequest(t, noPolicy, `{"kind":"incus","label":"Lab","slug":"lab-1","base_url":"https://x.invalid","token_env":"T"}`); rec.Code != http.StatusCreated {
+	if rec := addRequest(t, noPolicy, fmt.Sprintf(`{"kind":"incus","label":"Lab","slug":"lab-1","base_url":%q,"token_env":"TEST_INCUS_TOKEN","ca_file":%q}`, srv.URL, ca)); rec.Code != http.StatusCreated {
 		t.Fatalf("host configuration should not need a local approval rule: %d %s", rec.Code, rec.Body)
 	}
 	noRole := infraAPI(t, "", &memHV{})

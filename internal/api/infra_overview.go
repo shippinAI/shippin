@@ -352,7 +352,7 @@ type hostAdd struct {
 }
 
 // infraAdd creates a host and attaches its API in one step, so adding a provider does not need a
-// server row made first in some org. Nothing here dials the address; the overview reports reach.
+// server row made first in some org. It verifies authenticated provider health before persistence.
 func (a *API) infraAdd(w http.ResponseWriter, r *http.Request, c *caller) {
 	var in hostAdd
 	if !decodeStrict(w, r, &in) {
@@ -392,6 +392,10 @@ func (a *API) infraAdd(w http.ResponseWriter, r *http.Request, c *caller) {
 	ctx, cancel := context.WithTimeout(r.Context(), connectTimeout)
 	defer cancel()
 	if err := a.prepareEndpoint(ctx, &ep, in.hvAttach); err != nil {
+		auth.Problem(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := a.verifyEndpoint(ctx, ep); err != nil {
 		auth.Problem(w, http.StatusBadRequest, err.Error())
 		return
 	}

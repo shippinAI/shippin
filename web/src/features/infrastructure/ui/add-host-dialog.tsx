@@ -106,7 +106,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
   const hostOK = !isNew || (label.trim().length > 0 && slugOK(slug) && (!site || siteOK(site)));
   const editableFields = editNode ? fields.map((f) => ({ ...f, required: f.required && !f.secret })) : fields;
   const filled = fieldsComplete(editableFields, values) && Object.keys(filledValues(fields, values)).length > 0;
-  const valid = !!provider && hostOK && filled && noteOK(note) && (!editNode || test.data?.ok === true);
+  const valid = !!provider && hostOK && filled && noteOK(note) && test.data?.ok === true;
   const hostValues = () => ({ kind: provider!.kind, values: filledValues(fields, values), trustedCert: trusted || undefined, serverId: editNode?.id });
   const runTest = (trust?: string) => {
     if (!provider) return;
@@ -143,7 +143,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
   );
   const advanced = fields.filter((f) => f.advanced);
   return (
-    <ModalDialog isOpen={isOpen} onOpenChange={onOpenChange} title={editNode ? t("infra.dialog.editTitle", { label: editNode.label }) : t("infra.dialog.title")} description={editNode ? t("infra.dialog.editDescription") : t("infra.dialog.description")}>
+    <ModalDialog isOpen={isOpen} onOpenChange={onOpenChange} title={editNode ? t("infra.dialog.editTitle", { label: editNode.label }) : t("infra.dialog.title")} description={t("infra.dialog.description")}>
       <div className="max-h-[75vh] space-y-4 overflow-y-auto px-6 py-5">
         {editNode ? <p className="text-sm text-fg-muted">{provider?.label} · {editNode.slug}</p> : <Select label={t("infra.dialog.provider")} options={providers.map((p) => ({ id: p.kind, label: p.label }))} value={provider?.kind ?? ""} onChange={pick} />}
         {provider?.description && <p className="text-[13px] text-fg-muted">{provider.description}</p>}
@@ -173,7 +173,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
           <Button variant="secondary" isDisabled={!filled || test.isPending} tooltip={t("infra.dialog.testTooltip")} onPress={() => runTest()}>
             {test.isPending ? t("infra.dialog.testing") : t("infra.dialog.test")}
           </Button>
-          <Button variant="primary" isDisabled={!valid || add.isPending} tooltip={valid ? t("infra.dialog.submitTooltip") : editNode && !test.data?.ok ? t("infra.dialog.testRequired") : t("infra.dialog.incomplete")} onPress={submit}>
+          <Button variant="primary" isDisabled={!valid || add.isPending} tooltip={valid ? t("infra.dialog.submitTooltip") : test.data?.ok ? t("infra.dialog.incomplete") : t("infra.dialog.testRequired")} onPress={submit}>
             {add.isPending ? t("infra.dialog.adding") : editNode ? t("infra.dialog.saveEdit") : t("infra.dialog.submit")}
           </Button>
         </div>

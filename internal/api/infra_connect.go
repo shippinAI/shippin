@@ -215,6 +215,23 @@ func (a *API) prepareEndpoint(ctx context.Context, ep *servers.Endpoint, in hvAt
 	return nil
 }
 
+// verifyEndpoint requires a real authenticated provider response before an attachment is saved.
+// UI tests improve feedback, but this API check is the persistence boundary.
+func (a *API) verifyEndpoint(ctx context.Context, ep servers.Endpoint) error {
+	d, err := a.openDriver(ep)
+	if err != nil {
+		return err
+	}
+	h, err := d.Health(ctx)
+	if err != nil {
+		return fmt.Errorf("provider connection check failed: %w", err)
+	}
+	if !h.Online {
+		return errors.New("provider did not report an online health state")
+	}
+	return nil
+}
+
 // selfGuest is the guest this panel runs on, if it can tell. Stopping it takes the panel down, so
 // nothing does that without being told to. A site sets SHIPPIN_SELF_GUEST when names differ.
 func selfGuest() string {

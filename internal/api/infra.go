@@ -465,6 +465,10 @@ func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, _ *caller) {
 		auth.Problem(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if err := a.verifyEndpoint(ctx, ep); err != nil {
+		auth.Problem(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	if err := a.hvDir().SetEndpoint(r.Context(), ep); err != nil {
 		infraErr(w, err)
 		return

@@ -180,6 +180,43 @@ func TestProxmoxWithoutAnySecretIsRefused(t *testing.T) {
 	}
 }
 
+func TestAddHostDoesNotPersistUntilProviderHealthIsVerified(t *testing.T) {
+	srv := fakePVE(t, nil, nil)
+	dir := &memHV{}
+	a := usableAPI(t, dir)
+	rec := infraCall(t, a, http.MethodPost, "/v1/infra/servers", fmt.Sprintf(`{"kind":"proxmox","label":"Lab","slug":"lab","base_url":%q,"node":"pve1","token_id":"u@pam!t","token_secret":"must-not-leak"}`, srv.URL))
+	if rec.Code != http.StatusBadRequest || len(dir.items) != 0 {
+		t.Fatalf("an unverified provider must not persist: status=%d rows=%d body=%s", rec.Code, len(dir.items), rec.Body)
+	}
+	if strings.Contains(rec.Body.String(), "must-not-leak") {
+		t.Fatal("failed connection response leaked credential bytes")
+	}
+}
+
+func TestEditDoesNotReplaceAWorkingAttachmentWhenNewEndpointFails(t *testing.T) {
+	srv := fakePVE(t, nil, nil)
+	dir := &memHV{items: []servers.Endpoint{{ID: "server-1", Slug: "lab", Label: "Lab", Kind: "proxmox", BaseURL: "https://old.invalid:8006", Node: "pve1", TokenID: "u@pam!t"}}}
+	a := usableAPI(t, dir)
+	box, err := a.sealer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir.items[0].SealedSecret, err = box.Seal([]byte("stored-secret"), dir.items[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := infraCall(t, a, http.MethodPut, "/v1/infra/servers/server-1", fmt.Sprintf(`{"kind":"proxmox","base_url":%q,"node":"pve1","token_id":"u@pam!t"}`, srv.URL))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("untrusted endpoint should be rejected: %d %s", rec.Code, rec.Body)
+	}
+	if dir.items[0].BaseURL != "https://old.invalid:8006" || len(dir.items[0].SealedSecret) == 0 {
+		t.Fatalf("failed edit replaced existing connection state: %+v", dir.items[0])
+	}
+	if strings.Contains(rec.Body.String(), "stored-secret") {
+		t.Fatal("failed edit response leaked stored credential")
+	}
+}
+
 func TestIncusTrustTokenAddsAHostFromThePanelAlone(t *testing.T) {
 	var mu sync.Mutex
 	trusted := map[string]bool{}
