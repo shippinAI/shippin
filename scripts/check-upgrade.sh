@@ -74,22 +74,20 @@ overview=$(get "$base/v1/infra/overview")
 [ "$(get "$base/v1/infra/operations" | json '"items" in d')" = True ] || fail "the operation history is missing"
 pass "the new tables exist: overview, fleets and operation history answer"
 
-# A secret saved through the panel has to outlive the next update too.
+# An unreachable provider must not be persisted, even when the request supplies a credential.
 added=$(send -o /tmp/added.json -w '%{http_code}' -H 'X-Change-Note: Proving%20an%20update' -d '{"kind":"proxmox","label":"Keep","slug":"keep","site":"main","base_url":"https://127.0.0.1:9","node":"n1","token_id":"u@pam!t","token_secret":"upgrade-check-secret"}' "$base/v1/infra/servers")
-[ "$added" -lt 300 ] || { cat /tmp/added.json; fail "adding a host answered $added"; }
-sealed_error() {
-  get "$base/v1/infra/overview" | json '[n.get("error", "") for p in d["providers"] for n in p["nodes"] if n["slug"] == "keep"][0]'
+[ "$added" = 400 ] || { cat /tmp/added.json; fail "unreachable provider answered $added instead of 400"; }
+grep -q 'provider connection check failed' /tmp/added.json || { cat /tmp/added.json; fail "failed connection was not explained"; }
+if grep -q 'upgrade-check-secret' /tmp/added.json; then fail "failed connection response leaked the credential"; fi
+host_rows() {
+  get "$base/v1/infra/overview" | json 'sum(1 for p in d["providers"] for n in p["nodes"] if n["slug"] == "keep")'
 }
-before=$(sealed_error)
+[ "$(host_rows)" = 0 ] || fail "a host with failed health verification was persisted"
+pass "a provider that fails live verification is rejected without storing its secret"
 SHIPPIN_SKIP_WEB=1 install_site >/tmp/install-again.log
 [ "$(key)" = "$key_before" ] || fail "a second run replaced the session key"
-after=$(sealed_error)
-echo "host error before: $before"
-echo "host error after:  $after"
-case "$before$after" in
-  *refused*refused*) pass "a host's saved secret still opens after another update: it reaches the network and only then fails" ;;
-  *) fail "a saved secret no longer opens after an update" ;;
-esac
+[ "$(host_rows)" = 0 ] || fail "a second run changed the rejected host state"
+pass "the update preserved host registry state after the rejected attachment"
 [ "$(get "$base/v1/me" | json 'd["capabilities"]["infra.hosts"]')" = True ] || fail "the session did not survive a second run"
 pass "the session survived a second run"
 
