@@ -11,6 +11,7 @@ import (
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/deployments"
 	"shippin.cloud/console/internal/gh"
 	"shippin.cloud/console/internal/hostclient"
 	"shippin.cloud/console/internal/hv/proxmox"
@@ -52,16 +53,17 @@ type API struct {
 	// authAt overrides the sign-in time lookup in tests only.
 	authAt func(*http.Request) time.Time
 	// jobs is the durable job store; runner is nil while config jobs.enabled is false.
-	jobs   *jobs.Store
-	runner *jobs.Runner
-	drift  driftMemo
-	subs   *subs.Store // M2: per-user AI homes and subscription status (never credentials)
-	gh     *gh.App     // M3: the Shippin GitHub App; nil when github is disabled
-	ghTick ghTimers
-	runs   *agentruns.Store // M4: build-agent runs (no tokens, prompt only until delivered)
-	svcs   *managed.Store   // managed service instances (rrflow/state first)
-	agents agentDeps        // N2 agent identities (IdP service users)
-	n2     n2Deps           // N2 OpenFGA shadow checks and the Vaultix client
+	jobs        *jobs.Store
+	runner      *jobs.Runner
+	drift       driftMemo
+	subs        *subs.Store // M2: per-user AI homes and subscription status (never credentials)
+	gh          *gh.App     // M3: the Shippin GitHub App; nil when github is disabled
+	ghTick      ghTimers
+	runs        *agentruns.Store   // M4: build-agent runs (no tokens, prompt only until delivered)
+	svcs        *managed.Store     // managed service instances (rrflow/state first)
+	deployments *deployments.Store // durable desired state; provider execution is separately gated
+	agents      agentDeps          // N2 agent identities (IdP service users)
+	n2          n2Deps             // N2 OpenFGA shadow checks and the Vaultix client
 	// Tenant starter-database console. Nil stores fall back to a.db.
 	tenantDB *tenantdb.Gate
 	sqlLog   sqlLogger
@@ -143,6 +145,7 @@ func (a *API) Register(mux Router) {
 	a.setupRoutes(mux)
 	a.tenantTeamRoutes(mux)
 	a.databaseRoutes(mux)
+	a.deploymentRoutes(mux)
 	a.appsRoutes(mux)
 	a.registerOperator(mux)
 	a.registerDirectory(mux)

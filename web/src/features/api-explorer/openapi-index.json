@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 141,
+  "operationCount": 147,
   "tags": [
     "agents-runtime",
     "audit",
@@ -11,6 +11,7 @@
     "compute-enrollment",
     "compute-nodes",
     "connections-runtime",
+    "deployments",
     "folders",
     "github-runtime",
     "identity",
@@ -429,6 +430,66 @@
         "connections-runtime"
       ],
       "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/deployments",
+      "operationId": "listDeployments",
+      "summary": "List tenant deployments",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/deployments",
+      "operationId": "createDeployment",
+      "summary": "Record an initial deployment request",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/deployments/{deploymentId}",
+      "operationId": "requestDeploymentRemoval",
+      "summary": "Record desired absence",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/deployments/{deploymentId}",
+      "operationId": "getDeployment",
+      "summary": "Read current deployment intent",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "PATCH",
+      "path": "/tenants/{tenantId}/deployments/{deploymentId}",
+      "operationId": "updateDeployment",
+      "summary": "Append a desired generation",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/deployments/{deploymentId}/events",
+      "operationId": "listDeploymentEvents",
+      "summary": "Read deployment generation history",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
     },
     {
       "method": "GET",

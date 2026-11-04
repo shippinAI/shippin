@@ -1,0 +1,90 @@
+deployments:
+  x-implementation-status: registered
+  parameters: [{ $ref: ../components/parameters.yaml#/TenantId }]
+  get:
+    tags: [deployments]
+    operationId: listDeployments
+    summary: List tenant deployments
+    parameters: [{ name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 100 } }]
+    responses:
+      "200": { description: Current desired generations., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentList } } } }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  post:
+    tags: [deployments]
+    operationId: createDeployment
+    summary: Record an initial deployment request
+    description: Stores desired state and a pinned catalog snapshot. It does not execute a provider operation; configured AgentHub review and a reconciler remain required.
+    parameters: [{ $ref: ../components/parameters.yaml#/IdempotencyKey }]
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentCreate } } }
+    responses:
+      "201": { description: Initial desired generation recorded., headers: { ETag: { schema: { type: string } } }, content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/Deployment } } } }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "422": { $ref: ../components/responses.yaml#/ProblemDefault }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+deployment:
+  x-implementation-status: registered
+  parameters:
+    - { $ref: ../components/parameters.yaml#/TenantId }
+    - name: deploymentId
+      in: path
+      required: true
+      schema: { $ref: ../schemas/common.yaml#/Uuid }
+  get:
+    tags: [deployments]
+    operationId: getDeployment
+    summary: Read current deployment intent
+    responses:
+      "200": { description: Current generation., headers: { ETag: { schema: { type: string } } }, content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/Deployment } } } }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  patch:
+    tags: [deployments]
+    operationId: updateDeployment
+    summary: Append a desired generation
+    description: Requires the current ETag. The request records intent; no provider call is made by this endpoint.
+    parameters:
+      - { $ref: ../components/parameters.yaml#/IdempotencyKey }
+      - { $ref: ../components/parameters.yaml#/IfMatch }
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentUpdate } } }
+    responses:
+      "200": { description: New desired generation., headers: { ETag: { schema: { type: string } } }, content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/Deployment } } } }
+      "412": { $ref: ../components/responses.yaml#/Problem412 }
+      "422": { $ref: ../components/responses.yaml#/ProblemDefault }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  delete:
+    tags: [deployments]
+    operationId: requestDeploymentRemoval
+    summary: Record desired absence
+    description: Appends an absent generation. This does not claim that the provider resource has been removed.
+    parameters:
+      - { $ref: ../components/parameters.yaml#/IdempotencyKey }
+      - { $ref: ../components/parameters.yaml#/IfMatch }
+    responses:
+      "200": { description: Desired absence recorded., headers: { ETag: { schema: { type: string } } }, content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/Deployment } } } }
+      "412": { $ref: ../components/responses.yaml#/Problem412 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+deploymentEvents:
+  x-implementation-status: registered
+  parameters:
+    - { $ref: ../components/parameters.yaml#/TenantId }
+    - name: deploymentId
+      in: path
+      required: true
+      schema: { $ref: ../schemas/common.yaml#/Uuid }
+  get:
+    tags: [deployments]
+    operationId: listDeploymentEvents
+    summary: Read deployment generation history
+    parameters: [{ name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 } }]
+    responses:
+      "200": { description: Append-only deployment event history., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentEventList } } } }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

@@ -34,6 +34,8 @@ tags:
     description: Nested folders inside a tenant.
   - name: workspaces
     description: Dev workspaces (Incus instances).
+  - name: deployments
+    description: Tenant-scoped desired service deployments and immutable generation history.
   - name: jobs
     description: Long-running operations.
   - name: members
@@ -83,6 +85,12 @@ paths:
     $ref: paths/folders.yaml#/move
   /tenants/{tenantId}/workspaces:
     $ref: paths/workspaces.yaml#/workspaces
+  /tenants/{tenantId}/deployments:
+    $ref: paths/deployments-runtime.yaml#/deployments
+  /tenants/{tenantId}/deployments/{deploymentId}:
+    $ref: paths/deployments-runtime.yaml#/deployment
+  /tenants/{tenantId}/deployments/{deploymentId}/events:
+    $ref: paths/deployments-runtime.yaml#/deploymentEvents
   /tenants/{tenantId}/workspaces/{workspaceId}:
     $ref: paths/workspaces.yaml#/workspace
   /tenants/{tenantId}/workspaces/{workspaceId}/actions/{action}:

@@ -15,10 +15,10 @@ import (
 )
 
 // replayedHeaders are the response headers stored with an Idempotency-Key and replayed with it.
-var replayedHeaders = []string{"Content-Type", "Location"}
+var replayedHeaders = []string{"Content-Type", "Location", "ETag"}
 
 // idempotent runs h once per Idempotency-Key within scope (tenant + caller) and replays the first
-// response for a repeat. The same key with a different method, path or body gets 422; a repeat
+// response for a repeat. The same key with a different method, path, body or If-Match gets 422; a repeat
 // while the first is still running gets 409. 5xx responses aren't stored, so they can be retried.
 // No header: h runs as before.
 func (a *API) idempotent(w http.ResponseWriter, r *http.Request, scope string, h http.HandlerFunc) {
@@ -37,7 +37,14 @@ func (a *API) idempotent(w http.ResponseWriter, r *http.Request, scope string, h
 		return
 	}
 	r.Body = io.NopCloser(bytes.NewReader(body))
-	sum := sha256.Sum256(append([]byte(r.Method+" "+r.URL.Path+"\n"), body...))
+	// If-Match is part of the mutation input: reusing a key with a different generation
+	// precondition must conflict instead of replaying a response for another revision. Keep
+	// the legacy fingerprint for requests without If-Match so in-flight keys survive upgrades.
+	requestHead := r.Method + " " + r.URL.Path + "\n"
+	if ifMatch := r.Header.Get("If-Match"); ifMatch != "" {
+		requestHead += "If-Match:" + ifMatch + "\n"
+	}
+	sum := sha256.Sum256(append([]byte(requestHead), body...))
 	hash := hex.EncodeToString(sum[:])
 	ttl := config.Sec(a.cfg.Jobs.IdempotencyHours * 3600)
 	rec, err := a.db.ClaimIdemKey(r.Context(), scope, key, hash, ttl)

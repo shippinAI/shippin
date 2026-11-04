@@ -20,6 +20,8 @@ var (
 	ErrTargetUnavailable     = errors.New("target system is not available for this tenant/provider")
 	ErrIdempotencyConflict   = errors.New("idempotency key was already used for a different request")
 	ErrGenerationConflict    = errors.New("deployment generation changed; reload before retrying")
+	ErrInvalidRequest        = errors.New("deployment request is invalid")
+	ErrInvalidConfig         = errors.New("deployment configuration is invalid")
 )
 
 type Store struct{ pool *pgxpool.Pool }
@@ -108,7 +110,7 @@ func scanDeployment(row pgx.Row) (*Deployment, error) {
 func (s *Store) Create(ctx context.Context, tenant, actor string, input CreateInput) (*Deployment, bool, error) {
 	if !validUUID(tenant) || !validUUID(input.TargetSystemID) || !validUUID(input.IdempotencyKey) ||
 		!serviceIDPattern.MatchString(input.ServiceID) || input.DesiredState != DesiredPresent {
-		return nil, false, errors.New("initial deployment request is invalid")
+		return nil, false, ErrInvalidRequest
 	}
 	if len(actor) == 0 || len(actor) > 255 || strings.TrimSpace(actor) != actor || strings.ContainsAny(actor, "\r\n\x00") {
 		return nil, false, errors.New("deployment actor is invalid")
@@ -164,7 +166,7 @@ func (s *Store) Create(ctx context.Context, tenant, actor string, input CreateIn
 		TargetProvider: Provider(provider), DesiredState: input.DesiredState, IdempotencyKey: input.IdempotencyKey,
 		Actor: actor, Definition: definition, Config: input.Config}
 	if err := request.Validate(); err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("%w: %v", ErrInvalidConfig, err)
 	}
 	definitionHash, err := definition.Fingerprint()
 	if err != nil {
@@ -216,7 +218,7 @@ func (s *Store) Update(ctx context.Context, tenant, id, actor string, expectedGe
 	if !validUUID(tenant) || !validUUID(id) || !validUUID(input.IdempotencyKey) || expectedGeneration < 1 ||
 		(input.DesiredState != DesiredPresent && input.DesiredState != DesiredAbsent) || len(actor) == 0 || len(actor) > 255 ||
 		strings.TrimSpace(actor) != actor || strings.ContainsAny(actor, "\r\n\x00") {
-		return nil, false, errors.New("deployment update request is invalid")
+		return nil, false, ErrInvalidRequest
 	}
 	bodyHash, err := fingerprintUpdateInput(tenant, id, actor, expectedGeneration, input)
 	if err != nil {
@@ -265,7 +267,7 @@ func (s *Store) Update(ctx context.Context, tenant, id, actor string, expectedGe
 		TargetProvider: current.TargetProvider, DesiredState: input.DesiredState, IdempotencyKey: input.IdempotencyKey,
 		Actor: actor, Definition: definition, Config: input.Config}
 	if err := request.Validate(); err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("%w: %v", ErrInvalidConfig, err)
 	}
 	nextGeneration := expectedGeneration + 1
 	eventID, err := uuid.NewV7()

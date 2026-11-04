@@ -1,0 +1,79 @@
+Deployment:
+  type: object
+  required: [id, service_id, target_system_id, target_provider, generation, desired_state, observed_state, definition_sha256, source, config, created_at, updated_at]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    service_id: { type: string }
+    target_system_id: { $ref: common.yaml#/Uuid }
+    target_provider: { type: string, enum: [incus, proxmox] }
+    generation: { type: integer, minimum: 1 }
+    desired_state: { type: string, enum: [present, absent] }
+    observed_state: { type: string, enum: [unknown, pending, provisioning, ready, degraded, failed, absent] }
+    definition_sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+    source:
+      type: object
+      required: [kind, reference]
+      properties:
+        kind: { type: string, enum: [github, git, oci] }
+        reference: { type: string }
+        commit: { type: string }
+        context_path: { type: string }
+      additionalProperties: false
+    config: { type: object, description: Values are schema-validated; secret fields contain Vaultix or SOPS references only. }
+    created_by: { type: string }
+    created_at: { $ref: common.yaml#/Timestamp }
+    updated_by: { type: string }
+    updated_at: { $ref: common.yaml#/Timestamp }
+DeploymentCreate:
+  type: object
+  required: [service_id, target_system_id, desired_state, config]
+  properties:
+    service_id: { type: string, pattern: '^[a-z][a-z0-9_-]{1,39}$' }
+    target_system_id: { $ref: common.yaml#/Uuid }
+    desired_state: { type: string, const: present }
+    config: { type: object, description: Validated against the selected service definition. Secret values must be references. }
+  additionalProperties: false
+DeploymentUpdate:
+  type: object
+  required: [desired_state]
+  properties:
+    desired_state: { type: string, enum: [present, absent] }
+    config: { type: object, description: When omitted the prior generation configuration is retained. }
+  additionalProperties: false
+DeploymentList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/Deployment' } }
+    page:
+      type: object
+      required: [next_page_token, total_estimate]
+      properties:
+        next_page_token: { type: [string, 'null'] }
+        total_estimate: { type: integer }
+DeploymentEvent:
+  type: object
+  required: [id, deployment_id, tenant_id, generation, event_type, actor]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    deployment_id: { $ref: common.yaml#/Uuid }
+    tenant_id: { $ref: common.yaml#/Uuid }
+    generation: { type: integer, minimum: 1 }
+    event_type: { type: string, enum: [requested, review_allowed, review_denied, operation_started, provider_observed, health_observed, operation_failed, operation_cancelled] }
+    observed_state: { type: string }
+    provider_operation_id: { type: string }
+    health_status: { type: string, enum: [unknown, passing, failing] }
+    health_duration_ms: { type: integer, minimum: 0, maximum: 3600000 }
+    failure_code: { type: string }
+    actor: { type: string }
+DeploymentEventList:
+  type: object
+  required: [items, page]
+  properties:
+    items: { type: array, items: { $ref: '#/DeploymentEvent' } }
+    page:
+      type: object
+      required: [next_page_token, total_estimate]
+      properties:
+        next_page_token: { type: [string, 'null'] }
+        total_estimate: { type: integer }

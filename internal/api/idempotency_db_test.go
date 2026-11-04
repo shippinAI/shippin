@@ -102,3 +102,26 @@ func TestIdempotencyInFlightConflicts(t *testing.T) {
 		t.Fatalf("in flight: %d", w.Code)
 	}
 }
+
+func TestIdempotencyBindsIfMatchPrecondition(t *testing.T) {
+	a, _, tn := notifyAPI(t)
+	a.cfg.Jobs.IdempotencyHours = 24
+	key := uuid.NewString()
+	call := func(etag string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("PATCH", "/v1/tenants/x/deployments/y", strings.NewReader(`{"desired_state":"present"}`))
+		r.Header.Set("Idempotency-Key", key)
+		r.Header.Set("If-Match", etag)
+		w := httptest.NewRecorder()
+		a.idempotent(w, r, tn.ID+":u", func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, map[string]bool{"updated": true}) })
+		return w
+	}
+	if got := call(`"1"`); got.Code != http.StatusOK {
+		t.Fatalf("initial request: %d", got.Code)
+	}
+	if got := call(`"1"`); got.Code != http.StatusOK || got.Header().Get("Idempotent-Replayed") != "true" {
+		t.Fatalf("same precondition replay: %d %v", got.Code, got.Header())
+	}
+	if got := call(`"2"`); got.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("changed precondition with same key: %d", got.Code)
+	}
+}
