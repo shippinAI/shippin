@@ -275,8 +275,10 @@ provider operations, durable operation IDs, idempotency, read-back and honest
 unknown/degraded states. Add Proxmox placement only from live storage/network
 capabilities; preserve provider-specific VM/container semantics. Present the
 operator capability as **Shippin Prox**, while `proxmox` remains the provider
-kind. Split shared `lifecycle.go` behavior into clear Incus and Proxmox modules
-where operation semantics differ.
+kind. Lifecycle behavior is already separated into
+`internal/hv/incus/lifecycle.go` and `internal/hv/proxmox/lifecycle.go`; preserve
+that ownership and close remaining gaps with provider-specific tests and
+disposable-host read-back.
 
 **Exit gate:** multiple configured systems can be connected and edited; create,
 start, stop, snapshot, delete and failure/retry are tested against disposable
