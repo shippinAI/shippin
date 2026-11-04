@@ -114,9 +114,9 @@ observations, retention pruning, API create/edit/stale revision/disable, a real
 refused local HTTP target, unknown/down/stale status, history read, and the
 no-network overview read path.
 
-This closes only the platform-health registry slice. Its release still requires
-all repository CI jobs, an independently reviewed final diff, and direct-to-main
-push/CI. The overall source inventory, provider lifecycle completeness, executable
+This closes only the platform-health registry slice. Commit `c36b025` is on `main`
+and all 13 jobs in Checks run `41898917087` passed. A follow-up review restored the
+existing live hostd instance inventory alongside persisted probe observations. The overall source inventory, provider lifecycle completeness, executable
 deployment reconciler/build path, managed database runtimes, external-network
 mutation support, and AgentHub action-bound review remain open plan phases.
 

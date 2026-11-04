@@ -2,12 +2,14 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/hostclient"
 )
 
 func TestPlatformHealthServiceLifecycleAndReadOnlyList(t *testing.T) {
@@ -146,5 +148,37 @@ func TestPlatformHealthMutationsRejectMalformedServiceIDs(t *testing.T) {
 	a.opDisablePlatformService(disable, request, c)
 	if disable.Code != 400 {
 		t.Fatalf("malformed disable ID status=%d", disable.Code)
+	}
+}
+
+func TestPlatformServicesKeepsLiveHostInventory(t *testing.T) {
+	a, _, _ := notifyAPI(t)
+	instances := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/platform/instances" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"metadata":[{"name":"db-node","status":"Running","type":"virtual-machine","config":{"image.os":"Debian","image.release":"13"},"state":{"memory":{"usage":1073741824},"processes":12,"network":{"eth0":{"addresses":[{"family":"inet","address":"192.0.2.12","scope":"global"}]}}}}]}`))
+	}))
+	defer instances.Close()
+	a.host = hostclient.New(instances.URL)
+
+	recorder := httptest.NewRecorder()
+	a.servicesFor(recorder, httptest.NewRequest(http.MethodGet, "/v1/platform/services", nil), &caller{op: "operator", id: &auth.Identity{Sub: "operator"}})
+	var response struct {
+		Instances []struct {
+			Name        string `json:"name"`
+			Status      string `json:"status"`
+			MemoryBytes int64  `json:"memory_bytes"`
+			IPv4        string `json:"ipv4"`
+		} `json:"instances"`
+		InstancesError string `json:"instances_error"`
+	}
+	if recorder.Code != http.StatusOK || json.Unmarshal(recorder.Body.Bytes(), &response) != nil {
+		t.Fatalf("services response status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if len(response.Instances) != 1 || response.Instances[0].Name != "db-node" || response.Instances[0].Status != "Running" || response.Instances[0].MemoryBytes != 1073741824 || response.Instances[0].IPv4 != "192.0.2.12" || response.InstancesError != "" {
+		t.Fatalf("live host inventory was not preserved: %+v", response)
 	}
 }

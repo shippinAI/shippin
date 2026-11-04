@@ -258,6 +258,10 @@ func (a *API) services(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	a.servicesFor(w, r, c)
+}
+
+func (a *API) servicesFor(w http.ResponseWriter, r *http.Request, c *caller) {
 	if c.op == "" {
 		auth.Problem(w, http.StatusForbidden, "Platform services need an operator role.")
 		return
@@ -302,8 +306,14 @@ func (a *API) services(w http.ResponseWriter, r *http.Request) {
 		}
 		probes = append(probes, result)
 	}
-	insts := []any{}
+	// Keep the existing live Incus instance inventory alongside persisted service
+	// observations. The registry removes probe I/O from dashboard reads; it does
+	// not replace hostd inventory or its explicit unavailable state.
+	insts, ierr := a.instances(r.Context())
 	out := map[string]any{"project": a.cfg.Incus.Project, "host": a.cfg.Incus.HostLabel,
 		"probes": probes, "instances": insts, "checked_at": time.Now().UTC()}
+	if ierr != nil {
+		out["instances_error"] = "Incus read-only gateway unavailable"
+	}
 	writeJSON(w, out)
 }
