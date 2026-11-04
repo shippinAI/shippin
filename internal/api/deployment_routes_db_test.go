@@ -57,7 +57,8 @@ func deploymentRouteAPI(t *testing.T) (*API, string, string) {
 	a := &API{cfg: testCfg(), db: database, deployments: deployments.NewStore(database.Pool)}
 	a.cfg.Jobs.IdempotencyHours = 24
 	a.resolveCaller = func(http.ResponseWriter, *http.Request) (*caller, bool) {
-		return &caller{id: &auth.Identity{Sub: "route-test-user"}, tenants: []tenantView{{Tenant: db.Tenant{ID: tenantID}, Roles: []string{"org_owner"}}}}, true
+		return &caller{id: &auth.Identity{Sub: "route-test-user"}, managers: testCfg().Roles.Managers,
+			tenants: []tenantView{{Tenant: db.Tenant{ID: tenantID}, Roles: []string{"org_owner"}}}}, true
 	}
 	return a, tenantID, targetID
 }
