@@ -121,3 +121,35 @@ DeploymentEventList:
       properties:
         next_page_token: { type: [string, 'null'] }
         total_estimate: { type: integer }
+DeploymentReviewRequest:
+  type: object
+  required: [generation]
+  properties:
+    generation: { type: integer, minimum: 1 }
+  additionalProperties: false
+DeploymentReview:
+  type: object
+  required: [id, deployment_id, tenant_id, generation, action_sha256, agenthub_ticket_id, state, created_by, created_at, updated_at]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    deployment_id: { $ref: common.yaml#/Uuid }
+    tenant_id: { $ref: common.yaml#/Uuid }
+    generation: { type: integer, minimum: 1 }
+    action_sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+    agenthub_ticket_id: { type: string, minLength: 3, maxLength: 64 }
+    state: { type: string, enum: [preparing, pending_review, failed] }
+    ticket_sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+    failure_code: { type: string, pattern: '^[a-z][a-z0-9_.-]{0,79}$' }
+    created_by: { type: string }
+    created_at: { $ref: common.yaml#/Timestamp }
+    updated_at: { $ref: common.yaml#/Timestamp }
+DeploymentReviewStatus:
+  type: object
+  properties:
+    review: { $ref: '#/DeploymentReview' }
+    state: { type: string, enum: [not_requested] }
+    generation: { type: integer, minimum: 1 }
+    agenthub_status: { type: string, enum: [not_submitted, unavailable, draft, pending_review, findings, blocked, passed, ran] }
+    agenthub_ticket_sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+    message: { type: string }
+  additionalProperties: false

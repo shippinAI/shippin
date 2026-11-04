@@ -8,13 +8,13 @@ ledger](capability-absorption.md) holds source-by-source evidence and dispositio
 
 The order below is a dependency order. Each row closes only when its observable
 acceptance checks pass; a panel or catalog screen alone does not close a runtime
-capability. Latest implementation commit verified while updating this plan: `8a6c692` (Checks run `41932400416`, all 13 jobs passed, 2026-11-04); prior provider inventory slices and evidence are in the capability ledger. This validates the AgentHub review-client contract and explicit-quorum gate, not live ticket lifecycle or provider deployment authorization.
+capability. Latest green implementation commit: `00b7eea` (Checks run `41932868910`, all 13 jobs passed, 2026-11-04). The current Stage C worktree adds durable, generation-bound AgentHub ticket/evidence submission and review status UI; the full local check suite passed, while commit/CI and live AgentHub verification remain pending. This does not authorize or execute provider deployment.
 
 | Order | Work package | Canonical owners | Exit evidence | Current state / gate |
 |---|---|---|---|---|
 | 0 | Source inventory, one-panel ownership, migration rules and capability ledger | `docs/design/`, `third_party/warden-ct102` reference matrix | Every candidate row has source revision, observed behavior, destination, disposition, rights/security status and acceptance evidence | In progress. Sibling trees remain read-only; Warden matrix still has open rows; archive is prohibited until these close. |
 | 1 | Provider declarations, credential-safe edits/tests, Incus and Proxmox guest lifecycle, resources and operation read-back | `internal/servers`, `internal/hv/{incus,proxmox}`, `internal/api`, `web/` | Disposable Incus and Proxmox lifecycle workflows, edit/test denial, read-back, task failure, auth denial and secret redaction | Core lifecycle and shared storage inventory exist. Proxmox physical disk listing and capacity are read-only. Full provider coverage and disposable-host evidence remain open. |
-| 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | **Hard gate, in progress.** Operators configure the HTTPS endpoint and sealed credential, read-test tenant policy, and run a recorded read-only machine/tenant mapping check. The client now requires every matched policy rule to explicitly require approval plus a positive role-scoped reviewer quorum. Durable ticket/evidence workflow, live principal permission/quorum evidence, and mutation integration remain open; provider writes remain unavailable. |
+| 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | **Hard gate, in progress.** Operators configure the HTTPS endpoint and sealed credential, read-test tenant policy, and run a recorded read-only machine/tenant mapping check. The client requires every matched policy rule to explicitly require approval plus a positive role-scoped reviewer quorum. The current worktree implements Shippin ticket/evidence preparation and status UI with durable correlation, stable idempotency keys, bounded redacted evidence and exact ticket read-back. The full local suite passes; this slice is not yet merged or CI-verified. Live principal permissions/quorum and provider decision integration remain open; provider writes remain unavailable. |
 | 3 | Deployment reconciliation and provider execution | `internal/deployments`, migrations, hostd, provider drivers, jobs, API/OpenAPI, `web/` | Transactional dispatch, fenced lease, immutable generation, provider-specific executor, restart/retry, read-back, health, idempotent removal and negative-path evidence | **Blocked on order 2.** Current API stores desired generations/events only; no reconcile/build handler exists. Implement no executor bypass or pretend-ready state. |
 | 4 | Pinned source resolution and bounded builds | catalog/builder owner, isolated worker, secret resolver | Immutable input commit/digest, build provenance, bounded CPU/memory/time/storage/concurrency/egress, secret mounts, cancellation and cleanup | Not implemented. Must precede GitHub/custom Git deployment; OCI digest path still needs provider compatibility. |
 | 5 | Managed PostgreSQL, Dragonfly, Redis and ClickHouse | managed-service owner, hostd/provider adapters, catalog, `web/` | Engine-specific configure/provision/upgrade/backup/restore/health/delete on supported providers; tenant isolation; restore verification | Design only; `internal/managed` is rrflow state, not an engine runtime. No turnkey engine may be advertised. |
@@ -31,10 +31,12 @@ capability. Latest implementation commit verified while updating this plan: `8a6
    tenant/system mapping and replay behavior. The mapping check is implemented
    as a read-only dry-run with append-only local provenance; it does not prove
    review authorization. Record exact routes, fields and source hashes.
-3. Exercise mapping, ticket, evidence and review operations against disposable
-   AgentHub and Shippin/PostgreSQL instances. Provider mutation remains disabled
-   until exact action/resource binding, human review, quorum and least-privilege
-   service permissions are independently demonstrated.
+3. Verify the action-bound ticket/evidence/submit flow on Shippin fixtures and an
+   isolated PostgreSQL database, then against disposable AgentHub with an
+   explicitly least-privilege principal. Confirm mapping, ticket binding,
+   evidence redaction, idempotent retries, submit status, human review/quorum,
+   denial, timeout and stale action/policy. Keep provider mutation disabled
+   until the complete gate is independently demonstrated.
 4. Only after step 3 passes, implement the durable deployment outbox/reconciler
    and provider-specific Incus/Proxmox execution. The desired generation and
    outbox event must commit atomically; workers must fence leases and re-read the
@@ -59,7 +61,7 @@ order, not a claim that all stages are currently implemented.
 |---|---|---|---|
 | A | Source provenance, dirty-work preservation, license/dependency/security review; reconcile each Cloud, Console, Mesh and Warden feature family | `docs/design/`, source ledger and Warden matrix | Every source row has revision, source behavior, rights status, current owner, adopt/rewrite/reject disposition and linked behavior evidence. No sibling source is modified or archived. |
 | B | Stable Shippin system identity, hostname observation, operator aliases/tags, explicit AgentHub mapping | `internal/servers`, `internal/db`, `internal/api`, existing infrastructure UI | Identity persists through restart; aliases never authorize; mapping is verified against AgentHub and records freshness/provenance; ambiguous or stale mapping blocks. |
-| C | AgentHub-configured review preparation, exact operation snapshot, safe evidence, submit/review status and policy provenance | `internal/agenthub`, `internal/api`, `internal/db/migrations`, `web/` Platform settings | Additive `shippin_` persistence stores correlation only; AgentHub remains the ticket/review authority. Idempotent writes, redaction, tenant/system binding, principal scopes, required human/quorum semantics, stale ticket/policy and timeout all have tests. Provider mutation stays blocked until this complete gate passes. |
+| C | AgentHub-configured review preparation, exact operation snapshot, safe evidence, submit/review status and policy provenance | `internal/agenthub`, `internal/api`, `internal/db/migrations`, `web/` Platform settings and deployment details | Current worktree implements additive `shippin_` generation-bound correlation, idempotent draft/evidence/submit calls, bounded redacted snapshot evidence, and a deployment review status/action UI. Focused Go race/vet, isolated PostgreSQL, full local repository checks, OpenAPI consistency and hardcoding checks pass. Acceptance still requires remote CI and disposable AgentHub integration, least-privilege principal evidence, human/quorum read-back, review decision polling/binding, stale ticket/policy and timeout coverage. Provider mutation stays blocked until these pass. |
 | D | Multi-server Incus and Proxmox declarations, credential-safe edit/test, capability discovery, provider-local VM/container lifecycle, task polling/read-back and resource inventory | `internal/servers`, `internal/hv/incus`, `internal/hv/proxmox`, existing infra API/UI | Multiple configured endpoints work without source edits. Incus and Proxmox behavior stays provider-specific; authorization/audit precede writes; task failure, denial, retry, restart, deletion and observed read-back are covered on fakes and disposable hosts. |
 | E | Review-gated durable deployment reconciliation from desired generation to provider execution | `internal/deployments`, prefixed migrations, `cmd/console`, hostd/provider drivers, API/OpenAPI and `web/src/features/deployments` | Intent and outbox commit atomically; fenced leases re-read generation and review decision; provider task and read-back persist truthful observed state; restart, duplicate request, stale generation, rollback and removal are exercised. |
 | F | Pinned GitHub/custom HTTPS Git/OCI resolution and isolated builds | `internal/catalog`, bounded builder owner, secret resolver contract, deployment UI | Immutable source digest and provenance; bounded time/CPU/memory/storage/concurrency/egress; cancellation and cleanup; credentials never appear in URLs/logs; no arbitrary privileged host commands. |
@@ -75,11 +77,14 @@ journal, list canonical files it owns, state what is deliberately excluded, and
 show an end-to-end acceptance result plus a relevant denial/failure result. If a
 stage depends on an unavailable external contract, continue other independent
 read-only or bounded work, but do not bypass the dependency or mark the stage
-complete. Current active gate is Stage C: Shippin can configure the AgentHub URL,
-sealed credential, policy read check and system mapping check, but does not yet
-create or submit action-bound review tickets and has no verified least-privilege
-AgentHub principal/quorum proof. All provider mutations remain unavailable until
-the gate's acceptance evidence exists.
+complete. Current active gate is Stage C. The worktree now creates and submits
+an action-bound AgentHub ticket with a bounded redacted deployment snapshot,
+persists only Shippin correlation metadata, and exposes review preparation/status
+in the existing deployment panel. The slice still needs full local checks, CI,
+and disposable AgentHub verification. Least-privilege principal/quorum evidence
+and a provider-side authorization decision bound to the submitted review remain
+absent. All provider mutations remain unavailable until the entire gate has
+acceptance evidence.
 
 ### Stop conditions
 

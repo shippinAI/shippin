@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 159,
+  "operationCount": 161,
   "tags": [
     "agents-runtime",
     "audit",
@@ -516,6 +516,26 @@
       "path": "/tenants/{tenantId}/deployments/{deploymentId}/events",
       "operationId": "listDeploymentEvents",
       "summary": "Read deployment generation history",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/deployments/{deploymentId}/review",
+      "operationId": "getDeploymentReview",
+      "summary": "Read Shippin's AgentHub ticket correlation and current ticket state",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/deployments/{deploymentId}/review",
+      "operationId": "prepareDeploymentReview",
+      "summary": "Create and submit an action-bound AgentHub review ticket",
       "tags": [
         "deployments"
       ],

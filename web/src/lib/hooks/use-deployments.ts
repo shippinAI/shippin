@@ -28,6 +28,16 @@ export type DeploymentEvent = {
   observed_state?: string; provider_operation_id?: string; health_status?: string; health_duration_ms?: number;
   failure_code?: string; actor: string; recorded_at: string;
 };
+export type DeploymentReview = {
+  id: string; deployment_id: string; tenant_id: string; generation: number; action_sha256: string;
+  agenthub_ticket_id: string; state: "preparing" | "pending_review" | "failed";
+  ticket_sha256?: string; failure_code?: string; created_by: string; created_at: string; updated_at: string;
+};
+export type DeploymentReviewStatus = {
+  review?: DeploymentReview; state?: "not_requested"; generation?: number;
+  agenthub_status?: "not_submitted" | "unavailable" | "draft" | "pending_review" | "findings" | "blocked" | "passed" | "ran";
+  agenthub_ticket_sha256?: string; message?: string;
+};
 type Items<T> = { items: T[]; page?: { next_page_token: string | null; total_estimate: number } };
 
 const collection = (tenantId: string) => `/v1/tenants/${encodeURIComponent(tenantId)}/deployments`;
@@ -60,6 +70,28 @@ export const useDeploymentEvents = (tenantId: string, deploymentId: string) => u
   enabled: !!tenantId && !!deploymentId,
   retry: false,
 });
+
+export const useDeploymentReview = (tenantId: string, deploymentId: string) => useQuery({
+  queryKey: [...key(tenantId), deploymentId, "review"],
+  queryFn: () => apiGet<DeploymentReviewStatus>(`${collection(tenantId)}/${encodeURIComponent(deploymentId)}/review`),
+  enabled: !!tenantId && !!deploymentId,
+  retry: false,
+  refetchInterval: (query) => query.state.data?.review?.state === "pending_review" ? 15_000 : false,
+});
+
+export function usePrepareDeploymentReview(tenantId: string, deploymentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (generation: number) => apiSend<DeploymentReviewStatus>("POST",
+      `${collection(tenantId)}/${encodeURIComponent(deploymentId)}/review`, { generation }),
+    onSuccess: () => toast.success("AgentHub review request submitted", "This creates a review ticket only. It does not execute the deployment."),
+    onError: (error) => toast.error("AgentHub review request incomplete", error.message),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: [...key(tenantId), deploymentId, "review"] });
+      void qc.invalidateQueries({ queryKey: key(tenantId) });
+    },
+  });
+}
 
 function useDeploymentMutation<TInput>(tenantId: string, mutationFn: (input: TInput) => Promise<Deployment>, success: string) {
   const qc = useQueryClient();

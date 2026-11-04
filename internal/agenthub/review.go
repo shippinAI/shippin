@@ -42,6 +42,36 @@ type Request struct {
 	ActionSHA256 string
 }
 
+// TicketDraft is the exact change snapshot Shippin asks AgentHub to review.
+// Values must be secret-free; secrets are referenced through the installation's
+// configured secret owner and never copied into ticket fields or evidence.
+type TicketDraft struct {
+	TenantID string              `json:"-"`
+	ID       string              `json:"id"`
+	Title    string              `json:"title"`
+	Machine  string              `json:"machine"`
+	Command  string              `json:"command"`
+	Fields   map[string]string   `json:"fields"`
+	Lists    map[string][]string `json:"lists"`
+}
+
+type TicketEvidence struct {
+	Kind string `json:"kind"`
+	Path string `json:"path"`
+	Text string `json:"text"`
+}
+
+type TicketSummary struct {
+	ID       string            `json:"id"`
+	TenantID string            `json:"tenant_id"`
+	Machine  *string           `json:"machine,omitempty"`
+	Command  string            `json:"command"`
+	Fields   map[string]string `json:"fields"`
+	SHA256   string            `json:"sha256"`
+	Status   string            `json:"status"`
+	Version  int64             `json:"version"`
+}
+
 // Provenance is the evidence Shippin must persist with an authorized action.
 type Provenance struct {
 	DecisionID    string   `json:"decision_id"`
@@ -131,15 +161,7 @@ type policyCheck struct {
 }
 
 type ticketResponse struct {
-	Ticket struct {
-		ID      string            `json:"id"`
-		Tenant  string            `json:"tenant_id"`
-		Machine *string           `json:"machine"`
-		Command string            `json:"command"`
-		Fields  map[string]string `json:"fields"`
-		SHA256  string            `json:"sha256"`
-		Status  string            `json:"status"`
-	} `json:"ticket"`
+	Ticket TicketSummary `json:"ticket"`
 }
 
 type decisionRequest struct {
@@ -300,7 +322,7 @@ func (c *Client) CheckSystemMapping(ctx context.Context, tenant, machine, system
 }
 
 func bindTicket(t ticketResponse, in Request) error {
-	if t.Ticket.ID != in.TicketID || t.Ticket.Tenant != in.TenantID || t.Ticket.Machine == nil ||
+	if t.Ticket.ID != in.TicketID || t.Ticket.TenantID != in.TenantID || t.Ticket.Machine == nil ||
 		*t.Ticket.Machine != in.MachineID || t.Ticket.Command != in.Command ||
 		t.Ticket.Fields["shippin_action_sha256"] != in.ActionSHA256 || !validSHA256(t.Ticket.SHA256) {
 		return ErrDenied
@@ -364,7 +386,108 @@ func (c *Client) ticket(ctx context.Context, id string) (ticketResponse, error) 
 	return out, nil
 }
 
+// GetTicket returns only safe ticket metadata; attached evidence and review
+// contents stay in AgentHub and are not duplicated into Shippin responses.
+func (c *Client) GetTicket(ctx context.Context, id string) (TicketSummary, error) {
+	if !validID(id) {
+		return TicketSummary{}, errors.New("AgentHub ticket ID is invalid")
+	}
+	result, err := c.ticket(ctx, id)
+	if err != nil {
+		return TicketSummary{}, err
+	}
+	if result.Ticket.ID != id || !validSHA256(result.Ticket.SHA256) || result.Ticket.Status == "" {
+		return TicketSummary{}, errors.New("AgentHub returned incomplete ticket metadata")
+	}
+	return result.Ticket, nil
+}
+
+// CreateTicket creates an AgentHub-owned draft using a caller-supplied stable
+// idempotency key. It does not authorize or perform the described operation.
+func (c *Client) CreateTicket(ctx context.Context, idempotencyKey string, in TicketDraft) (TicketSummary, error) {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
+		return TicketSummary{}, err
+	}
+	if !validID(in.TenantID) || !validID(in.ID) || len(strings.TrimSpace(in.Title)) < 3 || len(in.Title) > 200 ||
+		!validID(in.Machine) || len(in.Command) == 0 || len(in.Command) > maxCommandBytes || !json.Valid([]byte(in.Command)) {
+		return TicketSummary{}, errors.New("AgentHub ticket draft is invalid")
+	}
+	if !validSHA256(in.Fields["shippin_action_sha256"]) {
+		return TicketSummary{}, errors.New("AgentHub ticket draft requires a Shippin action digest")
+	}
+	var out TicketSummary
+	if err := c.doJSONWithIdempotency(ctx, http.MethodPost, "/api/v1/change-tickets", in, &out, nil, idempotencyKey); err != nil {
+		return TicketSummary{}, err
+	}
+	if out.ID != in.ID || out.TenantID != in.TenantID || out.Machine == nil || *out.Machine != in.Machine || out.Command != in.Command ||
+		out.Fields["shippin_action_sha256"] != in.Fields["shippin_action_sha256"] || !validSHA256(out.SHA256) {
+		return TicketSummary{}, ErrDenied
+	}
+	return out, nil
+}
+
+// AddTicketEvidence attaches one bounded, caller-redacted evidence artifact.
+// The caller owns secret redaction before supplying Text.
+func (c *Client) AddTicketEvidence(ctx context.Context, idempotencyKey, ticketID string, in TicketEvidence) (TicketSummary, error) {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
+		return TicketSummary{}, err
+	}
+	if !validID(ticketID) || !validEvidenceKind(in.Kind) ||
+		!strings.HasPrefix(in.Path, "/") || strings.Contains(in.Path, "..") || len(in.Path) > 1024 ||
+		len(in.Text) == 0 || len(in.Text) > 20_000 {
+		return TicketSummary{}, errors.New("AgentHub ticket evidence is invalid or exceeds its size limit")
+	}
+	var out TicketSummary
+	path := "/api/v1/change-tickets/" + url.PathEscape(ticketID) + "/evidence"
+	if err := c.doJSONWithIdempotency(ctx, http.MethodPost, path, in, &out, nil, idempotencyKey); err != nil {
+		return TicketSummary{}, err
+	}
+	if out.ID != ticketID || !validSHA256(out.SHA256) {
+		return TicketSummary{}, ErrDenied
+	}
+	return out, nil
+}
+
+// SubmitTicket moves the caller-owned AgentHub draft into its review queue.
+func (c *Client) SubmitTicket(ctx context.Context, idempotencyKey, ticketID string) (TicketSummary, error) {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
+		return TicketSummary{}, err
+	}
+	if !validID(ticketID) {
+		return TicketSummary{}, errors.New("AgentHub ticket ID is invalid")
+	}
+	var out TicketSummary
+	path := "/api/v1/change-tickets/" + url.PathEscape(ticketID) + "/submit"
+	if err := c.doJSONWithIdempotency(ctx, http.MethodPost, path, nil, &out, nil, idempotencyKey); err != nil {
+		return TicketSummary{}, err
+	}
+	if out.ID != ticketID || out.Status != "pending_review" || !validSHA256(out.SHA256) {
+		return TicketSummary{}, ErrDenied
+	}
+	return out, nil
+}
+
+func validEvidenceKind(kind string) bool {
+	switch kind {
+	case "snapshot", "topology", "research", "output", "doc":
+		return true
+	default:
+		return false
+	}
+}
+
+func validateIdempotencyKey(key string) error {
+	if len(key) < 16 || len(key) > 128 || strings.TrimSpace(key) != key || strings.ContainsAny(key, "\r\n\x00") {
+		return errors.New("AgentHub write requires a bounded idempotency key")
+	}
+	return nil
+}
+
 func (c *Client) doJSON(ctx context.Context, method, path string, body, out any, query url.Values) error {
+	return c.doJSONWithIdempotency(ctx, method, path, body, out, query, "")
+}
+
+func (c *Client) doJSONWithIdempotency(ctx context.Context, method, path string, body, out any, query url.Values, idempotencyKey string) error {
 	endpoint := *c.base
 	endpoint.Path = strings.TrimRight(endpoint.Path, "/") + path
 	endpoint.RawQuery = query.Encode()
@@ -382,6 +505,9 @@ func (c *Client) doJSON(ctx context.Context, method, path string, body, out any,
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.token)
+	if idempotencyKey != "" {
+		req.Header.Set("Idempotency-Key", idempotencyKey)
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}

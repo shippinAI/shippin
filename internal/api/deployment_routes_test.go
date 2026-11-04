@@ -26,6 +26,8 @@ func TestDeploymentRoutesRegistered(t *testing.T) {
 		"PATCH /v1/tenants/{tenantId}/deployments/{deploymentId}",
 		"DELETE /v1/tenants/{tenantId}/deployments/{deploymentId}",
 		"GET /v1/tenants/{tenantId}/deployments/{deploymentId}/events",
+		"GET /v1/tenants/{tenantId}/deployments/{deploymentId}/review",
+		"POST /v1/tenants/{tenantId}/deployments/{deploymentId}/review",
 	}
 	if len(rec.patterns) != len(want) {
 		t.Fatalf("registered routes %v", rec.patterns)

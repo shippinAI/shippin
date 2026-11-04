@@ -117,6 +117,7 @@ GET /v1/tenants/{tenantId}/deployment-targets
 GET /v1/tenants/{tenantId}/deployments
 GET /v1/tenants/{tenantId}/deployments/{deploymentId}
 GET /v1/tenants/{tenantId}/deployments/{deploymentId}/events
+GET /v1/tenants/{tenantId}/deployments/{deploymentId}/review
 GET /v1/tenants/{tenantId}/desktop
 GET /v1/tenants/{tenantId}/github/install
 GET /v1/tenants/{tenantId}/github/repos
@@ -223,6 +224,7 @@ POST /v1/tenants/{tenantId}/db/tables/{table}/columns
 POST /v1/tenants/{tenantId}/db/tables/{table}/rows
 POST /v1/tenants/{tenantId}/db/templates/{templateId}
 POST /v1/tenants/{tenantId}/deployments
+POST /v1/tenants/{tenantId}/deployments/{deploymentId}/review
 POST /v1/tenants/{tenantId}/desktop/prepare
 POST /v1/tenants/{tenantId}/github/import
 POST /v1/tenants/{tenantId}/identity/agents

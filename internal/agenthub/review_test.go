@@ -263,6 +263,100 @@ func TestCheckSystemMappingRejectsCrossTenantDryRun(t *testing.T) {
 	}
 }
 
+func TestTicketLifecycleUsesIdempotencyAndBindsExactDraft(t *testing.T) {
+	command := `{"operation":"deployment.apply","deployment_id":"deploy-1","generation":4,"action_sha256":"` + actionHash + `"}`
+	created := `{"id":"ticket-1","tenant_id":"tenant-1","machine":"machine-1","command":` + mustJSONString(t, command) + `,"fields":{"shippin_action_sha256":"` + actionHash + `"},"sha256":"` + ticketHash + `","status":"draft","version":1}`
+	withEvidence := `{"id":"ticket-1","tenant_id":"tenant-1","machine":"machine-1","command":` + mustJSONString(t, command) + `,"fields":{"shippin_action_sha256":"` + actionHash + `"},"sha256":"` + policyHash + `","status":"draft","version":2}`
+	submitted := `{"id":"ticket-1","tenant_id":"tenant-1","machine":"machine-1","command":` + mustJSONString(t, command) + `,"fields":{"shippin_action_sha256":"` + actionHash + `"},"sha256":"` + strings.Repeat("d", 64) + `","status":"pending_review","version":3}`
+	var calls int
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer service-token" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		if len(r.Header.Get("Idempotency-Key")) < 16 {
+			t.Errorf("missing idempotency key on %s %s", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		calls++
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/change-tickets":
+			var in TicketDraft
+			if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+				t.Errorf("decode create: %v", err)
+			}
+			if in.ID != "ticket-1" || in.Machine != "machine-1" || in.TenantID != "" || in.Command != command || in.Fields["shippin_action_sha256"] != actionHash {
+				t.Errorf("ticket draft payload mismatch: %+v", in)
+			}
+			_, _ = w.Write([]byte(created))
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/change-tickets/ticket-1/evidence":
+			var in TicketEvidence
+			if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+				t.Errorf("decode evidence: %v", err)
+			}
+			if in.Kind != "snapshot" || in.Path != "/shippin/deployments/deploy-1/generations/4/review.json" || strings.Contains(in.Text, "s3cr3t") {
+				t.Errorf("evidence payload invalid or unredacted: %+v", in)
+			}
+			_, _ = w.Write([]byte(withEvidence))
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/change-tickets/ticket-1/submit":
+			if r.ContentLength != 0 {
+				t.Errorf("submit unexpectedly included a request body")
+			}
+			_, _ = w.Write([]byte(submitted))
+		default:
+			t.Errorf("unexpected ticket request %s %s", r.Method, r.URL.Path)
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	c, err := newClient(Config{BaseURL: server.URL, Token: "service-token"}, server.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	draft := TicketDraft{TenantID: "tenant-1", ID: "ticket-1", Title: "Review deployment generation 4", Machine: "machine-1", Command: command,
+		Fields: map[string]string{"shippin_action_sha256": actionHash}, Lists: map[string][]string{"rollback": {"restore previous generation"}}}
+	createdResult, err := c.CreateTicket(context.Background(), "create-idempotency-0001", draft)
+	if err != nil || createdResult.Status != "draft" {
+		t.Fatalf("create result=%+v err=%v", createdResult, err)
+	}
+	evidenceResult, err := c.AddTicketEvidence(context.Background(), "evidence-idempotency-0001", "ticket-1", TicketEvidence{
+		Kind: "snapshot", Path: "/shippin/deployments/deploy-1/generations/4/review.json", Text: `{"config":{"credential":"vaultix://platform/deploy/db#password"}}`,
+	})
+	if err != nil || evidenceResult.SHA256 != policyHash {
+		t.Fatalf("evidence result=%+v err=%v", evidenceResult, err)
+	}
+	submittedResult, err := c.SubmitTicket(context.Background(), "submit-idempotency-0001", "ticket-1")
+	if err != nil || submittedResult.Status != "pending_review" || calls != 3 {
+		t.Fatalf("submit result=%+v calls=%d err=%v", submittedResult, calls, err)
+	}
+}
+
+func TestTicketLifecycleRejectsUnsafeInputBeforeNetwork(t *testing.T) {
+	c, err := NewClient(Config{BaseURL: "https://agenthub.example", Token: "service-token"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.AddTicketEvidence(context.Background(), "evidence-idempotency-0001", "ticket-1", TicketEvidence{Kind: "output", Path: "/tmp/../secret", Text: "not sent"}); err == nil {
+		t.Fatal("path traversal evidence was accepted")
+	}
+	if _, err := c.AddTicketEvidence(context.Background(), "evidence-idempotency-0001", "ticket-1", TicketEvidence{Kind: "shell", Path: "/tmp/evidence", Text: "not sent"}); err == nil {
+		t.Fatal("unsupported evidence kind was accepted")
+	}
+	draft := TicketDraft{TenantID: "tenant-1", ID: "ticket-1", Title: "Review deployment", Machine: "machine-1", Command: `{}`, Fields: map[string]string{}}
+	if _, err := c.CreateTicket(context.Background(), "short", draft); err == nil {
+		t.Fatal("short idempotency key was accepted")
+	}
+}
+
+func mustJSONString(t *testing.T, value string) string {
+	t.Helper()
+	raw, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(raw)
+}
+
 const policyJSON = `{"tenant_id":"tenant-1","version":2,"sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","doc":{"version":2,"rules":[{"id":"review-provider-actions","enabled":true,"effect":"require","require":[{"check":"approval"},{"check":"review","min":2,"role":"reviewer"}]}]}}`
 
 const ticketJSON = `{"ticket":{"id":"ticket-1","tenant_id":"tenant-1","machine":"machine-1","command":"{\"resource\":\"guest-9\",\"generation\":4}","fields":{"shippin_action_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","status":"passed"},"evidence":[],"reviews":[]}`

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -151,6 +152,54 @@ func TestStoreCreateRejectsUnassignedTargetAndUnsafeConfig(t *testing.T) {
 	input.Config = json.RawMessage(`{"port":5432,"password":"plaintext"}`)
 	if _, _, err := store.Create(ctx, tenantID, "operator@example.test", input); err == nil {
 		t.Fatal("unsafe config was persisted")
+	}
+}
+
+func TestDeploymentReviewIsDurableIdempotentAndGenerationBound(t *testing.T) {
+	store, tenantID, serverID := deploymentTestStore(t)
+	ctx := context.Background()
+	created, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
+		ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reviewID := uuid.NewString()
+	ticketID := "shp-" + strings.ReplaceAll(reviewID, "-", "")
+	key := uuid.NewString()
+	request, createdNew, err := store.ReserveReview(ctx, tenantID, created.ID, created.Generation, "operator@example.test", key,
+		reviewID, ticketID, strings.Repeat("a", 64))
+	if err != nil || !createdNew || request.State != "preparing" || request.AgentHubTicket != ticketID {
+		t.Fatalf("reserve request=%+v created=%t err=%v", request, createdNew, err)
+	}
+	replayed, createdNew, err := store.ReserveReview(ctx, tenantID, created.ID, created.Generation, "operator@example.test", key,
+		uuid.NewString(), "shp-ffffffffffffffffffffffffffffffff", strings.Repeat("a", 64))
+	if err != nil || createdNew || replayed.ID != request.ID || replayed.AgentHubTicket != ticketID {
+		t.Fatalf("review idempotency replay=%+v created=%t err=%v", replayed, createdNew, err)
+	}
+	if _, _, err := store.ReserveReview(ctx, tenantID, created.ID, created.Generation, "operator@example.test", uuid.NewString(),
+		uuid.NewString(), "shp-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", strings.Repeat("b", 64)); !errors.Is(err, ErrReviewConflict) {
+		t.Fatalf("same generation with a different action hash was accepted: %v", err)
+	}
+	updated, err := store.SetReviewState(ctx, request.ID, "operator@example.test", "pending_review", strings.Repeat("c", 64), "")
+	if err != nil || updated.State != "pending_review" || updated.TicketSHA256 != strings.Repeat("c", 64) {
+		t.Fatalf("update review state=%+v err=%v", updated, err)
+	}
+	loaded, err := store.GetReview(ctx, tenantID, created.ID, created.Generation)
+	if err != nil || loaded.ID != request.ID || loaded.CreatedAt.IsZero() || loaded.UpdatedAt.IsZero() {
+		t.Fatalf("load review=%+v err=%v", loaded, err)
+	}
+	var events int
+	if err := store.pool.QueryRow(ctx, `SELECT count(*) FROM shippin_deployment_review_events WHERE review_id=$1`, request.ID).Scan(&events); err != nil || events != 2 {
+		t.Fatalf("review transition history count=%d err=%v", events, err)
+	}
+	if _, err := store.pool.Exec(ctx, `UPDATE shippin_deployment_review_events SET actor='changed' WHERE review_id=$1`, request.ID); err == nil {
+		t.Fatal("review event history is not append-only")
+	}
+	if _, _, err := store.ReserveReview(ctx, uuid.NewString(), created.ID, created.Generation, "operator@example.test", uuid.NewString(),
+		uuid.NewString(), "shp-dddddddddddddddddddddddddddddddd", strings.Repeat("a", 64)); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cross-tenant review reservation: %v", err)
 	}
 }
 

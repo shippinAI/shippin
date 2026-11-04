@@ -113,3 +113,38 @@ deploymentEvents:
       "200": { description: Append-only deployment event history., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentEventList } } } }
       "404": { $ref: ../components/responses.yaml#/Problem404 }
       default: { $ref: ../components/responses.yaml#/ProblemDefault }
+deploymentReview:
+  x-implementation-status: registered
+  parameters:
+    - { $ref: ../components/parameters.yaml#/TenantId }
+    - name: deploymentId
+      in: path
+      required: true
+      schema: { $ref: ../schemas/common.yaml#/Uuid }
+  get:
+    tags: [deployments]
+    operationId: getDeploymentReview
+    summary: Read Shippin's AgentHub ticket correlation and current ticket state
+    description: Reads safe ticket metadata from AgentHub; reviewer identities and review text remain in AgentHub.
+    responses:
+      "200": { description: Current review state or not-requested state., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentReviewStatus } } } }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  post:
+    tags: [deployments]
+    operationId: prepareDeploymentReview
+    summary: Create and submit an action-bound AgentHub review ticket
+    description: Persists a stable Shippin correlation, sends a bounded redacted snapshot to the configured AgentHub service credential, and submits the ticket. This does not authorize or execute a provider operation.
+    parameters: [{ $ref: ../components/parameters.yaml#/IdempotencyKey }]
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentReviewRequest } } }
+    responses:
+      "202": { description: Ticket submitted to AgentHub review queue., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentReviewStatus } } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "412": { $ref: ../components/responses.yaml#/Problem412 }
+      "502": { description: AgentHub ticket lifecycle failed; the same generation can retry against the same ticket., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentReviewStatus } } } }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

@@ -1,4 +1,4 @@
-import { Clock3, History, Pencil, Plus, Server, Trash2 } from "lucide-react";
+import { CheckCircle2, Clock3, History, Pencil, Plus, Server, Trash2 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import type { Json } from "../../../lib/api/catalog-types";
 import { Badge } from "../../../lib/design/components/badge/badge";
@@ -12,7 +12,7 @@ import { useNavigate } from "../../../lib/router/router";
 import { useTenant } from "../../../lib/hooks/use-tenant";
 import {
   useCreateDeployment, useDeployableServices, useDeploymentEvents, useDeploymentTargets,
-  useDeployments, useRequestDeploymentRemoval, useUpdateDeployment,
+  useDeploymentReview, useDeployments, usePrepareDeploymentReview, useRequestDeploymentRemoval, useUpdateDeployment,
   type Deployment, type DeploymentService, type DeploymentSource,
 } from "../../../lib/hooks/use-deployments";
 import { PageHeader } from "../../../template/page-header";
@@ -91,6 +91,7 @@ export function DeploymentsPage() {
                   }} />}
               </div>
             </div>
+            <DeploymentReviewPanel tenantId={tenantId} deployment={item} canManage={canManage} />
             <details className="mt-3">
               <summary className="cursor-pointer text-xs text-fg-muted">Configuration</summary>
               <pre className="mt-2 max-h-48 overflow-auto rounded-md bg-canvas p-3 text-xs text-fg-muted">{JSON.stringify(item.config, null, 2)}</pre>
@@ -170,6 +171,27 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
       {deployment && <div className="flex items-center gap-2 text-xs text-fg-subtle"><Clock3 className="size-3.5" /> Saving appends generation {deployment.generation + 1}; previous generations remain in history.</div>}
     </div>
   </Drawer>;
+}
+
+function DeploymentReviewPanel({ tenantId, deployment, canManage }: { tenantId: string; deployment: Deployment; canManage: boolean }) {
+  const review = useDeploymentReview(tenantId, deployment.id);
+  const prepare = usePrepareDeploymentReview(tenantId, deployment.id);
+  const state = review.data?.review?.state ?? review.data?.state ?? "not_requested";
+  const canRequest = canManage && !prepare.isPending && (state === "not_requested" || state === "failed");
+  return <section className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-line p-3" aria-label="AgentHub review">
+    {state === "pending_review" ? <>
+      <CheckCircle2 className="size-4 text-info" />
+      <span className="text-sm text-fg">AgentHub ticket submitted</span>
+      <Badge tone="info">{review.data?.agenthub_status ?? "unavailable"}</Badge>
+    </> : state === "preparing" ? <span className="text-sm text-fg-muted">Preparing the AgentHub ticket…</span>
+      : state === "failed" ? <span role="alert" className="text-sm text-danger">AgentHub review request failed ({review.data?.review?.failure_code ?? "unknown"}).</span>
+        : <span className="text-sm text-fg-muted">No AgentHub review ticket for this generation.</span>}
+    {canRequest && <Button variant="secondary" size="sm" tooltip="Create an AgentHub ticket for this exact generation. This does not execute it."
+      onPress={() => prepare.mutate(deployment.generation)}>{state === "failed" ? "Retry review request" : "Request AgentHub review"}</Button>}
+    {review.isError && <span role="alert" className="text-xs text-danger">Review status could not be loaded: {review.error.message}</span>}
+    {review.data?.review && <span className="font-mono text-xs text-fg-subtle">ticket {review.data.review.agenthub_ticket_id} · action {review.data.review.action_sha256.slice(0, 12)}</span>}
+    <p className="basis-full text-xs text-fg-subtle">A review ticket does not execute the deployment. Provider runtime and authorization gates are still required.</p>
+  </section>;
 }
 
 function DeploymentHistory({ tenantId, deployment }: { tenantId: string; deployment: Deployment }) {

@@ -1,0 +1,296 @@
+package api
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"shippin.cloud/console/internal/agenthub"
+	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/catalog"
+	"shippin.cloud/console/internal/deployments"
+	"shippin.cloud/console/internal/servers"
+)
+
+type deploymentReviewInput struct {
+	Generation int64 `json:"generation"`
+}
+
+type deploymentReviewAction struct {
+	Operation      string          `json:"operation"`
+	TenantID       string          `json:"tenant_id"`
+	DeploymentID   string          `json:"deployment_id"`
+	Generation     int64           `json:"generation"`
+	DesiredState   string          `json:"desired_state"`
+	TargetSystemID string          `json:"target_system_id"`
+	TargetProvider string          `json:"target_provider"`
+	ServiceID      string          `json:"service_id"`
+	DefinitionSHA  string          `json:"definition_sha256"`
+	Source         any             `json:"source"`
+	Config         json.RawMessage `json:"config"`
+}
+
+func (a *API) prepareDeploymentReview(w http.ResponseWriter, r *http.Request) {
+	c, tenant, ok := a.deploymentTenantCtx(w, r)
+	if !ok {
+		return
+	}
+	if !c.canDecide(tenant) {
+		auth.Problem(w, http.StatusForbidden, "A tenant owner or admin is required to request review.")
+		return
+	}
+	if a.db == nil {
+		deploymentUnavailable(w)
+		return
+	}
+	key, ok := deploymentIdempotencyKey(w, r)
+	if !ok {
+		return
+	}
+	var input deploymentReviewInput
+	if !decodeDeploymentBody(w, r, &input) {
+		return
+	}
+	if input.Generation < 1 {
+		auth.Problem(w, http.StatusBadRequest, "A positive deployment generation is required.")
+		return
+	}
+	deployment, err := a.deploymentStore().Get(r.Context(), tenant.ID, r.PathValue("deploymentId"))
+	if err != nil {
+		writeDeploymentError(w, err)
+		return
+	}
+	if deployment.Generation != input.Generation {
+		writeDeploymentError(w, deployments.ErrGenerationConflict)
+		return
+	}
+	action := deploymentReviewAction{
+		Operation: "deployment." + string(deployment.DesiredState), TenantID: tenant.ID,
+		DeploymentID: deployment.ID, Generation: deployment.Generation, DesiredState: string(deployment.DesiredState),
+		TargetSystemID: deployment.TargetSystemID, TargetProvider: string(deployment.TargetProvider),
+		ServiceID: deployment.ServiceID, DefinitionSHA: deployment.DefinitionSHA256, Source: deployment.Source, Config: deployment.Config,
+	}
+	canonicalAction, err := json.Marshal(action)
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	actionDigest := sha256.Sum256(canonicalAction)
+	actionSHA256 := hex.EncodeToString(actionDigest[:])
+	command := deploymentReviewCommand(deployment.ID, deployment.Generation, actionSHA256, deployment.DesiredState)
+	evidenceText, err := deploymentReviewEvidence(action)
+	if err != nil {
+		writeHVProblem(w, http.StatusUnprocessableEntity, "review_evidence_too_large", "The deployment snapshot is too large to submit as review evidence.", "", "")
+		return
+	}
+
+	reviewID := uuid.NewString()
+	ticketID := "shp-" + strings.ReplaceAll(reviewID, "-", "")
+	review, _, err := a.deploymentStore().ReserveReview(r.Context(), tenant.ID, deployment.ID, deployment.Generation,
+		c.id.Sub, key, reviewID, ticketID, actionSHA256)
+	if err != nil {
+		switch {
+		case errors.Is(err, deployments.ErrGenerationConflict):
+			writeDeploymentError(w, err)
+		case errors.Is(err, deployments.ErrReviewConflict):
+			writeHVProblem(w, http.StatusConflict, "review_action_conflict", "A different review snapshot already exists for this generation.", "", "")
+		case errors.Is(err, deployments.ErrIdempotencyConflict):
+			writeHVProblem(w, http.StatusUnprocessableEntity, "review_idempotency_conflict", "This review idempotency key was already used.", "", "")
+		default:
+			deploymentUnavailable(w)
+		}
+		return
+	}
+	if review.State == "pending_review" {
+		writeStatus(w, http.StatusOK, map[string]any{"review": review, "agenthub_status": "pending_review"})
+		return
+	}
+	if review.State == "failed" {
+		review, err = a.deploymentStore().SetReviewState(r.Context(), review.ID, c.id.Sub, "preparing", "", "")
+		if err != nil {
+			deploymentUnavailable(w)
+			return
+		}
+	}
+	client, identity, err := a.deploymentReviewClient(r.Context(), deployment.TargetSystemID)
+	if err != nil {
+		a.failDeploymentReview(w, r, review, c.id.Sub, "agenthub_unavailable")
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	defer cancel()
+	if _, err := client.CheckSystemMapping(ctx, identity.AgentHubTenantID, identity.AgentHubMachineID, deployment.TargetSystemID); err != nil {
+		a.failDeploymentReview(w, r, review, c.id.Sub, "agenthub_mapping_unverified")
+		return
+	}
+	if _, err := client.CreateTicket(ctx, "shippin-"+review.ID+"-create", agenthub.TicketDraft{
+		TenantID: identity.AgentHubTenantID, ID: review.AgentHubTicket,
+		Title:   "Review deployment " + deployment.ID + " generation " + strconv.FormatInt(deployment.Generation, 10),
+		Machine: identity.AgentHubMachineID,
+		Command: command,
+		Fields: map[string]string{"shippin_action_sha256": actionSHA256, "shippin_system_id": deployment.TargetSystemID,
+			"shippin_deployment_id": deployment.ID, "shippin_generation": strconv.FormatInt(deployment.Generation, 10)},
+	}); err != nil {
+		a.failDeploymentReview(w, r, review, c.id.Sub, "agenthub_ticket_create_failed")
+		return
+	}
+	path := "/shippin/deployments/" + deployment.ID + "/generations/" + strconv.FormatInt(deployment.Generation, 10) + "/review.json"
+	withEvidence, err := client.AddTicketEvidence(ctx, "shippin-"+review.ID+"-evidence", review.AgentHubTicket,
+		agenthub.TicketEvidence{Kind: "snapshot", Path: path, Text: evidenceText})
+	if err != nil {
+		a.failDeploymentReview(w, r, review, c.id.Sub, "agenthub_evidence_failed")
+		return
+	}
+	if withEvidence.TenantID != identity.AgentHubTenantID || withEvidence.Machine == nil ||
+		*withEvidence.Machine != identity.AgentHubMachineID || withEvidence.Command != command ||
+		withEvidence.Fields["shippin_action_sha256"] != actionSHA256 {
+		a.failDeploymentReview(w, r, review, c.id.Sub, "agenthub_ticket_binding_failed")
+		return
+	}
+	submitted, err := client.SubmitTicket(ctx, "shippin-"+review.ID+"-submit", review.AgentHubTicket)
+	if err != nil {
+		a.failDeploymentReview(w, r, review, c.id.Sub, "agenthub_submit_failed")
+		return
+	}
+	if submitted.TenantID != identity.AgentHubTenantID || submitted.Machine == nil || *submitted.Machine != identity.AgentHubMachineID ||
+		submitted.Command != command ||
+		submitted.Fields["shippin_action_sha256"] != actionSHA256 ||
+		submitted.Fields["shippin_system_id"] != deployment.TargetSystemID ||
+		submitted.Fields["shippin_deployment_id"] != deployment.ID ||
+		submitted.Fields["shippin_generation"] != strconv.FormatInt(deployment.Generation, 10) {
+		a.failDeploymentReview(w, r, review, c.id.Sub, "agenthub_ticket_binding_failed")
+		return
+	}
+	review, err = a.deploymentStore().SetReviewState(r.Context(), review.ID, c.id.Sub, "pending_review", submitted.SHA256, "")
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	writeStatus(w, http.StatusAccepted, map[string]any{"review": review, "agenthub_status": submitted.Status})
+}
+
+func (a *API) getDeploymentReview(w http.ResponseWriter, r *http.Request) {
+	_, tenant, ok := a.deploymentTenantCtx(w, r)
+	if !ok {
+		return
+	}
+	deployment, err := a.deploymentStore().Get(r.Context(), tenant.ID, r.PathValue("deploymentId"))
+	if err != nil {
+		writeDeploymentError(w, err)
+		return
+	}
+	review, err := a.deploymentStore().GetReview(r.Context(), tenant.ID, deployment.ID, deployment.Generation)
+	if errors.Is(err, deployments.ErrNotFound) {
+		writeJSON(w, map[string]any{"state": "not_requested", "generation": deployment.Generation})
+		return
+	}
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	if review.State != "pending_review" {
+		writeJSON(w, map[string]any{"review": review, "agenthub_status": "not_submitted"})
+		return
+	}
+	connection, err := a.db.AgentHubConnection(r.Context())
+	if err != nil || !connection.HasCredential || connection.BaseURL == "" {
+		writeJSON(w, map[string]any{"review": review, "agenthub_status": "unavailable"})
+		return
+	}
+	token, err := a.agentHubToken(r.Context())
+	if err != nil {
+		writeJSON(w, map[string]any{"review": review, "agenthub_status": "unavailable"})
+		return
+	}
+	client, err := agenthub.NewClient(agenthub.Config{BaseURL: connection.BaseURL, Token: token, Timeout: 5 * time.Second})
+	if err != nil {
+		writeJSON(w, map[string]any{"review": review, "agenthub_status": "unavailable"})
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
+	defer cancel()
+	ticket, err := client.GetTicket(ctx, review.AgentHubTicket)
+	if err != nil {
+		writeJSON(w, map[string]any{"review": review, "agenthub_status": "unavailable"})
+		return
+	}
+	identity, err := a.serverStore().Identity(r.Context(), deployment.TargetSystemID)
+	if err != nil || ticket.TenantID != identity.AgentHubTenantID || ticket.Machine == nil ||
+		*ticket.Machine != identity.AgentHubMachineID || ticket.Fields["shippin_action_sha256"] != review.ActionSHA256 ||
+		ticket.Fields["shippin_system_id"] != deployment.TargetSystemID || ticket.Fields["shippin_deployment_id"] != deployment.ID ||
+		ticket.Fields["shippin_generation"] != strconv.FormatInt(deployment.Generation, 10) || ticket.SHA256 != review.TicketSHA256 {
+		writeJSON(w, map[string]any{"review": review, "agenthub_status": "binding_mismatch"})
+		return
+	}
+	writeJSON(w, map[string]any{"review": review, "agenthub_status": ticket.Status, "agenthub_ticket_sha256": ticket.SHA256})
+}
+
+func (a *API) deploymentReviewClient(ctx context.Context, systemID string) (*agenthub.Client, servers.SystemIdentity, error) {
+	identity, err := a.serverStore().Identity(ctx, systemID)
+	if err != nil || identity.AgentHubTenantID == "" || identity.AgentHubMachineID == "" {
+		return nil, servers.SystemIdentity{}, errors.New("AgentHub machine mapping is not configured")
+	}
+	connection, err := a.db.AgentHubConnection(ctx)
+	if err != nil || !connection.HasCredential || connection.BaseURL == "" {
+		return nil, servers.SystemIdentity{}, errors.New("AgentHub connection is not configured")
+	}
+	token, err := a.agentHubToken(ctx)
+	if err != nil {
+		return nil, servers.SystemIdentity{}, errors.New("AgentHub credential is unavailable")
+	}
+	client, err := agenthub.NewClient(agenthub.Config{BaseURL: connection.BaseURL, Token: token, Timeout: 5 * time.Second})
+	return client, identity, err
+}
+
+func (a *API) failDeploymentReview(w http.ResponseWriter, r *http.Request, review deployments.ReviewRequest, actor, code string) {
+	failed, err := a.deploymentStore().SetReviewState(r.Context(), review.ID, actor, "failed", "", code)
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	writeStatus(w, http.StatusBadGateway, map[string]any{"review": failed, "message": "AgentHub did not complete the review request. Retry this generation to resume the same ticket."})
+}
+
+func deploymentReviewCommand(deploymentID string, generation int64, actionSHA256 string, desired deployments.DesiredState) string {
+	operation := "shippin:deployment.apply"
+	if desired == deployments.DesiredAbsent {
+		operation = "shippin:deployment.remove"
+	}
+	command, _ := json.Marshal(struct {
+		Operation    string `json:"operation"`
+		DeploymentID string `json:"deployment_id"`
+		Generation   int64  `json:"generation"`
+		ActionSHA256 string `json:"action_sha256"`
+	}{operation, deploymentID, generation, actionSHA256})
+	return string(command)
+}
+
+func deploymentReviewEvidence(action deploymentReviewAction) (string, error) {
+	redactedConfig := catalog.RedactSecretReferences(action.Config)
+	artifact := struct {
+		Operation      string          `json:"operation"`
+		TenantID       string          `json:"tenant_id"`
+		DeploymentID   string          `json:"deployment_id"`
+		Generation     int64           `json:"generation"`
+		DesiredState   string          `json:"desired_state"`
+		TargetSystemID string          `json:"target_system_id"`
+		TargetProvider string          `json:"target_provider"`
+		ServiceID      string          `json:"service_id"`
+		DefinitionSHA  string          `json:"definition_sha256"`
+		Source         any             `json:"source"`
+		Config         json.RawMessage `json:"config"`
+	}{action.Operation, action.TenantID, action.DeploymentID, action.Generation, action.DesiredState, action.TargetSystemID,
+		action.TargetProvider, action.ServiceID, action.DefinitionSHA, action.Source, redactedConfig}
+	text, err := json.Marshal(artifact)
+	if err != nil || len(text) > 20_000 {
+		return "", errors.New("bounded review evidence could not be encoded")
+	}
+	return string(text), nil
+}

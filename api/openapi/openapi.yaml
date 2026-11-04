@@ -95,6 +95,8 @@ paths:
     $ref: paths/deployments-runtime.yaml#/deployment
   /tenants/{tenantId}/deployments/{deploymentId}/events:
     $ref: paths/deployments-runtime.yaml#/deploymentEvents
+  /tenants/{tenantId}/deployments/{deploymentId}/review:
+    $ref: paths/deployments-runtime.yaml#/deploymentReview
   /tenants/{tenantId}/workspaces/{workspaceId}:
     $ref: paths/workspaces.yaml#/workspace
   /tenants/{tenantId}/workspaces/{workspaceId}/actions/{action}:

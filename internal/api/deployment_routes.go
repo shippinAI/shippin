@@ -32,6 +32,8 @@ func (a *API) deploymentRoutes(mux Router) {
 	mux.HandleFunc("PATCH /v1/tenants/{tenantId}/deployments/{deploymentId}", a.flow.Require(a.updateDeployment))
 	mux.HandleFunc("DELETE /v1/tenants/{tenantId}/deployments/{deploymentId}", a.flow.Require(a.deleteDeployment))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployments/{deploymentId}/events", a.flow.Require(a.listDeploymentEvents))
+	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployments/{deploymentId}/review", a.flow.Require(a.getDeploymentReview))
+	mux.HandleFunc("POST /v1/tenants/{tenantId}/deployments/{deploymentId}/review", a.flow.Require(a.prepareDeploymentReview))
 }
 
 func (a *API) listDeployableServices(w http.ResponseWriter, r *http.Request) {
