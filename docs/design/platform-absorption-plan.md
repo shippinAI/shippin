@@ -4,6 +4,57 @@ Status: execution plan, 2026-11-04. This describes the target and acceptance
 gates; it does not claim unimplemented workflows are live. The [capability
 ledger](capability-absorption.md) holds source-by-source evidence and dispositions.
 
+## Ordered delivery queue
+
+The order below is a dependency order. Each row closes only when its observable
+acceptance checks pass; a panel or catalog screen alone does not close a runtime
+capability. Current canonical `main` is `d2bfffd` (2026-11-04); the recent
+provider inventory slices and CI evidence are in the capability ledger.
+
+| Order | Work package | Canonical owners | Exit evidence | Current state / gate |
+|---|---|---|---|---|
+| 0 | Source inventory, one-panel ownership, migration rules and capability ledger | `docs/design/`, `third_party/warden-ct102` reference matrix | Every candidate row has source revision, observed behavior, destination, disposition, rights/security status and acceptance evidence | In progress. Sibling trees remain read-only; Warden matrix still has open rows; archive is prohibited until these close. |
+| 1 | Provider declarations, credential-safe edits/tests, Incus and Proxmox guest lifecycle, resources and operation read-back | `internal/servers`, `internal/hv/{incus,proxmox}`, `internal/api`, `web/` | Disposable Incus and Proxmox lifecycle workflows, edit/test denial, read-back, task failure, auth denial and secret redaction | Core lifecycle and shared storage inventory exist. Proxmox physical disk listing and capacity are read-only. Full provider coverage and disposable-host evidence remain open. |
+| 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | **Hard gate.** Shippin mapping exists, but AgentHub decision output can allow on no matched rule and does not type review-required. Do not connect any provider write. AgentHub checkout is dirty and read-only. |
+| 3 | Deployment reconciliation and provider execution | `internal/deployments`, migrations, hostd, provider drivers, jobs, API/OpenAPI, `web/` | Transactional dispatch, fenced lease, immutable generation, provider-specific executor, restart/retry, read-back, health, idempotent removal and negative-path evidence | **Blocked on order 2.** Current API stores desired generations/events only; no reconcile/build handler exists. Implement no executor bypass or pretend-ready state. |
+| 4 | Pinned source resolution and bounded builds | catalog/builder owner, isolated worker, secret resolver | Immutable input commit/digest, build provenance, bounded CPU/memory/time/storage/concurrency/egress, secret mounts, cancellation and cleanup | Not implemented. Must precede GitHub/custom Git deployment; OCI digest path still needs provider compatibility. |
+| 5 | Managed PostgreSQL, Dragonfly, Redis and ClickHouse | managed-service owner, hostd/provider adapters, catalog, `web/` | Engine-specific configure/provision/upgrade/backup/restore/health/delete on supported providers; tenant isolation; restore verification | Design only; `internal/managed` is rrflow state, not an engine runtime. No turnkey engine may be advertised. |
+| 6 | Cloudflare Tunnel, Tailscale and custom connectivity management | `internal/networking`, API, migration, `web/` | Per-provider add/edit/test/rotate/revoke and supported mutations, stable system attachment, permission denials, redaction and observed-vs-managed state | Configured inventory/refresh exists. Provider mutation/attachment lifecycle remains open. |
+| 7 | Dynamic service health and resource views | platform-health registry, provider read APIs, `web/` | UI-managed service definitions; bounded persisted probes; truthful unknown/stale/down states; provider resource reads and independent failure display | Probe registry/configuration/history exists. Resource joins are partial; secret-backed auth and richer service metrics remain open. |
+| 8 | Sole-panel workflows and clean developer build | `web/`, `cmd/console`, installer/deploy, docs | 3–4 action navigation, configuration persistence, no dead controls, clean checkout build, standalone executable and install/upgrade evidence | One React panel exists. Full end-to-end workflows and archive-ready clean build remain open. |
+| 9 | Archive readiness | capability ledger and source owners | All useful source rows dispositioned, source changes/dirty user data preserved, rights and dependencies resolved, clear archive checklist | Not ready. Do not delete, reset, move or shut down source folders before user reviews the completed checklist. |
+
+### Immediate execution packet
+
+1. Keep source trees read-only and refresh `main`/CI and dirty-worktree evidence.
+2. Finish the complete AgentHub-to-Shippin contract audit, including no-match
+   semantics, typed decision intent, policy/ticket hash binding, principal
+   permissions, tenant/system mapping and replay behavior. Record exact routes,
+   fields and source hashes; do not infer from board status or error strings.
+3. Define the Shippin integration contract and tests against a disposable AgentHub
+   instance. Provider mutation remains disabled until the instance proves the
+   contract and least-privilege permissions.
+4. Only after step 3 passes, implement the durable deployment outbox/reconciler
+   and provider-specific Incus/Proxmox execution. The desired generation and
+   outbox event must commit atomically; workers must fence leases and re-read the
+   current generation and AgentHub decision before any side effect.
+5. Continue work packages 4–9 in order, updating this ledger after each accepted
+   slice. Push cohesive commits directly to `main`; check all CI jobs before
+   starting the next slice.
+
+### Stop conditions
+
+- AgentHub is unavailable, its policy has no matching explicit rule, its
+  decision is not typed and bound to the exact action/system/resource, the
+  ticket or policy hash changed, principal permissions are unverified, or the
+  system mapping is ambiguous: stop before provider mutation.
+- A provider response lacks successful task completion and read-back: retain a
+  failed/unknown state and event; never report ready.
+- A candidate source has unresolved license/provenance, dirty user work,
+  unbounded privileges, installation-specific assumptions or no tests: preserve
+  it and record the gap; do not copy it into the canonical tree.
+- CI is red on `main`: repair the baseline before adding the next change.
+
 ## Product boundary
 
 `shippin-platform` is the only product repository and `web/` is its only panel.
