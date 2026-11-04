@@ -55,7 +55,7 @@ func TestInfraRoutesNeedAToken(t *testing.T) {
 	}
 }
 
-func TestInfraGuestLifecycleReadsBack(t *testing.T) {
+func TestInfraGuestInventoryRemainsReadableWhileMutationWaitsForAgentHub(t *testing.T) {
 	var mu sync.Mutex
 	status := "stopped"
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -118,8 +118,8 @@ func TestInfraGuestLifecycleReadsBack(t *testing.T) {
 		t.Fatalf("guests %d %s", rec.Code, rec.Body.String())
 	}
 	rec = infraDo(mux, http.MethodPost, "/v1/infra/servers/"+id+"/guests/100/status/start", "")
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"status":"running"`) {
-		t.Fatalf("start %d %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), `"code":"agenthub_review_unavailable"`) {
+		t.Fatalf("start without AgentHub review %d %s", rec.Code, rec.Body.String())
 	}
 	if strings.Contains(rec.Body.String(), secret) {
 		t.Fatal("response included the token secret")
@@ -130,7 +130,7 @@ func TestInfraGuestLifecycleReadsBack(t *testing.T) {
 		t.Fatalf("task %d %s", rec.Code, rec.Body.String())
 	}
 	acts := a.staffDB.(*fakeStore).actions()
-	if strings.Join(acts, ",") != "infra.change,hv.lifecycle" {
+	if strings.Join(acts, ",") != "infra.change" {
 		t.Fatalf("audit %v", acts)
 	}
 	for _, e := range a.staffDB.(*fakeStore).audit {
@@ -140,88 +140,20 @@ func TestInfraGuestLifecycleReadsBack(t *testing.T) {
 	}
 }
 
-func TestInfraWaitsOnTheBoardAndRejectsPlainHTTP(t *testing.T) {
+func TestInfraBlocksMutationWithoutAgentHubAndRejectsPlainHTTP(t *testing.T) {
 	id := "019a0000-0000-7000-8000-0000000000aa"
 	dir := &memHV{items: []servers.Endpoint{{ID: id, Kind: "proxmox", BaseURL: "https://pve.example:8006", Node: "n1", TokenID: "id!tok", TokenEnv: "SHIPPIN_HV_TOKEN"}}}
 	a := infraAPI(t, "op_infra", dir)
 	a.cfg.Approval.Board.Driver = "hub"
-	a.cfg.Approval.Board.OrgID = "ops"
-	a.cfg.Approval.Rules[0].NeedsApproval = true
-	a.hvBoard = stubBoard{st: "pending"}
 	mux := http.NewServeMux()
 	a.infraRoutes(mux)
 	rec := infraDo(mux, http.MethodPost, "/v1/infra/servers/"+id+"/guests/100/status/start", "")
-	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), `"code":"waiting_on_board"`) || !strings.Contains(rec.Body.String(), "hv.lifecycle:"+id+":100:start") {
-		t.Fatalf("board %d %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), `"code":"agenthub_review_unavailable"`) {
+		t.Fatalf("local board must not authorize provider mutation: %d %s", rec.Code, rec.Body.String())
 	}
 	rec = infraDo(mux, http.MethodPut, "/v1/infra/servers/"+id, `{"kind":"proxmox","base_url":"http://pve.example:8006","node":"n1","token_id":"id!tok","token_env":"SHIPPIN_HV_TOKEN"}`)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("http url %d %s", rec.Code, rec.Body.String())
-	}
-}
-
-// spendBoard is approved until its one approval has been used.
-type spendBoard struct {
-	stubBoard
-	mu    sync.Mutex
-	spent bool
-}
-
-func (s *spendBoard) UseCard(context.Context, string, string) (bool, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.spent {
-		return false, nil
-	}
-	s.spent = true
-	return true, nil
-}
-
-func (s *spendBoard) CardID(context.Context, string, string) (string, error) { return "card-1", nil }
-
-func TestAnApprovalCoversOneChange(t *testing.T) {
-	id := "019a0000-0000-7000-8000-0000000000aa"
-	dir := &memHV{items: []servers.Endpoint{{ID: id, Kind: "proxmox", BaseURL: "https://pve.example:8006", Node: "n1", TokenID: "id!tok", TokenEnv: "SHIPPIN_HV_TEST"}}}
-	a := infraAPI(t, "op_infra", dir)
-	a.cfg.Approval.Board.Driver = "hub"
-	a.cfg.Approval.Board.OrgID = "ops"
-	a.cfg.Approval.Rules[0].NeedsApproval = true
-	a.hvBoard = &spendBoard{stubBoard: stubBoard{st: "approved"}}
-	a.cfg.Approval.Rules = append(a.cfg.Approval.Rules, approval.Rule{ID: "decide", Actions: []string{"hub.decide"}, ApproverRoles: []string{"op_infra"}})
-	req := httptest.NewRequest(http.MethodPost, "/v1/infra/servers/"+id+"/guests/100/status/stop", nil)
-	first := a.permitAction(httptest.NewRecorder(), req, &caller{id: &auth.Identity{Sub: "u"}, op: "op_infra"}, hvAction, "", id, "100", "stop")
-	if !first {
-		t.Fatal("the approved change must run")
-	}
-	rec := httptest.NewRecorder()
-	if a.permitAction(rec, req, &caller{id: &auth.Identity{Sub: "u"}, op: "op_infra"}, hvAction, "", id, "100", "stop") {
-		t.Fatal("the same approval must not cover a second change")
-	}
-	body := rec.Body.String()
-	if rec.Code != http.StatusConflict || !strings.Contains(body, `"code":"waiting_on_board"`) || !strings.Contains(body, `"card_id":"card-1"`) || !strings.Contains(body, "stop 100 needs approval") {
-		t.Fatalf("second change: %d %s", rec.Code, body)
-	}
-}
-
-func TestOnlySomeoneWhoCanDecideIsOfferedTheCard(t *testing.T) {
-	a := infraAPI(t, "op_infra", &memHV{})
-	a.cfg.Approval.Board.Driver = "hub"
-	a.cfg.Approval.Board.OrgID = "ops"
-	a.cfg.Approval.Rules[0].NeedsApproval = true
-	a.hvBoard = &spendBoard{stubBoard: stubBoard{st: "needs_approval"}}
-	req := httptest.NewRequest(http.MethodPost, "/x", nil)
-	rec := httptest.NewRecorder()
-	if a.permitAction(rec, req, &caller{id: &auth.Identity{Sub: "u"}, op: "op_infra"}, hvAction, "", "s1", "100", "stop") {
-		t.Fatal("it is waiting")
-	}
-	if strings.Contains(rec.Body.String(), "card-1") {
-		t.Fatalf("someone who cannot decide has no use for the card: %s", rec.Body)
-	}
-	a.cfg.Approval.Rules = append(a.cfg.Approval.Rules, approval.Rule{ID: "decide", Actions: []string{"hub.decide"}, ApproverRoles: []string{"op_infra"}})
-	rec = httptest.NewRecorder()
-	a.permitAction(rec, req, &caller{id: &auth.Identity{Sub: "u"}, op: "op_infra"}, hvAction, "", "s1", "100", "stop")
-	if !strings.Contains(rec.Body.String(), `"card_id":"card-1"`) {
-		t.Fatalf("someone who can is offered it: %s", rec.Body)
 	}
 }
 
@@ -237,13 +169,6 @@ func TestGuestListShowsWhatAChangeJustDid(t *testing.T) {
 	if got[0].Status != "running" {
 		t.Fatalf("no record must leave the inventory as it is: %+v", got)
 	}
-}
-
-type stubBoard struct{ st string }
-
-func (s stubBoard) Status(context.Context, string, string) (string, error) { return s.st, nil }
-func (s stubBoard) Post(context.Context, string, string, string, string, string) (string, error) {
-	return s.st, nil
 }
 
 type memHV struct {
@@ -413,9 +338,8 @@ func infraAPI(t *testing.T, op string, dir hvDirectory) *API {
 	cfg.Roles.Infra = "op_infra"
 	cfg.Approval = approval.Policy{
 		Enabled: true,
-		Board:   approval.BoardConfig{Driver: "off"},
 		Rules: []approval.Rule{{
-			ID: "hv", Actions: []string{hvAction}, ApproverRoles: []string{"op_infra"}, NeedsApproval: false,
+			ID: "hv", Actions: []string{hvAction}, ApproverRoles: []string{"op_infra"},
 		}},
 	}
 	return &API{
@@ -494,8 +418,8 @@ func TestTenantGuestsStayInsideTheOrg(t *testing.T) {
 		t.Fatalf("other org %d %s", rec.Code, rec.Body.String())
 	}
 	rec = infraDo(mux, http.MethodPost, "/v1/tenants/t1/servers/"+serverID+"/guests/100/status/start", "")
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"status":"running"`) {
-		t.Fatalf("owner start %d %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "agenthub_review_unavailable") {
+		t.Fatalf("owner start without AgentHub review %d %s", rec.Code, rec.Body.String())
 	}
 	member := infraAPI(t, "", dir)
 	member.cfg.Servers.Enabled = true

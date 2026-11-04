@@ -83,11 +83,11 @@ The local installation owner has no IdP to grant `IAM_INFRA`, so the infrastruct
 
 ## Authorization and review
 
-The sample installation has no local approval policy or board. Provider mutations
-that require a policy fail closed. The old local task board and HTTP board are not
-AgentHub and must not be used to authorize provider changes. AgentHub policy,
-system mapping and reviewed ticket execution are still being implemented; this
-document does not claim that review workflow is available.
+Provider mutations currently fail closed for every installation with
+`503 agenthub_review_unavailable`. The old local task-board and HTTP-board adapter
+was removed from this path; neither it nor local policy can authorize provider
+changes. AgentHub policy, system mapping and reviewed ticket execution are still
+being implemented; this document does not claim that review workflow is available.
 
 Every provider change must be audited before it runs. See [the control plane](control-plane.md).
 

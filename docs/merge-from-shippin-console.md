@@ -18,7 +18,7 @@ The public tree is the squashed, cleaned snapshot. A full history import was not
 | `third_party/warden-ct102` | same path | Kept. Defaults no longer name a site, a guest, or a token. TLS verification defaults on. |
 | Historical signing paths present in the source snapshot | removed from current `main` by commits `30470eb` and `b40911d` | The imported snapshot once contained a site-specific signing workflow. It is not part of the Shippin product and is not an AgentHub review implementation. Historical signed records are not reinterpreted as new decisions. |
 | `internal/hv/proxmox`, `internal/hv/incus` | same paths | Console drivers. Proxmox verifies TLS and has no skip flag. |
-| `internal/approval` | `internal/approval` | Configured Shippin board adapter. It is a separate local/HTTP board contract, not AgentHub policy integration; see `docs/system-identity-human-review-plan.md`. |
+| `internal/approval` | `internal/approval` | Shippin-local permission policy remains for local task-board access. The provider mutation adapter to local/HTTP boards has been removed; provider routes fail closed until AgentHub action-bound review is implemented. See `docs/approval.md`. |
 
 ## Dropped
 

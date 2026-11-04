@@ -1,6 +1,5 @@
-// Package approval is who may approve what. Hosts, subjects, and roles come from
-// configuration (and env values copied into that configuration at startup), not from
-// names compiled into the console.
+// Package approval evaluates access to Shippin's local agent task board. It is not
+// AgentHub review policy and cannot authorize platform provider changes.
 package approval
 
 import "strings"
@@ -21,16 +20,11 @@ type Rule struct {
 	ApproverRoles  []string `json:"approver_roles"`
 	ApproverSubs   []string `json:"approver_subs"`
 	ApproverEmails []string `json:"approver_emails"`
-	NeedsApproval  bool     `json:"needs_approval"`
 }
 
-// BoardConfig selects how approval requests reach the factory board.
+// BoardConfig controls the optional local agent task board feature.
 type BoardConfig struct {
-	// Driver is "hub" (this console's agent checkout board), "http" (a remote board), or "off".
-	Driver   string `json:"driver"`
-	BaseURL  string `json:"base_url"`
-	OrgID    string `json:"org_id"`
-	TokenEnv string `json:"token_env"`
+	Driver string `json:"driver"`
 }
 
 // Policy is the configured approval policy.
@@ -44,17 +38,6 @@ type Policy struct {
 func (p Policy) HasAction(action string) bool {
 	for _, r := range p.Rules {
 		if has(r.Actions, action) {
-			return true
-		}
-	}
-	return false
-}
-
-// RequiresReview reports whether a matching rule requires a human review.
-// The board driver's configuration must never turn a required review into direct apply.
-func (p Policy) RequiresReview(action, host string) bool {
-	for _, r := range p.Rules {
-		if r.NeedsApproval && ruleMatches(r, action, host) {
 			return true
 		}
 	}

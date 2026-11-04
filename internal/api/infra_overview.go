@@ -98,12 +98,6 @@ func (a *API) uiSettings(w http.ResponseWriter, r *http.Request) {
 	}{a.uiConfig(r.Context()), hv.Specs()})
 }
 
-// hvNeedsBoard follows installation policy. A panel override must never disable a configured
-// review requirement; missing review integration therefore leaves the operation fail-closed.
-func (a *API) hvNeedsBoard(_ context.Context, action, server string) bool {
-	return a.cfg.Approval.RequiresReview(action, server)
-}
-
 type infraField struct {
 	hv.Field
 	Label       string `json:"label"`

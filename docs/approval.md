@@ -11,26 +11,27 @@ Shippin must not seed a person, role, host or default action policy.
 
 ## Current Shippin behavior and gap
 
-The current `internal/approval.Policy` is still a local policy engine, not the
-AgentHub adapter. The compiled fallback approvers and example role rules have
-been removed. An empty policy denies gated actions; the example config disables
-the local board. The `HUB_OWNER_SUB` / `HUB_OWNER_EMAIL` direct-owner bypass was
-also removed; the local task board now requires an explicit policy. This is a
-fail-closed transition, not an AgentHub integration.
+`internal/approval.Policy` remains a Shippin-local permission policy for the
+optional agent task board. It is not an AgentHub adapter and it cannot authorize
+hypervisor changes. Compiled fallback approvers and example role rules have been
+removed. The `HUB_OWNER_SUB` / `HUB_OWNER_EMAIL` direct-owner bypass was also
+removed.
 
-The current board drivers are also not AgentHub:
+The former provider board drivers were not AgentHub:
 
-- `hub` writes cards into this Shippin installation's `internal/hub` store.
-- `http` speaks this console's `/v1/hub/approvals` contract.
-- `off` disables the board; it is not a human-review policy source.
+- `hub` wrote cards into this Shippin installation's `internal/hub` store.
+- `http` spoke this console's `/v1/hub/approvals` contract.
+- `off` disabled that board; it was not a human-review policy source.
 
-The legacy `approval.hv_board` operator override has been removed. Its old stored
-value is ignored, so an operator setting cannot turn off a review requirement in
-the installation policy and make a guest lifecycle action apply directly. This
-does not make the local board an AgentHub integration; provider writes remain
-blocked until the configured AgentHub gate is implemented.
-When rules overlap, any matching rule that requires review remains mandatory;
-an earlier general rule cannot shadow a narrower review requirement.
+The adapter and `hv.Guard` path have been removed. Every operator and tenant
+hypervisor mutation now returns `503 agenthub_review_unavailable` before a
+provider call, regardless of Shippin-local rules or task-board status. Reads,
+server configuration and provider health checks remain available. This fail
+closed response is an explicit implementation gap, not a usable review flow.
+
+The legacy `approval.hv_board` operator override has been removed. Old values are
+ignored. The provider mutation gate does not consult a Shippin-local rule or
+board, so a local card cannot substitute for AgentHub authorization.
 
 Read-only source review of AgentHub commit `97172d9` on
 `feat/devspace-bridge-contract` confirms authenticated

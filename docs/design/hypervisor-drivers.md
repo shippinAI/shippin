@@ -57,9 +57,9 @@ Host, port, node, and API URL live on the server row (`031_servers.sql` plus `03
 
 ## Approval and the infra role
 
-Mutations call `hv.Guard` before the driver and use the local `internal/approval.Policy`. There are no compiled fallback approvers; empty policy denies gated actions. The optional Shippin-local board adapter is not AgentHub policy evaluation, and the example configuration disables that board. This is a known ownership gap. The target is a configured AgentHub policy/ticket/review adapter with explicit system mapping and fail-closed behavior; see [configurable human review](../approval.md). Until that integration is implemented, describe the local policy behavior accurately and do not call it AgentHub.
+Provider mutation routes return `503 agenthub_review_unavailable` before invoking a driver. The old `hv.Guard` and local board adapter have been removed from this path; Shippin-local permission policy and task-board configuration cannot authorize a provider operation. The target is a configured AgentHub policy/ticket/review adapter with explicit system mapping and fail-closed behavior; see [configurable human review](../approval.md).
 
-`roles.infra` (shipped as `op_infra`) is the only role that may call `/v1/infra/servers`. Platform admin is not implied. The approval policy still decides whether that caller must wait for a board card. The library refuses a subject the policy does not allow.
+`roles.infra` (shipped as `op_infra`) is the only role that may call `/v1/infra/servers`. Platform admin is not implied. Role authorization gates the route; AgentHub authorization is a separate required gate and is not yet connected, so all provider mutations remain unavailable.
 
 ## Reconciler
 

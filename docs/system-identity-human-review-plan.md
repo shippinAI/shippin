@@ -9,10 +9,10 @@ records; the control plane owns the authoritative system inventory.
 
 > **Status (2026-11-04):** the console and its one `web/` panel are in this
 > repository. Gold signing, compiled approver defaults and the `HUB_OWNER_*`
-> bypass have been removed from Shippin main. Local approval policy/board code
-> is not AgentHub integration; the implementation gap is tracked in
-> [configurable human review](approval.md). The sample installation now denies
-> gated actions until the AgentHub path exists. Shippin now persists hostname
+> bypass have been removed from Shippin main. The hypervisor-local board adapter
+> and `hv.Guard` have also been removed; every provider mutation now fails closed
+> until the AgentHub path exists. The implementation gap is tracked in
+> [configurable human review](approval.md). Shippin now persists hostname
 > source/time on enrollment and exposes audited aliases, tags and explicit
 > AgentHub tenant/machine mappings on the existing infrastructure screen for
 > attached and unattached registered systems; this

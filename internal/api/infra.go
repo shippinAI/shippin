@@ -15,10 +15,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"shippin.cloud/console/internal/approval"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hub"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/incus"
 	"shippin.cloud/console/internal/hv/proxmox"
@@ -1112,221 +1110,31 @@ func (a *API) infraTask(w http.ResponseWriter, r *http.Request, _ *caller) {
 	writeJSON(w, t)
 }
 
-// permit checks the approval policy, files the board card when the rule asks for one,
-// and writes an audit entry that names the verb and ids only.
-// An approved card is the whole gate. The caller retries the same request.
-func (a *API) permit(w http.ResponseWriter, r *http.Request, c *caller, server, guest, verb string) bool {
-	return a.permitFor(w, r, c, "", server, guest, verb)
+// permit keeps existing operator mutation handlers behind the AgentHub review gate.
+// Until that adapter is configured, denyProviderMutation stops the request before a driver call.
+func (a *API) permit(w http.ResponseWriter, _ *http.Request, _ *caller, _, _, _ string) bool {
+	return denyProviderMutation(w)
 }
 
-func (a *API) permitFor(w http.ResponseWriter, r *http.Request, c *caller, tenant, server, guest, verb string) bool {
-	return a.permitAction(w, r, c, hv.ActionLifecycle, tenant, server, guest, verb)
+func (a *API) permitFor(w http.ResponseWriter, _ *http.Request, _ *caller, _, _, _, _ string) bool {
+	return denyProviderMutation(w)
 }
 
-func (a *API) permitAction(w http.ResponseWriter, r *http.Request, c *caller, action, tenant, server, guest, verb string) bool {
-	if !a.cfg.Approval.Allows(hvSubject(a, c, tenant), action, server) {
-		writeHVProblem(w, http.StatusForbidden, "approval_denied", "The approval policy does not allow this action.", "", "")
-		return false
-	}
-	key := fmt.Sprintf("%s:%s:%s:%s", action, server, guest, verb)
-	if a.hvNeedsBoard(r.Context(), action, server) {
-		org := a.boardOrg(c, tenant)
-		if org == "" {
-			writeHVProblem(w, http.StatusConflict, "board_org_missing", "Set approval.board.org_id so the console can file the approval card.", key, "")
-			return false
-		}
-		cards := a.lifecycleBoard()
-		if cards == nil {
-			writeHVProblem(w, http.StatusConflict, "waiting_on_board", "The approval board is not configured.", key, "")
-			return false
-		}
-		body := "Approve this card, then run the change again. An approval covers one change."
-		if c.note != "" {
-			body = "Why: " + c.note + "\n\n" + body
-		}
-		st, err := cards.Post(r.Context(), org, key, changeTitle(verb, guest), body, c.id.Sub)
-		if err != nil {
-			infraErr(w, err)
-			return false
-		}
-		if st != "approved" {
-			writeBoardWait(r.Context(), w, cards, org, key, verb, guest, st, a.cfg.Approval.Allows(approverSubject(a, c), "hub.decide", ""))
-			return false
-		}
-		// An approval covers one change. Only one request can take it.
-		if user, ok := cards.(cardUser); ok {
-			used, err := user.UseCard(r.Context(), org, key)
-			if err != nil {
-				infraErr(w, err)
-				return false
-			}
-			if !used {
-				writeBoardWait(r.Context(), w, cards, org, key, verb, guest, st, a.cfg.Approval.Allows(approverSubject(a, c), "hub.decide", ""))
-				return false
-			}
-		}
-	}
-	if a.db == nil && a.staffDB == nil {
-		auth.Problem(w, http.StatusServiceUnavailable, "The change couldn't be audited, so it wasn't made.")
-		return false
-	}
-	detail := server + " " + verb + " " + guest
-	if c.note != "" {
-		detail += " · " + c.note
-	}
-	return a.auditFirst(w, r, db.AuditEntry{Actor: c.id.Sub, ActorName: displayName(c), Action: "hv.lifecycle", Detail: detail, IP: clientIP(r)})
+func denyProviderMutation(w http.ResponseWriter) bool {
+	// The legacy Shippin policy and local boards are not AgentHub. They cannot authorize
+	// provider mutations, even when a local rule or card says "approved". Keep provider
+	// inventory available while the AgentHub action-bound decision adapter is absent.
+	writeHVProblem(w, http.StatusServiceUnavailable, "agenthub_review_unavailable",
+		"Provider changes are disabled until AgentHub policy and hash-bound review are configured.", "", "")
+	return false
 }
 
-func hvSubject(a *API, c *caller, tenant string) approval.Subject {
-	sub := approverSubject(a, c)
-	// The gate already found this permission in a staff role, which the policy cannot see.
-	if c != nil && c.infraGranted && tenant == "" {
-		sub.Roles = append(sub.Roles, a.infraRole())
-	}
-	if c == nil || tenant == "" {
-		return sub
-	}
-	for i := range c.tenants {
-		if c.tenants[i].ID == tenant {
-			sub.Roles = append(sub.Roles, c.tenants[i].Roles...)
-		}
-	}
-	return sub
-}
-
-func (a *API) boardOrg(c *caller, tenant string) string {
-	if org := a.cfg.Approval.Board.OrgID; org != "" {
-		return org
-	}
-	if tenant != "" {
-		return tenant
-	}
-	if c != nil && c.id != nil && c.id.OrgID != "" {
-		return c.id.OrgID
-	}
-	return a.cfg.Operator.PlatformOrgID
-}
-
-// cardBoard files an approval card and reads it back. Status is the board word (approved, needs_approval, …).
-type cardBoard interface {
-	Status(ctx context.Context, org, key string) (string, error)
-	Post(ctx context.Context, org, key, title, body, by string) (string, error)
-}
-
-// cardUser is a board that can spend an approval, so that it covers one change and not all later ones.
-type cardUser interface {
-	UseCard(ctx context.Context, org, key string) (bool, error)
-}
-
-// cardFinder is a board on this panel, whose cards can be decided from the page that asked.
-type cardFinder interface {
-	CardID(ctx context.Context, org, key string) (string, error)
-}
-
-// changeTitle names a change for people. A change to many guests has no one guest to name.
-func changeTitle(verb, guest string) string {
-	if guest == "*" {
-		return strings.ReplaceAll(verb, "-", " ")
-	}
-	return verb + " " + guest
-}
-
-// writeBoardWait says a change is waiting. The card's id goes only to someone who can decide it, which is
-// what offers them the decision on the page.
-func writeBoardWait(ctx context.Context, w http.ResponseWriter, cards cardBoard, org, key, verb, guest, st string, canDecide bool) {
-	id := ""
-	if finder, ok := cards.(cardFinder); ok && canDecide {
-		if found, err := finder.CardID(ctx, org, key); err == nil {
-			id = found
-		}
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(http.StatusConflict)
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"type": "about:blank", "title": http.StatusText(http.StatusConflict), "status": http.StatusConflict, "code": "waiting_on_board",
-		"message": changeTitle(verb, guest) + " needs approval before it runs.", "card_key": key, "board_status": st, "card_id": id,
-	})
-}
-
-func (a *API) lifecycleBoard() cardBoard {
-	if a.hvBoard != nil {
-		return a.hvBoard
-	}
-	b := a.cfg.Approval.Board
-	switch b.Driver {
-	case "", "off":
-		return nil
-	case "http":
-		token := ""
-		if b.TokenEnv != "" {
-			token = os.Getenv(b.TokenEnv)
-		}
-		return decisionBoard{src: approval.HTTPBoard{BaseURL: b.BaseURL, Token: token, OrgID: b.OrgID}}
-	case "hub":
-		if a.db == nil {
-			return missingBoard{}
-		}
-		return decisionBoard{src: hubBoard{store: &hub.Store{Pool: a.db.Pool}, org: b.OrgID}}
-	default:
-		return missingBoard{}
-	}
-}
-
-type missingBoard struct{}
-
-func (missingBoard) Status(context.Context, string, string) (string, error) {
-	return "", fmt.Errorf("approval board is not configured")
-}
-
-func (missingBoard) Post(context.Context, string, string, string, string, string) (string, error) {
-	return "", fmt.Errorf("approval board is not configured")
-}
-
-type decisionSource interface {
-	Status(ctx context.Context, org, key string) (approval.Decision, error)
-	Post(ctx context.Context, req approval.Request) (approval.Decision, error)
-}
-
-type decisionBoard struct{ src decisionSource }
-
-func (d decisionBoard) Status(ctx context.Context, org, key string) (string, error) {
-	dec, err := d.src.Status(ctx, org, key)
-	if err != nil {
-		return "", err
-	}
-	return dec.Status, nil
-}
-
-func (d decisionBoard) Post(ctx context.Context, org, key, title, body, by string) (string, error) {
-	dec, err := d.src.Post(ctx, approval.Request{Key: key, OrgID: org, Action: hv.ActionLifecycle, Title: title, Body: body, By: by})
-	if err != nil {
-		return "", err
-	}
-	return dec.Status, nil
-}
-
-// UseCard spends the approval when the source can. A board elsewhere keeps its own rule.
-func (d decisionBoard) UseCard(ctx context.Context, org, key string) (bool, error) {
-	if user, ok := d.src.(cardUser); ok {
-		return user.UseCard(ctx, org, key)
-	}
-	return true, nil
-}
-
-// CardID finds the card when it lives on this panel. A board elsewhere has none to offer.
-func (d decisionBoard) CardID(ctx context.Context, org, key string) (string, error) {
-	if finder, ok := d.src.(cardFinder); ok {
-		return finder.CardID(ctx, org, key)
-	}
-	return "", nil
-}
-
-func writeHVProblem(w http.ResponseWriter, status int, code, msg, key, board string) {
+func writeHVProblem(w http.ResponseWriter, status int, code, msg string, _, _ string) {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"type": "about:blank", "title": http.StatusText(status), "status": status,
-		"code": code, "message": msg, "card_key": key, "board_status": board,
+		"code": code, "message": msg,
 	})
 }
 
@@ -1399,10 +1207,6 @@ func infraErr(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, servers.ErrNotFound):
 		auth.Problem(w, http.StatusNotFound, "No hypervisor is attached to that server.")
-	case errors.Is(err, hv.ErrDenied):
-		auth.Problem(w, http.StatusForbidden, "The approval policy does not allow this.")
-	case errors.Is(err, hv.ErrWaiting):
-		auth.Problem(w, http.StatusConflict, "This is waiting on the factory board.")
 	case errors.Is(err, hv.ErrUnsupported):
 		auth.Problem(w, http.StatusConflict, "This provider does not offer that action.")
 	case errors.Is(err, hv.ErrGuestNotFound):

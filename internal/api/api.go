@@ -79,7 +79,6 @@ type API struct {
 	hvServers hvDirectory
 	openPVE   func(servers.Endpoint) (*proxmox.Client, error)
 	openHV    func(servers.Endpoint) (hv.Driver, error)
-	hvBoard   cardBoard
 	// hvVisible is the tenant isolation seam. Nil uses the server registry.
 	hvVisible func(ctx context.Context, tenant, id string) (servers.Endpoint, error)
 }

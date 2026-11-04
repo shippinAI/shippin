@@ -117,55 +117,6 @@ func TestANoteSurvivesInAnyLanguage(t *testing.T) {
 	}
 }
 
-type recordingBoard struct {
-	stubBoard
-	body string
-}
-
-func (b *recordingBoard) Post(_ context.Context, _, _, _, body, _ string) (string, error) {
-	b.body = body
-	return b.st, nil
-}
-
-func TestANoteReachesTheAuditLogTheCardAndActivity(t *testing.T) {
-	dir := &memHV{}
-	a := infraAPI(t, "op_infra", dir)
-	store := newFakeStore("legacy")
-	a.staffDB = store
-	a.cfg.Approval.Board.Driver = "hub"
-	a.cfg.Approval.Board.OrgID = "ops"
-	a.cfg.Approval.Rules[0].NeedsApproval = true
-	board := &recordingBoard{stubBoard: stubBoard{st: "needs_approval"}}
-	a.hvBoard = board
-	c := &caller{id: &auth.Identity{Sub: "u1", Name: "Ada"}, op: "op_infra", note: "The disk is full"}
-	req := httptest.NewRequest(http.MethodPost, "/v1/infra/servers/s1/guests/g/status/stop", nil)
-	if a.permitAction(httptest.NewRecorder(), req, c, hvAction, "", "s1", "g", "stop") {
-		t.Fatal("the card is not approved yet")
-	}
-	if !strings.Contains(board.body, "Why: The disk is full") {
-		t.Fatalf("whoever approves must see why: %q", board.body)
-	}
-	a.hvBoard = nil
-	a.cfg.Approval.Board.Driver = "off"
-	rec := httptest.NewRecorder()
-	if a.permitAction(rec, req, c, hvAction, "", "s1", "g", "stop") {
-		t.Fatal("a required review must not be bypassed when the board is off")
-	}
-	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "waiting_on_board") {
-		t.Fatalf("missing review mechanism must fail closed: %d %s", rec.Code, rec.Body.String())
-	}
-	found := false
-	for _, e := range store.audit {
-		found = found || e.Action == "hv.lifecycle" && strings.Contains(e.Detail, "The disk is full")
-	}
-	if found {
-		t.Fatalf("blocked change must not be audited as applied: %+v", store.audit)
-	}
-	if ops, _ := dir.Operations(context.Background(), "", 0); len(ops) != 0 {
-		t.Fatalf("blocked change must not create an operation: %+v", ops)
-	}
-}
-
 func TestEveryChangeIsRecordedAgainstTheSystemTenantBeforeItRuns(t *testing.T) {
 	store := newFakeStore("legacy")
 	a := infraAPI(t, "op_infra", &memHV{})
@@ -201,21 +152,6 @@ func TestAStaffRoleCountsOnlyInEnforceMode(t *testing.T) {
 	shadow.staffDB = newFakeStore("shadow")
 	if shadow.infraCan(ctx, staffCaller("infra.read"), "infra.read") {
 		t.Fatal("shadow: nothing is decided by the new roles yet")
-	}
-}
-
-func TestAStaffRoleMeetsTheApprovalPolicy(t *testing.T) {
-	a := enforcedInfraAPI(t, &memHV{}, "infra.guests.power")
-	c := staffCaller("infra.guests.power")
-	if a.cfg.Approval.Allows(hvSubject(a, c, ""), hvAction, "s1") {
-		t.Fatal("before the gate, the policy cannot know")
-	}
-	c.infraGranted = true
-	if !a.cfg.Approval.Allows(hvSubject(a, c, ""), hvAction, "s1") {
-		t.Fatal("after the gate, the policy must accept the permission it found")
-	}
-	if a.cfg.Approval.Allows(hvSubject(a, c, "tenant-1"), hvAction, "s1") {
-		t.Fatal("this says nothing about a tenant's own route")
 	}
 }
 

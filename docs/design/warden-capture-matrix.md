@@ -26,7 +26,7 @@ The reference tree is not served and is not a second panel. It can be removed on
 - Identity is Nomen (`internal/auth`). There is no second user table, PAM stack, or PVE user directory.
 - A hypervisor API is columns on `servers` (migration `036_server_hypervisor.sql`), the same rows as enroll and hostd. There is no second registry and no `PROXMOX_*` config.
 - The role is `roles.infra` (`op_infra`). Platform admin is not implied.
-- Some infrastructure mutations use Shippin's configured local board. That board is not AgentHub; AgentHub policy integration remains a separate planned capability. Do not describe the local board as Gold or as an AgentHub implementation.
+- Infrastructure reads and configuration remain available, but provider mutations fail closed with `503 agenthub_review_unavailable` until AgentHub integration is implemented. The local task board does not authorize provider changes.
 - Secrets are env names or `secret_ref`. Token bytes are not columns.
 - UI is the console shell: `PageHeader`, `Card`, `DataTable`, `EmptyState`, operator nav. No panel template is rendered.
 - TLS verification stays on.

@@ -17,7 +17,6 @@ import (
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/servers"
 )
 
@@ -225,53 +224,22 @@ func TestAddHostAnswersConflictOnATakenSlug(t *testing.T) {
 	}
 }
 
-func TestLifecycleReviewCannotBeDisabledByPlatformSetting(t *testing.T) {
-	a := &API{cfg: &config.Config{Approval: approval.Policy{
-		Enabled: true,
-		Board:   approval.BoardConfig{Driver: "hub"},
-		Rules: []approval.Rule{{ID: "lifecycle-review", Actions: []string{hv.ActionLifecycle},
-			ApproverRoles: []string{"op_infra"}, NeedsApproval: true}},
-	}}}
-	if !a.hvNeedsBoard(t.Context(), hv.ActionLifecycle, "any-configured-host") {
-		t.Fatal("configured lifecycle review must stay mandatory")
-	}
+func TestProviderReviewOverrideIsNotExposedAsAPlatformSetting(t *testing.T) {
+	a := &API{cfg: &config.Config{}}
 	for _, setting := range a.platformKeys() {
 		if setting.Key == "approval.hv_board" {
-			t.Fatal("the platform panel must not expose a switch that bypasses configured review")
+			t.Fatal("provider review cannot be disabled from platform settings")
 		}
 	}
 }
-
-func TestRequiredLifecycleReviewFailsClosedWithoutBoard(t *testing.T) {
-	srv := fakePVE(t, nil, nil)
-	trusted, _ := json.Marshal(hv.DescribeCertificate(srv.Certificate()).PEM)
-	id := "019a0000-0000-7000-8000-0000000000aa"
-	dir := &memHV{items: []servers.Endpoint{{ID: id, Kind: "proxmox", BaseURL: "https://pve.example:8006", Node: "n1"}}}
-	a := infraAPI(t, "op_infra", dir)
-	a.cfg.SessionKey = strings.Repeat("ab", 32)
-	a.cfg.Approval = approval.Policy{Enabled: true, Board: approval.BoardConfig{Driver: "off"}, Rules: []approval.Rule{{
-		ID: "lifecycle-review", Actions: []string{hv.ActionLifecycle}, ApproverRoles: []string{"op_infra"}, NeedsApproval: true,
-	}}}
-	body := fmt.Sprintf(`{"kind":"proxmox","label":"PVE","slug":"pve-a","base_url":%q,"node":"pve1","token_id":"u@pam!t","token_secret":"test-secret","trusted_cert":%s}`, srv.URL, trusted)
-	if rec := addRequest(t, a, body); rec.Code != http.StatusCreated {
-		t.Fatalf("attach: %d %s", rec.Code, rec.Body)
-	}
-	rec := httptest.NewRecorder()
-	ok := a.permitAction(rec, httptest.NewRequest(http.MethodPost, "/x", nil), &caller{id: &auth.Identity{Sub: "operator"}, op: "op_infra"}, hv.ActionLifecycle, "", id, "100", "stop")
-	if ok || rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "board_org_missing") {
-		t.Fatalf("configured review with board off must fail closed: ok=%v status=%d body=%s", ok, rec.Code, rec.Body)
-	}
-}
-
 func TestHostConfigurationDoesNotUseTheLifecycleReviewBoard(t *testing.T) {
 	t.Setenv("TEST_INCUS_TOKEN", "test-token")
 	srv, ca := fakeIncus(t)
 	dir := &memHV{}
 	a := infraAPI(t, "op_infra", dir)
-	a.cfg.Approval = approval.Policy{Enabled: true, Board: approval.BoardConfig{Driver: "hub"}, Rules: []approval.Rule{{
-		ID: "test-lifecycle", Actions: []string{hv.ActionLifecycle}, ApproverRoles: []string{"op_infra"}, NeedsApproval: true,
+	a.cfg.Approval = approval.Policy{Enabled: true, Rules: []approval.Rule{{
+		ID: "test-lifecycle", Actions: []string{hvAction}, ApproverRoles: []string{"op_infra"},
 	}}}
-	a.hvBoard = stubBoard{st: "pending"}
 	a.cfg.Operator.PlatformOrgID = "org1"
 	rec := addRequest(t, a, fmt.Sprintf(`{"kind":"incus","label":"Lab","slug":"lab-1","base_url":%q,"token_env":"TEST_INCUS_TOKEN","ca_file":%q}`, srv.URL, ca))
 	if rec.Code != http.StatusCreated {
@@ -284,8 +252,8 @@ func TestHostConfigurationDoesNotUseTheLifecycleReviewBoard(t *testing.T) {
 	req.Header.Set(noteHeader, "A test of this change")
 	got := httptest.NewRecorder()
 	mux.ServeHTTP(got, req)
-	if got.Code != http.StatusConflict || !strings.Contains(got.Body.String(), "waiting_on_board") {
-		t.Fatalf("a guest change must still wait for the board: %d %s", got.Code, got.Body)
+	if got.Code != http.StatusServiceUnavailable || !strings.Contains(got.Body.String(), "agenthub_review_unavailable") {
+		t.Fatalf("a guest change must wait for AgentHub integration: %d %s", got.Code, got.Body)
 	}
 }
 
