@@ -126,6 +126,8 @@ type policyRule struct {
 
 type policyCheck struct {
 	Kind string `json:"check"`
+	Min  *int   `json:"min"`
+	Role string `json:"role"`
 }
 
 type ticketResponse struct {
@@ -166,9 +168,9 @@ type decisionResponse struct {
 
 // Authorize allows only a current AgentHub decision that can be traced to the
 // exact Shippin action, stable system, reviewed ticket and policy version.
-// The policy must explicitly match at least one enabled require rule that
-// contains an explicit human approval check. This rejects AgentHub's default
-// allow-on-no-match behavior and plain allow/audit rules.
+// Every matched policy rule must explicitly require both a human approval and
+// a reviewer quorum. This rejects AgentHub's default allow-on-no-match behavior,
+// permissive/audit matches, and policies that only check for one human PASS.
 func (c *Client) Authorize(ctx context.Context, in Request) (Provenance, error) {
 	if c == nil || c.base == nil || c.http == nil {
 		return Provenance{}, errors.New("AgentHub client is not configured")
@@ -318,20 +320,29 @@ func requiresHumanReview(raw json.RawMessage, matched []string) bool {
 	for _, id := range matched {
 		ids[id] = struct{}{}
 	}
+	rules := make(map[string]policyRule, len(doc.Rules))
 	for _, rule := range doc.Rules {
-		if !rule.Enabled || rule.Effect != "require" {
-			continue
+		rules[rule.ID] = rule
+	}
+	for id := range ids {
+		rule, ok := rules[id]
+		if !ok || !rule.Enabled || rule.Effect != "require" {
+			return false
 		}
-		if _, ok := ids[rule.ID]; !ok {
-			continue
-		}
+		approval, quorum := false, false
 		for _, check := range rule.Require {
 			if check.Kind == "approval" {
-				return true
+				approval = true
+			}
+			if check.Kind == "review" && check.Min != nil && *check.Min > 0 && strings.TrimSpace(check.Role) != "" {
+				quorum = true
 			}
 		}
+		if !approval || !quorum {
+			return false
+		}
 	}
-	return false
+	return true
 }
 
 func (c *Client) policy(ctx context.Context, tenant string) (policyDocument, error) {

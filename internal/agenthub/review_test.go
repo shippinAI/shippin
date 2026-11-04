@@ -74,6 +74,9 @@ func TestAuthorizeFailsClosed(t *testing.T) {
 	}{
 		{name: "no matched rules", policy: policyJSON, ticket: ticketJSON, decision: strings.Replace(decisionJSON, `"matched":["review-provider-actions"]`, `"matched":[]`, 1)},
 		{name: "matched rule lacks human approval", policy: strings.Replace(policyJSON, `"effect":"require","require":[{"check":"approval"},{"check":"review","min":2,"role":"reviewer"}]`, `"effect":"require","require":[{"check":"review","min":2,"role":"reviewer"}]`, 1), ticket: ticketJSON, decision: decisionJSON},
+		{name: "matched rule lacks reviewer quorum", policy: strings.Replace(policyJSON, `,{"check":"review","min":2,"role":"reviewer"}`, "", 1), ticket: ticketJSON, decision: decisionJSON},
+		{name: "matched rule has no positive reviewer count", policy: strings.Replace(policyJSON, `"min":2`, `"min":0`, 1), ticket: ticketJSON, decision: decisionJSON},
+		{name: "matched rule has no reviewer role", policy: strings.Replace(policyJSON, `,"role":"reviewer"`, "", 1), ticket: ticketJSON, decision: decisionJSON},
 		{name: "wrong system", policy: policyJSON, ticket: strings.Replace(ticketJSON, `"machine":"machine-1"`, `"machine":"other-machine"`, 1), decision: decisionJSON},
 		{name: "wrong action hash", policy: policyJSON, ticket: strings.Replace(ticketJSON, actionHash, strings.Repeat("b", 64), 1), decision: decisionJSON},
 		{name: "policy changed after decision", policy: policyJSON, ticket: ticketJSON, decision: decisionJSON, changePolicyAfterFirstRead: true},
@@ -119,6 +122,30 @@ func TestAuthorizeFailsClosed(t *testing.T) {
 				Tool: "shippin:guest.start", Command: `{"resource":"guest-9","generation":4}`, ActionSHA256: actionHash})
 			if err == nil {
 				t.Fatal("unsafe or changed authorization was accepted")
+			}
+		})
+	}
+}
+
+func TestRequiresHumanReviewRequiresQuorumOnEveryMatchedRule(t *testing.T) {
+	withQuorum := `{"id":"one","enabled":true,"effect":"require","require":[{"check":"approval"},{"check":"review","min":2,"role":"reviewer"}]}`
+	withoutQuorum := `{"id":"two","enabled":true,"effect":"require","require":[{"check":"approval"}]}`
+	for _, tc := range []struct {
+		name    string
+		rules   string
+		matched []string
+		want    bool
+	}{
+		{name: "one explicit human quorum", rules: withQuorum, matched: []string{"one"}, want: true},
+		{name: "all matched rules must require quorum", rules: withQuorum + "," + withoutQuorum, matched: []string{"one", "two"}},
+		{name: "unknown match rejected", rules: withQuorum, matched: []string{"missing"}},
+		{name: "permissive match rejected", rules: withQuorum + `,{"id":"audit","enabled":true,"effect":"audit"}`, matched: []string{"one", "audit"}},
+		{name: "no matches rejected", rules: withQuorum, matched: nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := json.RawMessage(`{"rules":[` + tc.rules + `]}`)
+			if got := requiresHumanReview(raw, tc.matched); got != tc.want {
+				t.Fatalf("requiresHumanReview() = %v, want %v", got, tc.want)
 			}
 		})
 	}
