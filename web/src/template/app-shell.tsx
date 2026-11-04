@@ -15,6 +15,7 @@ const crumbs: [RegExp, string][] = [
   [/\/projects\/[^/]+$/, "Devspace"],
   [/\/projects$/, "Projects"],
   [/\/database$/, "Database"],
+  [/\/deployments$/, "Services"],
   [/\/workspaces\/new$/, "New workspace"],
   [/\/workspaces\/[^/]+$/, "Workspace"],
   [/\/workspaces$/, "Workspaces"],

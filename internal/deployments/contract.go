@@ -12,6 +12,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/catalog"
@@ -146,6 +147,7 @@ type DeploymentEvent struct {
 	HealthDurationMS    *int64        `json:"health_duration_ms,omitempty"`
 	FailureCode         string        `json:"failure_code,omitempty"`
 	Actor               string        `json:"actor"`
+	RecordedAt          time.Time     `json:"recorded_at"`
 }
 
 func (e DeploymentEvent) Validate() error {

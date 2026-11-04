@@ -87,6 +87,10 @@ paths:
     $ref: paths/workspaces.yaml#/workspaces
   /tenants/{tenantId}/deployments:
     $ref: paths/deployments-runtime.yaml#/deployments
+  /tenants/{tenantId}/deployable-services:
+    $ref: paths/deployments-runtime.yaml#/deployableServices
+  /tenants/{tenantId}/deployment-targets:
+    $ref: paths/deployments-runtime.yaml#/deploymentTargets
   /tenants/{tenantId}/deployments/{deploymentId}:
     $ref: paths/deployments-runtime.yaml#/deployment
   /tenants/{tenantId}/deployments/{deploymentId}/events:

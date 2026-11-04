@@ -17,6 +17,8 @@ func TestDeploymentRoutesRegistered(t *testing.T) {
 	rec := &recorder{}
 	(&API{cfg: testCfg()}).deploymentRoutes(rec)
 	want := []string{
+		"GET /v1/tenants/{tenantId}/deployable-services",
+		"GET /v1/tenants/{tenantId}/deployment-targets",
 		"GET /v1/tenants/{tenantId}/deployments",
 		"POST /v1/tenants/{tenantId}/deployments",
 		"GET /v1/tenants/{tenantId}/deployments/{deploymentId}",

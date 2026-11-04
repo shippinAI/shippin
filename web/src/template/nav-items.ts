@@ -1,4 +1,4 @@
-import { Bot, BarChart3, Globe, SquareTerminal, FolderGit2, KeySquare, Boxes, Fingerprint, Gauge, KeyRound, LayoutGrid, Network, Server, Settings, ShieldCheck, Users, Cable, Database, Cpu } from "lucide-react";
+import { Bot, BarChart3, Globe, SquareTerminal, FolderGit2, KeySquare, Boxes, Fingerprint, Gauge, KeyRound, LayoutGrid, Network, Server, Settings, ShieldCheck, Users, Cable, Database, Cpu, Package } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type NavItem = {
@@ -29,6 +29,7 @@ export const tenantNav: NavItem[] = [
   { id: "tenant.home", label: "Home", icon: LayoutGrid, to: "", hue: "var(--color-primary)", mobile: true },
   { id: "tenant.projects", label: "Projects", icon: FolderGit2, to: "projects", hue: "var(--color-hue-workspaces)", feature: "workspaces" },
   { id: "tenant.database", label: "Database", icon: Database, to: "database", hue: "var(--color-hue-data)", mobile: true, feature: "workspaces" },
+  { id: "tenant.deployments", label: "Services", icon: Package, to: "deployments", hue: "var(--color-hue-data)", mobile: true, feature: "servers" },
   { id: "tenant.workspaces", label: "Workspaces", icon: Boxes, to: "workspaces", hue: "var(--color-hue-workspaces)", mobile: true, feature: "workspaces" },
   { id: "tenant.terminal", label: "Terminal", icon: SquareTerminal, to: "go/terminal", hue: "var(--color-hue-workspaces)", feature: "workspaces" },
   { id: "tenant.connect", label: "Connect accounts", icon: KeyRound, to: "go/connect", hue: "var(--color-hue-secrets)", feature: "workspaces" },

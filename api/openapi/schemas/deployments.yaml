@@ -1,6 +1,6 @@
 Deployment:
   type: object
-  required: [id, service_id, target_system_id, target_provider, generation, desired_state, observed_state, definition_sha256, source, config, created_at, updated_at]
+  required: [id, service_id, target_system_id, target_provider, generation, desired_state, observed_state, definition_sha256, config_schema, source, config, created_at, updated_at]
   properties:
     id: { $ref: common.yaml#/Uuid }
     service_id: { type: string }
@@ -10,6 +10,7 @@ Deployment:
     desired_state: { type: string, enum: [present, absent] }
     observed_state: { type: string, enum: [unknown, pending, provisioning, ready, degraded, failed, absent] }
     definition_sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+    config_schema: { type: object, description: Schema from the pinned catalog revision with secret references redacted. }
     source:
       type: object
       required: [kind, reference]
@@ -24,6 +25,46 @@ Deployment:
     created_at: { $ref: common.yaml#/Timestamp }
     updated_by: { type: string }
     updated_at: { $ref: common.yaml#/Timestamp }
+DeployableService:
+  type: object
+  required: [id, label, kind, config_schema, default_config, deployment_source]
+  properties:
+    id: { type: string }
+    label: { type: string }
+    description: { type: string }
+    kind: { type: string }
+    docs_url: { type: string }
+    config_schema: { type: object }
+    default_config: { type: object, description: Secret-reference defaults are removed; customers supply their own references. }
+    deployment_source:
+      type: object
+      required: [kind, reference]
+      properties:
+        kind: { type: string, enum: [github, git, oci] }
+        reference: { type: string }
+        commit: { type: string }
+        context_path: { type: string }
+      additionalProperties: false
+DeploymentTarget:
+  type: object
+  required: [id, label, site, provider, state]
+  properties:
+    id: { $ref: common.yaml#/Uuid }
+    label: { type: string }
+    site: { type: string }
+    provider: { type: string, enum: [incus, proxmox] }
+    state: { type: string, enum: [planned, pending, active, stale, revoked] }
+DeploymentTargetList:
+  type: object
+  required: [items, can_request]
+  properties:
+    items: { type: array, items: { $ref: '#/DeploymentTarget' } }
+    can_request: { type: boolean, description: Tenant authorization result for deployment mutations. }
+DeployableServiceList:
+  type: object
+  required: [items]
+  properties:
+    items: { type: array, items: { $ref: '#/DeployableService' } }
 DeploymentCreate:
   type: object
   required: [service_id, target_system_id, desired_state, config]
@@ -53,7 +94,7 @@ DeploymentList:
         total_estimate: { type: integer }
 DeploymentEvent:
   type: object
-  required: [id, deployment_id, tenant_id, generation, event_type, actor]
+  required: [id, deployment_id, tenant_id, generation, event_type, actor, recorded_at]
   properties:
     id: { $ref: common.yaml#/Uuid }
     deployment_id: { $ref: common.yaml#/Uuid }
@@ -66,6 +107,7 @@ DeploymentEvent:
     health_duration_ms: { type: integer, minimum: 0, maximum: 3600000 }
     failure_code: { type: string }
     actor: { type: string }
+    recorded_at: { $ref: common.yaml#/Timestamp }
 DeploymentEventList:
   type: object
   required: [items, page]

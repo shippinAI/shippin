@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 147,
+  "operationCount": 149,
   "tags": [
     "agents-runtime",
     "audit",
@@ -430,6 +430,26 @@
         "connections-runtime"
       ],
       "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/deployable-services",
+      "operationId": "listDeployableServices",
+      "summary": "List active deployable catalog services",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/deployment-targets",
+      "operationId": "listDeploymentTargets",
+      "summary": "List assigned Incus and Proxmox targets",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
     },
     {
       "method": "GET",

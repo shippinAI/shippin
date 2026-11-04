@@ -3,6 +3,7 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"strings"
 )
 
 // Service is a catalog row: something Shippin can turn on for a tenant.
@@ -23,6 +24,92 @@ const serviceCols = `id, label, description, kind, docs_url, config_schema, defa
 
 func (s *Store) Services(ctx context.Context) (json.RawMessage, error) {
 	return s.listJSON(ctx, `SELECT `+serviceCols+` FROM catalog_services ORDER BY required DESC, id`)
+}
+
+// DeployableService is the tenant-safe view used to configure a new deployment. Source
+// credentials and secret-reference defaults are intentionally omitted.
+type DeployableService struct {
+	ID               string                  `json:"id"`
+	Label            string                  `json:"label"`
+	Description      string                  `json:"description"`
+	Kind             string                  `json:"kind"`
+	DocsURL          string                  `json:"docs_url"`
+	ConfigSchema     json.RawMessage         `json:"config_schema"`
+	DefaultConfig    json.RawMessage         `json:"default_config"`
+	DeploymentSource *PublicDeploymentSource `json:"deployment_source"`
+}
+
+type PublicDeploymentSource struct {
+	Kind        string `json:"kind"`
+	Reference   string `json:"reference"`
+	Commit      string `json:"commit,omitempty"`
+	ContextPath string `json:"context_path,omitempty"`
+}
+
+func (s *Store) DeployableServices(ctx context.Context) ([]DeployableService, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT id,label,description,kind,docs_url,config_schema::text,default_config::text,deployment_source::text
+		FROM catalog_services WHERE active=true AND deployment_source IS NOT NULL ORDER BY kind,id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]DeployableService, 0)
+	for rows.Next() {
+		var item DeployableService
+		var schema, defaults, source []byte
+		if err := rows.Scan(&item.ID, &item.Label, &item.Description, &item.Kind, &item.DocsURL, &schema, &defaults, &source); err != nil {
+			return nil, err
+		}
+		item.ConfigSchema = RedactSecretReferences(schema)
+		item.DefaultConfig = RedactSecretReferences(defaults)
+		var pinned DeploymentSource
+		if err := json.Unmarshal(source, &pinned); err != nil {
+			return nil, err
+		}
+		item.DeploymentSource = &PublicDeploymentSource{Kind: pinned.Kind, Reference: pinned.Reference,
+			Commit: pinned.Commit, ContextPath: pinned.ContextPath}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func RedactSecretReferences(raw []byte) json.RawMessage {
+	var value any
+	if json.Unmarshal(raw, &value) != nil {
+		return json.RawMessage(`{}`)
+	}
+	value = scrubSecretReference(value)
+	result, err := json.Marshal(value)
+	if err != nil {
+		return json.RawMessage(`{}`)
+	}
+	return result
+}
+
+func scrubSecretReference(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		for key, child := range typed {
+			if text, ok := child.(string); ok && (strings.HasPrefix(text, "vaultix://") || strings.HasPrefix(text, "sops://")) {
+				delete(typed, key)
+				continue
+			}
+			typed[key] = scrubSecretReference(child)
+		}
+		return typed
+	case []any:
+		out := make([]any, len(typed))
+		for i, child := range typed {
+			if text, ok := child.(string); ok && (strings.HasPrefix(text, "vaultix://") || strings.HasPrefix(text, "sops://")) {
+				out[i] = ""
+				continue
+			}
+			out[i] = scrubSecretReference(child)
+		}
+		return out
+	default:
+		return value
+	}
 }
 
 func (s *Store) Service(ctx context.Context, id string) (json.RawMessage, error) {

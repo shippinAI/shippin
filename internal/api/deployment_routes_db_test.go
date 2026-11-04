@@ -47,9 +47,9 @@ func deploymentRouteAPI(t *testing.T) (*API, string, string) {
 		VALUES($1,$2,'owner','test')`, targetID, tenantID); err != nil {
 		t.Fatal(err)
 	}
-	schema := `{"type":"object","properties":{"password":{"type":"string","format":"shippin-secret-ref"}},"required":["password"],"additionalProperties":false}`
+	schema := `{"type":"object","properties":{"password":{"type":"string","format":"shippin-secret-ref","description":"sops://runtime/schema-secret"}},"required":["password"],"additionalProperties":false}`
 	defaults := `{"password":"vaultix://org/project/env/postgres"}`
-	source := `{"kind":"github","reference":"https://github.com/acme/postgres","commit":"0123456789abcdef0123456789abcdef01234567"}`
+	source := `{"kind":"github","reference":"https://github.com/acme/postgres","commit":"0123456789abcdef0123456789abcdef01234567","credential_ref":"sops://runtime/secrets.yaml#/registry/token"}`
 	if _, err := database.Pool.Exec(t.Context(), `INSERT INTO catalog_services(id,label,kind,config_schema,default_config,deployment_source)
 		VALUES('postgres','Postgres','database',$1::jsonb,$2::jsonb,$3::jsonb)`, schema, defaults, source); err != nil {
 		t.Fatal(err)
@@ -84,6 +84,26 @@ func deploymentRequest(method, tenantID, id, body, key, etag string) *http.Reque
 
 func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 	a, tenantID, targetID := deploymentRouteAPI(t)
+	services := httptest.NewRecorder()
+	a.listDeployableServices(services, deploymentRequest(http.MethodGet, tenantID, "", "", "", ""))
+	if services.Code != http.StatusOK || strings.Contains(services.Body.String(), "credential_ref") || strings.Contains(services.Body.String(), "vaultix://") || strings.Contains(services.Body.String(), "sops://") {
+		t.Fatalf("tenant catalog options leaked references or failed: %d %s", services.Code, services.Body)
+	}
+	targets := httptest.NewRecorder()
+	a.listDeploymentTargets(targets, deploymentRequest(http.MethodGet, tenantID, "", "", "", ""))
+	if targets.Code != http.StatusOK || !strings.Contains(targets.Body.String(), `"provider":"proxmox"`) || !strings.Contains(targets.Body.String(), `"can_request":true`) {
+		t.Fatalf("assigned deployment target not exposed: %d %s", targets.Code, targets.Body)
+	}
+	managerResolver := a.resolveCaller
+	a.resolveCaller = func(http.ResponseWriter, *http.Request) (*caller, bool) {
+		return &caller{id: &auth.Identity{Sub: "route-test-viewer"}, tenants: []tenantView{{Tenant: db.Tenant{ID: tenantID}, Roles: []string{"org_member"}}}}, true
+	}
+	viewerTargets := httptest.NewRecorder()
+	a.listDeploymentTargets(viewerTargets, deploymentRequest(http.MethodGet, tenantID, "", "", "", ""))
+	if viewerTargets.Code != http.StatusOK || !strings.Contains(viewerTargets.Body.String(), `"can_request":false`) {
+		t.Fatalf("member target view: %d %s", viewerTargets.Code, viewerTargets.Body)
+	}
+	a.resolveCaller = managerResolver
 	createKey := uuid.NewString()
 	body := `{"service_id":"postgres","target_system_id":"` + targetID + `","desired_state":"present","config":{"password":"vaultix://org/project/env/postgres"}}`
 	rec := httptest.NewRecorder()
@@ -92,8 +112,11 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 		t.Fatalf("create response: %d %v %s", rec.Code, rec.Header(), rec.Body)
 	}
 	var created deployments.Deployment
-	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil || created.Generation != 1 || created.TargetProvider != deployments.ProviderProxmox || created.ObservedState != deployments.ObservedUnknown {
+	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil || created.Generation != 1 || created.TargetProvider != deployments.ProviderProxmox || created.ObservedState != deployments.ObservedUnknown || len(created.ConfigSchema) == 0 {
 		t.Fatalf("created intent: %+v err=%v", created, err)
+	}
+	if strings.Contains(string(created.ConfigSchema), "vaultix://") || strings.Contains(string(created.ConfigSchema), "sops://") {
+		t.Fatalf("pinned config schema leaked a secret reference: %s", created.ConfigSchema)
 	}
 
 	replayed := httptest.NewRecorder()

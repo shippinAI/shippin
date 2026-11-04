@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/catalog"
 	"shippin.cloud/console/internal/deployments"
 )
 
@@ -21,12 +22,40 @@ func (a *API) deploymentStore() *deployments.Store {
 }
 
 func (a *API) deploymentRoutes(mux Router) {
+	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployable-services", a.flow.Require(a.listDeployableServices))
+	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployment-targets", a.flow.Require(a.listDeploymentTargets))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployments", a.flow.Require(a.listDeployments))
 	mux.HandleFunc("POST /v1/tenants/{tenantId}/deployments", a.flow.Require(a.createDeployment))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployments/{deploymentId}", a.flow.Require(a.getDeployment))
 	mux.HandleFunc("PATCH /v1/tenants/{tenantId}/deployments/{deploymentId}", a.flow.Require(a.updateDeployment))
 	mux.HandleFunc("DELETE /v1/tenants/{tenantId}/deployments/{deploymentId}", a.flow.Require(a.deleteDeployment))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployments/{deploymentId}/events", a.flow.Require(a.listDeploymentEvents))
+}
+
+func (a *API) listDeployableServices(w http.ResponseWriter, r *http.Request) {
+	_, _, ok := a.deploymentTenantCtx(w, r)
+	if !ok {
+		return
+	}
+	items, err := (&catalog.Store{Pool: a.db.Pool}).DeployableServices(r.Context())
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	writeJSON(w, map[string]any{"items": items})
+}
+
+func (a *API) listDeploymentTargets(w http.ResponseWriter, r *http.Request) {
+	c, t, ok := a.deploymentTenantCtx(w, r)
+	if !ok {
+		return
+	}
+	items, err := a.deploymentStore().Targets(r.Context(), t.ID)
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	writeJSON(w, map[string]any{"items": items, "can_request": c.canDecide(t)})
 }
 
 func (a *API) deploymentTenantCtx(w http.ResponseWriter, r *http.Request) (*caller, *tenantView, bool) {

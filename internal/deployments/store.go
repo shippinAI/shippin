@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"shippin.cloud/console/internal/catalog"
 )
 
 var (
@@ -49,6 +50,14 @@ type SourceView struct {
 	ContextPath string `json:"context_path,omitempty"`
 }
 
+type Target struct {
+	ID       string   `json:"id"`
+	Label    string   `json:"label"`
+	Site     string   `json:"site"`
+	Provider Provider `json:"provider"`
+	State    string   `json:"state"`
+}
+
 type Deployment struct {
 	ID                 string          `json:"id"`
 	ServiceID          string          `json:"service_id"`
@@ -58,6 +67,7 @@ type Deployment struct {
 	DesiredState       DesiredState    `json:"desired_state"`
 	ObservedState      ObservedState   `json:"observed_state"`
 	DefinitionSHA256   string          `json:"definition_sha256"`
+	ConfigSchema       json.RawMessage `json:"config_schema"`
 	Source             SourceView      `json:"source"`
 	Config             json.RawMessage `json:"config"`
 	CreatedBy          string          `json:"created_by"`
@@ -100,6 +110,7 @@ func scanDeployment(row pgx.Row) (*Deployment, error) {
 	if err := json.Unmarshal(snapshot, &definition); err != nil {
 		return nil, fmt.Errorf("stored deployment definition snapshot is invalid: %w", err)
 	}
+	d.ConfigSchema = catalog.RedactSecretReferences(definition.ConfigSchema)
 	d.Source = SourceView{Kind: definition.Source.Kind, Reference: definition.Source.Reference,
 		Commit: definition.Source.Commit, ContextPath: definition.Source.ContextPath}
 	return d, nil
@@ -154,7 +165,7 @@ func (s *Store) Create(ctx context.Context, tenant, actor string, input CreateIn
 	var provider string
 	err = tx.QueryRow(ctx, `SELECT s.hv_kind FROM servers s
 		JOIN server_assignments a ON a.server_id=s.id AND a.tenant_id=$2
-		WHERE s.id=$1 AND s.state<>'revoked' AND s.hv_kind IN ('incus','proxmox')
+		WHERE s.id=$1 AND s.state IN ('planned','active') AND s.hv_kind IN ('incus','proxmox')
 		FOR SHARE OF s, a`, input.TargetSystemID, tenant).Scan(&provider)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, false, ErrTargetUnavailable
@@ -345,6 +356,30 @@ func (s *Store) Get(ctx context.Context, tenant, id string) (*Deployment, error)
 	return scanDeployment(s.pool.QueryRow(ctx, deploymentSelect+` WHERE d.tenant_id=$1 AND d.id=$2`, tenant, id))
 }
 
+func (s *Store) Targets(ctx context.Context, tenant string) ([]Target, error) {
+	if !validUUID(tenant) {
+		return nil, ErrNotFound
+	}
+	rows, err := s.pool.Query(ctx, `SELECT s.id::text,s.label,s.site,s.hv_kind,s.state FROM servers s
+		JOIN server_assignments a ON a.server_id=s.id AND a.tenant_id=$1
+		WHERE s.state IN ('planned','active') AND s.hv_kind IN ('incus','proxmox') ORDER BY s.label,s.id`, tenant)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	targets := make([]Target, 0)
+	for rows.Next() {
+		var target Target
+		var provider string
+		if err := rows.Scan(&target.ID, &target.Label, &target.Site, &provider, &target.State); err != nil {
+			return nil, err
+		}
+		target.Provider = Provider(provider)
+		targets = append(targets, target)
+	}
+	return targets, rows.Err()
+}
+
 func (s *Store) getGeneration(ctx context.Context, tenant, id string, generation int64) (*Deployment, error) {
 	if !validUUID(tenant) || !validUUID(id) || generation < 1 {
 		return nil, ErrNotFound
@@ -385,7 +420,7 @@ func (s *Store) Events(ctx context.Context, tenant, id string, limit int) ([]Dep
 	}
 	rows, err := s.pool.Query(ctx, `SELECT id::text,deployment_id::text,tenant_id::text,generation,event_type,
 		coalesce(observed_state,''),coalesce(provider_operation_id,''),coalesce(health_status,''),health_duration_ms,
-		coalesce(failure_code,''),actor FROM shippin_deployment_events
+		coalesce(failure_code,''),actor,recorded_at FROM shippin_deployment_events
 		WHERE tenant_id=$1 AND deployment_id=$2 ORDER BY recorded_at,id LIMIT $3`, tenant, id, limit)
 	if err != nil {
 		return nil, err
@@ -396,7 +431,7 @@ func (s *Store) Events(ctx context.Context, tenant, id string, limit int) ([]Dep
 		var event DeploymentEvent
 		var eventType, observed, durationStatus string
 		if err := rows.Scan(&event.ID, &event.DeploymentID, &event.TenantID, &event.Generation, &eventType,
-			&observed, &event.ProviderOperationID, &durationStatus, &event.HealthDurationMS, &event.FailureCode, &event.Actor); err != nil {
+			&observed, &event.ProviderOperationID, &durationStatus, &event.HealthDurationMS, &event.FailureCode, &event.Actor, &event.RecordedAt); err != nil {
 			return nil, err
 		}
 		event.Type, event.ObservedState, event.HealthStatus = EventType(eventType), ObservedState(observed), durationStatus

@@ -1,3 +1,28 @@
+deployableServices:
+  x-implementation-status: registered
+  parameters: [{ $ref: ../components/parameters.yaml#/TenantId }]
+  get:
+    tags: [deployments]
+    operationId: listDeployableServices
+    summary: List active deployable catalog services
+    description: Tenant-safe definitions omit source credentials and secret-reference defaults.
+    responses:
+      "200": { description: Configurable service definitions., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeployableServiceList } } } }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+deploymentTargets:
+  x-implementation-status: registered
+  parameters: [{ $ref: ../components/parameters.yaml#/TenantId }]
+  get:
+    tags: [deployments]
+    operationId: listDeploymentTargets
+    summary: List assigned Incus and Proxmox targets
+    description: Only targets assigned to this tenant are returned; can_request reflects the server authorization check for mutations.
+    responses:
+      "200": { description: Available assigned targets., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentTargetList } } } }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
 deployments:
   x-implementation-status: registered
   parameters: [{ $ref: ../components/parameters.yaml#/TenantId }]

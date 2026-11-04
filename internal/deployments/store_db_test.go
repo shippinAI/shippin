@@ -125,6 +125,11 @@ func TestStoreCreateReplayTenantScopeEventsAndAppendOnlyHistory(t *testing.T) {
 	if err != nil || len(events) != 3 || events[0].Type != EventRequested || events[2].Generation != 3 {
 		t.Fatalf("request events: rows=%v err=%v", events, err)
 	}
+	for _, event := range events {
+		if event.RecordedAt.IsZero() {
+			t.Fatalf("event timestamp missing: %+v", event)
+		}
+	}
 	if _, err := store.pool.Exec(ctx, `UPDATE shippin_deployment_events SET actor='changed' WHERE id=$1`, events[0].ID); err == nil {
 		t.Fatal("append-only event update succeeded")
 	}
@@ -146,5 +151,25 @@ func TestStoreCreateRejectsUnassignedTargetAndUnsafeConfig(t *testing.T) {
 	input.Config = json.RawMessage(`{"port":5432,"password":"plaintext"}`)
 	if _, _, err := store.Create(ctx, tenantID, "operator@example.test", input); err == nil {
 		t.Fatal("unsafe config was persisted")
+	}
+}
+
+func TestStoreAcceptsAssignedPlannedProxmoxTargetAsDesiredIntent(t *testing.T) {
+	store, tenantID, _ := deploymentTestStore(t)
+	targetID := uuid.NewString()
+	ctx := context.Background()
+	if _, err := store.pool.Exec(ctx, `INSERT INTO servers(id,tenant_id,slug,label,site,state,created_by,hv_kind)
+		VALUES($1,$2,'planned-proxmox','Proxmox API target','lab','planned','test','proxmox')`, targetID, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.pool.Exec(ctx, `INSERT INTO server_assignments(server_id,tenant_id,role,created_by)
+		VALUES($1,$2,'owner','test')`, targetID, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	input := CreateInput{ServiceID: "postgres", TargetSystemID: targetID, DesiredState: DesiredPresent,
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`)}
+	item, created, err := store.Create(ctx, tenantID, "operator@example.test", input)
+	if err != nil || !created || item.TargetProvider != ProviderProxmox || item.ObservedState != ObservedUnknown {
+		t.Fatalf("planned Proxmox request should record intent only: created=%t item=%+v err=%v", created, item, err)
 	}
 }

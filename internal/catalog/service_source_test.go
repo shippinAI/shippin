@@ -1,6 +1,10 @@
 package catalog
 
-import "testing"
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+)
 
 func TestDeploymentSourceValidation(t *testing.T) {
 	valid := []DeploymentSource{
@@ -12,6 +16,31 @@ func TestDeploymentSourceValidation(t *testing.T) {
 		if err := source.Validate(); err != nil {
 			t.Errorf("valid source %+v rejected: %v", source, err)
 		}
+	}
+}
+
+func TestDeployableServiceDefaultsRedactVaultixAndSOPSReferences(t *testing.T) {
+	got := RedactSecretReferences([]byte(`{"port":5432,"auth":{"password":"vaultix://tenant/project/key"},"keys":["sops://runtime/secrets.yaml#/token"]}`))
+	text := string(got)
+	for _, secret := range []string{"vaultix://", "sops://"} {
+		if strings.Contains(text, secret) {
+			t.Fatalf("secret reference leaked: %s", text)
+		}
+	}
+	var value map[string]any
+	if err := json.Unmarshal(got, &value); err != nil {
+		t.Fatal(err)
+	}
+	if value["port"] != float64(5432) {
+		t.Fatalf("non-secret default was removed: %s", got)
+	}
+	authConfig, ok := value["auth"].(map[string]any)
+	if !ok || len(authConfig) != 0 {
+		t.Fatalf("nested reference wasn't redacted: %s", got)
+	}
+	keys, ok := value["keys"].([]any)
+	if !ok || len(keys) != 1 || keys[0] != "" {
+		t.Fatalf("array reference wasn't redacted: %s", got)
 	}
 }
 
