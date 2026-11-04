@@ -3,6 +3,7 @@ package api
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -97,6 +98,11 @@ func New(cfg *config.Config, flow *auth.Flow, d *db.DB) *API {
 		runs: &agentruns.Store{Pool: d.Pool}, svcs: rrflowStore(d), n2: newN2(cfg, d)}
 	a.tenantDB = tenantdb.NewGate(tenantdb.DialerFrom(cfg.TenantDB.Host, cfg.TenantDB.PortOrDefault(), cfg.TenantDB.SSL(), cfg.TenantDB.Timeout(), cfg.TenantDBSecrets),
 		tenantdb.Guard{Timeout: cfg.TenantDB.Timeout(), MaxRows: cfg.TenantDB.Rows()})
+	importCtx, cancelImport := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelImport()
+	if err := a.importPlatformHealthConfig(importCtx); err != nil {
+		log.Printf("platform health config import: %v", err)
+	}
 	return a
 }
 

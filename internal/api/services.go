@@ -16,7 +16,9 @@ import (
 )
 
 type probeResult struct {
+	ID       string `json:"id,omitempty"`
 	Name     string `json:"name"`
+	Alias    string `json:"alias,omitempty"`
 	Kind     string `json:"kind"`
 	Instance string `json:"instance"`
 	Healthy  bool   `json:"healthy"`
@@ -25,6 +27,8 @@ type probeResult struct {
 	LatencyMs      *int64           `json:"latency_ms,omitempty"`
 	Detail         string           `json:"detail"`
 	TimeoutSeconds int              `json:"timeout_seconds"`
+	State          string           `json:"state"`
+	ObservedAt     *time.Time       `json:"observed_at,omitempty"`
 	Resource       *serviceResource `json:"resource,omitempty"`
 }
 
@@ -129,16 +133,6 @@ func (a *API) serviceResource(ctx context.Context, p config.Probe) *serviceResou
 		out.Detail = "observed"
 	}
 	return out
-}
-
-func (a *API) platformProbes(ctx context.Context) []config.Probe {
-	value := a.platformValue(ctx, "services.probes")
-	raw, err := json.Marshal(value)
-	var probes []config.Probe
-	if err != nil || json.Unmarshal(raw, &probes) != nil {
-		return a.cfg.Probes
-	}
-	return probes
 }
 
 func (a *API) platformProbeConcurrency(ctx context.Context) int {
@@ -258,7 +252,7 @@ func probe(ctx context.Context, p config.Probe) (res probeResult) {
 	return res
 }
 
-// services returns live probes plus Incus instance state (operator only).
+// services returns persisted probe observations; reading the dashboard does no network I/O.
 func (a *API) services(w http.ResponseWriter, r *http.Request) {
 	c, ok := a.caller(w, r)
 	if !ok {
@@ -268,13 +262,48 @@ func (a *API) services(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusForbidden, "Platform services need an operator role.")
 		return
 	}
-	definitions := a.platformProbes(r.Context())
-	probes := a.serviceProbes(r.Context(), definitions, a.platformProbeConcurrency(r.Context()))
-	insts, ierr := a.instances(r.Context())
+	definitions, err := a.db.PlatformServices(r.Context())
+	if err != nil {
+		auth.Problem(w, http.StatusServiceUnavailable, "Platform health registry is unavailable.")
+		return
+	}
+	observations, err := a.db.LatestPlatformServiceObservations(r.Context())
+	if err != nil {
+		auth.Problem(w, http.StatusServiceUnavailable, "Platform health observations are unavailable.")
+		return
+	}
+	probes := make([]probeResult, 0, len(definitions))
+	for _, s := range definitions {
+		if !s.Enabled {
+			continue
+		}
+		result := probeResult{ID: s.ID, Name: s.Name, Alias: s.Alias, Kind: s.Kind, Instance: s.Instance, TimeoutSeconds: s.TimeoutSeconds, State: "unknown", Detail: "awaiting first observation"}
+		var observation struct {
+			ObservedAt time.Time       `json:"observed_at"`
+			Configured bool            `json:"configured"`
+			Healthy    bool            `json:"healthy"`
+			LatencyMs  *int64          `json:"latency_ms"`
+			Detail     string          `json:"detail"`
+			Resource   json.RawMessage `json:"resource"`
+		}
+		if raw := observations[s.ID]; len(raw) > 0 && json.Unmarshal(raw, &observation) == nil {
+			result.Configured, result.Healthy, result.LatencyMs, result.Detail = observation.Configured, observation.Healthy, observation.LatencyMs, observation.Detail
+			result.ObservedAt = &observation.ObservedAt
+			if time.Since(observation.ObservedAt) > time.Duration(s.IntervalSeconds*2)*time.Second {
+				result.State = "stale"
+			} else if observation.Healthy {
+				result.State = "operational"
+			} else {
+				result.State = "down"
+			}
+			if len(observation.Resource) > 0 && string(observation.Resource) != "null" {
+				_ = json.Unmarshal(observation.Resource, &result.Resource)
+			}
+		}
+		probes = append(probes, result)
+	}
+	insts := []any{}
 	out := map[string]any{"project": a.cfg.Incus.Project, "host": a.cfg.Incus.HostLabel,
 		"probes": probes, "instances": insts, "checked_at": time.Now().UTC()}
-	if ierr != nil {
-		out["instances_error"] = "Incus read-only gateway unavailable"
-	}
 	writeJSON(w, out)
 }

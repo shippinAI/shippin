@@ -151,6 +151,14 @@ paths:
     $ref: paths/audit.yaml#/platformAudit
   /platform/services:
     $ref: paths/platform.yaml#/services
+  /operator/platform-services:
+    $ref: paths/platform.yaml#/registry
+  /operator/platform-services/{serviceId}:
+    $ref: paths/platform.yaml#/service
+  /operator/platform-services/{serviceId}/observations:
+    $ref: paths/platform.yaml#/serviceObservations
+  /operator/platform-services/{serviceId}/check:
+    $ref: paths/platform.yaml#/checkService
   /operator/compute/nodes:
     $ref: paths/compute-nodes.yaml#/nodes
   /operator/compute/enrollments:

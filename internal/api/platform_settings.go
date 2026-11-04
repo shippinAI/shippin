@@ -84,15 +84,21 @@ func validateProbes(value any) error {
 
 func (a *API) platformKeys() []platformKey {
 	keys := []platformKey{
-		{Key: "services.probes", Kind: "array", Label: "Services to watch",
-			Help: "Live HTTP or TCP health targets with optional Incus or Proxmox guest resource links. Saved in PostgreSQL and audited; probe credentials are not supported.",
-			def:  func(a *API) any { return a.cfg.Probes }, valid: validateProbes},
 		{Key: "services.probe_concurrency", Kind: "integer", Label: "Concurrent health checks",
-			Help: fmt.Sprintf("Maximum simultaneous HTTP/TCP and provider-resource checks per platform health request (1–%d).", config.MaxProbeConcurrency),
+			Help: fmt.Sprintf("Maximum simultaneous scheduled, manual HTTP/TCP and provider-resource checks across this console process (1–%d).", config.MaxProbeConcurrency),
 			def:  func(a *API) any { return a.cfg.ProbeConcurrency }, valid: func(v any) error {
 				n, ok := v.(float64)
 				if !ok || n != float64(int(n)) || n < 1 || n > config.MaxProbeConcurrency {
 					return fmt.Errorf("must be a whole number between 1 and %d", config.MaxProbeConcurrency)
+				}
+				return nil
+			}},
+		{Key: "services.observation_retention_days", Kind: "integer", Label: "Health observation retention (days)",
+			Help: "How long platform health observations remain available (1 to 365 days; default 30).",
+			def:  func(*API) any { return 30 }, valid: func(v any) error {
+				n, ok := v.(float64)
+				if !ok || n != float64(int(n)) || n < 1 || n > 365 {
+					return fmt.Errorf("must be a whole number between 1 and 365")
 				}
 				return nil
 			}},
@@ -118,10 +124,10 @@ func (a *API) platformKeys() []platformKey {
 }
 
 func (a *API) platformRoutes() []opRoute {
-	return []opRoute{
+	return append([]opRoute{
 		{"GET /v1/operator/platform-settings", "platform.settings.read", a.opPlatformSettings},
 		{"PUT /v1/operator/platform-settings/{key}", "platform.settings.write", a.opSetPlatformSetting},
-	}
+	}, a.platformServiceRoutes()...)
 }
 
 // platformValue is the effective value of key: the ops override, else the config file.

@@ -62,6 +62,64 @@ tables are not renamed in place: each migration needs an additive backfill,
 compatibility window, stable IDs, rollback plan and upgrade test. Secret values
 are stored only by the configured secret owner; product rows contain references.
 
+## Platform health implementation contract
+
+The final service registry is a normalized PostgreSQL owner, not a JSON blob or
+a second panel. `shippin_platform_services` stores stable UUID, display name,
+kind, optional alias, HTTP(S) or TCP target, optional stable system/guest link,
+timeout, cadence, enabled state, update revision and audit timestamps. A target
+must have exactly one supported protocol; credentials remain unsupported until
+the configured Vaultix/SOPS resolver has a tested contract. Remove is a soft
+disable so observation history and provenance remain addressable.
+
+Migration imports the current `services.probes` platform override. A one-time,
+marked startup import adds installation-file probes only when no registry row
+already owns that stable ID; later startup must never resurrect a service the
+operator disabled or removed from the active set. Legacy definitions without an
+ID receive a deterministic UUID from their normalized name during import. After
+the migration, all add/edit/disable actions use the registry API, not the legacy
+settings key.
+
+The console scheduler claims due rows with database leases so two replicas do
+not scan the same service. It obeys the existing process-wide concurrency
+setting, per-service cadence (30–86,400 seconds), 1–10 second probe timeout,
+the 50-service batch bound and request cancellation. A successful or failed
+attempt appends a `shippin_platform_service_observations` row with service ID,
+config revision, observation time, configured/healthy state, nullable measured
+latency, redacted detail and optional provider-resource snapshot. A read endpoint
+does no network I/O. The explicit “check now” action uses the same bounded
+worker and persistence path.
+
+The overview joins current definitions to their latest observations. No prior
+row means `unknown`; an observation older than twice its configured cadence is
+`stale`; only a recent successful probe is `operational`. Provider resource
+availability stays separate from service reachability. Retention is configurable
+from 1 to 365 days (default 30) and pruning is bounded and scheduled. Tests cover
+upgrade/backfill, stable identity, lease contention, timeout/cancellation,
+redaction, stale/unknown states, retention and independent Incus/Proxmox resource
+failure before the UI calls this a live registry.
+
+### Implementation progress, 2026-11-04
+
+The first implementation slice is now authored in the canonical Go database/API
+owners and existing React admin/overview pages: migration 046 backfills the old
+database override; startup imports file-defined probes once without reactivating
+disabled IDs; operators can create, revision-edit, soft-disable/re-enable and
+check services; a leased 5-second scheduler writes results; overview reads use only
+the latest persisted observation; operators can inspect the newest 20 history
+entries; and retention defaults to 30 days with an audited 1–365 day override.
+The disposable PostgreSQL 16 run has exercised the legacy JSON backfill (including
+an orphaned provider link and an invalid target), registry store, leases,
+observations, retention pruning, API create/edit/stale revision/disable, a real
+refused local HTTP target, unknown/down/stale status, history read, and the
+no-network overview read path.
+
+This closes only the platform-health registry slice. Its release still requires
+all repository CI jobs, an independently reviewed final diff, and direct-to-main
+push/CI. The overall source inventory, provider lifecycle completeness, executable
+deployment reconciler/build path, managed database runtimes, external-network
+mutation support, and AgentHub action-bound review remain open plan phases.
+
 ## Operator navigation
 
 Keep workflows in the existing shell and group destinations so the usual path

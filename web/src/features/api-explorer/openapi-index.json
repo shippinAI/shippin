@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 149,
+  "operationCount": 155,
   "tags": [
     "agents-runtime",
     "audit",
@@ -953,9 +953,69 @@
     },
     {
       "method": "GET",
+      "path": "/operator/platform-services",
+      "operationId": "listPlatformHealthServices",
+      "summary": "List operator-configured health service definitions",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/platform-services",
+      "operationId": "createPlatformHealthService",
+      "summary": "Add an audited platform health service",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/platform-services/{serviceId}",
+      "operationId": "disablePlatformHealthService",
+      "summary": "Soft-disable a service while preserving observation history",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/platform-services/{serviceId}",
+      "operationId": "updatePlatformHealthService",
+      "summary": "Update an audited service using its current revision",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/platform-services/{serviceId}/check",
+      "operationId": "checkPlatformHealthService",
+      "summary": "Run a bounded probe now and persist its observation",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/platform-services/{serviceId}/observations",
+      "operationId": "listPlatformServiceObservations",
+      "summary": "List recent probe and provider-resource observations for a service",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
       "path": "/platform/services",
       "operationId": "getPlatformServices",
-      "summary": "Live service probes and optional Incus or Proxmox guest resource observations (operators only)",
+      "summary": "Latest persisted platform health observations and optional provider resources (operators only)",
       "tags": [
         "platform"
       ],

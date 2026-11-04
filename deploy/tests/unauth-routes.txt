@@ -10,6 +10,7 @@ DELETE /v1/operator/catalog/plans/{id}
 DELETE /v1/operator/catalog/services/{id}
 DELETE /v1/operator/customers/{id}
 DELETE /v1/operator/customers/{id}/services/{service}
+DELETE /v1/operator/platform-services/{serviceId}
 DELETE /v1/operator/team/permission-grants/{userId}/{permKey}
 DELETE /v1/operator/team/roles/{roleKey}
 DELETE /v1/operator/templates/{templateId}
@@ -76,6 +77,8 @@ GET /v1/operator/customers/{id}/services
 GET /v1/operator/edge
 GET /v1/operator/host
 GET /v1/operator/identity
+GET /v1/operator/platform-services
+GET /v1/operator/platform-services/{serviceId}/observations
 GET /v1/operator/platform-settings
 GET /v1/operator/staff-mode
 GET /v1/operator/system
@@ -179,6 +182,8 @@ POST /v1/operator/catalog/plans
 POST /v1/operator/catalog/services
 POST /v1/operator/customers
 POST /v1/operator/customers/{id}/provision-intent
+POST /v1/operator/platform-services
+POST /v1/operator/platform-services/{serviceId}/check
 POST /v1/operator/staff-mode
 POST /v1/operator/staff-mode/exit
 POST /v1/operator/team/members
@@ -254,6 +259,7 @@ PUT /v1/operator/catalog/plans/{id}
 PUT /v1/operator/catalog/services/{id}
 PUT /v1/operator/customers/{id}
 PUT /v1/operator/customers/{id}/services/{service}
+PUT /v1/operator/platform-services/{serviceId}
 PUT /v1/operator/platform-settings/{key}
 PUT /v1/operator/team/members/{userId}/roles
 PUT /v1/operator/team/roles/{roleKey}

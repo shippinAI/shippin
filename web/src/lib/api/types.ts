@@ -48,7 +48,7 @@ export type ProbeResource = {
   observed: boolean; detail: string; checked_at: string;
   metrics?: { cpu_fraction: number; cpu_count?: number; memory_used_bytes: number; memory_total_bytes: number; disk_used_bytes: number; disk_total_bytes: number; network_in_bytes: number; network_out_bytes: number };
 };
-export type Probe = { name: string; kind: string; instance: string; healthy: boolean; configured?: boolean; latency_ms?: number; detail: string; timeout_seconds: number; resource?: ProbeResource };
+export type Probe = { id?: string; name: string; alias?: string; kind: string; instance: string; healthy: boolean; configured?: boolean; latency_ms?: number; detail: string; timeout_seconds: number; state?: "unknown" | "stale" | "operational" | "down"; observed_at?: string; resource?: ProbeResource };
 
 export type Instance = {
   name: string;

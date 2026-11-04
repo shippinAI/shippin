@@ -31,15 +31,15 @@ export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Inst
         <Tooltip content={probe.latency_ms === undefined ? `Probe: ${probe.detail}` : `Probe: ${probe.detail} in ${probe.latency_ms} ms`}>
           <Focusable>
             <span tabIndex={0} className="outline-none">
-              <Badge tone={probe.healthy ? "success" : probe.configured === false ? "neutral" : "danger"}>
-                <StatusDot health={probe.healthy ? "up" : probe.configured === false ? "unknown" : "down"} />
-                {probe.healthy ? "Operational" : probe.configured === false ? "Not set up" : "Down"}
+              <Badge tone={probe.state === "operational" || (!probe.state && probe.healthy) ? "success" : probe.state === "down" || (!probe.state && probe.configured !== false) ? "danger" : probe.state === "stale" ? "warning" : "neutral"}>
+                <StatusDot health={probe.state === "operational" || (!probe.state && probe.healthy) ? "up" : probe.state === "down" || (!probe.state && probe.configured !== false) ? "down" : "unknown"} />
+                {probe.state === "operational" || (!probe.state && probe.healthy) ? "Operational" : probe.state === "stale" ? "Stale" : probe.state === "down" || (!probe.state && probe.configured !== false) ? "Down" : "Unknown"}
               </Badge>
             </span>
           </Focusable>
         </Tooltip>
       </div>
-      <div className="mt-4 text-[15px] font-semibold">{probe.name}</div>
+      <div className="mt-4 text-[15px] font-semibold">{probe.alias || probe.name}</div>
       <div className="text-xs text-fg-subtle capitalize">{probe.kind}</div>
       <dl className="mt-4 flex gap-6 border-t border-line pt-3.5 text-xs">
         <Stat label="Latency" value={probe.latency_ms === undefined ? "—" : `${probe.latency_ms} ms`} />

@@ -2,11 +2,98 @@ services:
   get:
     tags: [platform]
     operationId: getPlatformServices
-    summary: Live service probes and optional Incus or Proxmox guest resource observations (operators only)
+    summary: Latest persisted platform health observations and optional provider resources (operators only)
     responses:
       "200":
-        description: Service reachability, provider guest metrics when explicitly configured, and local Incus instances. Probe and provider-resource work is bounded by the configured process-wide concurrency limit.
+        description: Latest durable observations. The read performs no network probes; unknown and stale states remain explicit.
         content: { application/json: { schema: { $ref: ../schemas/platform.yaml#/PlatformServices } } }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+registry:
+  get:
+    tags: [platform]
+    operationId: listPlatformHealthServices
+    summary: List operator-configured health service definitions
+    responses:
+      "200": { description: Configured services and latest observations }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  post:
+    tags: [platform]
+    operationId: createPlatformHealthService
+    summary: Add an audited platform health service
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/platform.yaml#/PlatformServiceInput } } }
+    responses:
+      "200": { description: Service created }
+      "400": { $ref: ../components/responses.yaml#/ProblemDefault }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+service:
+  put:
+    tags: [platform]
+    operationId: updatePlatformHealthService
+    summary: Update an audited service using its current revision
+    parameters:
+      - { name: serviceId, in: path, required: true, schema: { type: string, format: uuid } }
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/platform.yaml#/PlatformServiceInput } } }
+    responses:
+      "200": { description: Service updated }
+      "409": { $ref: ../components/responses.yaml#/ProblemDefault }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  delete:
+    tags: [platform]
+    operationId: disablePlatformHealthService
+    summary: Soft-disable a service while preserving observation history
+    parameters:
+      - { name: serviceId, in: path, required: true, schema: { type: string, format: uuid } }
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/platform.yaml#/PlatformServiceDisable } } }
+    responses:
+      "204": { description: Service disabled }
+      "409": { $ref: ../components/responses.yaml#/ProblemDefault }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+serviceObservations:
+  get:
+    tags: [platform]
+    operationId: listPlatformServiceObservations
+    summary: List recent probe and provider-resource observations for a service
+    parameters:
+      - { name: serviceId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+    responses:
+      "200":
+        description: Recent observations in newest-first order
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items: { type: array, items: { $ref: ../schemas/platform.yaml#/PlatformServiceObservation } }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+checkService:
+  post:
+    tags: [platform]
+    operationId: checkPlatformHealthService
+    summary: Run a bounded probe now and persist its observation
+    parameters:
+      - { name: serviceId, in: path, required: true, schema: { type: string, format: uuid } }
+    responses:
+      "200": { description: Recorded probe result }
       "401": { $ref: ../components/responses.yaml#/Problem401 }
       "403": { $ref: ../components/responses.yaml#/Problem403 }
       default: { $ref: ../components/responses.yaml#/ProblemDefault }

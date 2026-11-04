@@ -60,13 +60,8 @@ func TestPlatformSettings(t *testing.T) {
 		t.Fatal("refused writes were audited")
 	}
 	if put("idp.account_path", `{"value":"/ui/v2/account","reason":"move to v2 UI"}`) != 200 ||
-		put("services.rrflow.auto_attach", `{"value":true,"reason":"pilot tenant"}`) != 200 ||
-		put("services.probes", `{"value":[{"name":"Nomen","kind":"nomen","instance":"nomen","url":"https://nomen.example.test/health","timeout_seconds":5},{"name":"Vaultix","kind":"vaultix","instance":"vaultix","tcp":"vaultix.internal:8080","timeout_seconds":2}],"reason":"configure platform health targets"}`) != 200 {
+		put("services.rrflow.auto_attach", `{"value":true,"reason":"pilot tenant"}`) != 200 {
 		t.Fatal("valid writes refused")
-	}
-	probes := a.platformProbes(ctx)
-	if len(probes) != 2 || probes[0].URL != "https://nomen.example.test/health" || probes[0].TimeoutSeconds != 5 || probes[1].TCP != "vaultix.internal:8080" || probes[1].TimeoutSeconds != 2 {
-		t.Fatalf("saved probes did not feed live service health: %#v", probes)
 	}
 	if a.idpAccountURL(ctx) != "https://idp.example.test/ui/v2/account" || !a.rrflowAutoAttach(ctx, "t1") || a.rrflowAutoAttach(ctx, "t2") {
 		t.Fatal("overrides not effective (or auto-attach ignored the rrflow rollout)")
@@ -74,7 +69,7 @@ func TestPlatformSettings(t *testing.T) {
 	if put("idp.account_path", `{"value":null,"reason":"back to config"}`) != 200 || a.idpAccountURL(ctx) != "https://idp.example.test/ui/console/users/me" {
 		t.Fatal("clearing did not fall back to the config value")
 	}
-	if audits() != 4 {
-		t.Fatalf("want 4 audit rows, got %d", audits())
+	if audits() != 3 {
+		t.Fatalf("want 3 audit rows, got %d", audits())
 	}
 }

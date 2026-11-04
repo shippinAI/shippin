@@ -1,7 +1,9 @@
 Probe:
   type: object
   properties:
+    id: { type: string, format: uuid }
     name: { type: string }
+    alias: { type: string }
     kind: { type: string, description: 'zitadel, infisical, caddy, postgres…' }
     instance: { type: string }
     healthy: { type: boolean }
@@ -9,7 +11,45 @@ Probe:
     latency_ms: { type: integer }
     detail: { type: string }
     timeout_seconds: { type: integer, minimum: 1, maximum: 10, description: 'Effective timeout; legacy definitions default to 3 seconds.' }
+    state: { type: string, enum: [unknown, stale, operational, down] }
+    observed_at: { type: string, format: date-time }
     resource: { $ref: '#/ProbeResource' }
+PlatformServiceInput:
+  type: object
+  required: [name, kind, timeout_seconds, interval_seconds, reason]
+  properties:
+    name: { type: string, minLength: 1, maxLength: 80 }
+    kind: { type: string, minLength: 1, maxLength: 40 }
+    alias: { type: string, maxLength: 80 }
+    url: { type: string, format: uri }
+    host: { type: string, maxLength: 255 }
+    tcp: { type: string, maxLength: 255 }
+    instance: { type: string, maxLength: 255 }
+    server_id: { type: string, format: uuid }
+    guest_id: { type: string, maxLength: 128 }
+    timeout_seconds: { type: integer, minimum: 1, maximum: 10 }
+    interval_seconds: { type: integer, minimum: 30, maximum: 86400 }
+    revision: { type: integer, minimum: 1, description: Required for updates; stale revisions conflict. }
+    reason: { type: string, minLength: 5, maxLength: 500 }
+PlatformServiceDisable:
+  type: object
+  required: [revision, reason]
+  properties:
+    revision: { type: integer, minimum: 1 }
+    reason: { type: string, minLength: 5, maxLength: 500 }
+PlatformServiceObservation:
+  type: object
+  required: [id, service_id, config_revision, configured, healthy, detail, observed_at]
+  properties:
+    id: { type: string, format: uuid }
+    service_id: { type: string, format: uuid }
+    config_revision: { type: integer, minimum: 1 }
+    configured: { type: boolean }
+    healthy: { type: boolean }
+    latency_ms: { type: integer, minimum: 0 }
+    detail: { type: string }
+    resource: { type: object }
+    observed_at: { type: string, format: date-time }
 ProbeResource:
   type: object
   required: [server_id, guest_id, observed, detail, checked_at]
