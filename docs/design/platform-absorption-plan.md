@@ -8,8 +8,7 @@ ledger](capability-absorption.md) holds source-by-source evidence and dispositio
 
 The order below is a dependency order. Each row closes only when its observable
 acceptance checks pass; a panel or catalog screen alone does not close a runtime
-capability. Latest implementation commit verified while updating this plan: `873bb77` (2026-11-04); the recent
-provider inventory slices and CI evidence are in the capability ledger.
+capability. Latest implementation commit verified while updating this plan: `040be59` (Checks run `41930646759`, all 13 jobs passed, 2026-11-04); prior provider inventory slices and evidence are in the capability ledger. This validates the AgentHub mapping workflow, not provider deployment authorization.
 
 | Order | Work package | Canonical owners | Exit evidence | Current state / gate |
 |---|---|---|---|---|
