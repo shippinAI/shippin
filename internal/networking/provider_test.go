@@ -43,7 +43,7 @@ func TestProviderInventoryUsesScopedReadAPIs(t *testing.T) {
 				if r.Header.Get("Authorization") != "Bearer short-lived" {
 					t.Fatalf("unexpected inventory authorization")
 				}
-				_, _ = w.Write([]byte(`{"devices":[{"id":"d1","name":"db","hostname":"db","addresses":["100.64.0.1"],"os":"linux","clientVersion":"1.2","lastSeen":"now","authorized":true}]}`))
+				_, _ = w.Write([]byte(`{"devices":[{"id":"d1","name":"db","hostname":"db","addresses":["198.51.100.1"],"os":"linux","clientVersion":"1.2","lastSeen":"now","authorized":true}]}`))
 			default:
 				http.NotFound(w, r)
 			}
@@ -51,7 +51,7 @@ func TestProviderInventoryUsesScopedReadAPIs(t *testing.T) {
 		defer srv.Close()
 		c := Connection{ID: "c2", Label: "ts", Provider: Tailscale, Config: json.RawMessage(`{"tailnet":"example.com","client_id":"client-1"}`), SyncIntervalSeconds: 300}
 		items, err := inventory(context.Background(), c, []byte("ts-secret"), srv.Client(), providerURLs{tailscale: srv.URL, tailscaleToken: srv.URL + "/oauth/token"})
-		if err != nil || len(items) != 1 || items[0].Address != "100.64.0.1" || items[0].State != "active" {
+		if err != nil || len(items) != 1 || items[0].Address != "198.51.100.1" || items[0].State != "active" {
 			t.Fatalf("items=%+v err=%v", items, err)
 		}
 	})
