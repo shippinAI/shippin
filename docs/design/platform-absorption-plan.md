@@ -43,6 +43,44 @@ capability. Latest implementation commit verified while updating this plan: `040
    slice. Push cohesive commits directly to `main`; check all CI jobs before
    starting the next slice.
 
+### Capability-by-capability execution register
+
+This register is the working definition of “absorbed.” A source feature is not
+complete because a similarly named screen, model, or file exists. For each row,
+the owner must connect configuration, persistence, API contract, UI action,
+runtime behavior, observed result, and negative-path evidence. The detailed
+source inventory and per-file Warden accounting remain in
+[`capability-absorption.md`](capability-absorption.md) and
+[`warden-capture-matrix.md`](warden-capture-matrix.md); those records determine
+what is useful and eligible for authoring. The order below is a hard dependency
+order, not a claim that all stages are currently implemented.
+
+| Stage | Capability slice to author in `shippin-platform` | Canonical destination | Required proof before closure |
+|---|---|---|---|
+| A | Source provenance, dirty-work preservation, license/dependency/security review; reconcile each Cloud, Console, Mesh and Warden feature family | `docs/design/`, source ledger and Warden matrix | Every source row has revision, source behavior, rights status, current owner, adopt/rewrite/reject disposition and linked behavior evidence. No sibling source is modified or archived. |
+| B | Stable Shippin system identity, hostname observation, operator aliases/tags, explicit AgentHub mapping | `internal/servers`, `internal/db`, `internal/api`, existing infrastructure UI | Identity persists through restart; aliases never authorize; mapping is verified against AgentHub and records freshness/provenance; ambiguous or stale mapping blocks. |
+| C | AgentHub-configured review preparation, exact operation snapshot, safe evidence, submit/review status and policy provenance | `internal/agenthub`, `internal/api`, `internal/db/migrations`, `web/` Platform settings | Additive `shippin_` persistence stores correlation only; AgentHub remains the ticket/review authority. Idempotent writes, redaction, tenant/system binding, principal scopes, required human/quorum semantics, stale ticket/policy and timeout all have tests. Provider mutation stays blocked until this complete gate passes. |
+| D | Multi-server Incus and Proxmox declarations, credential-safe edit/test, capability discovery, provider-local VM/container lifecycle, task polling/read-back and resource inventory | `internal/servers`, `internal/hv/incus`, `internal/hv/proxmox`, existing infra API/UI | Multiple configured endpoints work without source edits. Incus and Proxmox behavior stays provider-specific; authorization/audit precede writes; task failure, denial, retry, restart, deletion and observed read-back are covered on fakes and disposable hosts. |
+| E | Review-gated durable deployment reconciliation from desired generation to provider execution | `internal/deployments`, prefixed migrations, `cmd/console`, hostd/provider drivers, API/OpenAPI and `web/src/features/deployments` | Intent and outbox commit atomically; fenced leases re-read generation and review decision; provider task and read-back persist truthful observed state; restart, duplicate request, stale generation, rollback and removal are exercised. |
+| F | Pinned GitHub/custom HTTPS Git/OCI resolution and isolated builds | `internal/catalog`, bounded builder owner, secret resolver contract, deployment UI | Immutable source digest and provenance; bounded time/CPU/memory/storage/concurrency/egress; cancellation and cleanup; credentials never appear in URLs/logs; no arbitrary privileged host commands. |
+| G | Turnkey PostgreSQL, Dragonfly, Redis and ClickHouse definitions and engine-specific lifecycle | existing managed-services owner, catalog/deployment contracts, provider adapters and `web/` | Explicit engine/version/image, placement, resource/storage/network/secrets; install, edit, upgrade, health, backup, restore and delete; tenant isolation and restore verification. Redis and Dragonfly compatibility is stated accurately. |
+| H | Cloudflare Tunnel, Tailscale and bounded custom integrations: configure/edit/test/rotate/revoke, attach to stable systems, manage supported provider resources | `internal/networking`, its prefixed schema/API and existing infrastructure UI | Least-privilege provider scopes and exact write support proven; observed inventory remains distinct from requested changes; denial, credential rotation, redaction and stale inventory pass. |
+| I | Nomen, Vaultix, Edge, Database, Operator and installation-added service health plus resources | platform health registry/observations, provider read APIs and existing overview/settings UI | UI-managed definitions; configured secret resolver only; bounded scheduling, persisted probes, freshness and provenance; resource metrics join by stable IDs. Missing or stale values stay unknown/stale and failed resource reads do not overwrite service reachability. |
+| J | Re-author each remaining Warden/Mesh/Cloud/Console useful feature (backup, restore, DNS/ACME, firewall, logs, runners, templates, workspaces and diagnostics) only into its owned bounded context | Existing `internal/backupcov`, provider/networking, project/workspace, audit, jobs or catalog owners as documented per source row | Each feature receives rights/security review and actual API/schema/UI/runtime/failure evidence. Shell, root file manager, arbitrary Docker/Compose, local account management, unsafe disk controls, site IDs and parallel panel/policy are explicitly rejected. |
+| K | One-panel navigation, fully configurable operator and tenant workflows, clean standalone developer build and rollout | `web/`, `cmd/console`, installers/deploy docs | Every implemented destination is reachable in at most four user actions; no dead/mock controls; config survives restart; clean checkout builds console and hostd, migrates, installs and upgrades with supported workflows proven. |
+| L | Archive decision for each historical checkout | capability ledger and user-review checklist | All useful source rows closed, local dirty data retained, rights/dependencies recorded, and exact remaining gaps listed. Archiving/deleting source trees requires a separate user decision after this evidence is reviewable. |
+
+Each implementation slice must name its stage and source rows in the commit and
+journal, list canonical files it owns, state what is deliberately excluded, and
+show an end-to-end acceptance result plus a relevant denial/failure result. If a
+stage depends on an unavailable external contract, continue other independent
+read-only or bounded work, but do not bypass the dependency or mark the stage
+complete. Current active gate is Stage C: Shippin can configure the AgentHub URL,
+sealed credential, policy read check and system mapping check, but does not yet
+create or submit action-bound review tickets and has no verified least-privilege
+AgentHub principal/quorum proof. All provider mutations remain unavailable until
+the gate's acceptance evidence exists.
+
 ### Stop conditions
 
 - AgentHub is unavailable, its policy has no matching explicit rule, its
