@@ -29,6 +29,8 @@ value is ignored, so an operator setting cannot turn off a review requirement in
 the installation policy and make a guest lifecycle action apply directly. This
 does not make the local board an AgentHub integration; provider writes remain
 blocked until the configured AgentHub gate is implemented.
+When rules overlap, any matching rule that requires review remains mandatory;
+an earlier general rule cannot shadow a narrower review requirement.
 
 Read-only source review of AgentHub commit `97172d9` on
 `feat/devspace-bridge-contract` confirms authenticated
@@ -46,10 +48,15 @@ outcome. A denial can mean a missing review or any other configured check. Ticke
 status is also insufficient by itself: it is derived from whether any reviewer
 has passed/blocked/found issues on the current hash, while policy rules can require
 multiple passes or specific reviewer roles. Shippin must not infer authorization
-from status or parse human-readable failures. AgentHub needs a stable typed result
-that distinguishes allow, review-required and deny (with policy/ticket hashes and
-failure codes) before provider execution can be enabled. The AgentHub checkout is
-dirty and remains untouched. No integrated AgentHub review flow exists yet.
+from status or parse human-readable failures. Source inspection also shows the
+policy engine starts with `allow=true`; when no rule matches the request, that
+value remains true. The response lists matched rule IDs but not their effects or
+the exact Shippin action payload to which the decision applies. Therefore Shippin
+cannot treat `allow=true` alone as authorization. AgentHub needs a stable typed
+result bound to the exact action, system, ticket hash and current policy hash,
+distinguishing allowed-after-review, review-required and deny before provider
+execution can be enabled. The AgentHub checkout is dirty and remains untouched.
+No integrated AgentHub review flow exists yet.
 Do not describe the local task board as AgentHub or as the source of policy.
 
 ## Target request flow

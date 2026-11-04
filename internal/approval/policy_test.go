@@ -32,3 +32,16 @@ func TestRequiredReviewCannotBeDisabledByBoardDriver(t *testing.T) {
 		}
 	}
 }
+
+func TestOverlappingRuleCannotShadowRequiredReview(t *testing.T) {
+	p := Policy{Rules: []Rule{
+		{ID: "general", Actions: []string{"hv.lifecycle"}, ApproverRoles: []string{"operator"}},
+		{ID: "review-required", Actions: []string{"hv.lifecycle"}, Hosts: []string{"host-a"}, NeedsApproval: true},
+	}}
+	if !p.RequiresReview("hv.lifecycle", "host-a") {
+		t.Fatal("a matching review rule must remain mandatory even when an earlier rule also matches")
+	}
+	if p.RequiresReview("hv.lifecycle", "host-b") {
+		t.Fatal("host-scoped review must not spill to a different host")
+	}
+}

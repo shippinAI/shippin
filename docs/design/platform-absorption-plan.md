@@ -195,10 +195,14 @@ tenant/machine mapping with operator provenance; the mapping is not validated
 against AgentHub and there is no adapter. AgentHub exposes authenticated
 tenant-scoped policy and ticket routes. The reviewed decision
 response does not expose a structured `review_required` outcome; parsing its
-human-readable failure text would be brittle. Define or verify a typed decision
-contract and service-principal permissions before connecting writes. Local
-Shippin approver defaults and the `HUB_OWNER_*` bypass are removed; the example
-installation denies gated actions.
+human-readable failure text would be brittle. Source inspection further confirms
+the engine defaults to `allow=true` if no rule matches, and its response does not
+bind the exact Shippin action payload or report matched rule effects. Thus the
+boolean is not sufficient authorization. Define or verify a typed decision
+contract bound to the exact action, system, ticket and policy hashes, and establish
+service-principal permissions before connecting writes. Local Shippin approver
+defaults and the `HUB_OWNER_*` bypass are removed; the example installation denies
+gated actions.
 
 **Exit gate:** identity collision/change tests pass; AgentHub decision, review,
 replay, denial, unavailable service and restart cases pass; no local reviewer

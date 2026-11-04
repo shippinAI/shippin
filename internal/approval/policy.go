@@ -53,8 +53,12 @@ func (p Policy) HasAction(action string) bool {
 // RequiresReview reports whether a matching rule requires a human review.
 // The board driver's configuration must never turn a required review into direct apply.
 func (p Policy) RequiresReview(action, host string) bool {
-	r, ok := p.match(action, host)
-	return ok && r.NeedsApproval
+	for _, r := range p.Rules {
+		if r.NeedsApproval && ruleMatches(r, action, host) {
+			return true
+		}
+	}
+	return false
 }
 
 // Allows reports whether sub may perform action on host.
@@ -82,15 +86,18 @@ func (p Policy) Allows(sub Subject, action, host string) bool {
 
 func (p Policy) match(action, host string) (Rule, bool) {
 	for _, r := range p.Rules {
-		if !has(r.Actions, action) {
-			continue
+		if ruleMatches(r, action, host) {
+			return r, true
 		}
-		if host != "" && len(r.Hosts) > 0 && !has(r.Hosts, host) && !has(r.Hosts, "*") {
-			continue
-		}
-		return r, true
 	}
 	return Rule{}, false
+}
+
+func ruleMatches(r Rule, action, host string) bool {
+	if !has(r.Actions, action) {
+		return false
+	}
+	return host == "" || len(r.Hosts) == 0 || has(r.Hosts, host) || has(r.Hosts, "*")
 }
 
 func has(ss []string, v string) bool {
