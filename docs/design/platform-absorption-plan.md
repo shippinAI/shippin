@@ -37,6 +37,13 @@ capability. Latest green implementation commit: `6081250` (Checks run `419361356
    evidence redaction, idempotent retries, submit status, human review/quorum,
    denial, timeout and stale action/policy. Keep provider mutation disabled
    until the complete gate is independently demonstrated.
+   The Shippin ticket must carry reviewable `topology`, `blast_radius`,
+   `snapshot`, research/evidence references and honest future verification
+   criteria; the evidence must identify the same ticket and immutable
+   generation. Exercise both AgentHub's seeded policy and an operator-configured
+   exact-tool rule for `shippin:deployment.apply` / `.remove` that requires a
+   human approval plus a role-scoped reviewer quorum. Do not make the Shippin
+   client infer an allow when AgentHub returns no matched rule.
 4. Only after step 3 passes, implement the durable deployment outbox/reconciler
    and provider-specific Incus/Proxmox execution. The desired generation and
    outbox event must commit atomically; workers must fence leases and re-read the
