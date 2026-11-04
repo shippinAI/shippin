@@ -8,7 +8,7 @@ not claim that a design or catalog row is a running deployment.
 
 | Source | Audited revision and state | What it contains | Disposition and guard |
 |---|---|---|---|
-| `shippin-platform` | `main` `05c483203c6bce889181b6c4412de24aee124905`; clean; CI run `41792416294` green | Go control plane, host agent, Incus/Proxmox drivers, one React panel, configured network inventory, catalog source metadata | Canonical implementation owner. Continue in existing `internal/`, migrations, API, provider and `web/` feature owners. |
+| `shippin-platform` | `main` `7afa89f390bea41778cd07ad0a10f654e36093b1`; CI run `41852357913` green | Go control plane, host agent, Incus/Proxmox drivers, one React panel, configured network inventory, catalog source metadata; local approver defaults removed; server connection configuration remains role-gated and audited | Canonical implementation owner. Continue in existing `internal/`, migrations, API, provider and `web/` feature owners. |
 | `shippin-console` | local `main` `93dd341`; `origin/main` `e35ab81` (164 commits ahead of the local checkout); local untracked `deploy/bastion/` contains Python cache artifacts | `e35ab81` is the historical console snapshot documented as imported into this repository. Its tracked bastion source includes verified-bundle launch, Incus-specific validation, atomic recovery, nftables/systemd changes and lifecycle tests. The change module identifies itself as Gold-policy-only and requires an approved inline launcher. | No merge from this checkout. Preserve the local cache artifacts and source branch. Re-author safe host operations under Shippin Prox only after adapting to the Shippin/AgentHub authorization, provider and rollback contracts; do not carry Gold naming or approval assumptions. |
 | `shippin-cloud` | `main` `49475d3b`; clean; 177 tracked files | Historical product plans, OpenAPI draft and a 29-file React/Vite workbench. Its own README names `shippin-platform` as the current public product. Plans describe Incus tenancy, future Proxmox, service catalog/deployments, Nomen/Vaultix tracks and release workflow; several passages retain old site facts. | Workbench is superseded by `web/`; API/architecture notes are evidence to reconcile, not a second panel or current runtime. Configuration and deployment details must be revalidated. |
 | `shippin-mesh` | `main` `26cce35b`; dirty `go.work.sum`; 790 tracked files; no root README or root license observed | 208 files under `warden/`, 90 Go and 104 Python files overall, 177 docs, 157 scripts; includes internal Proxmox tooling, Warden panel, agent/MCP code, templates, registries, infra and AI/context modules. Root `AGENTS.md` explicitly describes installation-specific internal infrastructure and says customer contracts must be normalized behind Shippin IDs. | Read-only source. No code/artifact is imported from it. Its five formerly unavailable named docs are present locally; stale 404 statements must be removed. Root license/provenance and each dependency/asset license remain unresolved. Site-specific URLs, IDs, addresses, modules and shell automation are not product defaults. |
@@ -50,7 +50,7 @@ names the destination contract, not proof every behavior is present.
 | `warden/proxmox.go`, `warden/internal/host/kinds/proxmox/`, `docs/specs/02-proxmox-connector.md`, `agent/clyffy-dean/` | Node/guest inventory, actions, task tracking, snapshots, storage and API privilege boundaries | `internal/hv/proxmox`, `internal/api/infra*`, Shippin Prox UI. Compare each operation and unsupported guest type. Source doc is single-node, does not poll UPIDs and says TLS verification defaults off; none of these shortcuts carry forward. |
 | `warden/catalog.go`, `warden/deployments*.go`, `templates/`, `docs/specs/07-dev-portal.md` | Template catalog, declared inputs, placement, deployment stages, observed status, events and lifecycle | `internal/catalog`, new deployment bounded context and existing panel. Current catalog saves metadata only; there is no generic executor/reconciler. File templates and arbitrary shell/Compose must pass provenance, license, dependency, isolation and privilege review. |
 | `warden/backups*.go`, `warden/estate.go`, backup templates | S3/SMB/object-store destination config, coverage, schedule, events, dump/restore workflows | `internal/backupcov`, hypervisor snapshot adapters and future managed-service backup owner. Current code does not provide estate copy/restore executors. Secret-file storage and site paths are rejected; backup restore proof is required. |
-| `warden/dns.go`, `warden/domain_registry.go`, `warden/certs.go`, `warden/endpoints.go` | Domain ownership, records, TLS/ACME state, route and endpoint observations | Existing workspace/domain/API and networking owners. DNS and ACME create/update operations need explicit provider capability, scoped credential, DNSSEC/ownership validation and read-back; do not add host-file editing. |
+| `warden/dns.go`, `warden/domain_registry.go`, `warden/certs.go`, `warden/endpoints.go` | Domain ownership, records, TLS/ACME state, route and endpoint observations | Existing workspace/domain/API and networking owners. DNS and ACME create/update operations need explicit provider capability, least-privilege credentials, domain ownership validation and read-back; do not add host-file editing. |
 | `warden/network.go`, `warden/firewall.go`, `registry/`, `docs/specs/04-edge-and-routing.md` | Provider network inventory, route, firewall and service-level reachability | `internal/networking`, `internal/hv/{incus,proxmox}` and health registry. Existing network integrations observe Cloudflare/Tailscale/custom resources; provider mutation, firewall policy and service attachment are not implied. |
 | `warden/disks.go`, `warden/docker.go`, `warden/sysactions.go`, `warden/packages.go` | Storage inventory and bounded host service/package operations | Hypervisor storage capability and managed-service/provider adapters. Root-shell, arbitrary Docker, process-kill, local package mutation and destructive disk controls are not imported; only typed least-privilege operations with provider checks can be authored. |
 | `warden/ci_runners*.go`, `warden/ci_stats*.go`, `warden/runners_page.go` | Runner registration, status, capacity and CI metrics | Existing agent/job and project owners. No CI runner fleet API is proven in Shippin. Add only after a tenant/security boundary and credential owner are defined. |
@@ -67,12 +67,12 @@ workflow, tests, security/rights and failure path have been compared and recorde
 
 ## Warden file-matrix reconciliation
 
-`docs/design/warden-capture-matrix.md` has 216 rows for the 188 tracked files plus
-28 absent screenshots. Its status counts include five additional named mesh-source
-rows: 6 ported, 13 to-author, 181 intentionally replaced (176 imported rows plus
-five named sources), and 21 rejected. Correct these counts/statuses only when
-rechecking the rows, not by treating screenshot omissions as source code. The five
-mesh documents listed at the end are readable in local `shippin-mesh` commit
+`docs/design/warden-capture-matrix.md` has 216 imported-source rows for the 188
+tracked files plus 28 absent screenshots, counted as 6 ported, 13 to-author, 176
+intentionally replaced and 21 rejected. Five separately listed mesh-source rows
+remain `needs-review`; they are not included in those 216 rows or status counts.
+Correct these counts/statuses only when rechecking the rows, not by treating
+screenshot omissions as source code. The five mesh documents listed at the end are readable in local `shippin-mesh` commit
 `26cce35b`; the old GitHub-404 description is obsolete. The matrix's Gold-era
 approval wording also conflicts with current main and must be replaced with the
 AgentHub ownership boundary.
@@ -83,7 +83,9 @@ tree and external worktrees until the user reviews the completed archive checkli
 
 ## Execution sequence
 
-The ordered steps and behavior checks are in the ignored, schema-validated session
-plan `shippin-configurable-platform-2026-11`. Implementation proceeds by bounded
-capability slices, direct commits to main, and current CI evidence. This ledger is
-updated as each row is verified; a passing build does not make unrelated rows done.
+The full target architecture, seven implementation phases and exit gates are in
+[the platform absorption plan](platform-absorption-plan.md). The ignored,
+schema-validated session plan `shippin-configurable-platform-2026-11` tracks the
+current execution step, source hashes and verification evidence. Work proceeds
+in phase order through direct commits to `main`; a passing build does not make
+unrelated ledger rows done.

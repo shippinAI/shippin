@@ -26,6 +26,8 @@ key, and treats remote inventory as observation rather than a deployed change.
 The [capability absorption ledger](design/capability-absorption.md) records which
 behaviors from historical console and mesh sources are already owned here, which
 need implementation, and the evidence required before those sources are archive-ready.
+The [platform absorption plan](design/platform-absorption-plan.md) defines the target
+domain model, UI destinations, phase order and acceptance gates.
 The Proxmox operator capability is authored as Shippin Prox; `proxmox` remains the
 provider kind and API terminology. Historical Warden names are source provenance only.
 
