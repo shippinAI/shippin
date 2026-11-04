@@ -137,6 +137,34 @@ func TestNewClientRejectsUnsafeConfiguration(t *testing.T) {
 	}
 }
 
+func TestCheckPolicyReadsOnlyExplicitTenantPolicy(t *testing.T) {
+	var calls int
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if r.Method != http.MethodGet || r.URL.Path != "/api/v1/policy/doc" || r.URL.Query().Get("tenant") != "tenant-1" {
+			t.Errorf("unexpected connection check request %s %s?%s", r.Method, r.URL.Path, r.URL.RawQuery)
+		}
+		if r.Header.Get("Authorization") != "Bearer service-token" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(policyJSON))
+	}))
+	defer server.Close()
+	c, err := newClient(Config{BaseURL: server.URL, Token: "service-token"}, server.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := c.CheckPolicy(context.Background(), "tenant-1")
+	if err != nil || got.TenantID != "tenant-1" || got.Version != 2 || got.SHA256 != policyHash || calls != 1 {
+		t.Fatalf("policy check=%+v calls=%d err=%v", got, calls, err)
+	}
+	if _, err := c.CheckPolicy(context.Background(), "bad tenant"); err == nil || calls != 1 {
+		t.Fatalf("invalid tenant should fail locally without another call, calls=%d err=%v", calls, err)
+	}
+}
+
 const policyJSON = `{"tenant_id":"tenant-1","version":2,"sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","doc":{"version":2,"rules":[{"id":"review-provider-actions","enabled":true,"effect":"require","require":[{"check":"approval"},{"check":"review","min":2,"role":"reviewer"}]}]}}`
 
 const ticketJSON = `{"ticket":{"id":"ticket-1","tenant_id":"tenant-1","machine":"machine-1","command":"{\"resource\":\"guest-9\",\"generation\":4}","fields":{"shippin_action_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","status":"passed"},"evidence":[],"reviews":[]}`

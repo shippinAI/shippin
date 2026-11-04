@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Button } from "../../../../lib/design/components/button/button";
 import { TextField } from "../../../../lib/design/components/field/text-field";
-import { useAgentHubConnection, useSetAgentHubConnection } from "../../../../lib/hooks/use-platform-settings";
+import { useAgentHubConnection, useSetAgentHubConnection, useTestAgentHubConnection } from "../../../../lib/hooks/use-platform-settings";
 
 export function AgentHubConnectionSettings({ canWrite }: { canWrite: boolean }) {
   const query = useAgentHubConnection();
   const save = useSetAgentHubConnection();
+  const test = useTestAgentHubConnection();
   const [baseURL, setBaseURL] = useState("");
+  const [tenantID, setTenantID] = useState("");
   const [credential, setCredential] = useState("");
   const [reason, setReason] = useState("");
   const [clearCredential, setClearCredential] = useState(false);
@@ -24,6 +26,11 @@ export function AgentHubConnectionSettings({ canWrite }: { canWrite: boolean }) 
       <TextField label="AgentHub HTTPS URL" value={baseURL} onChange={setBaseURL} isDisabled={!canWrite} placeholder="https://agenthub.example" />
       <TextField label="Replace service credential (write only)" type="password" value={credential} onChange={setCredential} isDisabled={!canWrite} autoComplete="new-password" />
       {query.data?.has_credential && <label className="flex items-center gap-2 text-sm text-fg"><input type="checkbox" checked={clearCredential} disabled={!canWrite} onChange={(e) => setClearCredential(e.target.checked)} />Clear stored credential</label>}
+      <div className="flex items-end gap-2">
+        <div className="flex-1"><TextField label="AgentHub tenant ID for read-only policy check" value={tenantID} onChange={(value) => { setTenantID(value); test.reset(); }} isDisabled={!canWrite} /></div>
+        <Button size="sm" variant="secondary" isDisabled={!canWrite || !query.data?.configured || tenantID.trim().length < 3 || test.isPending} tooltip="Read policy metadata only; does not create a ticket or authorize an action" onPress={() => test.mutate({ tenant_id: tenantID.trim() })}>{test.isPending ? "Checking…" : "Test connection"}</Button>
+      </div>
+      {test.data && <p role={test.data.ok ? "status" : "alert"} className="text-sm text-fg-muted">{test.data.ok ? `Connected · policy ${test.data.policy_version} · ${test.data.policy_sha256}` : test.data.error}</p>}
       <div className="flex items-end gap-2">
         <div className="flex-1"><TextField label="Reason (audited)" value={reason} onChange={setReason} isDisabled={!canWrite} placeholder="Why this changes" /></div>
         <Button size="sm" variant="primary" isDisabled={!allowed} tooltip={allowed ? "Save the audited AgentHub connection settings" : "Enter a URL, provide a reason, and make a change"} onPress={() => save.mutate({ base_url: baseURL.trim(), ...(credential ? { credential } : {}), ...(clearCredential ? { clear_credential: true } : {}), reason }, { onSuccess: () => { setCredential(""); setReason(""); setClearCredential(false); } })}>Save connection</Button>

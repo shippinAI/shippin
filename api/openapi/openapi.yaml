@@ -169,6 +169,10 @@ paths:
     $ref: paths/catalog.yaml#/services
   /operator/catalog/services/{id}:
     $ref: paths/catalog.yaml#/service
+  /operator/agenthub-connection:
+    $ref: paths/agenthub-runtime.yaml#/connection
+  /operator/agenthub-connection/test:
+    $ref: paths/agenthub-runtime.yaml#/testConnection
   /compute/enroll:
     $ref: paths/compute-nodes.yaml#/redeem
   /tenants/{tenantId}/workspaces/{workspaceId}/site:

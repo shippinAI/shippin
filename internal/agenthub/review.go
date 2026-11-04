@@ -54,6 +54,13 @@ type Provenance struct {
 	MatchedRules  []string `json:"matched_rules"`
 }
 
+// PolicyStatus is safe metadata returned by the explicit read-only connection check.
+type PolicyStatus struct {
+	TenantID string `json:"tenant_id"`
+	Version  int64  `json:"policy_version"`
+	SHA256   string `json:"policy_sha256"`
+}
+
 // Client consumes the reviewed AgentHub REST contract. A client is safe to
 // construct from operator configuration; redirect following is disabled so
 // bearer credentials cannot be forwarded to another origin.
@@ -216,6 +223,22 @@ func (c *Client) Authorize(ctx context.Context, in Request) (Provenance, error) 
 	return Provenance{DecisionID: answer.DecisionID, TenantID: in.TenantID, MachineID: in.MachineID,
 		TicketID: in.TicketID, TicketSHA256: afterTicket.Ticket.SHA256, PolicySHA256: beforePolicy.SHA256,
 		PolicyVersion: beforePolicy.Version, MatchedRules: append([]string(nil), answer.Decision.Matched...)}, nil
+}
+
+// CheckPolicy verifies that the configured credential can read the current policy
+// for an operator-supplied tenant. It performs no ticket or provider mutation.
+func (c *Client) CheckPolicy(ctx context.Context, tenant string) (PolicyStatus, error) {
+	if c == nil || c.base == nil || c.http == nil {
+		return PolicyStatus{}, errors.New("AgentHub client is not configured")
+	}
+	if !validID(tenant) {
+		return PolicyStatus{}, errors.New("AgentHub tenant ID must use letters, digits, dot, underscore, or hyphen")
+	}
+	doc, err := c.policy(ctx, tenant)
+	if err != nil {
+		return PolicyStatus{}, err
+	}
+	return PolicyStatus{TenantID: doc.TenantID, Version: doc.Version, SHA256: doc.SHA256}, nil
 }
 
 func bindTicket(t ticketResponse, in Request) error {

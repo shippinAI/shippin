@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
+	"shippin.cloud/console/internal/agenthub"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
 )
@@ -73,6 +75,38 @@ func (a *API) opSetAgentHubConnection(w http.ResponseWriter, r *http.Request, c 
 		return
 	}
 	writeJSON(w, map[string]any{"base_url": baseURL, "has_credential": keep || len(ciphertext) > 0, "configured": baseURL != "" && (keep || len(ciphertext) > 0)})
+}
+
+func (a *API) opTestAgentHubConnection(w http.ResponseWriter, r *http.Request, _ *caller) {
+	var in struct {
+		TenantID string `json:"tenant_id"`
+	}
+	if !decodeStrict(w, r, &in) {
+		return
+	}
+	item, err := a.db.AgentHubConnection(r.Context())
+	if err != nil || !item.HasCredential || item.BaseURL == "" {
+		writeJSON(w, map[string]any{"ok": false, "error": "Configure an AgentHub HTTPS URL and credential first."})
+		return
+	}
+	token, err := a.agentHubToken(r.Context())
+	if err != nil {
+		writeJSON(w, map[string]any{"ok": false, "error": "The stored AgentHub credential could not be resolved."})
+		return
+	}
+	client, err := agenthub.NewClient(agenthub.Config{BaseURL: item.BaseURL, Token: token, Timeout: 5 * time.Second})
+	if err != nil {
+		writeJSON(w, map[string]any{"ok": false, "error": "The AgentHub connection settings are invalid."})
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
+	defer cancel()
+	status, err := client.CheckPolicy(ctx, strings.TrimSpace(in.TenantID))
+	if err != nil {
+		writeJSON(w, map[string]any{"ok": false, "error": "AgentHub policy could not be read for that tenant."})
+		return
+	}
+	writeJSON(w, map[string]any{"ok": true, "tenant_id": status.TenantID, "policy_version": status.Version, "policy_sha256": status.SHA256})
 }
 
 func (a *API) agentHubToken(ctx context.Context) (string, error) {

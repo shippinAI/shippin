@@ -114,3 +114,14 @@ func TestAgentHubConnectionConfigurationIsSealedAuditedAndWriteOnly(t *testing.T
 		t.Fatalf("expected one redacted audit row, got %d err=%v", audits, err)
 	}
 }
+
+func TestAgentHubConnectionTestFailsClosedWhenUnconfigured(t *testing.T) {
+	a, d, _ := notifyAPI(t)
+	_, _ = d.Pool.Exec(t.Context(), `DELETE FROM shippin_agenthub_connection`)
+	r := httptest.NewRequest("POST", "/v1/operator/agenthub-connection/test", strings.NewReader(`{"tenant_id":"tenant-1"}`))
+	w := httptest.NewRecorder()
+	a.opTestAgentHubConnection(w, r, nil)
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"ok":false`) || strings.Contains(w.Body.String(), "secret") {
+		t.Fatalf("unconfigured test response status=%d body=%s", w.Code, w.Body.String())
+	}
+}

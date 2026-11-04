@@ -159,9 +159,13 @@ audit details and UI state expose only whether a credential exists. A new
 `shippin_agenthub_connection` migration stores the singleton endpoint and sealed
 bytes. HTTPS endpoint rejection, credential replacement/retention/clear,
 round-trip decryption, ciphertext storage, and audit behavior have focused tests.
-This establishes configuration only: no live AgentHub connection test, mapping
-validation, ticket lifecycle, service principal verification or provider gate
-connection is claimed. Provider mutations continue to return unavailable.
+The same Platform page now offers a read-only policy check for an explicitly
+entered AgentHub tenant and displays only policy version/hash metadata. This can
+verify configured URL and credentials when an operator runs it; fixture tests
+cover the request and local CI has not contacted a live AgentHub. It does not
+validate Shippin system mapping, ticket lifecycle, quorum, service principal
+permissions or provider authorization. Provider mutations continue to return
+unavailable.
 
 The first implementation slice is now authored in the canonical Go database/API
 owners and existing React admin/overview pages: migration 046 backfills the old

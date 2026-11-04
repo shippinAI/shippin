@@ -177,6 +177,7 @@ POST /v1/me/ssh-keys
 POST /v1/onboarding
 POST /v1/operator/access-requests
 POST /v1/operator/access-requests/{grantId}/end
+POST /v1/operator/agenthub-connection/test
 POST /v1/operator/break-glass
 POST /v1/operator/break-glass/{grantId}/{decision}
 POST /v1/operator/catalog/plans

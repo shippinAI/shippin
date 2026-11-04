@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 155,
+  "operationCount": 158,
   "tags": [
     "agents-runtime",
     "audit",
@@ -948,6 +948,36 @@
       "summary": "Queue an operator workspace lifecycle action",
       "tags": [
         "operator-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/agenthub-connection",
+      "operationId": "operatorAgentHubConnectionGet",
+      "summary": "Read AgentHub review connection settings",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/agenthub-connection",
+      "operationId": "operatorAgentHubConnectionPut",
+      "summary": "Configure the AgentHub review connection",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/agenthub-connection/test",
+      "operationId": "operatorAgentHubConnectionTestPost",
+      "summary": "Read current policy metadata from AgentHub",
+      "tags": [
+        "platform"
       ],
       "implementationStatus": "registered"
     },

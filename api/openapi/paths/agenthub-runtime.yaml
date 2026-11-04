@@ -1,0 +1,94 @@
+connection:
+  get:
+    tags: [platform]
+    operationId: operatorAgentHubConnectionGet
+    summary: Read AgentHub review connection settings
+    description: Operator permission-gated. The service credential is never returned; only its configured state is exposed.
+    x-source: shippin-platform/internal/api/platform_agenthub.go:opAgentHubConnection
+    x-implementation-status: registered
+    security:
+      - consoleSession: []
+      - zitadel: []
+    responses:
+      '200':
+        description: Write-only connection configuration status.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [base_url, has_credential, configured]
+              properties:
+                base_url: {type: string}
+                has_credential: {type: boolean}
+                configured: {type: boolean}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+  put:
+    tags: [platform]
+    operationId: operatorAgentHubConnectionPut
+    summary: Configure the AgentHub review connection
+    description: Stores the HTTPS URL and an installation-key-sealed write-only credential; every change is audited.
+    x-source: shippin-platform/internal/api/platform_agenthub.go:opSetAgentHubConnection
+    x-implementation-status: registered
+    security:
+      - consoleSession: []
+      - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [base_url, reason]
+            properties:
+              base_url: {type: string, format: uri, maxLength: 2048}
+              credential: {type: string, writeOnly: true}
+              clear_credential: {type: boolean}
+              reason: {type: string, minLength: 5}
+    responses:
+      '200':
+        description: Saved connection state. Credential bytes are not returned.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [base_url, has_credential, configured]
+              properties:
+                base_url: {type: string}
+                has_credential: {type: boolean}
+                configured: {type: boolean}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+testConnection:
+  post:
+    tags: [platform]
+    operationId: operatorAgentHubConnectionTestPost
+    summary: Read current policy metadata from AgentHub
+    description: Uses the saved endpoint and credential to read policy metadata for the supplied AgentHub tenant. It creates no ticket and authorizes no Shippin provider operation.
+    x-source: shippin-platform/internal/api/platform_agenthub.go:opTestAgentHubConnection
+    x-implementation-status: registered
+    security:
+      - consoleSession: []
+      - zitadel: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [tenant_id]
+            properties:
+              tenant_id: {type: string, minLength: 3, maxLength: 64}
+    responses:
+      '200':
+        description: Policy read result. Error text is redacted and no policy document is returned.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ok]
+              properties:
+                ok: {type: boolean}
+                error: {type: string}
+                tenant_id: {type: string}
+                policy_version: {type: integer}
+                policy_sha256: {type: string}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}

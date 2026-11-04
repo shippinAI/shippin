@@ -49,3 +49,12 @@ export function useSetAgentHubConnection() {
     onError: (e) => toast.error("Not saved", e.message),
   });
 }
+
+export type AgentHubConnectionTest = { ok: boolean; error?: string; tenant_id?: string; policy_version?: number; policy_sha256?: string };
+
+export function useTestAgentHubConnection() {
+  return useMutation({
+    mutationFn: (v: { tenant_id: string }) => apiSend<AgentHubConnectionTest>("POST", "/v1/operator/agenthub-connection/test", v),
+    onError: (e) => toast.error("Connection test failed", e.message),
+  });
+}
