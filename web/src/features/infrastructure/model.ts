@@ -3,6 +3,7 @@ import type { InfraField, InfraNode, InfraOverview, InfraProvider, InfraTotals, 
 
 export const OVERVIEW_TAB = "overview";
 export const FLEETS_TAB = "fleets";
+export const NETWORKS_TAB = "networks";
 
 /** A provider gets a tab once a host is attached to it, so tabs always show something real. */
 export const providersWithHosts = (o: InfraOverview | undefined): InfraProvider[] => (o?.providers ?? []).filter((p) => p.nodes.length > 0);
@@ -10,6 +11,7 @@ export const providersWithHosts = (o: InfraOverview | undefined): InfraProvider[
 /** The tab a URL asks for, or the overview when that provider has no host to show. */
 export function selectedTab(o: InfraOverview | undefined, wanted: string | undefined): string {
   if (wanted === FLEETS_TAB) return FLEETS_TAB;
+  if (wanted === NETWORKS_TAB) return NETWORKS_TAB;
   return wanted && providersWithHosts(o).some((p) => p.kind === wanted) ? wanted : OVERVIEW_TAB;
 }
 

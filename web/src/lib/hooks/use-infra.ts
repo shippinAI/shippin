@@ -80,11 +80,70 @@ export type InfraOperation = {
   finished_at?: string;
 };
 
+export type NetworkProvider = "cloudflare_tunnel" | "tailscale" | "custom";
+export type NetworkConnection = {
+  id: string; label: string; provider: NetworkProvider; config: Record<string, string>;
+  has_credential: boolean; status: "unknown" | "healthy" | "degraded"; last_checked?: string; last_error?: string;
+  sync_interval_seconds: number; created_at: string; updated_at: string;
+};
+export type NetworkResource = {
+  id: string; connection_id: string; provider: NetworkProvider; kind: string; name: string;
+  state?: string; address?: string; details?: Record<string, string>; observed_at: string;
+};
+export type NetworkConnectionInput = { label: string; provider: NetworkProvider; config: Record<string, string>; credential?: string; sync_interval_seconds?: number };
+export type NetworkTestResult = { ok: boolean; error?: string; resource_count?: number; resources?: NetworkResource[] };
+
 const overviewKey = ["infra", "overview"];
 const operationsKey = ["infra", "operations"];
+const networkKey = ["infra", "networks"];
 
 export const useInfraOverview = (enabled = true) =>
   useQuery({ queryKey: overviewKey, queryFn: () => apiGet<InfraOverview>("/v1/infra/overview"), refetchInterval: 30_000, enabled });
+
+export const useNetworkConnections = () => useQuery({
+  queryKey: networkKey,
+  queryFn: () => apiGet<{ items: NetworkConnection[] }>("/v1/infra/networks"),
+  refetchInterval: 30_000,
+});
+
+export const useNetworkResources = (id: string, enabled = true) => useQuery({
+  queryKey: [...networkKey, id, "resources"],
+  queryFn: () => apiGet<{ items: NetworkResource[] }>(`/v1/infra/networks/${encodeURIComponent(id)}/resources`),
+  enabled,
+});
+
+export const useTestNetwork = () => useMutation({
+  mutationFn: (v: NetworkConnectionInput) => apiSend<NetworkTestResult>("POST", "/v1/infra/networks/test", v),
+});
+
+export function useSaveNetwork() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: NetworkConnectionInput & { id?: string; note: string }) => apiSend<NetworkConnection>(
+      v.id ? "PUT" : "POST", v.id ? `/v1/infra/networks/${encodeURIComponent(v.id)}` : "/v1/infra/networks",
+      { label: v.label, provider: v.provider, config: v.config, sync_interval_seconds: v.sync_interval_seconds, ...(v.credential ? { credential: v.credential } : {}) }, { note: v.note },
+    ),
+    onSuccess: async () => { await qc.invalidateQueries({ queryKey: networkKey }); toast.success("Network integration saved", "Provider configuration is stored securely."); },
+    onError: (e) => toast.error("Could not save network integration", e.message),
+  });
+}
+
+export function useSyncNetwork() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiSend<{ items: NetworkResource[]; checked_at: string }>("POST", `/v1/infra/networks/${encodeURIComponent(id)}/sync`),
+    onSuccess: async (_v, id) => { await qc.invalidateQueries({ queryKey: networkKey }); await qc.invalidateQueries({ queryKey: [...networkKey, id, "resources"] }); },
+  });
+}
+
+export function useDeleteNetwork() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; note: string }) => apiSend("DELETE", `/v1/infra/networks/${encodeURIComponent(v.id)}`, undefined, { note: v.note }),
+    onSuccess: async () => { await qc.invalidateQueries({ queryKey: networkKey }); toast.info("Network integration removed", "Its observed inventory was removed from this installation."); },
+    onError: (e) => toast.error("Could not remove network integration", e.message),
+  });
+}
 
 export const isOpen = (o: InfraOperation) => o.status === "queued" || o.status === "running";
 

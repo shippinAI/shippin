@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type { InfraField, InfraOverview, InfraProvider } from "../../lib/hooks/use-infra";
-import { noteOK, verbApplies, firstAnswering, FLEETS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, hostsWithoutFleet, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
+import { noteOK, verbApplies, firstAnswering, FLEETS_TAB, NETWORKS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, hostsWithoutFleet, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
 
 const totals = { nodes: 0, online: 0, guests: 0, running: 0 };
 const provider = (kind: string, nodes = 0): InfraProvider => ({
@@ -52,6 +52,7 @@ assert.ok(!isRunning("stopped"));
 
 assert.equal(selectedTab(one, FLEETS_TAB), FLEETS_TAB, "the fleets tab exists before any host does");
 assert.equal(selectedTab(undefined, FLEETS_TAB), FLEETS_TAB);
+assert.equal(selectedTab(undefined, NETWORKS_TAB), NETWORKS_TAB, "network integrations are configurable before any host exists");
 
 const node = (id: string, fleet_id?: string, online = true, source: "api" | "agent" = "api") => ({ id, label: id, kind: "k", source, online, fleet_id, guests: { total: 3, running: 2 } });
 const mixed = overview(

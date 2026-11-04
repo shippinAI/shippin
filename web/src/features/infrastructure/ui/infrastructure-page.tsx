@@ -8,11 +8,12 @@ import { useInfraCan, useInfraOverview } from "../../../lib/hooks/use-infra";
 import { useNavigate, useParams } from "../../../lib/router/router";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { PageHeader } from "../../../template/page-header";
-import { FLEETS_TAB, OVERVIEW_TAB, providersWithHosts, selectedTab, tabHref } from "../model";
+import { FLEETS_TAB, NETWORKS_TAB, OVERVIEW_TAB, providersWithHosts, selectedTab, tabHref } from "../model";
 import { AddHostDialog } from "./add-host-dialog";
 import { FleetsTab } from "./fleets-tab";
 import { OverviewTab } from "./overview-tab";
 import { ProviderTab } from "./provider-tab";
+import { NetworkConnectionsTab } from "./network-connections-tab";
 
 /** Overview plus one tab per provider that has a host. The server decides what exists; the URL holds the tab. */
 export function InfrastructurePage() {
@@ -48,6 +49,7 @@ export function InfrastructurePage() {
               { id: OVERVIEW_TAB, label: t("infra.tab.overview"), content: <OverviewTab data={q.data} onAdd={may("infra.hosts.write") ? open : undefined} /> },
               ...providers.map((p) => ({ id: p.kind, label: `${p.label} (${p.nodes.length})`, content: <ProviderTab provider={p} /> })),
               { id: FLEETS_TAB, label: t("infra.tab.fleets", { count: q.data.fleets.length }), content: <FleetsTab data={q.data} /> },
+              { id: NETWORKS_TAB, label: "Networks", content: <NetworkConnectionsTab /> },
             ]}
           />
           <AddHostDialog data={q.data} isOpen={adding !== null} initialKind={adding?.kind} initialExisting={adding?.existing}

@@ -2,12 +2,12 @@ import { ChevronDown } from "lucide-react";
 import { Button, Label, ListBox, ListBoxItem, Popover, Select as RacSelect, SelectValue, type Key } from "react-aria-components";
 
 type Option = { id: string; label: string };
-type Props = { label: string; options: Option[]; value: string; onChange: (v: string) => void };
+type Props = { label: string; options: Option[]; value: string; onChange: (v: string) => void; isDisabled?: boolean };
 
 /** Accessible select (RAC) styled like our inputs. */
-export function Select({ label, options, value, onChange }: Props) {
+export function Select({ label, options, value, onChange, isDisabled = false }: Props) {
   return (
-    <RacSelect selectedKey={value} onSelectionChange={(k: Key | null) => k !== null && onChange(String(k))} className="flex flex-col gap-1.5">
+    <RacSelect selectedKey={value} onSelectionChange={(k: Key | null) => k !== null && onChange(String(k))} isDisabled={isDisabled} className="flex flex-col gap-1.5">
       <Label className="text-[13px] font-medium text-fg">{label}</Label>
       <Button className="focus-ring flex h-9 cursor-default items-center justify-between rounded-[var(--radius-control)] border border-line bg-canvas/60 px-3 text-sm text-fg data-hovered:border-line-strong">
         <SelectValue />

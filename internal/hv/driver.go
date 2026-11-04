@@ -31,14 +31,31 @@ var ErrUnsupported = errors.New("hv: not implemented for this driver")
 
 // Guest is one VM or container as the hypervisor last reported it.
 type Guest struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Kind   string `json:"kind"`
-	Status string `json:"status"`
-	Node   string `json:"node"`
-	Tags   string `json:"tags,omitempty"`
+	ID       string        `json:"id"`
+	Name     string        `json:"name"`
+	Kind     string        `json:"kind"`
+	Status   string        `json:"status"`
+	Node     string        `json:"node"`
+	Tags     string        `json:"tags,omitempty"`
+	Pool     string        `json:"pool,omitempty"`
+	Template bool          `json:"template,omitempty"`
+	Uptime   int64         `json:"uptime_seconds,omitempty"`
+	Metrics  *GuestMetrics `json:"metrics,omitempty"`
 	// Self marks the guest this panel runs on, so nothing stops it by accident.
 	Self bool `json:"self,omitempty"`
+}
+
+// GuestMetrics are provider-reported resource counters. Missing metrics stay absent; the API
+// never fabricates zeros for a provider that cannot report them.
+type GuestMetrics struct {
+	CPU        float64 `json:"cpu_fraction"`
+	CPUCount   int     `json:"cpu_count,omitempty"`
+	Memory     int64   `json:"memory_used_bytes"`
+	MaxMemory  int64   `json:"memory_total_bytes"`
+	Disk       int64   `json:"disk_used_bytes"`
+	MaxDisk    int64   `json:"disk_total_bytes"`
+	NetworkIn  int64   `json:"network_in_bytes"`
+	NetworkOut int64   `json:"network_out_bytes"`
 }
 
 // Volume is one storage pool or volume.

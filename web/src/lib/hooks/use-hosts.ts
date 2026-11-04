@@ -2,7 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiSend, isWaitingOnBoard } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 
-export type Guest = { id: string; name: string; kind: string; status: string; node: string; tags?: string; self?: boolean };
+export type GuestMetrics = {
+  cpu_fraction: number; cpu_count?: number; memory_used_bytes: number; memory_total_bytes: number;
+  disk_used_bytes: number; disk_total_bytes: number; network_in_bytes: number; network_out_bytes: number;
+};
+export type Guest = {
+  id: string; name: string; kind: string; status: string; node: string; tags?: string; pool?: string;
+  template?: boolean; uptime_seconds?: number; metrics?: GuestMetrics; self?: boolean;
+};
 
 export type Task = { upid: string; status: string; exitstatus: string; type: string; log?: string[]; done: boolean };
 

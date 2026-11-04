@@ -356,12 +356,23 @@ func (c *Client) now() time.Time {
 }
 
 type resource struct {
-	VMID   int    `json:"vmid"`
-	Name   string `json:"name"`
-	Type   string `json:"type"`
-	Status string `json:"status"`
-	Node   string `json:"node"`
-	Tags   string `json:"tags"`
+	VMID       int     `json:"vmid"`
+	Name       string  `json:"name"`
+	Type       string  `json:"type"`
+	Status     string  `json:"status"`
+	Node       string  `json:"node"`
+	Pool       string  `json:"pool"`
+	Tags       string  `json:"tags"`
+	Template   int     `json:"template"`
+	Uptime     int64   `json:"uptime"`
+	CPU        float64 `json:"cpu"`
+	MaxCPU     int     `json:"maxcpu"`
+	Memory     int64   `json:"mem"`
+	MaxMemory  int64   `json:"maxmem"`
+	Disk       int64   `json:"disk"`
+	MaxDisk    int64   `json:"maxdisk"`
+	NetworkIn  int64   `json:"netin"`
+	NetworkOut int64   `json:"netout"`
 }
 
 func (r resource) guest() hv.Guest {
@@ -369,7 +380,12 @@ func (r resource) guest() hv.Guest {
 	if r.Type == "lxc" {
 		kind = hv.KindCT
 	}
-	return hv.Guest{ID: strconv.Itoa(r.VMID), Name: r.Name, Kind: kind, Status: r.Status, Node: r.Node, Tags: r.Tags}
+	return hv.Guest{
+		ID: strconv.Itoa(r.VMID), Name: r.Name, Kind: kind, Status: r.Status, Node: r.Node, Tags: r.Tags,
+		Pool: r.Pool, Template: r.Template == 1, Uptime: r.Uptime,
+		Metrics: &hv.GuestMetrics{CPU: r.CPU, CPUCount: r.MaxCPU, Memory: r.Memory, MaxMemory: r.MaxMemory,
+			Disk: r.Disk, MaxDisk: r.MaxDisk, NetworkIn: r.NetworkIn, NetworkOut: r.NetworkOut},
+	}
 }
 
 func validSnap(s string) bool {

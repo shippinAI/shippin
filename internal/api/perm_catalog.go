@@ -58,6 +58,7 @@ var permCatalog = []Perm{
 	{Key: "platform.settings.write", Section: "Platform", Label: "Change ops-editable platform settings (audited)", Risk: true, Grantable: true},
 	{Key: "infra.read", Section: "Infrastructure", Label: "View hosts, guests, node detail and the change history"},
 	{Key: "infra.hosts.write", Section: "Infrastructure", Label: "Add, test and detach hosts", Risk: true},
+	{Key: "infra.network.write", Section: "Infrastructure", Label: "Configure and remove network integrations", Risk: true},
 	{Key: "infra.fleets.write", Section: "Infrastructure", Label: "Create and change fleets"},
 	{Key: "infra.guests.power", Section: "Infrastructure", Label: "Start, stop, shut down and reboot guests", Risk: true},
 	{Key: "infra.guests.snapshot", Section: "Infrastructure", Label: "Take snapshots of guests"},

@@ -9,13 +9,14 @@ import { TextField } from "../../../lib/design/components/field/text-field";
 import { Select } from "../../../lib/design/components/select/select";
 import { Skeleton } from "../../../lib/design/components/skeleton/skeleton";
 import { StatusDot } from "../../../lib/design/components/status-dot/status-dot";
+import { formatBytes } from "../../../lib/format";
 import { isWaitingOnBoard } from "../../../lib/api/client";
 import { useServices } from "../../../lib/hooks/use-api";
 import { useCreateGuest, useGuestAction, useGuests, useRollback, useSnapshot, useSnapshots, useTask, type Guest } from "../../../lib/hooks/use-hosts";
 import { isOpen as operationOpen, useDetachHost, useInfraCan, useOperations, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
 
 import { useText } from "../../../lib/ui-config/use-ui-config";
-import { firstAnswering, isRunning, isStopped, stoppableGuests, verbApplies } from "../model";
+import { firstAnswering, formatUptime, isRunning, isStopped, stoppableGuests, verbApplies } from "../model";
 import { ActivityCard } from "./activity-card";
 import { BoardNotice } from "./board-notice";
 import { ChangeNoteDialog, type PendingChange } from "./change-note-dialog";
@@ -140,6 +141,18 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
       {guest && (can("lifecycle") || can("snapshot") || can("snapshot_list")) && (
         <Card className="mb-6 p-5">
           <h2 className="mb-3 text-sm font-semibold text-fg">{guest.name || guest.id}</h2>
+          {guest.metrics && (
+            <dl className="mb-4 grid gap-3 rounded-lg border border-line bg-canvas/40 p-3 text-xs sm:grid-cols-2 lg:grid-cols-4" data-testid="guest-metrics">
+              <div><dt className="text-fg-subtle">CPU</dt><dd className="mt-1 font-medium text-fg">{(guest.metrics.cpu_fraction * 100).toFixed(1)}%{guest.metrics.cpu_count ? ` · ${guest.metrics.cpu_count} vCPU` : ""}</dd></div>
+              <div><dt className="text-fg-subtle">Memory</dt><dd className="mt-1 font-medium text-fg">{formatBytes(guest.metrics.memory_used_bytes)} / {formatBytes(guest.metrics.memory_total_bytes)}</dd></div>
+              <div><dt className="text-fg-subtle">Disk</dt><dd className="mt-1 font-medium text-fg">{formatBytes(guest.metrics.disk_used_bytes)} / {formatBytes(guest.metrics.disk_total_bytes)}</dd></div>
+              <div><dt className="text-fg-subtle">Network I/O</dt><dd className="mt-1 font-medium text-fg">{formatBytes(guest.metrics.network_in_bytes)} in · {formatBytes(guest.metrics.network_out_bytes)} out</dd></div>
+              {guest.uptime_seconds !== undefined && <div><dt className="text-fg-subtle">Uptime</dt><dd className="mt-1 font-medium text-fg">{formatUptime(guest.uptime_seconds)}</dd></div>}
+              {guest.pool && <div><dt className="text-fg-subtle">Pool</dt><dd className="mt-1 font-medium text-fg">{guest.pool}</dd></div>}
+              {guest.template && <div><dt className="text-fg-subtle">Template</dt><dd className="mt-1 font-medium text-fg">Yes</dd></div>}
+              {guest.tags && <div className="sm:col-span-2"><dt className="text-fg-subtle">Tags</dt><dd className="mt-1 font-medium text-fg">{guest.tags}</dd></div>}
+            </dl>
+          )}
           {can("lifecycle") && may("infra.guests.power") && (
             <div className="mb-4 flex flex-wrap gap-2">
               {(provider.verbs as ("start" | "stop" | "shutdown" | "reboot")[]).map((verb) => {

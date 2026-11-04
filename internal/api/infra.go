@@ -65,6 +65,13 @@ func (a *API) infraRouteTable() []infraRoute {
 	return []infraRoute{
 		{"GET /v1/infra/overview", "infra.read", false, a.infraOverview},
 		{"GET /v1/infra/servers", "infra.read", false, a.infraServers},
+		{"GET /v1/infra/networks", "infra.read", false, a.infraNetworkConnections},
+		{"GET /v1/infra/networks/{id}/resources", "infra.read", false, a.infraNetworkResources},
+		{"POST /v1/infra/networks/{id}/sync", "infra.read", false, a.infraNetworkSync},
+		{"POST /v1/infra/networks/test", "infra.network.write", false, a.infraNetworkTest},
+		{"POST /v1/infra/networks", "infra.network.write", true, a.infraNetworkCreate},
+		{"PUT /v1/infra/networks/{id}", "infra.network.write", true, a.infraNetworkUpdate},
+		{"DELETE /v1/infra/networks/{id}", "infra.network.write", true, a.infraNetworkDelete},
 		{"POST /v1/infra/servers", "infra.hosts.write", true, a.infraAdd},
 		{"POST /v1/infra/servers/test", "infra.hosts.write", false, a.infraTest},
 		{"GET /v1/infra/operations", "infra.read", false, a.infraOperations},

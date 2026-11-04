@@ -73,7 +73,7 @@ func TestEveryWriteRouteOtherThanFleetsAndTheTestNeedsANote(t *testing.T) {
 	a := infraAPI(t, "op_infra", &memHV{})
 	for _, rt := range a.infraRouteTable() {
 		method, _, _ := strings.Cut(rt.pattern, " ")
-		noteFree := method == http.MethodGet || rt.perm == "infra.fleets.write" || strings.HasSuffix(rt.pattern, "/servers/test")
+		noteFree := method == http.MethodGet || rt.perm == "infra.fleets.write" || strings.HasSuffix(rt.pattern, "/servers/test") || strings.HasSuffix(rt.pattern, "/networks/test") || strings.HasSuffix(rt.pattern, "/sync")
 		if rt.note == noteFree {
 			t.Errorf("%s: note=%v", rt.pattern, rt.note)
 		}
