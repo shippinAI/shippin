@@ -47,6 +47,23 @@ export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Inst
         {instance && <Stat label="Memory" value={formatBytes(instance.memory_bytes)} />}
         {instance && <Stat label="Address" value={instance.ipv4 || "—"} mono />}
       </dl>
+      {probe.resource && (
+        <div className="mt-3 border-t border-line pt-3 text-xs">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-fg-subtle">
+            <span>Provider resource · {probe.resource.server || probe.resource.server_id}</span>
+            <span>{probe.resource.status ?? (probe.resource.observed ? "Observed" : "Unknown")}</span>
+          </div>
+          {probe.resource.observed && probe.resource.metrics ? (
+            <dl className="grid grid-cols-3 gap-3">
+              <Stat label="CPU" value={`${(probe.resource.metrics.cpu_fraction * 100).toFixed(1)}%`} />
+              <Stat label="Memory" value={`${formatBytes(probe.resource.metrics.memory_used_bytes)} / ${formatBytes(probe.resource.metrics.memory_total_bytes)}`} />
+              <Stat label="Disk" value={`${formatBytes(probe.resource.metrics.disk_used_bytes)} / ${formatBytes(probe.resource.metrics.disk_total_bytes)}`} />
+            </dl>
+          ) : (
+            <p className="text-fg-subtle">{probe.resource.observed ? probe.resource.detail : `Resource state unavailable: ${probe.resource.detail}`}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -2,10 +2,10 @@ services:
   get:
     tags: [platform]
     operationId: getPlatformServices
-    summary: Live probes of platform services joined with Incus instance state (operators only)
+    summary: Live service probes and optional Incus or Proxmox guest resource observations (operators only)
     responses:
       "200":
-        description: Probe results and instances of the platform project.
+        description: Service reachability, provider guest metrics when explicitly configured, and local Incus instances.
         content: { application/json: { schema: { $ref: ../schemas/platform.yaml#/PlatformServices } } }
       "401": { $ref: ../components/responses.yaml#/Problem401 }
       "403": { $ref: ../components/responses.yaml#/Problem403 }

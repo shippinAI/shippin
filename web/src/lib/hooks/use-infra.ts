@@ -6,6 +6,10 @@ import { useMe } from "./use-api";
 
 export type InfraField = { name: string; required: boolean; secret?: boolean; advanced?: boolean; label: string; help?: string; placeholder?: string; default?: string };
 export type InfraGuestCount = { total: number; running: number };
+export type InfraGuest = { id: string; name: string; kind: string; status: string; metrics?: {
+  cpu_fraction: number; cpu_count?: number; memory_used_bytes: number; memory_total_bytes: number;
+  disk_used_bytes: number; disk_total_bytes: number; network_in_bytes?: number; network_out_bytes?: number;
+} };
 export type ClusterMember = { name: string; online: boolean; local?: boolean };
 export type NodeDetails = {
   hostname?: string;
@@ -136,6 +140,13 @@ export function useSaveSystemIdentity(id: string) {
 
 export const useInfraOverview = (enabled = true) =>
   useQuery({ queryKey: overviewKey, queryFn: () => apiGet<InfraOverview>("/v1/infra/overview"), refetchInterval: 30_000, enabled });
+
+export const useInfraGuests = (serverId: string) => useQuery({
+  queryKey: [...overviewKey, serverId, "guests"],
+  queryFn: () => apiGet<{ items: InfraGuest[] }>(`/v1/infra/servers/${encodeURIComponent(serverId)}/guests`),
+  enabled: !!serverId,
+  staleTime: 15_000,
+});
 
 export const useNetworkConnections = () => useQuery({
   queryKey: networkKey,

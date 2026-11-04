@@ -10,7 +10,9 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"unicode"
 
+	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/config"
 )
@@ -68,6 +70,14 @@ func validateProbes(value any) error {
 		if p.TimeoutSeconds < 0 || p.TimeoutSeconds > 10 {
 			return fmt.Errorf("%s timeout must be between 1 and 10 seconds when set", name)
 		}
+		if (p.ServerID == "") != (p.GuestID == "") || len(p.GuestID) > 128 || strings.IndexFunc(p.GuestID, unicode.IsControl) >= 0 {
+			return fmt.Errorf("%s provider resource needs a server ID and guest ID without control characters", name)
+		}
+		if p.ServerID != "" {
+			if _, err := uuid.Parse(p.ServerID); err != nil {
+				return fmt.Errorf("%s provider resource needs a valid system UUID", name)
+			}
+		}
 	}
 	return nil
 }
@@ -75,7 +85,7 @@ func validateProbes(value any) error {
 func (a *API) platformKeys() []platformKey {
 	keys := []platformKey{
 		{Key: "services.probes", Kind: "array", Label: "Services to watch",
-			Help: "Live HTTP or TCP health targets. Saved in PostgreSQL and audited. Probe credentials are not supported.",
+			Help: "Live HTTP or TCP health targets with optional Incus or Proxmox guest resource links. Saved in PostgreSQL and audited; probe credentials are not supported.",
 			def:  func(a *API) any { return a.cfg.Probes }, valid: validateProbes},
 		uiKeyDef(),
 	}

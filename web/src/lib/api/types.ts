@@ -43,7 +43,12 @@ export type PublicSettings = {
   email_sign_in?: boolean;
 };
 
-export type Probe = { name: string; kind: string; instance: string; healthy: boolean; configured?: boolean; latency_ms?: number; detail: string; timeout_seconds: number };
+export type ProbeResource = {
+  server_id: string; guest_id: string; server?: string; name?: string; kind?: string; status?: string;
+  observed: boolean; detail: string; checked_at: string;
+  metrics?: { cpu_fraction: number; cpu_count?: number; memory_used_bytes: number; memory_total_bytes: number; disk_used_bytes: number; disk_total_bytes: number; network_in_bytes: number; network_out_bytes: number };
+};
+export type Probe = { name: string; kind: string; instance: string; healthy: boolean; configured?: boolean; latency_ms?: number; detail: string; timeout_seconds: number; resource?: ProbeResource };
 
 export type Instance = {
   name: string;

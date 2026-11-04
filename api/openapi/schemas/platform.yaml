@@ -9,6 +9,32 @@ Probe:
     latency_ms: { type: integer }
     detail: { type: string }
     timeout_seconds: { type: integer, minimum: 1, maximum: 10, description: 'Effective timeout; legacy definitions default to 3 seconds.' }
+    resource: { $ref: '#/ProbeResource' }
+ProbeResource:
+  type: object
+  required: [server_id, guest_id, observed, detail, checked_at]
+  properties:
+    server_id: { type: string, format: uuid }
+    guest_id: { type: string }
+    server: { type: string, description: 'Configured display label; provider URL and credentials are never returned.' }
+    name: { type: string }
+    kind: { type: string }
+    status: { type: string }
+    observed: { type: boolean, description: 'True only when the provider returned this guest.' }
+    detail: { type: string }
+    checked_at: { type: string, format: date-time }
+    metrics:
+      type: object
+      required: [cpu_fraction, memory_used_bytes, memory_total_bytes, disk_used_bytes, disk_total_bytes, network_in_bytes, network_out_bytes]
+      properties:
+        cpu_fraction: { type: number }
+        cpu_count: { type: integer }
+        memory_used_bytes: { type: integer, format: int64 }
+        memory_total_bytes: { type: integer, format: int64 }
+        disk_used_bytes: { type: integer, format: int64 }
+        disk_total_bytes: { type: integer, format: int64 }
+        network_in_bytes: { type: integer, format: int64 }
+        network_out_bytes: { type: integer, format: int64 }
 PlatformInstance:
   type: object
   properties:

@@ -12,6 +12,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/hv"
 )
 
 type probeResult struct {
@@ -20,10 +21,60 @@ type probeResult struct {
 	Instance string `json:"instance"`
 	Healthy  bool   `json:"healthy"`
 	// Configured is false when nobody has said where this service is. That is not the same as down.
-	Configured     bool   `json:"configured"`
-	LatencyMs      *int64 `json:"latency_ms,omitempty"`
-	Detail         string `json:"detail"`
-	TimeoutSeconds int    `json:"timeout_seconds"`
+	Configured     bool             `json:"configured"`
+	LatencyMs      *int64           `json:"latency_ms,omitempty"`
+	Detail         string           `json:"detail"`
+	TimeoutSeconds int              `json:"timeout_seconds"`
+	Resource       *serviceResource `json:"resource,omitempty"`
+}
+
+type serviceResource struct {
+	ServerID  string           `json:"server_id"`
+	GuestID   string           `json:"guest_id"`
+	Server    string           `json:"server,omitempty"`
+	Name      string           `json:"name,omitempty"`
+	Kind      string           `json:"kind,omitempty"`
+	Status    string           `json:"status,omitempty"`
+	Observed  bool             `json:"observed"`
+	Detail    string           `json:"detail"`
+	CheckedAt time.Time        `json:"checked_at"`
+	Metrics   *hv.GuestMetrics `json:"metrics,omitempty"`
+}
+
+func (a *API) serviceProbe(ctx context.Context, p config.Probe) probeResult {
+	res := probe(ctx, p)
+	if p.ServerID == "" {
+		return res
+	}
+	res.Resource = a.serviceResource(ctx, p)
+	return res
+}
+
+func (a *API) serviceResource(ctx context.Context, p config.Probe) *serviceResource {
+	out := &serviceResource{ServerID: p.ServerID, GuestID: p.GuestID, Detail: "resource unavailable", CheckedAt: time.Now().UTC()}
+	ctx, cancel := context.WithTimeout(ctx, probeTimeout)
+	defer cancel()
+	ep, err := a.hvDir().Endpoint(ctx, p.ServerID)
+	if err != nil {
+		out.Detail = "system unavailable"
+		return out
+	}
+	out.Server = ep.Label
+	driver, err := a.openDriver(ep)
+	if err != nil {
+		return out
+	}
+	guest, err := driver.Guest(ctx, p.GuestID)
+	if err != nil {
+		return out
+	}
+	out.Name, out.Kind, out.Status, out.Metrics, out.Observed = guest.Name, guest.Kind, guest.Status, guest.Metrics, true
+	if guest.Metrics == nil {
+		out.Detail = "provider did not report resource metrics"
+	} else {
+		out.Detail = "observed"
+	}
+	return out
 }
 
 func (a *API) platformProbes(ctx context.Context) []config.Probe {
@@ -114,7 +165,7 @@ func (a *API) services(w http.ResponseWriter, r *http.Request) {
 	var wg sync.WaitGroup
 	for i, p := range definitions {
 		wg.Add(1)
-		go func() { defer wg.Done(); probes[i] = probe(r.Context(), p) }()
+		go func() { defer wg.Done(); probes[i] = a.serviceProbe(r.Context(), p) }()
 	}
 	wg.Wait()
 	insts, ierr := a.instances(r.Context())

@@ -955,7 +955,7 @@
       "method": "GET",
       "path": "/platform/services",
       "operationId": "getPlatformServices",
-      "summary": "Live probes of platform services joined with Incus instance state (operators only)",
+      "summary": "Live service probes and optional Incus or Proxmox guest resource observations (operators only)",
       "tags": [
         "platform"
       ],

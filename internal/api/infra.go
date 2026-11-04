@@ -281,6 +281,9 @@ func (a *API) driver(ctx context.Context, id string) (hv.Driver, error) {
 }
 
 func (a *API) openDriver(ep servers.Endpoint) (hv.Driver, error) {
+	if a.openHV != nil {
+		return a.openHV(ep)
+	}
 	switch ep.Kind {
 	case "proxmox":
 		c, err := a.openEndpoint(ep)

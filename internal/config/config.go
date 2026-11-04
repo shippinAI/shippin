@@ -111,6 +111,8 @@ type Probe struct {
 	Host           string `json:"host,omitempty"`
 	TCP            string `json:"tcp,omitempty"`
 	Instance       string `json:"instance"`
+	ServerID       string `json:"server_id,omitempty"`
+	GuestID        string `json:"guest_id,omitempty"`
 	TimeoutSeconds int    `json:"timeout_seconds,omitempty"`
 }
 
