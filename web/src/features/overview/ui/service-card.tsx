@@ -28,7 +28,7 @@ export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Inst
         <span className="flex size-10 items-center justify-center rounded-xl" style={{ background: `color-mix(in oklch, ${k.hue} 16%, transparent)` }}>
           <Icon className="size-5" style={{ color: k.hue }} strokeWidth={1.75} />
         </span>
-        <Tooltip content={`Probe: ${probe.detail} in ${probe.latency_ms} ms`}>
+        <Tooltip content={probe.latency_ms === undefined ? `Probe: ${probe.detail}` : `Probe: ${probe.detail} in ${probe.latency_ms} ms`}>
           <Focusable>
             <span tabIndex={0} className="outline-none">
               <Badge tone={probe.healthy ? "success" : probe.configured === false ? "neutral" : "danger"}>
@@ -42,7 +42,7 @@ export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Inst
       <div className="mt-4 text-[15px] font-semibold">{probe.name}</div>
       <div className="text-xs text-fg-subtle capitalize">{probe.kind}</div>
       <dl className="mt-4 flex gap-6 border-t border-line pt-3.5 text-xs">
-        <Stat label="Latency" value={probe.configured === false ? "—" : `${probe.latency_ms} ms`} />
+        <Stat label="Latency" value={probe.latency_ms === undefined ? "—" : `${probe.latency_ms} ms`} />
         {/* Only a service tied to an instance has these to show. */}
         {instance && <Stat label="Memory" value={formatBytes(instance.memory_bytes)} />}
         {instance && <Stat label="Address" value={instance.ipv4 || "—"} mono />}

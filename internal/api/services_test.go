@@ -2,8 +2,10 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,8 +14,12 @@ import (
 
 func TestProbeDoesNotClaimMissingTargetIsHealthy(t *testing.T) {
 	got := probe(context.Background(), config.Probe{Name: "Nomen", Kind: "nomen", Instance: "identity"})
-	if got.Healthy || got.Detail != "not configured" {
+	if got.Healthy || got.Detail != "not configured" || got.LatencyMs != nil {
 		t.Fatalf("missing endpoint reported as healthy: %#v", got)
+	}
+	raw, err := json.Marshal(got)
+	if err != nil || strings.Contains(string(raw), `"latency_ms"`) {
+		t.Fatalf("unconfigured probe must omit unmeasured latency: json=%s err=%v", raw, err)
 	}
 }
 
@@ -21,7 +27,7 @@ func TestProbeTellsNotSetUpFromDown(t *testing.T) {
 	if got := probe(context.Background(), config.Probe{Name: "Nomen", Kind: "nomen"}); got.Configured || got.Healthy {
 		t.Fatalf("no target must read as not set up: %+v", got)
 	}
-	if got := probe(context.Background(), config.Probe{Name: "Nomen", Kind: "nomen", TCP: "127.0.0.1:1"}); !got.Configured || got.Healthy {
+	if got := probe(context.Background(), config.Probe{Name: "Nomen", Kind: "nomen", TCP: "127.0.0.1:1"}); !got.Configured || got.Healthy || got.LatencyMs == nil {
 		t.Fatalf("a target that does not answer must read as down: %+v", got)
 	}
 }

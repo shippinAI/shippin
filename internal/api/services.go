@@ -21,7 +21,7 @@ type probeResult struct {
 	Healthy  bool   `json:"healthy"`
 	// Configured is false when nobody has said where this service is. That is not the same as down.
 	Configured     bool   `json:"configured"`
-	LatencyMs      int64  `json:"latency_ms"`
+	LatencyMs      *int64 `json:"latency_ms,omitempty"`
 	Detail         string `json:"detail"`
 	TimeoutSeconds int    `json:"timeout_seconds"`
 }
@@ -59,8 +59,6 @@ func probe(ctx context.Context, p config.Probe) (res probeResult) {
 	}
 	probeCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	t0 := time.Now()
-	defer func() { res.LatencyMs = time.Since(t0).Milliseconds() }()
 	// A named service without a target is configuration, not a successful probe.
 	// Keep the health page useful during first-run without panicking on an empty URL.
 	if (p.TCP == "") == (p.URL == "") {
@@ -68,6 +66,11 @@ func probe(ctx context.Context, p config.Probe) (res probeResult) {
 		return res
 	}
 	res.Configured = true
+	t0 := time.Now()
+	defer func() {
+		latency := time.Since(t0).Milliseconds()
+		res.LatencyMs = &latency
+	}()
 	if p.TCP != "" {
 		c, err := (&net.Dialer{Timeout: timeout}).DialContext(probeCtx, "tcp", p.TCP)
 		if err == nil {
