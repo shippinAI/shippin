@@ -1,0 +1,85 @@
+CatalogService:
+  type: object
+  additionalProperties: false
+  required: [id, label, config_schema, default_config, required, active]
+  properties:
+    id: { type: string, pattern: '^[a-z][a-z0-9_-]{1,39}$' }
+    label: { type: string, minLength: 1 }
+    description: { type: string }
+    kind: { type: string }
+    docs_url: { type: string, format: uri-reference }
+    config_schema:
+      type: object
+      description: >-
+        A JSON Schema 2020-12 object schema. Deployable definitions require
+        additionalProperties=false for every object and use format
+        shippin-secret-ref for Vaultix or SOPS references. Remote $ref and
+        dynamic property names are rejected by the control plane.
+    default_config: { type: object, additionalProperties: true }
+    deployment_source:
+      oneOf:
+        - { type: 'null' }
+        - $ref: '#/DeploymentSource'
+    required: { type: boolean }
+    active: { type: boolean }
+    updated_at: { type: string, format: date-time }
+CatalogServiceInput:
+  type: object
+  additionalProperties: false
+  required: [id, label]
+  properties:
+    id: { type: string, pattern: '^[a-z][a-z0-9_-]{1,39}$' }
+    label: { type: string, minLength: 1 }
+    description: { type: string }
+    kind: { type: string }
+    docs_url: { type: string, format: uri-reference }
+    config_schema:
+      type: object
+      description: >-
+        A JSON Schema 2020-12 object schema. Deployable definitions require
+        additionalProperties=false for every object and use format
+        shippin-secret-ref for Vaultix or SOPS references. Remote $ref and
+        dynamic property names are rejected by the control plane.
+    default_config: { type: object, additionalProperties: true }
+    deployment_source:
+      oneOf:
+        - { type: 'null' }
+        - $ref: '#/DeploymentSource'
+    required: { type: boolean }
+    active: { type: boolean }
+CatalogServiceUpdate:
+  type: object
+  additionalProperties: false
+  required: [label]
+  properties:
+    label: { type: string, minLength: 1 }
+    description: { type: string }
+    kind: { type: string }
+    docs_url: { type: string, format: uri-reference }
+    config_schema:
+      type: object
+      description: >-
+        A JSON Schema 2020-12 object schema. Deployable definitions require
+        additionalProperties=false for every object and use format
+        shippin-secret-ref for Vaultix or SOPS references. Remote $ref and
+        dynamic property names are rejected by the control plane.
+    default_config: { type: object, additionalProperties: true }
+    deployment_source:
+      oneOf:
+        - { type: 'null' }
+        - $ref: '#/DeploymentSource'
+    required: { type: boolean }
+    active: { type: boolean }
+DeploymentSource:
+  type: object
+  additionalProperties: false
+  required: [kind, reference]
+  properties:
+    kind: { type: string, enum: [github, git, oci] }
+    reference: { type: string, minLength: 1, maxLength: 2048 }
+    commit: { type: string, pattern: '^(?:[a-f0-9]{40}|[a-f0-9]{64})$' }
+    context_path: { type: string, maxLength: 512 }
+    credential_ref:
+      type: string
+      maxLength: 1024
+      pattern: '^(vaultix|sops)://'

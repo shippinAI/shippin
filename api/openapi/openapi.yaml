@@ -52,6 +52,8 @@ tags:
     description: The calling identity.
   - name: platform
     description: Operator views of the platform itself (health, instances).
+  - name: catalog
+    description: Operator-managed reusable service definitions and customer configuration.
   - name: compute-nodes
     description: Planned operator management of enrolled compute hosts.
 paths:
@@ -143,6 +145,10 @@ paths:
     $ref: paths/compute-nodes.yaml#/enrollments
   /operator/compute/enrollments/{enrollmentId}:
     $ref: paths/compute-nodes.yaml#/enrollment
+  /operator/catalog/services:
+    $ref: paths/catalog.yaml#/services
+  /operator/catalog/services/{id}:
+    $ref: paths/catalog.yaml#/service
   /compute/enroll:
     $ref: paths/compute-nodes.yaml#/redeem
   /tenants/{tenantId}/workspaces/{workspaceId}/site:

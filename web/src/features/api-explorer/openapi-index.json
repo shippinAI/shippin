@@ -1,11 +1,12 @@
 {
   "basePath": "/v1",
-  "operationCount": 136,
+  "operationCount": 141,
   "tags": [
     "agents-runtime",
     "audit",
     "bridge-runtime",
     "bundle-runtime",
+    "catalog",
     "chat-runtime",
     "compute-enrollment",
     "compute-nodes",
@@ -198,6 +199,56 @@
         "bundle-runtime"
       ],
       "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/catalog/services",
+      "operationId": "listCatalogServices",
+      "summary": "List configured service definitions (operators only)",
+      "tags": [
+        "catalog"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/catalog/services",
+      "operationId": "createCatalogService",
+      "summary": "Create a configurable service definition (operators only)",
+      "tags": [
+        "catalog"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/catalog/services/{id}",
+      "operationId": "deleteCatalogService",
+      "summary": "Delete a service definition without active plan references (operators only)",
+      "tags": [
+        "catalog"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/catalog/services/{id}",
+      "operationId": "getCatalogService",
+      "summary": "Read one service definition (operators only)",
+      "tags": [
+        "catalog"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/catalog/services/{id}",
+      "operationId": "updateCatalogService",
+      "summary": "Update a service definition (operators only)",
+      "tags": [
+        "catalog"
+      ],
+      "implementationStatus": "unknown"
     },
     {
       "method": "GET",

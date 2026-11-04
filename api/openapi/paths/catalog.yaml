@@ -1,0 +1,78 @@
+services:
+  get:
+    tags: [catalog]
+    operationId: listCatalogServices
+    summary: List configured service definitions (operators only)
+    responses:
+      "200":
+        description: Service definitions and pinned deployment source metadata.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items: { $ref: ../schemas/catalog.yaml#/CatalogService }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  post:
+    tags: [catalog]
+    operationId: createCatalogService
+    summary: Create a configurable service definition (operators only)
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: ../schemas/catalog.yaml#/CatalogServiceInput }
+    responses:
+      "201":
+        description: The definition was persisted.
+        content:
+          application/json:
+            schema: { $ref: ../schemas/catalog.yaml#/CatalogService }
+      "400": { $ref: ../components/responses.yaml#/ProblemDefault }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+
+service:
+  get:
+    tags: [catalog]
+    operationId: getCatalogService
+    summary: Read one service definition (operators only)
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    responses:
+      "200":
+        description: The service definition.
+        content:
+          application/json:
+            schema: { $ref: ../schemas/catalog.yaml#/CatalogService }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  put:
+    tags: [catalog]
+    operationId: updateCatalogService
+    summary: Update a service definition (operators only)
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: ../schemas/catalog.yaml#/CatalogServiceUpdate }
+    responses:
+      "200":
+        description: The definition was updated.
+        content:
+          application/json:
+            schema: { $ref: ../schemas/catalog.yaml#/CatalogService }
+      "400": { $ref: ../components/responses.yaml#/ProblemDefault }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+  delete:
+    tags: [catalog]
+    operationId: deleteCatalogService
+    summary: Delete a service definition without active plan references (operators only)
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    responses:
+      "204": { description: The definition was deleted. }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }

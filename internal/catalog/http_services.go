@@ -47,6 +47,10 @@ func (h *Handler) readService(w http.ResponseWriter, r *http.Request) (Service, 
 			auth.Problem(w, http.StatusBadRequest, "The deployment source is invalid: "+err.Error()+".")
 			return v, false
 		}
+		if err := ValidateDeploymentConfig(v.ConfigSchema, v.DefaultConfig); err != nil {
+			auth.Problem(w, http.StatusBadRequest, "The deployable service configuration is invalid: "+err.Error()+".")
+			return v, false
+		}
 	}
 	return v, true
 }
