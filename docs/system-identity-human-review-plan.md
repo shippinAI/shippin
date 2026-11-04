@@ -15,11 +15,12 @@ records; the control plane owns the authoritative system inventory.
 > [configurable human review](approval.md). Shippin now persists hostname
 > source/time on enrollment and exposes audited aliases, tags and explicit
 > AgentHub tenant/machine mappings on the existing infrastructure screen for
-> attached and unattached registered systems; this
-> does not yet verify mappings with AgentHub or run its review workflow.
-> The new `internal/agenthub` client is also not wired into the API: its tests
-> use a simulated REST server and do not establish live AgentHub compatibility.
-> Provider mutations therefore remain unavailable.
+> attached and unattached registered systems; this does not yet verify mappings
+> with AgentHub or run its review workflow. The `internal/agenthub` client now
+> backs an operator-configured endpoint and a read-only policy metadata check in
+> the existing Platform settings API and UI. Its tests use a simulated REST
+> server and do not establish live AgentHub compatibility. It is not connected
+> to provider authorization, so provider mutations remain unavailable.
 > Source ownership is defined by [source of truth](source-of-truth.md).
 
 ## Grounded starting point
