@@ -20,13 +20,14 @@ const (
 
 // Capabilities a driver may offer beyond reading health and guests.
 const (
-	CapLifecycle    = "lifecycle"
-	CapSnapshot     = "snapshot"
-	CapSnapshotList = "snapshot_list"
-	CapRollback     = "rollback"
-	CapCreate       = "create"
-	CapDelete       = "delete"
-	CapTasks        = "tasks"
+	CapLifecycle        = "lifecycle"
+	CapSnapshot         = "snapshot"
+	CapSnapshotList     = "snapshot_list"
+	CapRollback         = "rollback"
+	CapCreate           = "create"
+	CapDelete           = "delete"
+	CapTasks            = "tasks"
+	CapStorageInventory = "storage_inventory"
 )
 
 // Field is one value a driver needs to reach a hypervisor. Secret is write-only: the API never
@@ -78,7 +79,7 @@ func Specs() []Spec {
 				{Name: FieldTokenEnv, Advanced: true},
 				{Name: FieldCAFile, Advanced: true},
 			},
-			Capabilities: []string{CapLifecycle, CapSnapshot, CapSnapshotList, CapRollback, CapCreate, CapDelete, CapTasks},
+			Capabilities: []string{CapLifecycle, CapSnapshot, CapSnapshotList, CapRollback, CapCreate, CapDelete, CapTasks, CapStorageInventory},
 			Verbs:        []string{"start", "stop", "shutdown", "reboot"},
 			CreateFields: []string{"memory", "cores", "disk", "storage", "network", "blank_vm"},
 		},

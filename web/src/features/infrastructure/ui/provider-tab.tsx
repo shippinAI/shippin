@@ -12,7 +12,7 @@ import { StatusDot } from "../../../lib/design/components/status-dot/status-dot"
 import { formatBytes } from "../../../lib/format";
 import { isWaitingOnBoard } from "../../../lib/api/client";
 import { useServices } from "../../../lib/hooks/use-api";
-import { useCreateGuest, useDeleteGuest, useGuestAction, useGuests, useRollback, useSnapshot, useSnapshots, useTask, type Guest } from "../../../lib/hooks/use-hosts";
+import { useCreateGuest, useDeleteGuest, useGuestAction, useGuests, useRollback, useSnapshot, useSnapshots, useStorageInventory, useTask, type Guest } from "../../../lib/hooks/use-hosts";
 import { isOpen as operationOpen, useDetachHost, useInfraCan, useOperations, useSaveSystemIdentity, useSystemIdentity, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
 
 import { useText } from "../../../lib/ui-config/use-ui-config";
@@ -77,6 +77,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
   const base = `/v1/infra/servers/${node.id}`;
   const columns = useGuestColumns();
   const guests = useGuests(base);
+  const storage = useStorageInventory(base, provider.capabilities.includes("storage_inventory"));
   const [guestId, setGuestId] = useState("");
   const guest = (guests.data?.items ?? []).find((g) => g.id === guestId);
   const snaps = useSnapshots(can("snapshot_list") ? base : "", guest?.id ?? "");
@@ -138,6 +139,44 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
             } />
         )}
       </Card>
+      {provider.capabilities.includes("storage_inventory") && (
+        <Card className="mb-6 overflow-hidden" data-testid="storage-inventory">
+          <CardHeader title={t("infra.storage.title")} description={t("infra.storage.capacity")} />
+          {storage.isPending ? (
+            <div className="space-y-3 p-5">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-9" />)}</div>
+          ) : storage.isError ? (
+            <p role="alert" className="p-5 text-sm text-danger">{storage.error.message}</p>
+          ) : (storage.data?.items ?? []).length === 0 ? (
+            <EmptyState title={t("infra.storage.title")} description={t("infra.storage.empty")} />
+          ) : (
+            <ul className="divide-y divide-line">
+              {(storage.data?.items ?? []).map((volume) => {
+                const measured = volume.total_bytes > 0;
+                const used = measured ? Math.max(0, volume.used_bytes) : 0;
+                const percent = measured ? Math.min(100, Math.max(0, (used / volume.total_bytes) * 100)) : 0;
+                const free = measured ? Math.max(0, volume.total_bytes - used) : 0;
+                return (
+                  <li key={`${volume.node}:${volume.name}`} className="grid gap-3 px-5 py-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                    <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.name")}</dt><dd className="font-medium text-fg">{volume.name}</dd></div>
+                    <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.type")}</dt><dd className="text-fg">{volume.type}</dd></div>
+                    <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.node")}</dt><dd className="text-fg">{volume.node}</dd></div>
+                    <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.content")}</dt><dd className="break-words text-fg">{volume.content || "—"}</dd></div>
+                    <div className="sm:col-span-2 lg:col-span-4">
+                      {measured ? <>
+                        <div className="flex justify-between gap-3 text-[12px] text-fg-subtle">
+                          <span>{t("infra.storage.capacity")}: {formatBytes(used)} / {formatBytes(volume.total_bytes)}</span>
+                          <span>{t("infra.storage.free")}: {formatBytes(free)}</span>
+                        </div>
+                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-raised"><div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} /></div>
+                      </> : <p className="text-[12px] text-fg-muted">{t("infra.storage.unknownCapacity")}</p>}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+      )}
       {guest && (can("lifecycle") || can("snapshot") || can("snapshot_list")) && (
         <Card className="mb-6 p-5">
           <h2 className="mb-3 text-sm font-semibold text-fg">{guest.name || guest.id}</h2>

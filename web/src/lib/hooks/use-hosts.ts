@@ -63,6 +63,7 @@ export function useGuestAction(base: string) {
 export type NewGuest = { kind: string; name: string; image: string; storage?: string; network?: string; memory: number; cores: number; disk: number; start: boolean };
 export type GuestImage = { id: string; label: string; kind?: string };
 export type GuestStorage = { name: string; type: string; content?: string; node?: string };
+export type StorageVolume = GuestStorage & { node: string; used_bytes: number; total_bytes: number };
 export type GuestNetwork = { name: string; type: string; node?: string };
 
 /** What a guest can be made from on this host. */
@@ -72,6 +73,15 @@ export const useGuestImages = (base: string) =>
 /** Placement choices are read from this attached provider, never supplied as panel defaults. */
 export const useGuestStorage = (base: string) =>
   useQuery({ queryKey: ["hv", base, "storage"], queryFn: () => apiGet<{ items: GuestStorage[] }>(`${base}/storage`), enabled: base !== "" });
+
+/** Live provider storage inventory and capacity; unsupported drivers do not issue this request. */
+export const useStorageInventory = (base: string, enabled: boolean) =>
+  useQuery({
+    queryKey: ["hv", base, "storage-inventory"],
+    queryFn: () => apiGet<{ items: StorageVolume[] }>(`${base}/storage`),
+    enabled: !!base && enabled,
+    refetchInterval: 30_000,
+  });
 
 export const useGuestNetworks = (base: string) =>
   useQuery({ queryKey: ["hv", base, "networks"], queryFn: () => apiGet<{ items: GuestNetwork[] }>(`${base}/network`), enabled: base !== "" });
