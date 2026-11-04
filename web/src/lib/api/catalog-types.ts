@@ -4,10 +4,18 @@ export type Json = string | number | boolean | null | Json[] | { [k: string]: Js
 
 export type Plan = { id: string; label: string; description: string; rank: number; /** omitted by the API without catalog.prices.read */ price_cents?: number; public: boolean; active: boolean };
 
+export type CatalogDeploymentSource = {
+  kind: "github" | "git" | "oci";
+  reference: string;
+  commit?: string;
+  context_path?: string;
+  credential_ref?: string;
+};
+
 export type CatalogService = {
   id: string; label: string; description: string; kind: string; docs_url: string;
   config_schema: { properties?: Record<string, { type?: string; title?: string }> };
-  default_config: Record<string, Json>; required: boolean; active: boolean;
+  default_config: Record<string, Json>; deployment_source: CatalogDeploymentSource | null; required: boolean; active: boolean;
 };
 
 export type PlanService = { plan_id: string; service_id: string; enabled: boolean; lock: Lock; limits: Record<string, Json> };

@@ -1,6 +1,9 @@
 # Managed data services (control plane)
 
-Status: design for review. No provisioning implementation in this change.
+Status: design for review. The product catalog now persists validated deployment source metadata
+for GitHub, custom HTTPS Git, and digest-pinned OCI sources (migration 043), editable in the
+existing operator catalog UI. This is source configuration only: there is still no fetcher,
+builder, reconciler, or managed data-service provisioning implementation.
 
 the operator wants the console UI to create and operate Postgres, Dragonfly, Redis, and similar data
 services. The control plane owns them: a registry, one reconciler, and one infra role. They are
@@ -15,7 +18,7 @@ are documentation URLs in the catalog seed, not code that was read.
 
 | Area | What it actually is | Not |
 |---|---|---|
-| Product catalog | Plans and sellable services (`vaultix`, `identity`, `agent_hub`, `chatmaton`, `devspace`, `mail`, `dns`) in `internal/db/migrations/010_catalog.sql`, `011_catalog_seed.sql`, `034_canonical_plans.sql`. Admin UI: `web/src/features/admin/ui/catalog/`. | A runtime registry of Postgres/Redis/Dragonfly instances. |
+| Product catalog | Plans and sellable services (`vaultix`, `identity`, `agent_hub`, `chatmaton`, `devspace`, `mail`, `dns`) in `internal/db/migrations/010_catalog.sql`, `011_catalog_seed.sql`, `034_canonical_plans.sql`. Admin UI: `web/src/features/admin/ui/catalog/`. Catalog rows can now carry a validated pinned GitHub/custom Git/OCI source (`043_catalog_deployment_source.sql`). | A runtime registry of Postgres/Redis/Dragonfly instances or an executor for the saved source. |
 | Managed instances | `service_instances` / `service_bindings`. Kind check allows only `rrflow-state` (`internal/db/migrations/020_services.sql`). Store: `internal/managed/store.go`. Routes only list and attach rrflow (`internal/api/managed_routes.go`). | Create/status/backup/scale/delete for data services. |
 | Starter Postgres | hostd `EnsureStarterDB` runs SQL inside an existing `pg` Incus instance and stores the role password with `sops` (`internal/hostd/starter_db.go`). The address is config (`StarterDBConfig.Addr`), with `203.0.113.20:5432` as the comment's example. | A service the console creates. It assumes the cluster is already there. |
 | Tenant SQL browser | `internal/tenantdb` connects to a database the tenant already has. Passwords come from a secret map. `sslmode=require` sets a verifying TLS config (`internal/tenantdb/session.go`). | Provisioning. |
@@ -155,6 +158,9 @@ Events are an append-only ring on the backup row. A repeated failure updates `ne
 
 S3, SMB, and Infisical transfer executors from the panel shell out or keep long-lived sessions. They are specified here and not wired in the driver PR. The pure checks (destination shape, coverage summary, event ring) are the part that can land with tests.
 
-## Explicitly not in this change
+## Explicitly not implemented yet
 
-No new API routes, no migration, no UI, no agent commands. This file is the review. The hypervisor driver library is a separate change and does not provision these services.
+The source contract does not fetch, build, inspect, or deploy artifacts. It does not provision
+Postgres, Dragonfly, Redis, or ClickHouse; create an instance registry; reconcile desired and
+observed state; resolve Vaultix/sops references; or add host-agent actions. The hypervisor driver
+library is a separate concern and does not provision these services.

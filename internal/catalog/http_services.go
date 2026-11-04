@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"shippin.cloud/console/internal/auth"
@@ -19,7 +20,14 @@ func (h *Handler) getService(w http.ResponseWriter, r *http.Request, _ string) {
 
 func (h *Handler) readService(w http.ResponseWriter, r *http.Request) (Service, bool) {
 	v := Service{Active: true, Kind: "app"}
-	if !decodeBody(w, r, &v) {
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&v); err != nil {
+		auth.Problem(w, http.StatusBadRequest, "The request body isn't a valid service definition.")
+		return v, false
+	}
+	if err := dec.Decode(new(any)); err != io.EOF {
+		auth.Problem(w, http.StatusBadRequest, "The request body must contain one service definition.")
 		return v, false
 	}
 	if id := r.PathValue("id"); id != "" {
@@ -30,12 +38,22 @@ func (h *Handler) readService(w http.ResponseWriter, r *http.Request) (Service, 
 			*f = json.RawMessage(`{}`)
 		}
 	}
-	var a, b map[string]any
-	if !slug.MatchString(v.ID) || v.Label == "" || json.Unmarshal(v.ConfigSchema, &a) != nil || json.Unmarshal(v.DefaultConfig, &b) != nil {
+	if !slug.MatchString(v.ID) || v.Label == "" || !jsonObject(v.ConfigSchema) || !jsonObject(v.DefaultConfig) {
 		auth.Problem(w, http.StatusBadRequest, "A service needs a lowercase id, a label, and JSON objects for config schema and defaults.")
 		return v, false
 	}
+	if v.DeploymentSource != nil {
+		if err := v.DeploymentSource.Validate(); err != nil {
+			auth.Problem(w, http.StatusBadRequest, "The deployment source is invalid: "+err.Error()+".")
+			return v, false
+		}
+	}
 	return v, true
+}
+
+func jsonObject(raw json.RawMessage) bool {
+	var object map[string]json.RawMessage
+	return json.Unmarshal(raw, &object) == nil && object != nil
 }
 
 func (h *Handler) createService(w http.ResponseWriter, r *http.Request, _ string) {

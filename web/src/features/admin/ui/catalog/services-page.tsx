@@ -19,7 +19,7 @@ export function ServicesPage() {
   const items = q.data?.items ?? [];
   return (
     <>
-      <PageHeader eyebrow="Provider" title="Service catalog" description="What Shippin can turn on for a customer. Each row carries a config schema and the system defaults every tier starts from."
+      <PageHeader eyebrow="Provider" title="Service catalog" description="Manage catalog definitions, configuration defaults, and pinned deployment sources. A source definition is not a deployed service."
         actions={write && <Button variant="primary" size="sm" tooltip="Add a service row" onPress={() => setEdit({})}><Plus className="size-4" /> New service</Button>} />
       <QueryView isPending={q.isPending} error={q.error} onRetry={() => void q.refetch()}>
         {() => items.length === 0 ? (
@@ -37,6 +37,7 @@ export function ServicesPage() {
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {s.required && <Badge tone="danger">required on every plan</Badge>}
                   {!s.active && <Badge tone="warning">inactive</Badge>}
+                  {s.deployment_source && <Badge tone="info">{s.deployment_source.kind} source pinned</Badge>}
                   {Object.entries(s.config_schema.properties ?? {}).map(([k, v]) => (
                     <Badge key={k}>{v.title ?? k}: {JSON.stringify(s.default_config[k] ?? "—")}</Badge>
                   ))}
