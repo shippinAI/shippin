@@ -414,6 +414,7 @@ func (a *API) infraRegistry(w http.ResponseWriter, r *http.Request, _ *caller) {
 }
 
 type hvAttach struct {
+	ServerID string `json:"server_id,omitempty"`
 	Kind     string `json:"kind"`
 	BaseURL  string `json:"base_url"`
 	Node     string `json:"node"`
@@ -1341,7 +1342,7 @@ func validateEndpoint(e servers.Endpoint, in hvAttach) error {
 	allowed := map[string]bool{}
 	for _, f := range spec.Fields {
 		allowed[f.Name] = true
-		if f.Required && values[f.Name] == "" {
+		if f.Required && values[f.Name] == "" && !(f.Name == hv.FieldTokenSecret && (len(e.SealedSecret) > 0 || e.TokenEnv != "")) {
 			return fmt.Errorf("%s is required for %s", f.Name, e.Kind)
 		}
 	}

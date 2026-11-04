@@ -4,7 +4,7 @@ import { ModalDialog } from "../../../lib/design/components/dialog/modal-dialog"
 import { Disclosure } from "../../../lib/design/components/disclosure/disclosure";
 import { TextField } from "../../../lib/design/components/field/text-field";
 import { Select } from "../../../lib/design/components/select/select";
-import { useAddHost, useTestHost, type ConnectResult, type InfraField, type InfraOverview } from "../../../lib/hooks/use-infra";
+import { useAddHost, useTestHost, type ConnectResult, type InfraField, type InfraNode, type InfraOverview } from "../../../lib/hooks/use-infra";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { fieldsComplete, filledValues, initialValues, noteOK, siteOK, slugFrom, slugOK } from "../model";
 
@@ -15,6 +15,7 @@ type Props = {
   isOpen: boolean;
   initialKind?: string;
   initialExisting?: string;
+  editNode?: InfraNode;
   onOpenChange: (open: boolean) => void;
   onAdded: (kind: string) => void;
 };
@@ -49,7 +50,7 @@ function TestOutcome({ result, onTrust }: { result: ConnectResult; onTrust: (pem
 }
 
 /** The form comes entirely from the overview: which providers exist and what each one asks for. */
-export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOpenChange, onAdded }: Props) {
+export function AddHostDialog({ data, isOpen, initialKind, initialExisting, editNode, onOpenChange, onAdded }: Props) {
   const t = useText();
   const add = useAddHost();
   const test = useTestHost();
@@ -77,7 +78,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOp
     if (!isOpen) return;
     const first = providers.find((p) => p.kind === initialKind) ?? providers[0];
     setKind(first?.kind ?? "");
-    setValues(initialValues(first?.fields ?? []));
+    setValues({ ...initialValues(first?.fields ?? []), ...(editNode?.config ?? {}) });
     setTarget(initialExisting ?? NEW_HOST);
     setLabel("");
     setSlug("");
@@ -88,7 +89,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOp
     resetTest();
     // Reset only when the dialog opens: the overview refreshes on a timer behind it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialKind, initialExisting]);
+  }, [isOpen, initialKind, initialExisting, editNode]);
 
   const pick = (next: string) => {
     setKind(next);
@@ -101,11 +102,12 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOp
     resetTest();
   };
   const existing = data.unattached.find((s) => s.id === target);
-  const isNew = !existing;
+  const isNew = !existing && !editNode;
   const hostOK = !isNew || (label.trim().length > 0 && slugOK(slug) && (!site || siteOK(site)));
-  const filled = fieldsComplete(fields, values) && Object.keys(filledValues(fields, values)).length > 0;
-  const valid = !!provider && hostOK && filled && noteOK(note);
-  const hostValues = () => ({ kind: provider!.kind, values: filledValues(fields, values), trustedCert: trusted || undefined });
+  const editableFields = editNode ? fields.map((f) => ({ ...f, required: f.required && !f.secret })) : fields;
+  const filled = fieldsComplete(editableFields, values) && Object.keys(filledValues(fields, values)).length > 0;
+  const valid = !!provider && hostOK && filled && noteOK(note) && (!editNode || test.data?.ok === true);
+  const hostValues = () => ({ kind: provider!.kind, values: filledValues(fields, values), trustedCert: trusted || undefined, serverId: editNode?.id });
   const runTest = (trust?: string) => {
     if (!provider) return;
     test.mutate({ ...hostValues(), trustedCert: trust ?? (trusted || undefined) });
@@ -118,6 +120,12 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOp
     if (!provider) return;
     // A detached host keeps its slug, so adding it back under that slug reattaches it.
     const detached = existing ?? data.unattached.find((s) => s.slug === slug);
+    if (editNode) {
+      add.mutate({ ...hostValues(), existing: editNode.id, label: editNode.label, note: note.trim() }, {
+        onSuccess: () => { onOpenChange(false); onAdded(provider.kind); },
+      });
+      return;
+    }
     const request = detached
       ? { ...hostValues(), existing: detached.id, label: label.trim() || detached.label || detached.slug, note: note.trim() }
       : { ...hostValues(), label: label.trim(), slug, site, note: note.trim() };
@@ -131,13 +139,13 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOp
   const targets = [{ id: NEW_HOST, label: t("infra.dialog.targetNew") }, ...data.unattached.map((s) => ({ id: s.id, label: s.label || s.slug }))];
   const field = (f: InfraField) => (
     <TextField key={`${provider?.kind}:${f.name}`} label={f.label} value={values[f.name] ?? ""} mono={!f.secret} type={f.secret ? "password" : "text"} isRequired={f.required}
-      description={f.help} placeholder={f.placeholder} autoComplete="off" onChange={(v) => setField(f.name, v)} />
+      description={f.help} placeholder={f.secret && editNode && (editNode.has_secret || editNode.config?.token_env || editNode.config?.cert_file) ? t("infra.dialog.secretKeep") : f.placeholder} autoComplete="off" onChange={(v) => setField(f.name, v)} />
   );
   const advanced = fields.filter((f) => f.advanced);
   return (
-    <ModalDialog isOpen={isOpen} onOpenChange={onOpenChange} title={t("infra.dialog.title")} description={t("infra.dialog.description")}>
+    <ModalDialog isOpen={isOpen} onOpenChange={onOpenChange} title={editNode ? t("infra.dialog.editTitle", { label: editNode.label }) : t("infra.dialog.title")} description={editNode ? t("infra.dialog.editDescription") : t("infra.dialog.description")}>
       <div className="max-h-[75vh] space-y-4 overflow-y-auto px-6 py-5">
-        <Select label={t("infra.dialog.provider")} options={providers.map((p) => ({ id: p.kind, label: p.label }))} value={provider?.kind ?? ""} onChange={pick} />
+        {editNode ? <p className="text-sm text-fg-muted">{provider?.label} · {editNode.slug}</p> : <Select label={t("infra.dialog.provider")} options={providers.map((p) => ({ id: p.kind, label: p.label }))} value={provider?.kind ?? ""} onChange={pick} />}
         {provider?.description && <p className="text-[13px] text-fg-muted">{provider.description}</p>}
         {targets.length > 1 && <Select label={t("infra.dialog.target")} options={targets} value={target} onChange={setTarget} />}
         {isNew && (
@@ -165,8 +173,8 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, onOp
           <Button variant="secondary" isDisabled={!filled || test.isPending} tooltip={t("infra.dialog.testTooltip")} onPress={() => runTest()}>
             {test.isPending ? t("infra.dialog.testing") : t("infra.dialog.test")}
           </Button>
-          <Button variant="primary" isDisabled={!valid || add.isPending} tooltip={valid ? t("infra.dialog.submitTooltip") : t("infra.dialog.incomplete")} onPress={submit}>
-            {add.isPending ? t("infra.dialog.adding") : t("infra.dialog.submit")}
+          <Button variant="primary" isDisabled={!valid || add.isPending} tooltip={valid ? t("infra.dialog.submitTooltip") : editNode && !test.data?.ok ? t("infra.dialog.testRequired") : t("infra.dialog.incomplete")} onPress={submit}>
+            {add.isPending ? t("infra.dialog.adding") : editNode ? t("infra.dialog.saveEdit") : t("infra.dialog.submit")}
           </Button>
         </div>
       </div>

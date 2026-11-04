@@ -33,6 +33,8 @@ export type InfraNode = {
   /** "agent" is the local agent's read-only view; "api" is an attached hypervisor API. */
   source: "api" | "agent";
   base_url?: string;
+  config?: Record<string, string>;
+  has_secret?: boolean;
   scope?: string;
   online: boolean;
   version?: string;
@@ -203,10 +205,10 @@ export const useOperations = (serverId?: string) =>
     refetchInterval: (q) => (q.state.data?.items.some(isOpen) ? 2_000 : 20_000),
   });
 
-export type HostValues = { kind: string; values: Record<string, string>; trustedCert?: string };
+export type HostValues = { kind: string; values: Record<string, string>; trustedCert?: string; serverId?: string };
 export type NewHost = HostValues & { label: string; slug: string; site: string };
 
-const bodyOf = (v: HostValues) => ({ kind: v.kind, ...v.values, ...(v.trustedCert ? { trusted_cert: v.trustedCert } : {}) });
+const bodyOf = (v: HostValues) => ({ kind: v.kind, ...v.values, ...(v.trustedCert ? { trusted_cert: v.trustedCert } : {}), ...(v.serverId ? { server_id: v.serverId } : {}) });
 
 function useRefresh() {
   const qc = useQueryClient();

@@ -71,7 +71,7 @@ function AgentGuests({ node }: { node: InfraNode }) {
   );
 }
 
-function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNode }) {
+function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: InfraNode; onEdit?: (node: InfraNode) => void }) {
   const t = useText();
   const can = (c: string) => provider.capabilities.includes(c);
   const base = `/v1/infra/servers/${node.id}`;
@@ -112,6 +112,7 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
           description={[node.control_plane ? t("infra.controlPlane") : "", node.base_url, node.scope, node.version].filter(Boolean).join(" · ")}
           actions={
             <div className="flex gap-2">
+              {onEdit && may("infra.hosts.write") && <Button size="sm" variant="secondary" tooltip={t("infra.dialog.editTooltip", { label: node.label })} onPress={() => onEdit(node)}>{t("infra.dialog.edit")}</Button>}
               {can("lifecycle") && may("infra.guests.power") && (
                 <Button size="sm" variant="secondary" tooltip={t("infra.stop.tooltip")} isDisabled={stoppableGuests(guests.data?.items ?? []).length === 0} onPress={() => setStopping(true)}>{t("infra.stop.open")}</Button>
               )}
@@ -304,7 +305,7 @@ export function SystemIdentityForm({ serverId }: { serverId: string }) {
 }
 
 /** Everything about one provider's hosts. What it offers comes from the driver's capabilities. */
-export function ProviderTab({ provider }: { provider: InfraProvider }) {
+export function ProviderTab({ provider, onEdit }: { provider: InfraProvider; onEdit?: (node: InfraNode) => void }) {
   const t = useText();
   const [picked, setPicked] = useState("");
   const node = provider.nodes.find((n) => n.id === picked) ?? firstAnswering(provider.nodes);
@@ -319,7 +320,7 @@ export function ProviderTab({ provider }: { provider: InfraProvider }) {
       {node.error && <p role="alert" className="mb-6 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">{node.error}</p>}
       {node.online && <NodeFacts node={node} />}
       {node.source === "api" && <SystemIdentityForm serverId={node.id} />}
-      {node.source === "agent" ? <AgentGuests node={node} /> : <ApiGuests key={node.id} provider={provider} node={node} />}
+      {node.source === "agent" ? <AgentGuests node={node} /> : <ApiGuests key={node.id} provider={provider} node={node} onEdit={onEdit} />}
     </>
   );
 }

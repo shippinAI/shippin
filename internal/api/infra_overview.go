@@ -119,20 +119,24 @@ type infraGuestCount struct {
 
 // infraNode is one host under a provider. Online is true only when its API answered just now.
 type infraNode struct {
-	ID      string          `json:"id"`
-	Slug    string          `json:"slug,omitempty"`
-	Label   string          `json:"label"`
-	Site    string          `json:"site,omitempty"`
-	Kind    string          `json:"kind"`
-	Source  string          `json:"source"`
-	BaseURL string          `json:"base_url,omitempty"`
-	Scope   string          `json:"scope,omitempty"`
-	Online  bool            `json:"online"`
-	Version string          `json:"version,omitempty"`
-	Error   string          `json:"error,omitempty"`
-	Guests  infraGuestCount `json:"guests"`
-	FleetID string          `json:"fleet_id,omitempty"`
-	Details *hv.NodeDetails `json:"details,omitempty"`
+	ID      string `json:"id"`
+	Slug    string `json:"slug,omitempty"`
+	Label   string `json:"label"`
+	Site    string `json:"site,omitempty"`
+	Kind    string `json:"kind"`
+	Source  string `json:"source"`
+	BaseURL string `json:"base_url,omitempty"`
+	Scope   string `json:"scope,omitempty"`
+	// Config contains only non-secret values needed to edit this attachment. Secret fields
+	// and accepted certificate material remain server-side.
+	Config    map[string]string `json:"config,omitempty"`
+	HasSecret bool              `json:"has_secret,omitempty"`
+	Online    bool              `json:"online"`
+	Version   string            `json:"version,omitempty"`
+	Error     string            `json:"error,omitempty"`
+	Guests    infraGuestCount   `json:"guests"`
+	FleetID   string            `json:"fleet_id,omitempty"`
+	Details   *hv.NodeDetails   `json:"details,omitempty"`
 	// ControlPlane says this host runs the panel itself.
 	ControlPlane bool `json:"control_plane,omitempty"`
 }
@@ -275,7 +279,8 @@ func (t *infraTotals) add(n infraNode) {
 }
 
 func (a *API) probeNode(ctx context.Context, ep servers.Endpoint) infraNode {
-	n := infraNode{ID: ep.ID, Slug: ep.Slug, Label: ep.Label, Site: ep.Site, Kind: ep.Kind, Source: sourceAPI, BaseURL: ep.BaseURL, Scope: ep.Node, FleetID: ep.FleetID}
+	n := infraNode{ID: ep.ID, Slug: ep.Slug, Label: ep.Label, Site: ep.Site, Kind: ep.Kind, Source: sourceAPI, BaseURL: ep.BaseURL, Scope: ep.Node, FleetID: ep.FleetID,
+		Config: map[string]string{"base_url": ep.BaseURL, "node": ep.Node, "token_id": ep.TokenID, "token_env": ep.TokenEnv, "ca_file": ep.CAFile, "cert_file": ep.CertFile, "key_file": ep.KeyFile}, HasSecret: ep.HasSecret || len(ep.SealedKey) > 0 || len(ep.SealedSecret) > 0}
 	if n.Label == "" {
 		n.Label = ep.Slug
 	}

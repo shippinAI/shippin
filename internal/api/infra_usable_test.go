@@ -148,6 +148,9 @@ func TestProxmoxSecretIsSealedUsedAndNeverReturned(t *testing.T) {
 	if n["online"] != true || n["version"] != "9.2.11" {
 		t.Fatalf("node %v", n)
 	}
+	if n["has_secret"] != true || n["config"].(map[string]any)["token_id"] != "u@pam!t" || strings.Contains(string(body), "s3cret-value") {
+		t.Fatalf("the edit-safe configuration must expose non-secret values only: %v", n)
+	}
 	if !strings.HasSuffix(sawAuth, "=s3cret-value") {
 		t.Fatalf("the sealed secret should reach the API: %q", sawAuth)
 	}
@@ -159,6 +162,14 @@ func TestProxmoxSecretIsSealedUsedAndNeverReturned(t *testing.T) {
 	rec = infraCall(t, a, http.MethodPut, "/v1/infra/servers/"+stored.ID, fmt.Sprintf(`{"kind":"proxmox","base_url":%q,"token_id":"u@pam!t","node":"pve1","trusted_cert":%s}`, srv.URL, pemJSON))
 	if rec.Code != http.StatusOK || len(dir.items[0].SealedSecret) == 0 {
 		t.Fatalf("re-attach lost the secret: %d %s", rec.Code, rec.Body)
+	}
+	rec = infraCall(t, a, http.MethodPost, "/v1/infra/servers/test", fmt.Sprintf(`{"server_id":%q,"kind":"proxmox","base_url":%q,"token_id":"u@pam!t","node":"pve1","trusted_cert":%s}`, stored.ID, srv.URL, pemJSON))
+	var edited connectResult
+	if err := json.Unmarshal(rec.Body.Bytes(), &edited); err != nil || rec.Code != http.StatusOK || !edited.OK {
+		t.Fatalf("an edit can test using its stored credential: %d %s (%v)", rec.Code, rec.Body, err)
+	}
+	if strings.Contains(rec.Body.String(), "s3cret-value") {
+		t.Fatal("test response leaked stored credential")
 	}
 }
 

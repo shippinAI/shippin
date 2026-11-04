@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/incus"
 	"shippin.cloud/console/internal/servers"
@@ -98,6 +99,28 @@ func (a *API) infraTest(w http.ResponseWriter, r *http.Request, _ *caller) {
 	}
 	ep := in.endpoint()
 	ep.Secret = in.TokenSecret
+	// An edit may leave write-only credential fields blank. Resolve the stored attachment
+	// for this test only; the endpoint response still never includes secret bytes.
+	if in.ServerID != "" {
+		old, err := a.hvDir().Endpoint(r.Context(), in.ServerID)
+		if err != nil || old.Kind != in.Kind {
+			auth.Problem(w, http.StatusNotFound, "The attached provider could not be found.")
+			return
+		}
+		ep.ID = old.ID
+		if in.TokenSecret == "" {
+			ep.SealedSecret, ep.SealedKey, ep.ClientCert = old.SealedSecret, old.SealedKey, old.ClientCert
+		}
+		if ep.TrustedCert == "" {
+			ep.TrustedCert = old.TrustedCert
+		}
+		if ep.BaseURL == "" {
+			ep.BaseURL = old.BaseURL
+		}
+		if ep.Node == "" {
+			ep.Node = old.Node
+		}
+	}
 	if err := validateEndpoint(ep, in); err != nil {
 		writeJSON(w, connectResult{Error: err.Error()})
 		return
