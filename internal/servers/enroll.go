@@ -45,7 +45,8 @@ func (s *Store) Enroll(ctx context.Context, token, hostname, version string, cre
 	}
 	exp := now.Add(credTTL)
 	if _, err := tx.Exec(ctx, `UPDATE servers SET state='active', cred_sha256=$2, cred_expires_at=$3, last_seen_at=$4,
-		enrolled_at=$4, hostname=$5, agent_version=$6 WHERE id=$1`, id, hash, exp, now, hostname, version); err != nil {
+			enrolled_at=$4, hostname=$5, hostname_source='hostd_enrollment', hostname_observed_at=$4,
+			agent_version=$6 WHERE id=$1`, id, hash, exp, now, hostname, version); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {

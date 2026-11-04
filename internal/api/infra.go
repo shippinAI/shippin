@@ -65,6 +65,8 @@ func (a *API) infraRouteTable() []infraRoute {
 	return []infraRoute{
 		{"GET /v1/infra/overview", "infra.read", false, a.infraOverview},
 		{"GET /v1/infra/servers", "infra.read", false, a.infraServers},
+		{"GET /v1/infra/servers/{id}/identity", "infra.read", false, a.infraSystemIdentity},
+		{"PUT /v1/infra/servers/{id}/identity", "infra.hosts.write", true, a.infraSetSystemIdentity},
 		{"GET /v1/infra/networks", "infra.read", false, a.infraNetworkConnections},
 		{"GET /v1/infra/networks/{id}/resources", "infra.read", false, a.infraNetworkResources},
 		{"POST /v1/infra/networks/{id}/sync", "infra.read", false, a.infraNetworkSync},
@@ -344,6 +346,56 @@ func (a *API) infraServers(w http.ResponseWriter, r *http.Request, _ *caller) {
 		items = []servers.Endpoint{}
 	}
 	writeJSON(w, map[string]any{"items": items})
+}
+
+func (a *API) infraSystemIdentity(w http.ResponseWriter, r *http.Request, _ *caller) {
+	if a.db == nil {
+		auth.Problem(w, http.StatusServiceUnavailable, "System identity is unavailable right now.")
+		return
+	}
+	v, err := a.serverStore().Identity(r.Context(), r.PathValue("id"))
+	if errors.Is(err, servers.ErrNotFound) {
+		writeHVProblem(w, http.StatusNotFound, "server_not_found", "The system was not found.", "", "")
+		return
+	}
+	if err != nil {
+		auth.Problem(w, http.StatusServiceUnavailable, "System identity is unavailable right now.")
+		return
+	}
+	writeJSON(w, v)
+}
+
+func (a *API) infraSetSystemIdentity(w http.ResponseWriter, r *http.Request, c *caller) {
+	if a.db == nil {
+		auth.Problem(w, http.StatusServiceUnavailable, "System identity is unavailable right now.")
+		return
+	}
+	var in struct {
+		Label             string   `json:"label"`
+		Aliases           []string `json:"aliases"`
+		Tags              []string `json:"tags"`
+		AgentHubTenantID  string   `json:"agenthub_tenant_id"`
+		AgentHubMachineID string   `json:"agenthub_machine_id"`
+	}
+	if !decodeStrict(w, r, &in) {
+		return
+	}
+	v, err := a.serverStore().SetIdentity(r.Context(), servers.SystemIdentity{
+		ServerID: r.PathValue("id"), Label: in.Label, Aliases: in.Aliases, Tags: in.Tags,
+		AgentHubTenantID: in.AgentHubTenantID, AgentHubMachineID: in.AgentHubMachineID,
+	}, c.id.Sub)
+	switch {
+	case errors.Is(err, servers.ErrIdentityInvalid):
+		writeHVProblem(w, http.StatusBadRequest, "invalid_system_identity", "Use at most 20 unique aliases and 40 unique tags; AgentHub tenant and machine IDs must be supplied together.", "", "")
+	case errors.Is(err, servers.ErrIdentityConflict):
+		writeHVProblem(w, http.StatusConflict, "agenthub_machine_mapped", "That AgentHub machine is already mapped to another Shippin system.", "", "")
+	case errors.Is(err, servers.ErrNotFound):
+		writeHVProblem(w, http.StatusNotFound, "server_not_found", "The system was not found or has been revoked.", "", "")
+	case err != nil:
+		auth.Problem(w, http.StatusServiceUnavailable, "System identity could not be saved.")
+	default:
+		writeJSON(w, v)
+	}
 }
 
 func (a *API) infraRegistry(w http.ResponseWriter, r *http.Request, _ *caller) {

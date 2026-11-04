@@ -39,6 +39,19 @@ export type InfraNode = {
   /** This host runs the panel itself. */
   control_plane?: boolean;
 };
+export type SystemIdentity = {
+  server_id: string;
+  label: string;
+  hostname?: string;
+  hostname_source: string;
+  hostname_observed_at?: string;
+  aliases: string[];
+  tags: string[];
+  agenthub_tenant_id?: string;
+  agenthub_machine_id?: string;
+  identity_updated_by?: string;
+  identity_updated_at?: string;
+};
 export type InfraTotals = { nodes: number; online: number; guests: number; running: number };
 export type InfraProvider = {
   kind: string;
@@ -97,6 +110,29 @@ export type NetworkTestResult = { ok: boolean; error?: string; resource_count?: 
 const overviewKey = ["infra", "overview"];
 const operationsKey = ["infra", "operations"];
 const networkKey = ["infra", "networks"];
+const systemIdentityKey = (id: string) => ["infra", "system-identity", id];
+
+export const useSystemIdentity = (id: string) => useQuery({
+  queryKey: systemIdentityKey(id),
+  queryFn: () => apiGet<SystemIdentity>(`/v1/infra/servers/${encodeURIComponent(id)}/identity`),
+  enabled: !!id,
+});
+
+export function useSaveSystemIdentity(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { label: string; aliases: string[]; tags: string[]; agenthub_tenant_id: string; agenthub_machine_id: string; note: string }) =>
+      apiSend<SystemIdentity>("PUT", `/v1/infra/servers/${encodeURIComponent(id)}/identity`, {
+        label: v.label, aliases: v.aliases, tags: v.tags, agenthub_tenant_id: v.agenthub_tenant_id, agenthub_machine_id: v.agenthub_machine_id,
+      }, { note: v.note }),
+    onSuccess: async (v) => {
+      qc.setQueryData(systemIdentityKey(id), v);
+      await qc.invalidateQueries({ queryKey: ["infra", "overview"] });
+      toast.success("System identity saved", "The AgentHub reference is stored but not remotely verified.");
+    },
+    onError: (e) => toast.error("Could not save system identity", e.message),
+  });
+}
 
 export const useInfraOverview = (enabled = true) =>
   useQuery({ queryKey: overviewKey, queryFn: () => apiGet<InfraOverview>("/v1/infra/overview"), refetchInterval: 30_000, enabled });

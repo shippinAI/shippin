@@ -82,6 +82,10 @@ func TestEnrollmentLifecycle(t *testing.T) {
 	if got.State != Active || got.Hostname != "edge" {
 		t.Fatalf("after enroll: %+v", got)
 	}
+	identity, err := s.Identity(ctx, g.ID)
+	if err != nil || identity.HostnameSource != "hostd_enrollment" || identity.HostnameObserved == nil {
+		t.Fatalf("hostname provenance after enroll: %+v %v", identity, err)
+	}
 	start := time.Now()
 	s.Now = func() time.Time { return start.Add(46 * time.Second) }
 	if got, _ = s.Get(ctx, tid, g.ID); got.State != Stale {
@@ -150,6 +154,34 @@ func TestHypervisorColumns(t *testing.T) {
 	}
 	if _, err := s.VisibleEndpoint(ctx, uuid.NewString(), g.ID); err != ErrNotFound {
 		t.Fatalf("another org must not see the server: %v", err)
+	}
+}
+
+func TestSystemIdentityIsExplicitAndUnique(t *testing.T) {
+	s, ctx, tid := testStore(t)
+	a, err := s.Create(ctx, tid, "identity-a", "Primary", "lab", "u")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := s.Create(ctx, tid, "identity-b", "Secondary", "lab", "u")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.SetIdentity(ctx, SystemIdentity{ServerID: a.ID, Label: "Edge Primary", Aliases: []string{"edge-a"}, Tags: []string{"production"}, AgentHubTenantID: "tenant-external", AgentHubMachineID: "machine-external"}, "operator")
+	if err != nil || got.ServerID != a.ID || got.Label != "Edge Primary" || got.HostnameSource != "unknown" || got.UpdatedBy != "operator" || got.UpdatedAt == nil || len(got.Aliases) != 1 || got.Aliases[0] != "edge-a" {
+		t.Fatalf("identity save: %+v %v", got, err)
+	}
+	if _, err = s.SetIdentity(ctx, SystemIdentity{ServerID: b.ID, Label: "Secondary", AgentHubTenantID: "tenant-external", AgentHubMachineID: "machine-external"}, "operator"); err != ErrIdentityConflict {
+		t.Fatalf("duplicate AgentHub mapping must fail: %v", err)
+	}
+	if _, err = s.SetIdentity(ctx, SystemIdentity{ServerID: a.ID, Label: "Primary", AgentHubTenantID: "tenant-only"}, "operator"); err != ErrIdentityInvalid {
+		t.Fatalf("half mapping must fail: %v", err)
+	}
+	if _, err = s.SetIdentity(ctx, SystemIdentity{ServerID: a.ID, Label: "Primary", Aliases: []string{"Edge-A", "edge-a"}}, "operator"); err != ErrIdentityInvalid {
+		t.Fatalf("case-insensitive duplicate aliases must fail: %v", err)
+	}
+	if _, err = s.SetIdentity(ctx, SystemIdentity{ServerID: uuid.NewString(), Label: "Unknown", Aliases: []string{"unused"}}, "operator"); err != ErrNotFound {
+		t.Fatalf("unknown system must fail: %v", err)
 	}
 }
 

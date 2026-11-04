@@ -12,18 +12,21 @@ records; the control plane owns the authoritative system inventory.
 > bypass have been removed from Shippin main. Local approval policy/board code
 > is not AgentHub integration; the implementation gap is tracked in
 > [configurable human review](approval.md). The sample installation now denies
-> gated actions until the AgentHub path exists.
+> gated actions until the AgentHub path exists. Shippin now persists hostname
+> source/time on enrollment and exposes audited aliases, tags and explicit
+> AgentHub tenant/machine mappings on the existing infrastructure screen for
+> attached and unattached registered systems; this
+> does not yet verify mappings with AgentHub or run its review workflow.
 > Source ownership is defined by [source of truth](source-of-truth.md).
 
 ## Grounded starting point
 
-- The draft platform compute API (`api/openapi/paths/compute-nodes.yaml` and its
-  schema) uses a UUID and name; inventory responses may have an unspecified
-  provider and optional observed hostname, nickname, aliases and tags. Enrollment and the
-  control plane are planned; `web/src/features/infrastructure/` only reads a
-  planned API and displays that metadata when supplied. The agent currently
-  supplies read-only provider diagnostics; no server persists or emits these new
-  fields here, and the enrollment request still requires a provider.
+- The active server registry owns the Shippin UUID. Migration
+  `044_shippin_system_identity.sql` records hostname source/time at hostd
+  enrollment, operator aliases/tags and explicit AgentHub tenant/machine IDs;
+  the infrastructure UI reads and edits this profile. Operator metadata records
+  actor/time and is audited. The draft compute-node API remains a separate
+  contract and is not yet implemented as a replacement inventory.
 - AgentHub `server/internal/machines/list.go` and migration
   `004_devagotchi_access.sql` define a separate machine with a text ID, label,
   bridge identity, host relationship and connection state. Its machine API and

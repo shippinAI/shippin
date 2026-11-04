@@ -10,6 +10,7 @@ var pinnedInfraRoutes = map[string]struct {
 }{
 	"GET /v1/infra/overview":                                               {"infra.read", false},
 	"GET /v1/infra/servers":                                                {"infra.read", false},
+	"GET /v1/infra/servers/{id}/identity":                                  {"infra.read", false},
 	"GET /v1/infra/networks":                                               {"infra.read", false},
 	"GET /v1/infra/networks/{id}/resources":                                {"infra.read", false},
 	"POST /v1/infra/networks/{id}/sync":                                    {"infra.read", false},
@@ -33,6 +34,7 @@ var pinnedInfraRoutes = map[string]struct {
 	"POST /v1/infra/servers/test":                                          {"infra.hosts.write", false},
 	"POST /v1/infra/servers":                                               {"infra.hosts.write", true},
 	"PUT /v1/infra/servers/{id}":                                           {"infra.hosts.write", true},
+	"PUT /v1/infra/servers/{id}/identity":                                  {"infra.hosts.write", true},
 	"DELETE /v1/infra/servers/{id}/attachment":                             {"infra.hosts.write", true},
 	"PUT /v1/infra/servers/{id}/fleet":                                     {"infra.fleets.write", false},
 	"POST /v1/infra/fleets":                                                {"infra.fleets.write", false},

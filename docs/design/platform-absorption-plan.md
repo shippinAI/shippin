@@ -106,8 +106,10 @@ then execute only if the policy says so. Record policy version and decision
 provenance. Fail closed on missing mapping, stale hash, timeout, denial or
 provider failure.
 
-**Current gap:** AgentHub exposes authenticated tenant-scoped policy and ticket
-routes, but Shippin has no adapter or machine mapping. The reviewed decision
+**Current gap:** Shippin now persists an explicit server UUID to AgentHub
+tenant/machine mapping with operator provenance; the mapping is not validated
+against AgentHub and there is no adapter. AgentHub exposes authenticated
+tenant-scoped policy and ticket routes. The reviewed decision
 response does not expose a structured `review_required` outcome; parsing its
 human-readable failure text would be brittle. Define or verify a typed decision
 contract and service-principal permissions before connecting writes. Local

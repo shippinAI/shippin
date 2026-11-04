@@ -43,6 +43,7 @@ GET /v1/infra/servers/{id}/guests
 GET /v1/infra/servers/{id}/guests/{guest}
 GET /v1/infra/servers/{id}/guests/{guest}/snapshots
 GET /v1/infra/servers/{id}/health
+GET /v1/infra/servers/{id}/identity
 GET /v1/infra/servers/{id}/images
 GET /v1/infra/servers/{id}/network
 GET /v1/infra/servers/{id}/services
@@ -238,6 +239,7 @@ PUT /v1/infra/networks/{id}
 PUT /v1/infra/servers/{id}
 PUT /v1/infra/servers/{id}/fleet
 PUT /v1/infra/servers/{id}/guests/{guest}/config
+PUT /v1/infra/servers/{id}/identity
 PUT /v1/operator/catalog/defaults
 PUT /v1/operator/catalog/plan-services/{plan}/{service}
 PUT /v1/operator/catalog/plans/{id}

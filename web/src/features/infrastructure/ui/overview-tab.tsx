@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AlertTriangle, Boxes, Cpu, Layers, Plus, Server } from "lucide-react";
 import { Badge } from "../../../lib/design/components/badge/badge";
 import { Button } from "../../../lib/design/components/button/button";
@@ -12,11 +13,13 @@ import { StatTile } from "../../overview/ui/stat-tile";
 import { providersWithHosts, tabHref } from "../model";
 import { ActivityCard } from "./activity-card";
 import { ProviderCards } from "./provider-cards";
+import { SystemIdentityForm } from "./provider-tab";
 
 type Row = InfraNode & { providerLabel: string };
 type Props = { data: InfraOverview; onAdd?: (kind?: string, existing?: string) => void };
 
 export function OverviewTab({ data, onAdd }: Props) {
+  const [editingSystem, setEditingSystem] = useState<string | null>(null);
   const t = useText();
   const nav = useNavigate();
   const rows: Row[] = data.providers.flatMap((p) => p.nodes.map((n) => ({ ...n, id: `${p.kind}:${n.id}`, providerLabel: p.label })));
@@ -88,11 +91,19 @@ export function OverviewTab({ data, onAdd }: Props) {
           <CardHeader title={t("infra.unattached.title")} description={t("infra.unattached.description")} />
           <ul className="divide-y divide-line">
             {data.unattached.map((s) => (
-              <li key={s.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
-                <span><span className="font-medium text-fg">{s.label || s.slug}</span> <span className="font-mono text-[12.5px] text-fg-subtle">{s.slug}</span></span>
-                <Button size="sm" variant="secondary" tooltip={t("infra.unattached.attachTooltip", { label: s.label || s.slug })} onPress={() => onAdd?.(undefined, s.id)}>
-                  {t("infra.unattached.attach")}
-                </Button>
+              <li key={s.id} className="px-5 py-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span><span className="font-medium text-fg">{s.label || s.slug}</span> <span className="font-mono text-[12.5px] text-fg-subtle">{s.slug}</span></span>
+                  <div className="flex gap-2">
+                    {onAdd && <Button size="sm" variant="secondary" tooltip={t("infra.unattached.attachTooltip", { label: s.label || s.slug })} onPress={() => onAdd(undefined, s.id)}>
+                      {t("infra.unattached.attach")}
+                    </Button>}
+                    {onAdd && <Button size="sm" variant="ghost" tooltip={editingSystem === s.id ? "Close system identity editor" : `Edit identity for ${s.label || s.slug}`} onPress={() => setEditingSystem(editingSystem === s.id ? null : s.id)}>
+                      {editingSystem === s.id ? "Close identity" : "Edit identity"}
+                    </Button>}
+                  </div>
+                </div>
+                {editingSystem === s.id && <div className="mt-4"><SystemIdentityForm serverId={s.id} /></div>}
               </li>
             ))}
           </ul>
