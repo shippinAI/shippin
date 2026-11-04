@@ -4,6 +4,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"regexp"
 
@@ -116,6 +117,11 @@ type Probe struct {
 	TimeoutSeconds int    `json:"timeout_seconds,omitempty"`
 }
 
+const (
+	DefaultProbeConcurrency = 8
+	MaxProbeConcurrency     = 50
+)
+
 type Config struct {
 	Brand             Brand             `json:"brand"`
 	Domain            string            `json:"domain"`
@@ -124,6 +130,7 @@ type Config struct {
 	IDP               IDP               `json:"idp"`
 	Incus             Incus             `json:"incus"`
 	Probes            []Probe           `json:"probes"`
+	ProbeConcurrency  int               `json:"probe_concurrency"`
 	PlanName          string            `json:"plan_name"`
 	Workspaces        Workspaces        `json:"workspaces"`
 	Onboarding        Onboarding        `json:"onboarding"`
@@ -171,6 +178,9 @@ func Load() (*Config, error) {
 	if err := json.Unmarshal(raw, c); err != nil {
 		return nil, err
 	}
+	if c.ProbeConcurrency == 0 {
+		c.ProbeConcurrency = DefaultProbeConcurrency
+	}
 	if v := os.Getenv("SHIPPIN_OIDC_CLIENT_ID"); v != "" {
 		c.IDP.ClientID = v
 	}
@@ -210,6 +220,9 @@ func Load() (*Config, error) {
 
 // Check validates every fail-closed section.
 func (c *Config) Check() error {
+	if c.ProbeConcurrency != 0 && (c.ProbeConcurrency < 1 || c.ProbeConcurrency > MaxProbeConcurrency) {
+		return fmt.Errorf("probe_concurrency must be between 1 and %d", MaxProbeConcurrency)
+	}
 	for _, check := range []func() error{func() error { return c.Roles.Check(c.Operator.Role) }, c.Staff.Check, c.Access.Check, c.Mail.Check, c.Jobs.Check, c.AI.Check, c.GitHub.Check, c.Prompt.Check, c.Agents.Check, c.Authz.Check, c.Vaultix.Check, c.Bridge.Check, c.Chat.Check, c.Connect.Check, c.Servers.Check, c.Orgs.Check} {
 		if err := check(); err != nil {
 			return err

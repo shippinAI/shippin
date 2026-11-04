@@ -24,6 +24,7 @@
     "host_label": "primary"
   },
   "probes": [],
+  "probe_concurrency": 8,
   "catalog": {
     "enabled": false
   },

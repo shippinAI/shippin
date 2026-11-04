@@ -10,7 +10,9 @@ export function PlatformSettingRow({ s, canWrite }: { s: PlatformSetting; canWri
   const save = useSetPlatformSetting();
   const [value, setValue] = useState<string | boolean>(s.value as string | boolean);
   const [reason, setReason] = useState("");
-  const ok = reason.trim().length >= 5 && value !== s.value;
+  const parsedNumber = Number(value);
+  const validInteger = Number.isInteger(parsedNumber) && parsedNumber >= 1 && parsedNumber <= 50;
+  const ok = reason.trim().length >= 5 && value !== s.value && (s.kind !== "integer" || validInteger);
   return (
     <li className="space-y-3 px-4 py-4">
       <div className="flex items-start justify-between gap-3">
@@ -26,16 +28,16 @@ export function PlatformSettingRow({ s, canWrite }: { s: PlatformSetting; canWri
           {value ? "On" : "Off"}
         </Switch>
       ) : (
-        <TextField label="Value" value={String(value)} onChange={setValue} isDisabled={!canWrite} />
+        <TextField label="Value" type={s.kind === "integer" ? "number" : "text"} value={String(value)} onChange={setValue} isDisabled={!canWrite} min={s.kind === "integer" ? 1 : undefined} max={s.kind === "integer" ? 50 : undefined} step={s.kind === "integer" ? 1 : undefined} />
       )}
       {canWrite && (
         <div className="flex items-end gap-2">
           <div className="flex-1"><TextField label="Reason (audited)" value={reason} onChange={setReason} placeholder="Why this changes" /></div>
           <Button size="sm" variant="primary" isDisabled={!ok || save.isPending} tooltip={ok ? "Save the override (audited)" : "Change the value and give a reason"}
-            onPress={() => save.mutate({ key: s.key, value, reason }, { onSuccess: () => setReason("") })}>Save</Button>
+            onPress={() => save.mutate({ key: s.key, value: s.kind === "integer" ? parsedNumber : value, reason }, { onSuccess: () => setReason("") })}>Save</Button>
           {s.overridden && (
             <Button size="sm" variant="ghost" isDisabled={reason.trim().length < 5 || save.isPending} tooltip="Clear the override; the config file value applies again"
-              onPress={() => save.mutate({ key: s.key, value: null, reason }, { onSuccess: () => { setReason(""); setValue(s.config_value as string | boolean); } })}>Reset to config</Button>
+              onPress={() => save.mutate({ key: s.key, value: null, reason }, { onSuccess: () => { setReason(""); setValue(String(s.config_value)); } })}>Reset to config</Button>
           )}
         </div>
       )}

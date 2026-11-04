@@ -87,6 +87,48 @@ func (a *API) platformProbes(ctx context.Context) []config.Probe {
 	return probes
 }
 
+func (a *API) platformProbeConcurrency(ctx context.Context) int {
+	switch value := a.platformValue(ctx, "services.probe_concurrency").(type) {
+	case int:
+		return value
+	case float64: // PostgreSQL JSON values are decoded as float64.
+		if value >= 1 && value <= config.MaxProbeConcurrency && value == float64(int(value)) {
+			return int(value)
+		}
+	}
+	return config.DefaultProbeConcurrency
+}
+
+func (a *API) serviceProbes(ctx context.Context, definitions []config.Probe, limit int) []probeResult {
+	results := make([]probeResult, len(definitions))
+	if len(definitions) == 0 {
+		return results
+	}
+	if limit < 1 || limit > config.MaxProbeConcurrency {
+		limit = config.DefaultProbeConcurrency
+	}
+	if limit > len(definitions) {
+		limit = len(definitions)
+	}
+	indices := make(chan int)
+	var workers sync.WaitGroup
+	workers.Add(limit)
+	for i := 0; i < limit; i++ {
+		go func() {
+			defer workers.Done()
+			for i := range indices {
+				results[i] = a.serviceProbe(ctx, definitions[i])
+			}
+		}()
+	}
+	for i := range definitions {
+		indices <- i
+	}
+	close(indices)
+	workers.Wait()
+	return results
+}
+
 // probeClient verifies TLS against the system trust store. serverName sets SNI when the dial host differs.
 func probeClient(serverName string, timeout time.Duration) *http.Client {
 	pool, err := x509.SystemCertPool()
@@ -161,13 +203,7 @@ func (a *API) services(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	definitions := a.platformProbes(r.Context())
-	probes := make([]probeResult, len(definitions))
-	var wg sync.WaitGroup
-	for i, p := range definitions {
-		wg.Add(1)
-		go func() { defer wg.Done(); probes[i] = a.serviceProbe(r.Context(), p) }()
-	}
-	wg.Wait()
+	probes := a.serviceProbes(r.Context(), definitions, a.platformProbeConcurrency(r.Context()))
 	insts, ierr := a.instances(r.Context())
 	out := map[string]any{"project": a.cfg.Incus.Project, "host": a.cfg.Incus.HostLabel,
 		"probes": probes, "instances": insts, "checked_at": time.Now().UTC()}

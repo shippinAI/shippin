@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -132,5 +135,66 @@ func TestProbeProviderResourceReferenceRequiresServerAndGuest(t *testing.T) {
 	base.ServerID, base.GuestID = "019a0000-0000-7000-8000-0000000000a1", "guest\tname"
 	if err := validateProbes([]config.Probe{base}); err == nil {
 		t.Fatal("provider guest references must reject control characters")
+	}
+}
+
+func TestServiceProbesRespectConfiguredConcurrency(t *testing.T) {
+	var active, maximum atomic.Int32
+	release := make(chan struct{})
+	ready := make(chan struct{})
+	var once sync.Once
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		current := active.Add(1)
+		for previous := maximum.Load(); current > previous && !maximum.CompareAndSwap(previous, current); previous = maximum.Load() {
+		}
+		if current == 2 {
+			once.Do(func() { close(ready) })
+		}
+		<-release
+		active.Add(-1)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+	definitions := make([]config.Probe, 8)
+	for i := range definitions {
+		definitions[i] = config.Probe{Name: fmt.Sprintf("service-%d", i), Kind: "database", URL: server.URL}
+	}
+	api := &API{}
+	done := make(chan []probeResult, 1)
+	go func() { done <- api.serviceProbes(context.Background(), definitions, 2) }()
+	select {
+	case <-ready:
+	case <-time.After(2 * time.Second):
+		close(release)
+		t.Fatal("the configured worker limit did not start two probes")
+	}
+	close(release)
+	results := <-done
+	if len(results) != len(definitions) || maximum.Load() != 2 {
+		t.Fatalf("probe concurrency exceeded or failed to fill the configured limit: results=%d max=%d", len(results), maximum.Load())
+	}
+}
+
+func TestPlatformProbeConcurrencySettingHasSafeBounds(t *testing.T) {
+	a := &API{cfg: &config.Config{ProbeConcurrency: config.DefaultProbeConcurrency}}
+	var validate func(any) error
+	for _, setting := range a.platformKeys() {
+		if setting.Key == "services.probe_concurrency" {
+			validate = setting.valid
+			break
+		}
+	}
+	if validate == nil {
+		t.Fatal("concurrency setting is missing")
+	}
+	for _, value := range []any{float64(0), float64(1.5), float64(config.MaxProbeConcurrency + 1), "4"} {
+		if err := validate(value); err == nil {
+			t.Fatalf("invalid concurrency value accepted: %#v", value)
+		}
+	}
+	for _, value := range []any{float64(1), float64(config.MaxProbeConcurrency)} {
+		if err := validate(value); err != nil {
+			t.Fatalf("valid boundary rejected (%v): %v", value, err)
+		}
 	}
 }

@@ -87,6 +87,15 @@ func (a *API) platformKeys() []platformKey {
 		{Key: "services.probes", Kind: "array", Label: "Services to watch",
 			Help: "Live HTTP or TCP health targets with optional Incus or Proxmox guest resource links. Saved in PostgreSQL and audited; probe credentials are not supported.",
 			def:  func(a *API) any { return a.cfg.Probes }, valid: validateProbes},
+		{Key: "services.probe_concurrency", Kind: "integer", Label: "Concurrent health checks",
+			Help: fmt.Sprintf("Maximum simultaneous HTTP/TCP and provider-resource checks per platform health request (1–%d).", config.MaxProbeConcurrency),
+			def:  func(a *API) any { return a.cfg.ProbeConcurrency }, valid: func(v any) error {
+				n, ok := v.(float64)
+				if !ok || n != float64(int(n)) || n < 1 || n > config.MaxProbeConcurrency {
+					return fmt.Errorf("must be a whole number between 1 and %d", config.MaxProbeConcurrency)
+				}
+				return nil
+			}},
 		uiKeyDef(),
 	}
 	if a.cfg.IDP.ClientID != "" {
@@ -178,7 +187,8 @@ func (a *API) opSetPlatformSetting(w http.ResponseWriter, r *http.Request, c *ca
 		_, isB := v.(bool)
 		_, isO := v.(map[string]any)
 		_, isA := v.([]any)
-		if (k.Kind == "string" && !isS) || (k.Kind == "bool" && !isB) || (k.Kind == "json" && !isO) || (k.Kind == "array" && !isA) {
+		_, isN := v.(float64)
+		if (k.Kind == "string" && !isS) || (k.Kind == "bool" && !isB) || (k.Kind == "json" && !isO) || (k.Kind == "array" && !isA) || (k.Kind == "integer" && !isN) {
 			auth.Problem(w, http.StatusBadRequest, "The value must be a "+k.Kind+".")
 			return
 		}

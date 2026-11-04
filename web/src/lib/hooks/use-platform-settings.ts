@@ -6,7 +6,7 @@ export type PlatformSetting = {
   key: string;
   label: string;
   help: string;
-  kind: "string" | "bool" | "json" | "array";
+  kind: "string" | "bool" | "integer" | "json" | "array";
   config_value: unknown;
   value: unknown;
   overridden: boolean;
