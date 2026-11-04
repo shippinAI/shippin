@@ -3,6 +3,9 @@ package db
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
+	"sync"
 	"testing"
 	"time"
 )
@@ -120,5 +123,59 @@ func TestPlatformHealthRegistryLeaseAndObservation(t *testing.T) {
 	}
 	if len(rows) != 1 || rows[0].Enabled {
 		t.Fatalf("soft disable lost or enabled row: %#v", rows)
+	}
+}
+
+func TestPlatformHealthLeasesAreExclusiveAcrossPools(t *testing.T) {
+	d1, ctx := testDB(t)
+	d2, err := Open(ctx, os.Getenv("SHIPPIN_TEST_DATABASE_URL"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(d2.Pool.Close)
+	const count = 24
+	definitions := make([]PlatformService, 0, count)
+	for i := 0; i < count; i++ {
+		definitions = append(definitions, PlatformService{ID: newID(), Name: fmt.Sprintf("lease-%02d", i), Kind: "custom",
+			URL: "https://health.example.test/ready", TimeoutSeconds: 3, IntervalSeconds: 30, Enabled: true})
+	}
+	if err := d1.ImportPlatformHealthConfig(ctx, definitions); err != nil {
+		t.Fatal(err)
+	}
+
+	start := make(chan struct{})
+	type result struct {
+		services []PlatformService
+		err      error
+	}
+	results := make(chan result, 2)
+	var wg sync.WaitGroup
+	for _, replica := range []*DB{d1, d2} {
+		wg.Add(1)
+		go func(replica *DB) {
+			defer wg.Done()
+			<-start
+			services, err := replica.ClaimDuePlatformServices(ctx, time.Now().Add(time.Minute), count)
+			results <- result{services: services, err: err}
+		}(replica)
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	claimed := map[string]bool{}
+	for got := range results {
+		if got.err != nil {
+			t.Fatal(got.err)
+		}
+		for _, service := range got.services {
+			if claimed[service.ID] {
+				t.Fatalf("service %s was claimed by multiple console replicas", service.ID)
+			}
+			claimed[service.ID] = true
+		}
+	}
+	if len(claimed) != count {
+		t.Fatalf("replicas claimed %d unique services, want %d", len(claimed), count)
 	}
 }
