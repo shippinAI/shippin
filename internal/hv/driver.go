@@ -20,6 +20,31 @@ const (
 // ErrNoHypervisor is returned by the bare driver for every call.
 var ErrNoHypervisor = errors.New("hv: this server has no hypervisor API")
 
+// GuestSpec is a guest to make. A driver uses what applies to it, and zero leaves its default.
+type GuestSpec struct {
+	Kind   string
+	Name   string
+	Image  string
+	Memory int // MiB
+	Cores  int
+	Disk   int // GiB
+	Start  bool
+}
+
+// Image is something a guest can be made from.
+type Image struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	Kind  string `json:"kind,omitempty"` // vm or ct; empty suits either
+}
+
+// GuestManager is a driver that can make and remove guests.
+type GuestManager interface {
+	Images(ctx context.Context) ([]Image, error)
+	CreateGuest(ctx context.Context, spec GuestSpec) (Guest, error)
+	DeleteGuest(ctx context.Context, id string) error
+}
+
 // SnapshotKeeper is a driver that can list and restore the snapshots it takes.
 type SnapshotKeeper interface {
 	Snapshots(ctx context.Context, id string) ([]string, error)

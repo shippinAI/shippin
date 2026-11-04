@@ -29,6 +29,7 @@ export type TeamSettings = {
   breakglass_approval: boolean;
   approval_minutes: number;
   sole_owner_activation: boolean;
+  no_second_factor?: boolean;
 };
 
 export type TeamRequest = {
@@ -52,6 +53,7 @@ export type Team = {
   owners: number;
   two_person_active: boolean;
   mode_override: string;
+  local_roles?: boolean;
   self: string;
   errors: string[];
 };
@@ -63,5 +65,6 @@ export type StaffSummary = {
   mfa: boolean;
   mfa_required: boolean;
   legacy_fallback: boolean;
+  local?: boolean;
   unavailable?: boolean;
 };

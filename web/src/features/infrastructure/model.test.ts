@@ -95,4 +95,10 @@ assert.equal(noteOK("disk is full"), true);
 assert.equal(noteOK("x".repeat(301)), false, "too long for the audit log");
 assert.equal(noteOK("é".repeat(300)), true, "the limit counts characters, not bytes");
 
+assert.equal(guestNameOK("web-1"), true);
+assert.equal(guestNameOK("1web"), false, "starts with a letter");
+assert.equal(guestNameOK("web_1"), false);
+assert.equal(guestNameOK(""), false);
+assert.deepEqual(imagesFor([{ kind: "ct" }, { kind: "vm" }, {}], "ct"), [{ kind: "ct" }, {}], "an image with no kind suits either");
+
 console.log("infrastructure model ok");

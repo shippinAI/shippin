@@ -2,7 +2,10 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"path/filepath"
+	"regexp"
 	"testing"
 )
 
@@ -23,6 +26,50 @@ func TestShippedConfigPassesCheck(t *testing.T) {
 	c := shippedConfig(t)
 	if err := c.Check(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// A stranger's install must not come with one installation's products. Keys may name an optional
+// integration; what shows to a person may not.
+func TestShippedConfigNamesNoOnesProducts(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "..", "config", "shippin.example.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc any
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	named := regexp.MustCompile(`\b(Nomen|Vaultix|Clyffy|Chatmaton|Devagotchi|AgentHub|Zitadel|Infisical)\b`)
+	var walk func(path string, v any)
+	walk = func(path string, v any) {
+		switch x := v.(type) {
+		case map[string]any:
+			for k, c := range x {
+				walk(path+"."+k, c)
+			}
+		case []any:
+			for i, c := range x {
+				walk(fmt.Sprintf("%s[%d]", path, i), c)
+			}
+		case string:
+			if named.MatchString(x) {
+				t.Errorf("%s = %q", path, x)
+			}
+		}
+	}
+	walk("", doc)
+}
+
+func TestAnIdentityProviderIsOptional(t *testing.T) {
+	c := shippedConfig(t)
+	c.IDP.Name, c.IDP.ClientID = "", ""
+	if err := c.Check(); err != nil {
+		t.Fatalf("a panel with no identity provider must start: %v", err)
+	}
+	c.IDP.ClientID = "client"
+	if err := c.Check(); err == nil {
+		t.Fatal("one that is configured needs a name to show")
 	}
 }
 

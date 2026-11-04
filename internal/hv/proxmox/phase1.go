@@ -546,7 +546,7 @@ func (c *Client) postUPID(ctx context.Context, method, path string, form url.Val
 		return "", err
 	}
 	if code != http.StatusOK {
-		return "", fmt.Errorf("proxmox: HTTP %d: %s", code, clip(body))
+		return "", fmt.Errorf("proxmox: HTTP %d: %s", code, refusal(body))
 	}
 	return upidOf(body)
 }

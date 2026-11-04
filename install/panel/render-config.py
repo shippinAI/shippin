@@ -47,6 +47,18 @@ if captcha:
     if captcha not in ("none", "turnstile"):
         sys.exit("SHIPPIN_CAPTCHA_PROVIDER must be none or turnstile")
     dr.setdefault("captcha", {})["provider"] = captcha
+# One OIDC provider people can sign in through. Several go straight in directory.upstreams.
+if os.environ.get("SHIPPIN_SSO_ISSUER"):
+    cfg.setdefault("directory", {})["upstreams"] = [{
+        "id": os.environ.get("SHIPPIN_SSO_ID", "sso"),
+        "label": os.environ.get("SHIPPIN_SSO_NAME", "Single sign-on"),
+        "issuer": os.environ["SHIPPIN_SSO_ISSUER"],
+        "client_id": os.environ.get("SHIPPIN_SSO_CLIENT_ID", ""),
+        "secret_env": "SHIPPIN_SSO_SECRET",
+    }]
+set_if("SHIPPIN_ORIGIN", cfg.setdefault("directory", {}), "origin")
+if os.environ.get("SHIPPIN_CATALOG_ENABLED") in ("1", "true", "yes"):
+    cfg.setdefault("catalog", {})["enabled"] = True
 if os.environ.get("SHIPPIN_SERVERS_ENABLED") in ("1", "true", "yes"):
     cfg.setdefault("servers", {})["enabled"] = True
 dest = os.environ.get("SHIPPIN_CONFIG_OUT") or "/etc/shippin/shippin.json"

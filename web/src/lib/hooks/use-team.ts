@@ -33,6 +33,9 @@ export const useSetActive = () =>
   useTeamSend((v: { id: string; state: "deactivate" | "reactivate"; reason: string }) => ["POST", `/v1/operator/team/members/${v.id}/${v.state}`, { reason: v.reason }], "Account updated", "Account not changed");
 
 export type InviteBody = { email: string; first_name: string; last_name: string; roles: string[]; reason: string };
+/** A one-time link for someone invited on this panel to claim their account. */
+export const useInviteLink = () => useMutation({ mutationFn: (id: string) => apiSend<{ url: string }>("POST", `/v1/operator/team/members/${id}/invite-link`) });
+
 export const useInvite = () =>
   useTeamSend((v: InviteBody) => ["POST", "/v1/operator/team/members", v], "Invitation sent", "Couldn't invite");
 

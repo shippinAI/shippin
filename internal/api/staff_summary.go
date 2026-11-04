@@ -15,7 +15,7 @@ func (a *API) staffSummary(r *http.Request, c *caller) map[string]any {
 		}
 	}
 	out := map[string]any{"mode": mode, "permissions": eff, "legacy_fallback": legacy || (mode != "enforce" && a.isPlatformAdmin(c)),
-		"roles": []string{}, "mfa": false, "mfa_required": false}
+		"roles": []string{}, "mfa": false, "mfa_required": false, "local": a.localRoles()}
 	if mode != "legacy" {
 		v := a.staffOf(r.Context(), c)
 		out["roles"], out["mfa"], out["mfa_required"], out["unavailable"] = v.Roles, v.MFA, v.MFARequired, v.Err
@@ -23,10 +23,18 @@ func (a *API) staffSummary(r *http.Request, c *caller) map[string]any {
 	return out
 }
 
-// panelAllowed is the "Admin panel" switch: any effective permission.
+// panelAllowed is the "Admin panel" switch: any effective permission for something that lives there.
+// Infrastructure permissions are used from the hosts pages, so they alone do not offer it.
 func (a *API) panelAllowed(r *http.Request, c *caller) bool {
-	ok, _ := a.decide(r.Context(), c, permPanel)
-	return ok
+	for _, p := range permCatalog {
+		if p.Section == "Infrastructure" {
+			continue
+		}
+		if ok, _ := a.decide(r.Context(), c, p.Key); ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *API) decideQuiet(r *http.Request, c *caller, perm string) bool {

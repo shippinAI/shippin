@@ -22,7 +22,7 @@ export function TeamPage() {
   const staff = t?.members.filter((m) => m.roles.length);
   return (
     <>
-      <PageHeader eyebrow="Provider" title="Team" description={`Who works on Shippin and what each role may do. Every change is audited before it reaches ${idp}.`} />
+      <PageHeader eyebrow="Provider" title="Team" description={idp === "your identity provider" ? "Who can use this panel and what each role may do. Every change is audited." : `Who works on Shippin and what each role may do. Every change is audited before it reaches ${idp}.`} />
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Staff" value={staff?.length} icon={Users} hue="var(--color-primary)" hint="Members with at least one role" />
         <StatCard label="Owners" value={t?.owners} icon={UserCog} hue="var(--color-warning)" hint={t && t.owners < 2 ? "Add a second Owner for two-person approvals" : "Active"} />

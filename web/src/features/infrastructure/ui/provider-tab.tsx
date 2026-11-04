@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Cpu, Plus } from "lucide-react";
+import { Cpu } from "lucide-react";
 import { Badge } from "../../../lib/design/components/badge/badge";
 import { Button } from "../../../lib/design/components/button/button";
 import { Card, CardHeader } from "../../../lib/design/components/card/card";
@@ -12,7 +12,7 @@ import { StatusDot } from "../../../lib/design/components/status-dot/status-dot"
 import { formatBytes } from "../../../lib/format";
 import { isWaitingOnBoard } from "../../../lib/api/client";
 import { useServices } from "../../../lib/hooks/use-api";
-import { useCreateGuest, useGuestAction, useGuests, useRollback, useSnapshot, useSnapshots, useTask, type Guest } from "../../../lib/hooks/use-hosts";
+import { useCreateGuest, useDeleteGuest, useGuestAction, useGuests, useRollback, useSnapshot, useSnapshots, useTask, type Guest } from "../../../lib/hooks/use-hosts";
 import { isOpen as operationOpen, useDetachHost, useInfraCan, useOperations, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
 
 import { useText } from "../../../lib/ui-config/use-ui-config";
@@ -20,6 +20,7 @@ import { firstAnswering, formatUptime, isRunning, isStopped, stoppableGuests, ve
 import { ActivityCard } from "./activity-card";
 import { BoardNotice } from "./board-notice";
 import { ChangeNoteDialog, type PendingChange } from "./change-note-dialog";
+import { CreateGuestCard } from "./create-guest-card";
 import { NodeFacts } from "./node-details";
 import { StopGuestsDialog } from "./stop-guests-dialog";
 
@@ -84,14 +85,12 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
   const snap = useSnapshot(base);
   const back = useRollback(base);
   const create = useCreateGuest(node.id);
+  const remove = useDeleteGuest(base);
   const detach = useDetachHost();
   const may = useInfraCan();
   const [change, setChange] = useState<PendingChange | null>(null);
   const [stopping, setStopping] = useState(false);
   const [snapName, setSnapName] = useState("");
-  const [kind, setKind] = useState("ct");
-  const [newId, setNewId] = useState("");
-  const [newName, setNewName] = useState("");
   const [upid, setUpid] = useState("");
   const [lookup, setLookup] = useState("");
   const task = useTask(can("tasks") ? base : "", lookup);
@@ -100,10 +99,10 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
     { error: snap.error, retry: () => { if (snap.variables) snap.mutate(snap.variables); } },
     { error: back.error, retry: () => { if (back.variables) back.mutate(back.variables); } },
     { error: create.error, retry: () => { if (create.variables) create.mutate(create.variables); } },
+    { error: remove.error, retry: () => { if (remove.variables) remove.mutate(remove.variables); } },
   ].find((m) => isWaitingOnBoard(m.error));
   // One slow change holds its own guest, and only that one.
   const guestBusy = !!guest && ((act.isPending && act.variables?.guest === guest.id) || (operations.data?.items ?? []).some((o) => operationOpen(o) && o.guest === guest.id));
-  const guestKinds = [{ id: "ct", label: t("infra.guest.ct") }, { id: "vm", label: t("infra.guest.vm") }];
   return (
     <>
       {waiting && <div className="mb-6"><BoardNotice error={waiting.error} retry={waiting.retry} /></div>}
@@ -170,6 +169,17 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
                   </Button>
                 );
               })}
+              {can("delete") && may("infra.guests.manage") && (
+                <Button size="sm" variant="ghost" tooltip={t("infra.delete.tooltip")} isDisabled={guestBusy || remove.isPending || (!!guest.self && !may("infra.self"))}
+                  onPress={() => setChange({
+                    title: t("infra.note.title", { change: `${t("infra.delete.action").toLowerCase()} ${guest.name || guest.id}` }),
+                    warning: guest.self ? t("infra.self.body") : t("infra.delete.warning"),
+                    confirm: t("infra.delete.action"),
+                    run: (note) => remove.mutate({ guest: guest.id, note, confirmSelf: !!guest.self }, { onSuccess: () => setGuestId("") }),
+                  })}>
+                  {t("infra.delete.action")}
+                </Button>
+              )}
               {guestBusy && <p className="basis-full text-[13px] text-fg-muted" data-testid="guest-busy">{t("infra.guest.busy")}</p>}
             </div>
           )}
@@ -212,23 +222,11 @@ function ApiGuests({ provider, node }: { provider: InfraProvider; node: InfraNod
       {((can("create") && may("infra.guests.manage")) || can("tasks")) && (
         <div className="grid gap-6 lg:grid-cols-2">
           {can("create") && may("infra.guests.manage") && (
-            <Card className="p-5">
-              <h2 className="mb-3 text-sm font-semibold text-fg">{t("infra.create.title")}</h2>
-              <form className="space-y-3" onSubmit={(e) => {
-                e.preventDefault();
-                setChange({
-                  title: t("infra.note.title", { change: t("infra.create.title").toLowerCase() }), confirm: t("infra.create.submit"),
-                  run: (note) => create.mutate({ kind, id: newId, name: newName, note }),
-                });
-              }}>
-                <Select label={t("infra.create.kind")} options={guestKinds} value={kind} onChange={setKind} />
-                <TextField label={t("infra.create.id")} value={newId} onChange={setNewId} />
-                <TextField label={t("infra.create.name")} value={newName} onChange={setNewName} />
-                <Button type="submit" variant="primary" size="sm" tooltip={t("infra.create.tooltip")} isDisabled={!newId || create.isPending}>
-                  <Plus className="size-4" /> {t("infra.create.submit")}
-                </Button>
-              </form>
-            </Card>
+            <CreateGuestCard base={base} provider={provider} busy={create.isPending}
+              onCreate={(g) => setChange({
+                title: t("infra.note.title", { change: `${t("infra.create.submit").toLowerCase()} ${g.name}` }), confirm: t("infra.create.submit"),
+                run: (note) => create.mutate({ ...g, note }),
+              })} />
           )}
           {can("tasks") && (
             <Card className="p-5">

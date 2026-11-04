@@ -1,3 +1,4 @@
+import { useText } from "../../../lib/ui-config/use-ui-config";
 import { ArrowRight, Boxes, Check, KeyRound, Loader2, LogOut, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Form } from "react-aria-components";
@@ -16,7 +17,26 @@ const steps = [
 ];
 
 /** First login with no tenant: name your org, we create it and provision its resources. */
+/** Signed in, with nothing to do here yet. */
+function NoRoleYet({ needsFactor }: { needsFactor: boolean }) {
+  const t = useText();
+  return (
+    <div className="flex h-full items-center justify-center p-10" data-testid="no-role">
+      <div className="max-w-md text-center">
+        <h1 className="text-[22px] font-semibold tracking-tight">{t(needsFactor ? "welcome.factor.title" : "welcome.noRole.title")}</h1>
+        <p className="mt-2 text-sm text-fg-muted">{t(needsFactor ? "welcome.factor.body" : "welcome.noRole.body")}</p>
+      </div>
+    </div>
+  );
+}
+
 export function OnboardingPage() {
+  const me = useMe().data;
+  if (me && !me.capabilities.onboarding) return <NoRoleYet needsFactor={me.staff?.mfa_required === true} />;
+  return <Onboarding />;
+}
+
+function Onboarding() {
   const me = useMe().data;
   const s = usePublicSettings().data;
   const nav = useNavigate();

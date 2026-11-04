@@ -27,7 +27,7 @@ func (a *API) localIdentity(ctx context.Context, uid string) (*auth.Identity, er
 	}
 	var email, name, role string
 	var verified bool
-	if err := a.db.Pool.QueryRow(ctx, `SELECT email, email_verified, name, role FROM identity_users WHERE id = $1`, uid).
+	if err := a.db.Pool.QueryRow(ctx, `SELECT email, email_verified, name, role FROM identity_users WHERE id = $1 AND active`, uid).
 		Scan(&email, &verified, &name, &role); err != nil {
 		return nil, err
 	}

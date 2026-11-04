@@ -44,6 +44,7 @@ var pinnedInfraRoutes = map[string]struct {
 	"POST /v1/infra/servers/{id}/guests/{guest}/snapshots/{name}/rollback": {"infra.guests.restore", true},
 	"POST /v1/infra/servers/{id}/restore":                                  {"infra.guests.restore", true},
 	"POST /v1/infra/servers/{id}/backups":                                  {"infra.guests.backup", true},
+	"GET /v1/infra/servers/{id}/images":                                    {"infra.read", false},
 	"POST /v1/infra/servers/{id}/guests":                                   {"infra.guests.manage", true},
 	"POST /v1/infra/servers/{id}/guests/{guest}/clone":                     {"infra.guests.manage", true},
 	"POST /v1/infra/servers/{id}/guests/{guest}/template":                  {"infra.guests.manage", true},

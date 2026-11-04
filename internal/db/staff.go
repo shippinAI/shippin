@@ -27,6 +27,7 @@ type StaffSettings struct {
 	IdleDays            int    `json:"idle_days"`             // flag staff idle longer than this
 	BreakGlassApproval  bool   `json:"breakglass_approval"`   // break-glass waits for an approver
 	ApprovalMinutes     int    `json:"approval_minutes"`      // pending break-glass lapses after this
+	NoSecondFactor      bool   `json:"no_second_factor"`      // roles on this panel apply without a passkey or an IdP
 	SoleOwnerActivation bool   `json:"sole_owner_activation"` // no other approver: an Owner may self-activate (flagged)
 }
 

@@ -17,6 +17,7 @@ func (a *API) teamRoutes() []opRoute {
 		{"GET /v1/operator/team", "team.read", a.teamList},
 		{"POST /v1/operator/team/members", "team.write", a.teamInvite},
 		{"PUT /v1/operator/team/members/{userId}/roles", "team.write", a.teamSetRoles},
+		{"POST /v1/operator/team/members/{userId}/invite-link", "team.write", a.teamInviteLink},
 		{"POST /v1/operator/team/members/{userId}/{state}", "team.write", a.teamSetActive},
 		{"POST /v1/operator/team/roles", "team.roles", a.teamCreateRole},
 		{"PUT /v1/operator/team/roles/{roleKey}", "team.roles", a.teamUpdateRole},
@@ -74,11 +75,15 @@ func (a *API) teamList(w http.ResponseWriter, r *http.Request, c *caller) {
 	errs := []string{}
 	if uerr != nil || gerr != nil {
 		log.Printf("team list: users=%v grants=%v", uerr, gerr)
-		errs = append(errs, a.cfg.IDP.Name+" couldn't be read; the staff list may be incomplete.")
+		errs = append(errs, a.idpWord()+" couldn't be read; the staff list may be incomplete.")
+	}
+	override := a.cfg.Staff.Mode
+	if override == "" && a.localRoles() {
+		override = "enforce"
 	}
 	writeJSON(w, map[string]any{"members": members, "roles": roles, "catalog": permCatalog, "settings": s,
 		"requests": reqs, "owners": owners, "two_person_active": s.TwoPerson && owners >= 2,
-		"mode_override": a.cfg.Staff.Mode, "self": c.id.Sub, "errors": errs})
+		"mode_override": override, "local_roles": a.localRoles(), "self": c.id.Sub, "errors": errs})
 }
 
 // decodeStrict reads a small JSON body, refusing unknown fields.

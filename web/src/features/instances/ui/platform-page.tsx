@@ -11,7 +11,7 @@ export function PlatformPage() {
       <PageHeader eyebrow="Operator" title="Platform health" description="The hosts this panel manages, and the services you have told it to watch." />
       {me?.capabilities["infra.hosts"] && <InfrastructureSummary />}
       <ServicesGrid />
-      <TenantsCard />
+      {(me?.capabilities["feature.workspaces"] || me?.capabilities["feature.catalog"]) && <TenantsCard />}
     </>
   );
 }

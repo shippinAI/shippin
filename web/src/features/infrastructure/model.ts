@@ -52,6 +52,12 @@ export function fleetTotals(members: FleetMember[]): InfraTotals {
 }
 
 /** Running guests, the panel's own last so it is never first in line. */
+/** A guest name that either hypervisor accepts. */
+export const guestNameOK = (name: string) => /^[a-zA-Z][a-zA-Z0-9-]{0,62}$/.test(name);
+
+/** The images that suit this kind of guest. An image with no kind suits either. */
+export const imagesFor = <T extends { kind?: string }>(images: T[], kind: string) => images.filter((i) => !i.kind || i.kind === kind);
+
 /** A change must say why. The server applies the same limits. */
 export const noteOK = (note: string) => {
   const n = [...note.trim()].length;

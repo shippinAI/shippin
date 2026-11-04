@@ -87,3 +87,24 @@ func TestPasskeyRoundTrip(t *testing.T) {
 		t.Fatal("wrong challenge accepted")
 	}
 }
+
+func TestClientDataIsCheckedFieldByFieldNotBySearching(t *testing.T) {
+	challenge := []byte("abc")
+	good := `{"type":"webauthn.get","challenge":"` + b64(challenge) + `","origin":"https://panel.invalid"}`
+	if err := checkClient([]byte(good), "webauthn.get", challenge, "https://panel.invalid"); err != nil {
+		t.Fatal(err)
+	}
+	for name, raw := range map[string]string{
+		"another origin that contains this one": `{"type":"webauthn.get","challenge":"` + b64(challenge) + `","origin":"https://panel.invalid.evil.example"}`,
+		"the challenge hidden in another field": `{"type":"webauthn.get","challenge":"other","origin":"https://panel.invalid","x":"` + b64(challenge) + `"}`,
+		"the wrong ceremony":                    `{"type":"webauthn.create","challenge":"` + b64(challenge) + `","origin":"https://panel.invalid"}`,
+		"not JSON":                              `webauthn.get ` + b64(challenge) + ` https://panel.invalid`,
+	} {
+		if err := checkClient([]byte(raw), "webauthn.get", challenge, "https://panel.invalid"); err == nil {
+			t.Errorf("%s must be refused", name)
+		}
+	}
+	if err := checkClient([]byte(good), "webauthn.get", nil, ""); err == nil {
+		t.Error("no challenge must be refused")
+	}
+}

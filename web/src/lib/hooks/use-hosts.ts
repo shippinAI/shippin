@@ -60,15 +60,40 @@ export function useGuestAction(base: string) {
   });
 }
 
+export type NewGuest = { kind: string; name: string; image: string; memory: number; cores: number; disk: number; start: boolean };
+export type GuestImage = { id: string; label: string; kind?: string };
+
+/** What a guest can be made from on this host. */
+export const useGuestImages = (base: string) =>
+  useQuery({ queryKey: ["hv", base, "images"], queryFn: () => apiGet<{ items: GuestImage[] }>(`${base}/images`), enabled: base !== "" });
+
+/** Removes a guest, stopping it first if it has to. */
+export function useDeleteGuest(base: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    onMutate: () => showStarted(qc),
+    mutationFn: (v: { guest: string; confirmSelf?: boolean; note?: string }) =>
+      apiSend("DELETE", `${base}/guests/${v.guest}${v.confirmSelf ? "?confirm=self" : ""}`, undefined, { note: v.note }),
+    onSuccess: (_d, v) => {
+      toast.info(`${v.guest} was removed`, "That is what the hypervisor reported after the call.");
+      void qc.invalidateQueries({ queryKey: ["hv", base, "guests"] });
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["infra", "operations"] }),
+    onError: (e) => reportError("Couldn't remove the guest", e),
+  });
+}
+
 export function useCreateGuest(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ note, ...body }: { kind: string; id: string; name: string; note?: string }) =>
+    onMutate: () => showStarted(qc),
+    mutationFn: ({ note, ...body }: NewGuest & { note?: string }) =>
       apiSend<Guest>("POST", `/v1/infra/servers/${id}/guests`, body, { note }),
     onSuccess: (g) => {
       toast.info(`Guest ${g.id} is ${g.status}`, "The task finished and inventory was read again.");
       void qc.invalidateQueries({ queryKey: ["hv", `/v1/infra/servers/${id}`, "guests"] });
     },
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["infra", "operations"] }),
     onError: (e) => reportError("Couldn't create the guest", e),
   });
 }

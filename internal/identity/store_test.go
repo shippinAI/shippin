@@ -2,6 +2,8 @@ package identity
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -182,4 +184,86 @@ func index(s, sub string) int {
 		}
 	}
 	return -1
+}
+
+func TestAnInviteClaimsAnUnusedAccountButNeverTakesOverOne(t *testing.T) {
+	s, _ := testService(t)
+	ctx := context.Background()
+	if _, err := s.db.Exec(ctx, `INSERT INTO identity_users (id, email, email_verified, name, role) VALUES ($1, 'new@example.invalid', false, 'New', 'member')`, inviteTestID(1)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.db.Exec(ctx, `INSERT INTO identity_users (id, email, email_verified, name, role) VALUES ($1, 'used@example.invalid', true, 'Used', 'owner')`, inviteTestID(2)); err != nil {
+		t.Fatal(err)
+	}
+	soon := time.Now().Add(time.Hour)
+	code, err := s.CreateInvite(ctx, "", "new@example.invalid", "member", 1, soon)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, codes, err := s.RedeemInvite(ctx, code, "new@example.invalid", "Grace")
+	if err != nil || u.ID != inviteTestID(1) || !u.EmailVerified || len(codes) != 8 {
+		t.Fatalf("%+v %v %v", u, codes, err)
+	}
+	if _, _, err := s.RedeemInvite(ctx, code, "new@example.invalid", "Again"); err == nil {
+		t.Fatal("an invite works once")
+	}
+	taken, err := s.CreateInvite(ctx, "", "used@example.invalid", "member", 1, soon)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := s.RedeemInvite(ctx, taken, "used@example.invalid", "Attacker"); err == nil {
+		t.Fatal("an account already in use must not be taken over with an invite")
+	}
+	other, err := s.CreateInvite(ctx, "", "someone@example.invalid", "member", 1, soon)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := s.RedeemInvite(ctx, other, "new@example.invalid", "Wrong"); err == nil {
+		t.Fatal("an invite is for the address it was made for")
+	}
+}
+
+func inviteTestID(n int) string { return fmt.Sprintf("019a0000-0000-7000-8000-%012d", n) }
+
+func TestAPasskeyChallengeWorksOnce(t *testing.T) {
+	s, _ := testService(t)
+	ctx := context.Background()
+	raw, err := s.NewPasskeyChallenge(ctx, "198.51.100.7")
+	if err != nil || len(raw) != 32 {
+		t.Fatalf("%x %v", raw, err)
+	}
+	if err := s.UsePasskeyChallenge(ctx, []byte("one the panel never issued")); !errors.Is(err, ErrChallenge) {
+		t.Fatalf("an invented challenge must be refused: %v", err)
+	}
+	if err := s.UsePasskeyChallenge(ctx, raw); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.UsePasskeyChallenge(ctx, raw); !errors.Is(err, ErrChallenge) {
+		t.Fatalf("replaying a challenge must be refused: %v", err)
+	}
+	old, err := s.NewPasskeyChallenge(ctx, "198.51.100.7")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.db.Exec(ctx, `UPDATE identity_passkey_challenges SET expires_at = now() - interval '1 minute'`); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.UsePasskeyChallenge(ctx, old); !errors.Is(err, ErrChallenge) {
+		t.Fatalf("an expired challenge must be refused: %v", err)
+	}
+}
+
+func TestPasskeyChallengesAreRateLimitedByAddress(t *testing.T) {
+	s, _ := testService(t)
+	ctx := context.Background()
+	var err error
+	for i := 0; i < 40 && err == nil; i++ {
+		_, err = s.NewPasskeyChallenge(ctx, "198.51.100.8")
+	}
+	if !errors.Is(err, ErrRateLimited) {
+		t.Fatalf("%v", err)
+	}
+	if _, err := s.NewPasskeyChallenge(ctx, "198.51.100.9"); err != nil {
+		t.Fatalf("another address is unaffected: %v", err)
+	}
 }

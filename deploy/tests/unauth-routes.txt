@@ -43,6 +43,7 @@ GET /v1/infra/servers/{id}/guests
 GET /v1/infra/servers/{id}/guests/{guest}
 GET /v1/infra/servers/{id}/guests/{guest}/snapshots
 GET /v1/infra/servers/{id}/health
+GET /v1/infra/servers/{id}/images
 GET /v1/infra/servers/{id}/network
 GET /v1/infra/servers/{id}/services
 GET /v1/infra/servers/{id}/storage
@@ -173,6 +174,7 @@ POST /v1/operator/customers/{id}/provision-intent
 POST /v1/operator/staff-mode
 POST /v1/operator/staff-mode/exit
 POST /v1/operator/team/members
+POST /v1/operator/team/members/{userId}/invite-link
 POST /v1/operator/team/members/{userId}/{state}
 POST /v1/operator/team/permission-grants
 POST /v1/operator/team/requests/{requestId}/{decision}

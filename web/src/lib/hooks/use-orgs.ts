@@ -1,10 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../api/client";
 import type { OpsServerList, OrgList } from "../api/org-types";
+import { useMe } from "./use-api";
 
-/** Orgs for the header switcher. A 404 means the feature is off: the switcher hides. */
-export const useOrgs = () =>
-  useQuery({ queryKey: ["orgs"], queryFn: () => apiGet<OrgList>("/v1/orgs"), retry: false, staleTime: 60_000 });
+/** Orgs for the header switcher, when this installation uses them. */
+export const useOrgs = () => {
+  const on = useMe().data?.capabilities["feature.orgs"] === true;
+  return useQuery({ queryKey: ["orgs"], queryFn: () => apiGet<OrgList>("/v1/orgs"), enabled: on, retry: false, staleTime: 60_000 });
+};
 
 /** Operations view of every server; staff only (403 for tenant roles). */
 export const useOpsServers = () =>

@@ -2,6 +2,14 @@
 
 Two ways, with the same settings. Containers are the quickest; the installer gives you a plain Debian or Ubuntu service.
 
+## With one command
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/shippinAI/shippin/main/install.sh | sudo bash
+```
+
+This works on Debian and Ubuntu. It writes `/etc/shippin/site.env` the first time, installs the panel on port 8443 with a self-signed certificate for this machine's address, and prints the address and a setup code. Use `--host` for a name or an address other than the first one it finds, and `--port` for another port. Running it again updates the panel and keeps its settings.
+
 ## With containers
 
 ```sh
@@ -79,6 +87,29 @@ The owner is the platform admin without any upstream IdP: a local session maps t
 
 The `--example` install redeems its own code as part of the smoke test.
 
+## Connect a hypervisor
+
+Add a host under **Infrastructure → Hosts & nodes**. The panel needs two things from it.
+
+**Incus.** A trust token, which the panel exchanges for its own certificate. On the server:
+
+```sh
+incus config set core.https_address :8443
+incus config trust add shippin-panel
+```
+
+**Proxmox VE.** An API token whose user holds these roles. `PVEVMAdmin` and `PVEAuditor` are enough to read and run guests. Creating one also needs `PVEDatastoreUser` for its disk and `PVESDNUser` for its network, and Proxmox refuses without them. On a node:
+
+```sh
+pveum user add shippin@pve
+pveum acl modify / --users shippin@pve --roles PVEVMAdmin,PVEAuditor,PVEDatastoreUser,PVESDNUser
+pveum user token add shippin@pve panel --privsep 0
+```
+
+Copy the secret it prints; Proxmox shows it once. With privilege separation left on, give the same roles to the token as well. To grant less, scope the roles to a pool or storage instead of `/`.
+
+New guests take their disk from the first storage that allows it, and their network from the first bridge on the node. A Proxmox container needs a template on that node first. Incus downloads images itself, from the list under `ui.providers` in your configuration.
+
 ## Disposable proof
 
 `--example` is only for a throwaway machine. It uses the committed example JSON, creates a local database, and generates a session key.
@@ -118,6 +149,17 @@ sudo ./install/panel/install.sh --example
 | `SHIPPIN_MAIL_SINK` | disposable installs only | File that receives mail bodies. Leave unset on a real site |
 
 Host agent settings, hypervisor tokens, and SMTP passwords stay in that uncommitted file or in `/etc/shippin/hostd.json` copied from [deploy/hostd.example.json](../deploy/hostd.example.json). The Proxmox panel reads `/etc/warden/warden.env`, copied from [third_party/warden-ct102/warden.env.example](../third_party/warden-ct102/warden.env.example), with TLS verification left on.
+
+## What is switched on
+
+A fresh install offers hosts, guests, fleets, approvals and the provider panel, and nothing that needs something else. The rest appears when you configure it:
+
+| Feature | Turn it on with |
+| --- | --- |
+| Workspaces, projects, templates, the host and edge pages | `SHIPPIN_HOSTD_URL`, with the host agent installed |
+| Customers, plans and the service catalog | `SHIPPIN_CATALOG_ENABLED=1` |
+| Enrolling servers from a tenant | `SHIPPIN_SERVERS_ENABLED=1` |
+| Chat, AI subscriptions, bridge sessions, secrets, orgs | `chat`, `ai`, `bridge`, `vaultix` and `orgs` set to `enabled` in the config file |
 
 ## Watching other services
 

@@ -47,7 +47,7 @@ System tenant ──owns──▶ hosts, the panel's guest      Customer tenants
 | `infra.storage.write` | Download and upload to hypervisor storage |
 | `infra.self` | Change the guest this panel runs on |
 
-Staff roles grant these once the team is in enforce mode (**Provider panel → Team**), and staff permissions always need a second factor. The founder role, the local installation owner and `roles.infra` hold all of them, so a single-owner install keeps working with no identity provider. Presets: **Owner** has everything, **Infrastructure** has everything except `infra.self`, **SRE / Ops** can read, power and snapshot, and **Security** and **Auditor** can read.
+The panel holds staff roles itself: add people and give them roles under **Provider panel → Team**, whatever they sign in with. A site whose identity provider holds staff instead (`SHIPPIN_IDP_TEAM_TOKEN`) moves the team to enforce mode there. A role applies once someone has a second factor: a passkey, or signing in through an identity provider, whose own policy then counts. The installation's owner always holds the Owner role. `roles.infra` holds every infrastructure permission. Presets: **Owner** has everything, **Infrastructure** has everything except `infra.self`, **SRE / Ops** can read, power and snapshot, and **Security** and **Auditor** can read.
 
 ### CP-4: Every change says why
 

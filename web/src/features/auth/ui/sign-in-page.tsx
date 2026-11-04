@@ -1,3 +1,4 @@
+import { passkeyProblem, signInWithPasskey } from "../../../lib/passkey";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import { useEffect } from "react";
 import { useSearchParams } from "../../../lib/router/router";
@@ -35,30 +36,56 @@ export function SignInPage() {
             {s?.app === "operator" ? "Sign in to the provider panel. Staff roles only; every action is audited." : "Sign in to your console. You'll land in your own tenant."}
           </p>
           <div className="mt-8 rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-e2)]">
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full"
-              isDisabled={!s?.login_ready}
-              tooltip={s?.login_ready ? `Continue to ${idpHost}` : "Login isn't configured yet"}
-              onPress={() => window.location.assign("/auth/login")}
-            >
-              Continue with {s?.idp_name ?? ""} <ArrowRight className="size-4" />
-            </Button>
-            {(s?.login_providers ?? []).map((p) => (
+            {s?.login_ready && (
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full"
+                tooltip={`Continue to ${idpHost}`}
+                onPress={() => window.location.assign("/auth/login")}
+              >
+                Continue with {s.idp_name || idpHost} <ArrowRight className="size-4" />
+              </Button>
+            )}
+            {s?.login_ready && (s.login_providers ?? []).map((p) => (
               <Button
                 key={p.id}
                 variant="secondary"
                 size="lg"
                 className="mt-3 w-full"
-                isDisabled={!s?.login_ready}
-                tooltip={s?.login_ready ? `Sign in with ${p.label} via ${idpHost}` : "Login isn't configured yet"}
+                tooltip={`Sign in with ${p.label} via ${idpHost}`}
                 onPress={() => window.location.assign(`/auth/login?idp=${encodeURIComponent(p.id)}`)}
               >
                 Continue with {p.label} <ArrowRight className="size-4" />
               </Button>
             ))}
+            {(s?.sign_in_providers ?? []).map((p) => (
+              <Button
+                key={p.id}
+                variant={s?.login_ready ? "secondary" : "primary"}
+                size="lg"
+                className="mb-3 w-full"
+                tooltip={`Sign in with ${p.label}`}
+                onPress={() => window.location.assign(`/auth/upstream/${encodeURIComponent(p.id)}`)}
+              >
+                Continue with {p.label} <ArrowRight className="size-4" />
+              </Button>
+            ))}
             {s?.local_login !== false && (
+              <form
+                className="grid gap-2"
+                data-testid="passkey-sign-in"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const email = String(new FormData(e.currentTarget).get("email") ?? "").trim();
+                  void signInWithPasskey(email).then(() => window.location.assign("/")).catch((err: unknown) => toast.error("Sign-in failed", passkeyProblem(err)));
+                }}
+              >
+                <input name="email" type="email" required autoComplete="username webauthn" aria-label="Email" placeholder="you@example.invalid" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 text-sm text-fg" />
+                <Button type="submit" variant="primary" size="lg" className="w-full" tooltip="Use a passkey saved on this device or a security key">Sign in with a passkey</Button>
+              </form>
+            )}
+            {s?.local_login !== false && s?.email_sign_in && (
               <form
                 className="mt-4 grid gap-2"
                 onSubmit={(e) => {
@@ -98,10 +125,12 @@ export function SignInPage() {
                 </form>
               </details>
             )}
-            <div className="mt-4 flex items-center gap-2 text-xs text-fg-subtle">
-              <LockKeyhole className="size-3.5" />
-              {s?.idp_name} · OpenID Connect with PKCE via <span className="font-mono text-fg-muted">{idpHost}</span>
-            </div>
+            {s?.login_ready && (
+              <div className="mt-4 flex items-center gap-2 text-xs text-fg-subtle">
+                <LockKeyhole className="size-3.5" />
+                {s.idp_name} · OpenID Connect with PKCE via <span className="font-mono text-fg-muted">{idpHost}</span>
+              </div>
+            )}
           </div>
           {s?.setup_open && (
             <p className="mt-6 text-sm">

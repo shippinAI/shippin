@@ -185,6 +185,7 @@ func TestAnApprovalCoversOneChange(t *testing.T) {
 	a.cfg.Approval.Board.Driver = "hub"
 	a.cfg.Approval.Board.OrgID = "ops"
 	a.hvBoard = &spendBoard{stubBoard: stubBoard{st: "approved"}}
+	a.cfg.Approval.Rules = append(a.cfg.Approval.Rules, approval.Rule{ID: "decide", Actions: []string{"hub.decide"}, ApproverRoles: []string{"op_infra"}})
 	req := httptest.NewRequest(http.MethodPost, "/v1/infra/servers/"+id+"/guests/100/status/stop", nil)
 	first := a.permitAction(httptest.NewRecorder(), req, &caller{id: &auth.Identity{Sub: "u"}, op: "op_infra"}, hvAction, "", id, "100", "stop")
 	if !first {
@@ -197,6 +198,27 @@ func TestAnApprovalCoversOneChange(t *testing.T) {
 	body := rec.Body.String()
 	if rec.Code != http.StatusConflict || !strings.Contains(body, `"code":"waiting_on_board"`) || !strings.Contains(body, `"card_id":"card-1"`) || !strings.Contains(body, "stop 100 needs approval") {
 		t.Fatalf("second change: %d %s", rec.Code, body)
+	}
+}
+
+func TestOnlySomeoneWhoCanDecideIsOfferedTheCard(t *testing.T) {
+	a := infraAPI(t, "op_infra", &memHV{})
+	a.cfg.Approval.Board.Driver = "hub"
+	a.cfg.Approval.Board.OrgID = "ops"
+	a.hvBoard = &spendBoard{stubBoard: stubBoard{st: "needs_approval"}}
+	req := httptest.NewRequest(http.MethodPost, "/x", nil)
+	rec := httptest.NewRecorder()
+	if a.permitAction(rec, req, &caller{id: &auth.Identity{Sub: "u"}, op: "op_infra"}, hvAction, "", "s1", "100", "stop") {
+		t.Fatal("it is waiting")
+	}
+	if strings.Contains(rec.Body.String(), "card-1") {
+		t.Fatalf("someone who cannot decide has no use for the card: %s", rec.Body)
+	}
+	a.cfg.Approval.Rules = append(a.cfg.Approval.Rules, approval.Rule{ID: "decide", Actions: []string{"hub.decide"}, ApproverRoles: []string{"op_infra"}})
+	rec = httptest.NewRecorder()
+	a.permitAction(rec, req, &caller{id: &auth.Identity{Sub: "u"}, op: "op_infra"}, hvAction, "", "s1", "100", "stop")
+	if !strings.Contains(rec.Body.String(), `"card_id":"card-1"`) {
+		t.Fatalf("someone who can is offered it: %s", rec.Body)
 	}
 }
 

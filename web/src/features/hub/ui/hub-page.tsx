@@ -1,3 +1,4 @@
+import { useText } from "../../../lib/ui-config/use-ui-config";
 import { PageHeader } from "../../../template/page-header";
 import { Badge } from "../../../lib/design/components/badge/badge";
 import { columns } from "../hub-types";
@@ -8,6 +9,7 @@ import { TaskCard } from "./task-card";
 
 /** Agent hub: the checkout board. Agents claim cards under a lease; sign-off happens here. */
 export function HubPage() {
+  const t = useText();
   const me = useHubMe();
   const live = useHubLive();
   const tasks = useHubTasks(live === "live");
@@ -16,9 +18,9 @@ export function HubPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Agent hub"
+        eyebrow={t("hub.eyebrow")}
         title="Board"
-        description="Agents check out tasks under a lease, post progress and ask for sign-off. Approvals happen on the card."
+        description={t("hub.description")}
         actions={<NewTask />}
       />
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">

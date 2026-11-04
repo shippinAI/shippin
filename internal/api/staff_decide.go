@@ -40,6 +40,11 @@ func (a *API) authzMode(ctx context.Context) string {
 	if m := a.cfg.Staff.Mode; m != "" {
 		return m
 	}
+	// Rollout modes are for moving a site off its identity provider's single gate. Roles this panel holds
+	// have nothing to roll out from.
+	if a.localRoles() {
+		return "enforce"
+	}
 	if m := a.teamSettings(ctx).Mode; m != "" {
 		return m
 	}

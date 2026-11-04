@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -57,6 +58,10 @@ func (a *API) capabilities(r *http.Request, c *caller) map[string]bool {
 		if p.Section == "Infrastructure" {
 			out[p.Key] = a.infraCan(r.Context(), c, p.Key)
 		}
+	}
+	out["account.local"] = strings.HasPrefix(c.id.Sub, localSubPrefix)
+	for k, on := range a.features() {
+		out[k] = on
 	}
 	return out
 }
