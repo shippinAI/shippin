@@ -35,6 +35,7 @@ var pinnedInfraRoutes = map[string]struct {
 	"POST /v1/infra/servers":                                               {"infra.hosts.write", true},
 	"PUT /v1/infra/servers/{id}":                                           {"infra.hosts.write", true},
 	"PUT /v1/infra/servers/{id}/identity":                                  {"infra.hosts.write", true},
+	"POST /v1/infra/servers/{id}/identity/test":                            {"infra.hosts.write", true},
 	"DELETE /v1/infra/servers/{id}/attachment":                             {"infra.hosts.write", true},
 	"PUT /v1/infra/servers/{id}/fleet":                                     {"infra.fleets.write", false},
 	"POST /v1/infra/fleets":                                                {"infra.fleets.write", false},

@@ -1,0 +1,43 @@
+testMapping:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  post:
+    tags: [compute-nodes]
+    operationId: infraSystemIdentityMappingTest
+    summary: Record a read-only AgentHub mapping check for a Shippin system
+    description: Confirms the saved AgentHub machine and tenant mapping and records a redacted observation. It does not authorize or execute provider operations.
+    x-source: shippin-platform/internal/api/infra_identity.go:infraTestSystemIdentity
+    x-implementation-status: registered
+    security:
+      - consoleSession: []
+      - zitadel: []
+    parameters:
+      - name: X-Change-Note
+        in: header
+        required: true
+        description: Percent-encoded reason for this read-only check.
+        schema: {type: string, minLength: 5, maxLength: 240}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            maxProperties: 0
+    responses:
+      '200':
+        description: Latest mapping observation; ok is false when the check failed.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ok, identity, detail]
+              properties:
+                ok: {type: boolean}
+                identity: {type: object, additionalProperties: true}
+                detail: {type: string}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}

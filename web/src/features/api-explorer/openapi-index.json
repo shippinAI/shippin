@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 158,
+  "operationCount": 159,
   "tags": [
     "agents-runtime",
     "audit",
@@ -330,6 +330,16 @@
         "compute-enrollment"
       ],
       "implementationStatus": "planned"
+    },
+    {
+      "method": "POST",
+      "path": "/infra/servers/{id}/identity/test",
+      "operationId": "infraSystemIdentityMappingTest",
+      "summary": "Record a read-only AgentHub mapping check for a Shippin system",
+      "tags": [
+        "compute-nodes"
+      ],
+      "implementationStatus": "registered"
     },
     {
       "method": "POST",

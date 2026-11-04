@@ -169,6 +169,7 @@ POST /v1/infra/servers/{id}/guests/{guest}/snapshots
 POST /v1/infra/servers/{id}/guests/{guest}/snapshots/{name}/rollback
 POST /v1/infra/servers/{id}/guests/{guest}/status/{verb}
 POST /v1/infra/servers/{id}/guests/{guest}/template
+POST /v1/infra/servers/{id}/identity/test
 POST /v1/infra/servers/{id}/restore
 POST /v1/infra/servers/{id}/stop-guests
 POST /v1/infra/servers/{id}/storage/{storage}/download-url

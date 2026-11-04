@@ -13,7 +13,7 @@ import { StatTile } from "../../overview/ui/stat-tile";
 import { providersWithHosts, tabHref } from "../model";
 import { ActivityCard } from "./activity-card";
 import { ProviderCards } from "./provider-cards";
-import { SystemIdentityForm } from "./provider-tab";
+import { SystemIdentityForm } from "./system-identity-form";
 
 type Row = InfraNode & { providerLabel: string };
 type Props = { data: InfraOverview; onAdd?: (kind?: string, existing?: string) => void };

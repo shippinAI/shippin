@@ -59,7 +59,9 @@ export type SystemIdentity = {
   agenthub_machine_id?: string;
   identity_updated_by?: string;
   identity_updated_at?: string;
+  agenthub_mapping_check?: AgentHubMappingCheck;
 };
+export type AgentHubMappingCheck = { outcome: "verified" | "failed"; tenant_id: string; machine_id: string; policy_version?: number; policy_sha256?: string; detail: string; checked_by: string; checked_at: string; matches_current: boolean };
 export type InfraTotals = { nodes: number; online: number; guests: number; running: number };
 export type InfraProvider = {
   kind: string;
@@ -136,9 +138,22 @@ export function useSaveSystemIdentity(id: string) {
     onSuccess: async (v) => {
       qc.setQueryData(systemIdentityKey(id), v);
       await qc.invalidateQueries({ queryKey: ["infra", "overview"] });
-      toast.success("System identity saved", "The AgentHub reference is stored but not remotely verified.");
+      toast.success("System identity saved", "Run the read-only AgentHub mapping check to verify tenant ownership.");
     },
     onError: (e) => toast.error("Could not save system identity", e.message),
+  });
+}
+
+export function useTestSystemIdentityMapping(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (note: string) => apiSend<{ ok: boolean; identity: SystemIdentity; detail: string }>("POST", `/v1/infra/servers/${encodeURIComponent(id)}/identity/test`, {}, { note }),
+    onSuccess: async (v) => {
+      qc.setQueryData(systemIdentityKey(id), v.identity);
+      if (v.ok) toast.success("AgentHub mapping verified", "This confirms identity mapping only; deployment authorization remains separate.");
+      else toast.error("AgentHub mapping not verified", v.detail);
+    },
+    onError: (e) => toast.error("Could not check AgentHub mapping", e.message),
   });
 }
 

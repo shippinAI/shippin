@@ -16,17 +16,30 @@ import (
 // SystemIdentity describes one stable Shippin server UUID and explicit external identities.
 // Hostname is observed; aliases, tags, and AgentHub identifiers are operator-maintained.
 type SystemIdentity struct {
-	ServerID          string     `json:"server_id"`
-	Label             string     `json:"label"`
-	Hostname          string     `json:"hostname,omitempty"`
-	HostnameSource    string     `json:"hostname_source"`
-	HostnameObserved  *time.Time `json:"hostname_observed_at,omitempty"`
-	Aliases           []string   `json:"aliases"`
-	Tags              []string   `json:"tags"`
-	AgentHubTenantID  string     `json:"agenthub_tenant_id,omitempty"`
-	AgentHubMachineID string     `json:"agenthub_machine_id,omitempty"`
-	UpdatedBy         string     `json:"identity_updated_by,omitempty"`
-	UpdatedAt         *time.Time `json:"identity_updated_at,omitempty"`
+	ServerID          string                `json:"server_id"`
+	Label             string                `json:"label"`
+	Hostname          string                `json:"hostname,omitempty"`
+	HostnameSource    string                `json:"hostname_source"`
+	HostnameObserved  *time.Time            `json:"hostname_observed_at,omitempty"`
+	Aliases           []string              `json:"aliases"`
+	Tags              []string              `json:"tags"`
+	AgentHubTenantID  string                `json:"agenthub_tenant_id,omitempty"`
+	AgentHubMachineID string                `json:"agenthub_machine_id,omitempty"`
+	UpdatedBy         string                `json:"identity_updated_by,omitempty"`
+	UpdatedAt         *time.Time            `json:"identity_updated_at,omitempty"`
+	AgentHubCheck     *AgentHubMappingCheck `json:"agenthub_mapping_check,omitempty"`
+}
+
+type AgentHubMappingCheck struct {
+	Outcome        string    `json:"outcome"`
+	TenantID       string    `json:"tenant_id"`
+	MachineID      string    `json:"machine_id"`
+	PolicyVersion  *int64    `json:"policy_version,omitempty"`
+	PolicySHA256   string    `json:"policy_sha256,omitempty"`
+	Detail         string    `json:"detail"`
+	CheckedBy      string    `json:"checked_by"`
+	CheckedAt      time.Time `json:"checked_at"`
+	MatchesCurrent bool      `json:"matches_current"`
 }
 
 var ErrIdentityInvalid = errors.New("invalid system identity")
@@ -50,6 +63,18 @@ func (s *Store) Identity(ctx context.Context, id string) (SystemIdentity, error)
 	}
 	if v.Tags == nil {
 		v.Tags = []string{}
+	}
+	var check AgentHubMappingCheck
+	err = s.Pool.QueryRow(ctx, `SELECT outcome,tenant_id,machine_id,policy_version,coalesce(policy_sha256,''),detail,checked_by,checked_at
+		FROM shippin_agenthub_mapping_checks WHERE server_id=$1 ORDER BY checked_at DESC,id DESC LIMIT 1`, id).Scan(
+		&check.Outcome, &check.TenantID, &check.MachineID, &check.PolicyVersion, &check.PolicySHA256, &check.Detail, &check.CheckedBy, &check.CheckedAt)
+	if err == nil {
+		check.MatchesCurrent = check.TenantID == v.AgentHubTenantID && check.MachineID == v.AgentHubMachineID
+		v.AgentHubCheck = &check
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return SystemIdentity{}, err
+	} else {
+		err = nil
 	}
 	return v, err
 }

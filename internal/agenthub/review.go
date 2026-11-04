@@ -61,6 +61,15 @@ type PolicyStatus struct {
 	SHA256   string `json:"policy_sha256"`
 }
 
+// SystemMapping is a read-only verification that a registered AgentHub machine
+// belongs to the tenant saved on the Shippin system profile.
+type SystemMapping struct {
+	TenantID      string `json:"tenant_id"`
+	MachineID     string `json:"machine_id"`
+	PolicyVersion int64  `json:"policy_version"`
+	PolicySHA256  string `json:"policy_sha256"`
+}
+
 // Client consumes the reviewed AgentHub REST contract. A client is safe to
 // construct from operator configuration; redirect following is disabled so
 // bearer credentials cannot be forwarded to another origin.
@@ -136,6 +145,11 @@ type decisionRequest struct {
 	Command  string `json:"command"`
 	Machine  string `json:"machine"`
 	TicketID string `json:"ticket_id"`
+	DryRun   bool   `json:"dry_run,omitempty"`
+}
+
+type machineResponse struct {
+	ID string `json:"id"`
 }
 
 type decisionResponse struct {
@@ -239,6 +253,48 @@ func (c *Client) CheckPolicy(ctx context.Context, tenant string) (PolicyStatus, 
 		return PolicyStatus{}, err
 	}
 	return PolicyStatus{TenantID: doc.TenantID, Version: doc.Version, SHA256: doc.SHA256}, nil
+}
+
+// CheckSystemMapping confirms machine existence and asks AgentHub for a dry-run
+// decision to resolve the machine's authoritative tenant. The dry run is not
+// authorization and is not recorded by AgentHub.
+func (c *Client) CheckSystemMapping(ctx context.Context, tenant, machine, systemID string) (SystemMapping, error) {
+	if c == nil || c.base == nil || c.http == nil {
+		return SystemMapping{}, errors.New("AgentHub client is not configured")
+	}
+	if !validID(tenant) || !validID(machine) || !validID(systemID) {
+		return SystemMapping{}, errors.New("AgentHub tenant, machine and Shippin system IDs must use letters, digits, dot, underscore, or hyphen")
+	}
+	before, err := c.policy(ctx, tenant)
+	if err != nil {
+		return SystemMapping{}, err
+	}
+	var remote machineResponse
+	if err := c.doJSON(ctx, http.MethodGet, "/api/v1/machines/"+url.PathEscape(machine), nil, &remote, nil); err != nil {
+		return SystemMapping{}, err
+	}
+	if remote.ID != machine {
+		return SystemMapping{}, ErrDenied
+	}
+	command, _ := json.Marshal(struct {
+		Operation string `json:"operation"`
+		SystemID  string `json:"system_id"`
+	}{"mapping_validation", systemID})
+	var answer decisionResponse
+	if err := c.doJSON(ctx, http.MethodPost, "/api/v1/policy/decide", decisionRequest{
+		Tool: "shippin:identity.mapping.validate", Command: string(command), Machine: machine, DryRun: true,
+	}, &answer, nil); err != nil {
+		return SystemMapping{}, err
+	}
+	after, err := c.policy(ctx, tenant)
+	if err != nil {
+		return SystemMapping{}, err
+	}
+	if answer.TenantID != tenant || answer.PolicySHA != before.SHA256 || answer.Decision.Version != before.Version ||
+		after.SHA256 != before.SHA256 || after.Version != before.Version {
+		return SystemMapping{}, ErrDenied
+	}
+	return SystemMapping{TenantID: tenant, MachineID: machine, PolicyVersion: before.Version, PolicySHA256: before.SHA256}, nil
 }
 
 func bindTicket(t ticketResponse, in Request) error {

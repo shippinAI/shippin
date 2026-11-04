@@ -173,6 +173,8 @@ paths:
     $ref: paths/agenthub-runtime.yaml#/connection
   /operator/agenthub-connection/test:
     $ref: paths/agenthub-runtime.yaml#/testConnection
+  /infra/servers/{id}/identity/test:
+    $ref: paths/infra-identity.yaml#/testMapping
   /compute/enroll:
     $ref: paths/compute-nodes.yaml#/redeem
   /tenants/{tenantId}/workspaces/{workspaceId}/site:

@@ -15,7 +15,7 @@ provider inventory slices and CI evidence are in the capability ledger.
 |---|---|---|---|---|
 | 0 | Source inventory, one-panel ownership, migration rules and capability ledger | `docs/design/`, `third_party/warden-ct102` reference matrix | Every candidate row has source revision, observed behavior, destination, disposition, rights/security status and acceptance evidence | In progress. Sibling trees remain read-only; Warden matrix still has open rows; archive is prohibited until these close. |
 | 1 | Provider declarations, credential-safe edits/tests, Incus and Proxmox guest lifecycle, resources and operation read-back | `internal/servers`, `internal/hv/{incus,proxmox}`, `internal/api`, `web/` | Disposable Incus and Proxmox lifecycle workflows, edit/test denial, read-back, task failure, auth denial and secret redaction | Core lifecycle and shared storage inventory exist. Proxmox physical disk listing and capacity are read-only. Full provider coverage and disposable-host evidence remain open. |
-| 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | **Hard gate.** The Shippin client now requires an explicit matched human-approval rule, and operators can configure its HTTPS endpoint and sealed credential in Platform settings. The candidate AgentHub API still lacks typed review-required/quorum proof; the client is not connected to the provider gate. Keep provider writes unavailable. |
+| 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | **Hard gate.** Operators configure the HTTPS endpoint and sealed credential, read-test tenant policy, and run a recorded read-only machine/tenant mapping check. That check is not action authorization. The candidate AgentHub API still lacks typed review-required/quorum proof and least-privilege service-principal evidence; provider writes remain unavailable. |
 | 3 | Deployment reconciliation and provider execution | `internal/deployments`, migrations, hostd, provider drivers, jobs, API/OpenAPI, `web/` | Transactional dispatch, fenced lease, immutable generation, provider-specific executor, restart/retry, read-back, health, idempotent removal and negative-path evidence | **Blocked on order 2.** Current API stores desired generations/events only; no reconcile/build handler exists. Implement no executor bypass or pretend-ready state. |
 | 4 | Pinned source resolution and bounded builds | catalog/builder owner, isolated worker, secret resolver | Immutable input commit/digest, build provenance, bounded CPU/memory/time/storage/concurrency/egress, secret mounts, cancellation and cleanup | Not implemented. Must precede GitHub/custom Git deployment; OCI digest path still needs provider compatibility. |
 | 5 | Managed PostgreSQL, Dragonfly, Redis and ClickHouse | managed-service owner, hostd/provider adapters, catalog, `web/` | Engine-specific configure/provision/upgrade/backup/restore/health/delete on supported providers; tenant isolation; restore verification | Design only; `internal/managed` is rrflow state, not an engine runtime. No turnkey engine may be advertised. |
@@ -27,13 +27,15 @@ provider inventory slices and CI evidence are in the capability ledger.
 ### Immediate execution packet
 
 1. Keep source trees read-only and refresh `main`/CI and dirty-worktree evidence.
-2. Finish the complete AgentHub-to-Shippin contract audit, including no-match
-   semantics, typed decision intent, policy/ticket hash binding, principal
-   permissions, tenant/system mapping and replay behavior. Record exact routes,
-   fields and source hashes; do not infer from board status or error strings.
-3. Define the Shippin integration contract and tests against a disposable AgentHub
-   instance. Provider mutation remains disabled until the instance proves the
-   contract and least-privilege permissions.
+2. Complete the AgentHub-to-Shippin contract audit, including no-match semantics,
+   typed decision intent, policy/ticket hash binding, principal permissions,
+   tenant/system mapping and replay behavior. The mapping check is implemented
+   as a read-only dry-run with append-only local provenance; it does not prove
+   review authorization. Record exact routes, fields and source hashes.
+3. Exercise mapping, ticket, evidence and review operations against disposable
+   AgentHub and Shippin/PostgreSQL instances. Provider mutation remains disabled
+   until exact action/resource binding, human review, quorum and least-privilege
+   service permissions are independently demonstrated.
 4. Only after step 3 passes, implement the durable deployment outbox/reconciler
    and provider-specific Incus/Proxmox execution. The desired generation and
    outbox event must commit atomically; workers must fence leases and re-read the

@@ -165,6 +165,77 @@ func TestCheckPolicyReadsOnlyExplicitTenantPolicy(t *testing.T) {
 	}
 }
 
+func TestCheckSystemMappingUsesMachineAndTenantDryRunWithoutTicket(t *testing.T) {
+	var policyReads, machineReads, decisions int
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Header.Get("Authorization") != "Bearer service-token" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		switch r.URL.Path {
+		case "/api/v1/policy/doc":
+			policyReads++
+			if r.URL.Query().Get("tenant") != "tenant-1" {
+				t.Errorf("unexpected policy tenant: %q", r.URL.Query().Get("tenant"))
+			}
+			_, _ = w.Write([]byte(policyJSON))
+		case "/api/v1/machines/machine-1":
+			machineReads++
+			_, _ = w.Write([]byte(`{"id":"machine-1"}`))
+		case "/api/v1/policy/decide":
+			decisions++
+			var in decisionRequest
+			if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+				t.Errorf("decode mapping dry-run: %v", err)
+			}
+			if in.Machine != "machine-1" || in.TicketID != "" || !in.DryRun || in.Tool != "shippin:identity.mapping.validate" {
+				t.Errorf("mapping request was not read-only: %+v", in)
+			}
+			_, _ = w.Write([]byte(decisionJSON))
+		default:
+			t.Errorf("unexpected mapping check endpoint: %s", r.URL.Path)
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	c, err := newClient(Config{BaseURL: server.URL, Token: "service-token"}, server.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := c.CheckSystemMapping(context.Background(), "tenant-1", "machine-1", "019a0000-0000-7000-8000-0000000000a1")
+	if err != nil || got.TenantID != "tenant-1" || got.MachineID != "machine-1" || got.PolicyVersion != 2 || got.PolicySHA256 != policyHash {
+		t.Fatalf("mapping=%+v err=%v", got, err)
+	}
+	if policyReads != 2 || machineReads != 1 || decisions != 1 {
+		t.Fatalf("expected stable policy + machine lookup + one dry-run, got policy=%d machine=%d decide=%d", policyReads, machineReads, decisions)
+	}
+}
+
+func TestCheckSystemMappingRejectsCrossTenantDryRun(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/policy/doc":
+			_, _ = w.Write([]byte(policyJSON))
+		case "/api/v1/machines/machine-1":
+			_, _ = w.Write([]byte(`{"id":"machine-1"}`))
+		case "/api/v1/policy/decide":
+			_, _ = w.Write([]byte(strings.Replace(decisionJSON, `"tenant_id":"tenant-1"`, `"tenant_id":"tenant-2"`, 1)))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	c, err := newClient(Config{BaseURL: server.URL, Token: "service-token"}, server.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.CheckSystemMapping(context.Background(), "tenant-1", "machine-1", "system-1"); err == nil {
+		t.Fatal("cross-tenant machine mapping was accepted")
+	}
+}
+
 const policyJSON = `{"tenant_id":"tenant-1","version":2,"sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","doc":{"version":2,"rules":[{"id":"review-provider-actions","enabled":true,"effect":"require","require":[{"check":"approval"},{"check":"review","min":2,"role":"reviewer"}]}]}}`
 
 const ticketJSON = `{"ticket":{"id":"ticket-1","tenant_id":"tenant-1","machine":"machine-1","command":"{\"resource\":\"guest-9\",\"generation\":4}","fields":{"shippin_action_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","status":"passed"},"evidence":[],"reviews":[]}`

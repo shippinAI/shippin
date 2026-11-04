@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Cpu } from "lucide-react";
 import { Badge } from "../../../lib/design/components/badge/badge";
 import { Button } from "../../../lib/design/components/button/button";
@@ -6,13 +6,14 @@ import { Card, CardHeader } from "../../../lib/design/components/card/card";
 import { DataTable, type ColumnDef } from "../../../lib/design/components/data-table/data-table";
 import { EmptyState } from "../../../lib/design/components/empty-state/empty-state";
 import { TextField } from "../../../lib/design/components/field/text-field";
+
 import { Select } from "../../../lib/design/components/select/select";
 import { Skeleton } from "../../../lib/design/components/skeleton/skeleton";
 import { StatusDot } from "../../../lib/design/components/status-dot/status-dot";
 import { formatBytes } from "../../../lib/format";
 import { useServices } from "../../../lib/hooks/use-api";
 import { useCreateGuest, useDeleteGuest, useGuestAction, useGuests, useRollback, useSnapshot, useSnapshots, useStorageInventory, useTask, type Guest } from "../../../lib/hooks/use-hosts";
-import { isOpen as operationOpen, useDetachHost, useInfraCan, useOperations, useSaveSystemIdentity, useSystemIdentity, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
+import { isOpen as operationOpen, useDetachHost, useInfraCan, useOperations, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
 
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { firstAnswering, formatUptime, isRunning, isStopped, stoppableGuests, verbApplies } from "../model";
@@ -21,6 +22,7 @@ import { ChangeNoteDialog, type PendingChange } from "./change-note-dialog";
 import { CreateGuestCard } from "./create-guest-card";
 import { NodeFacts } from "./node-details";
 import { StopGuestsDialog } from "./stop-guests-dialog";
+import { SystemIdentityForm } from "./system-identity-form";
 
 function useGuestColumns(): ColumnDef<Guest>[] {
   const t = useText();
@@ -280,56 +282,6 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
       <StopGuestsDialog serverId={node.id} guests={guests.data?.items ?? []} isOpen={stopping} onOpenChange={setStopping} />
       <ChangeNoteDialog change={change} onClose={() => setChange(null)} />
     </>
-  );
-}
-
-export function SystemIdentityForm({ serverId }: { serverId: string }) {
-  const identity = useSystemIdentity(serverId);
-  const save = useSaveSystemIdentity(serverId);
-  const [aliases, setAliases] = useState("");
-  const [tags, setTags] = useState("");
-  const [label, setLabel] = useState("");
-  const [tenantId, setTenantId] = useState("");
-  const [machineId, setMachineId] = useState("");
-  const [note, setNote] = useState("");
-  useEffect(() => {
-    if (!identity.data) return;
-    setLabel(identity.data.label);
-    setAliases(identity.data.aliases.join("\n"));
-    setTags(identity.data.tags.join("\n"));
-    setTenantId(identity.data.agenthub_tenant_id ?? "");
-    setMachineId(identity.data.agenthub_machine_id ?? "");
-  }, [identity.data]);
-  if (identity.isPending) return <Card className="mb-6 p-5"><p className="text-sm text-fg-muted">Loading system identity…</p></Card>;
-  if (identity.isError) return <Card className="mb-6 p-5"><p role="alert" className="text-sm text-danger">{identity.error.message}</p></Card>;
-  const split = (value: string) => value.split(/[,\n]/).map((part) => part.trim()).filter(Boolean);
-  return (
-    <Card elevation={2} className="mb-6 p-5">
-      <div className="mb-4">
-        <h2 className="text-sm font-semibold text-fg">System identity</h2>
-        <p className="mt-1 text-[13px] text-fg-muted">
-          Shippin system ID: <span className="font-mono">{identity.data.server_id}</span>
-          {identity.data.hostname && <> · Hostname: <span className="font-medium text-fg">{identity.data.hostname}</span> ({identity.data.hostname_source}{identity.data.hostname_observed_at ? `, observed ${new Date(identity.data.hostname_observed_at).toLocaleString()}` : ""})</>}
-          {identity.data.identity_updated_at && <> · Metadata updated by {identity.data.identity_updated_by} at {new Date(identity.data.identity_updated_at).toLocaleString()}</>}
-        </p>
-        <p className="mt-1 text-[13px] text-fg-muted">AgentHub IDs are explicit references only. This mapping does not yet validate against AgentHub or run its change-review workflow.</p>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <TextField label="Display name / nickname" value={label} onChange={setLabel} />
-        <TextField label="Aliases (one per line)" multiline value={aliases} onChange={setAliases} />
-        <TextField label="Tags (one per line)" multiline value={tags} onChange={setTags} />
-        <TextField label="AgentHub tenant ID" value={tenantId} onChange={setTenantId} />
-        <TextField label="AgentHub machine ID" value={machineId} onChange={setMachineId} />
-      </div>
-      <div className="mt-3 flex flex-wrap items-end gap-3">
-        <TextField label="Reason for identity change" value={note} onChange={setNote} />
-        <Button size="sm" variant="primary" tooltip="Save display name, aliases, tags, and an explicit AgentHub mapping" isDisabled={save.isPending || note.trim().length < 5 || !label.trim() || (!!tenantId.trim() !== !!machineId.trim())}
-          onPress={() => save.mutate({ label, aliases: split(aliases), tags: split(tags), agenthub_tenant_id: tenantId.trim(), agenthub_machine_id: machineId.trim(), note })}>
-          Save identity
-        </Button>
-        {save.isError && <p role="alert" className="text-sm text-danger">{save.error.message}</p>}
-      </div>
-    </Card>
   );
 }
 

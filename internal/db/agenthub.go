@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -14,6 +15,20 @@ type AgentHubConnection struct {
 	BaseURL         string
 	TokenCiphertext []byte
 	HasCredential   bool
+}
+
+// AgentHubMappingCheck is the redacted result of validating one saved Shippin mapping.
+type AgentHubMappingCheck struct {
+	ID            string
+	ServerID      string
+	TenantID      string
+	MachineID     string
+	Outcome       string
+	PolicyVersion *int64
+	PolicySHA256  string
+	Detail        string
+	CheckedBy     string
+	CheckedAt     time.Time
 }
 
 func (d *DB) AgentHubConnection(ctx context.Context) (AgentHubConnection, error) {
@@ -46,4 +61,23 @@ func (d *DB) SaveAgentHubConnection(ctx context.Context, baseURL string, tokenCi
 		}
 		return tag.RowsAffected(), err
 	})
+}
+
+// RecordAgentHubMappingCheck appends a mapping observation and its audit entry atomically.
+func (d *DB) RecordAgentHubMappingCheck(ctx context.Context, check AgentHubMappingCheck, audit AuditEntry) (AgentHubMappingCheck, error) {
+	var policyHash any
+	if check.PolicySHA256 != "" {
+		policyHash = check.PolicySHA256
+	}
+	err := d.inTx(ctx, []AuditEntry{audit}, func(tx pgx.Tx) (int64, error) {
+		err := tx.QueryRow(ctx, `INSERT INTO shippin_agenthub_mapping_checks
+			(id,server_id,tenant_id,machine_id,outcome,policy_version,policy_sha256,detail,checked_by)
+			VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING checked_at`, check.ID, check.ServerID, check.TenantID,
+			check.MachineID, check.Outcome, check.PolicyVersion, policyHash, check.Detail, check.CheckedBy).Scan(&check.CheckedAt)
+		if err != nil {
+			return 0, err
+		}
+		return 1, nil
+	})
+	return check, err
 }
