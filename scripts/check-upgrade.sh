@@ -110,9 +110,10 @@ pass "the panel reports the audit log as protected and intact"
 
 [ "$(runuser -u postgres -- psql -At -d shippin -c "SELECT count(*) FROM tenants WHERE kind = 'system'")" = 1 ] || fail "the update did not create the system tenant"
 [ "$(runuser -u postgres -- psql -At -d shippin -c "SELECT count(*) FROM servers WHERE tenant_id IS NULL")" = 0 ] || fail "a host was left with no owner"
-[ "$(runuser -u postgres -- psql -At -d shippin -c "SELECT tenant_id::text = (SELECT id::text FROM tenants WHERE kind = 'system') FROM servers WHERE slug = 'keep'")" = t ] || fail "the system tenant does not own the panel's host"
+[ "$(runuser -u postgres -- psql -At -d shippin -c "SELECT count(*) FROM servers WHERE tenant_id::text <> (SELECT id::text FROM tenants WHERE kind = 'system')")" = 0 ] || fail "the system tenant does not own every registered host"
+[ "$(runuser -u postgres -- psql -At -d shippin -c "SELECT count(*) FROM servers WHERE slug = 'keep'")" = 0 ] || fail "the rejected provider was written to the server registry"
 [ "$(runuser -u postgres -- psql -At -d shippin -c "SELECT count(*) FROM servers WHERE created_by = 'seed:028'")" = 0 ] || fail "another installation's site names are still here"
-pass "the system tenant owns the hosts, and nobody else's site names remain"
+pass "the system tenant owns registered hosts, and failed provider checks leave no row"
 [ -z "$(git status --porcelain)" ] || { git status --porcelain; fail "the update dirtied the checkout, so the next pull would refuse"; }
 pass "the checkout is still clean for the next pull"
 echo "UPGRADE OK: $(git rev-parse --short "$old") to $(git rev-parse --short HEAD)"
