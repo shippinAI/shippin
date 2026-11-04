@@ -18,6 +18,11 @@ See [the console import](merge-from-shippin-console.md). No candidate code is
 accepted merely by being present in another repository; review source provenance,
 ownership, dependencies and tests before adopting it.
 
+`internal/networking/` owns installation-scoped Cloudflare Tunnel, Tailscale, and
+custom inventory connections. It persists configuration and observed resource rows
+under `shippin_` table names, seals credentials through the configured installation
+key, and treats remote inventory as observation rather than a deployed change.
+
 The product is one panel, with role-aware customer and operator workflows backed by
 server-side authorization. Shared installation settings
 belong to the control plane; browser-only preferences do not configure an installation.

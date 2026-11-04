@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type { InfraField, InfraOverview, InfraProvider } from "../../lib/hooks/use-infra";
-import { noteOK, verbApplies, firstAnswering, FLEETS_TAB, NETWORKS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, hostsWithoutFleet, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
+import { noteOK, verbApplies, firstAnswering, FLEETS_TAB, NETWORKS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, guestNameOK, hostsWithoutFleet, imagesFor, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
 
 const totals = { nodes: 0, online: 0, guests: 0, running: 0 };
 const provider = (kind: string, nodes = 0): InfraProvider => ({
