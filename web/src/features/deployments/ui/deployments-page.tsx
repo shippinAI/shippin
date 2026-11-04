@@ -1,5 +1,5 @@
 import { Clock3, History, Pencil, Plus, Server, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Json } from "../../../lib/api/catalog-types";
 import { Badge } from "../../../lib/design/components/badge/badge";
 import { Button } from "../../../lib/design/components/button/button";
@@ -17,6 +17,7 @@ import {
 } from "../../../lib/hooks/use-deployments";
 import { PageHeader } from "../../../template/page-header";
 import { QueryView } from "../../admin/ui/query-view";
+import { ServiceConfigForm } from "./service-config-form";
 
 const isObject = (value: unknown): value is Record<string, Json> => value !== null && typeof value === "object" && !Array.isArray(value);
 const serviceSource = (source: DeploymentSource) => source.kind === "oci"
@@ -117,19 +118,22 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
   const source = deployment?.source ?? service?.deployment_source;
   const [targetId, setTargetId] = useState(deployment?.target_system_id ?? targets[0]?.id ?? "");
   const [configText, setConfigText] = useState(() => JSON.stringify(deployment?.config ?? service?.default_config ?? {}, null, 2));
+  const [schemaValid, setSchemaValid] = useState(true);
+  const setSchemaValidity = useCallback((value: boolean) => setSchemaValid(value), []);
   const create = useCreateDeployment(tenantId);
   const update = useUpdateDeployment(tenantId);
   const config = (() => { try { return JSON.parse(configText) as unknown; } catch { return undefined; } })();
   const valid = isObject(config);
+  const configObject = isObject(config) ? config : {};
   const busy = create.isPending || update.isPending;
   return <Drawer isOpen onOpenChange={(open) => !open && onClose()} title={deployment ? `Edit ${service?.label ?? deployment.service_id}` : "Request deployment"}
     subtitle="This records desired configuration and a pinned catalog revision; provider execution is not connected yet."
     footer={<>
       <div className="flex-1" />
       <Button variant="ghost" tooltip="Close without saving" onPress={onClose}>Cancel</Button>
-      <Button variant="primary" tooltip={deployment ? "Append a generation using the current ETag" : "Record desired service configuration"} isDisabled={(!deployment && !service) || !valid || busy || (!deployment && (!targetId || !targets.some((target) => target.id === targetId)))}
+      <Button variant="primary" tooltip={deployment ? "Append a generation using the current ETag" : "Record desired service configuration"} isDisabled={(!deployment && !service) || !valid || !schemaValid || busy || (!deployment && (!targetId || !targets.some((target) => target.id === targetId)))}
         onPress={() => {
-          if (!valid) return;
+          if (!isObject(config) || !schemaValid) return;
           if (deployment) update.mutate({ deployment, config }, { onSuccess: onClose });
           else if (service) create.mutate({ service_id: service.id, target_system_id: targetId, desired_state: "present", config }, { onSuccess: onClose });
         }}>{deployment ? "Save generation" : "Record request"}</Button>
@@ -150,8 +154,14 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
         <div className="mt-1 break-all font-mono text-xs text-fg-muted">{serviceSource(source)}</div>
         {service?.description && <div className="mt-2 text-xs text-fg-subtle">{service.description}</div>}
       </div>}
-      <TextField label="Configuration (JSON)" multiline mono value={configText} onChange={setConfigText}
-        description={valid ? "Values are checked against the selected service schema when saved." : "Enter a JSON object."} />
+      {schema && valid
+        ? <ServiceConfigForm key={deployment?.id ?? serviceId} schema={schema} value={configObject} onChange={(next) => setConfigText(JSON.stringify(next, null, 2))} onValidityChange={setSchemaValidity} />
+        : <p className="text-sm text-fg-muted">{valid ? "This service has no editable schema. Use the advanced JSON editor." : "Enter a valid JSON object in the advanced editor."}</p>}
+      <details className="rounded-lg border border-line p-3">
+        <summary className="cursor-pointer text-sm font-medium text-fg">Advanced JSON editor</summary>
+        <TextField label="Configuration (JSON)" multiline mono value={configText} onChange={setConfigText}
+          description={valid ? "The server validates these values against the pinned service schema when saved." : "Enter a valid JSON object."} />
+      </details>
       {schema && <details className="rounded-lg border border-line p-3">
         <summary className="cursor-pointer text-sm font-medium text-fg">Configuration schema and required fields</summary>
         <p className="mt-2 text-xs text-fg-muted">Secret defaults are hidden. Enter a Vaultix reference (vaultix://…) or a SOPS reference with a key pointer (sops://file#/path); never enter secret values.</p>

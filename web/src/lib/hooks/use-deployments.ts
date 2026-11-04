@@ -11,7 +11,7 @@ export type DeploymentService = {
 };
 export type JsonSchemaProperty = {
   type?: string; title?: string; description?: string; format?: string; enum?: Json[];
-  minimum?: number; maximum?: number; properties?: Record<string, JsonSchemaProperty>; items?: JsonSchemaProperty;
+  minimum?: number; maximum?: number; properties?: Record<string, JsonSchemaProperty>; required?: string[]; items?: JsonSchemaProperty;
 };
 export type DeploymentTarget = { id: string; label: string; site: string; provider: "incus" | "proxmox"; state: "planned" | "pending" | "active" | "stale" | "revoked" };
 export type DeploymentTargets = { items: DeploymentTarget[]; can_request: boolean };
