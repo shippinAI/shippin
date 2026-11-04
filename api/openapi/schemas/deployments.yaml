@@ -6,6 +6,7 @@ Deployment:
     service_id: { type: string }
     target_system_id: { $ref: common.yaml#/Uuid }
     target_provider: { type: string, enum: [incus, proxmox] }
+    target_provider_label: { type: string, description: Installation-configured display label for the target provider. }
     generation: { type: integer, minimum: 1 }
     desired_state: { type: string, enum: [present, absent] }
     observed_state: { type: string, enum: [unknown, pending, provisioning, ready, degraded, failed, absent] }
@@ -53,6 +54,7 @@ DeploymentTarget:
     label: { type: string }
     site: { type: string }
     provider: { type: string, enum: [incus, proxmox] }
+    provider_label: { type: string, description: Installation-configured display label for the provider. }
     state: { type: string, enum: [planned, pending, active, stale, revoked] }
 DeploymentTargetList:
   type: object

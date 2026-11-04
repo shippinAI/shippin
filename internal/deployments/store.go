@@ -51,30 +51,32 @@ type SourceView struct {
 }
 
 type Target struct {
-	ID       string   `json:"id"`
-	Label    string   `json:"label"`
-	Site     string   `json:"site"`
-	Provider Provider `json:"provider"`
-	State    string   `json:"state"`
+	ID            string   `json:"id"`
+	Label         string   `json:"label"`
+	Site          string   `json:"site"`
+	Provider      Provider `json:"provider"`
+	ProviderLabel string   `json:"provider_label,omitempty"`
+	State         string   `json:"state"`
 }
 
 type Deployment struct {
-	ID                 string          `json:"id"`
-	ServiceID          string          `json:"service_id"`
-	TargetSystemID     string          `json:"target_system_id"`
-	TargetProvider     Provider        `json:"target_provider"`
-	Generation         int64           `json:"generation"`
-	DesiredState       DesiredState    `json:"desired_state"`
-	ObservedState      ObservedState   `json:"observed_state"`
-	DefinitionSHA256   string          `json:"definition_sha256"`
-	ConfigSchema       json.RawMessage `json:"config_schema"`
-	Source             SourceView      `json:"source"`
-	Config             json.RawMessage `json:"config"`
-	CreatedBy          string          `json:"created_by"`
-	CreatedAt          time.Time       `json:"created_at"`
-	UpdatedBy          string          `json:"updated_by"`
-	UpdatedAt          time.Time       `json:"updated_at"`
-	definitionSnapshot json.RawMessage
+	ID                  string          `json:"id"`
+	ServiceID           string          `json:"service_id"`
+	TargetSystemID      string          `json:"target_system_id"`
+	TargetProvider      Provider        `json:"target_provider"`
+	TargetProviderLabel string          `json:"target_provider_label,omitempty"`
+	Generation          int64           `json:"generation"`
+	DesiredState        DesiredState    `json:"desired_state"`
+	ObservedState       ObservedState   `json:"observed_state"`
+	DefinitionSHA256    string          `json:"definition_sha256"`
+	ConfigSchema        json.RawMessage `json:"config_schema"`
+	Source              SourceView      `json:"source"`
+	Config              json.RawMessage `json:"config"`
+	CreatedBy           string          `json:"created_by"`
+	CreatedAt           time.Time       `json:"created_at"`
+	UpdatedBy           string          `json:"updated_by"`
+	UpdatedAt           time.Time       `json:"updated_at"`
+	definitionSnapshot  json.RawMessage
 }
 
 const deploymentSelect = `SELECT d.id::text, d.service_id, d.target_system_id::text,

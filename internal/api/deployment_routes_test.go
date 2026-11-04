@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/deployments"
 )
@@ -33,6 +34,16 @@ func TestDeploymentRoutesRegistered(t *testing.T) {
 		if rec.patterns[i] != want[i] {
 			t.Errorf("route %d = %q, want %q", i, rec.patterns[i], want[i])
 		}
+	}
+}
+
+func TestConfiguredProviderLabelUsesInstallationUI(t *testing.T) {
+	ui := config.UI{Providers: []config.UIProvider{{Kind: "proxmox", Label: "Shippin Prox"}}}
+	if got := configuredProviderLabel(ui, deployments.ProviderProxmox); got != "Shippin Prox" {
+		t.Fatalf("configured provider label = %q", got)
+	}
+	if got := configuredProviderLabel(config.UI{}, deployments.ProviderIncus); got != "incus" {
+		t.Fatalf("unconfigured provider label fallback = %q", got)
 	}
 }
 

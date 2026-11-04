@@ -43,7 +43,7 @@ export function DeploymentsPage() {
 
   return <>
     <PageHeader eyebrow="Tenant services" title="Deployments"
-      description="Configure services from the shared catalog on an Incus or Proxmox system assigned to this tenant."
+      description="Configure services from the shared catalog on a compatible system assigned to this tenant."
       actions={canManage && <Button variant="primary" size="sm" isDisabled={!services.data?.items.length || !requestableTargets.length}
         tooltip={!requestableTargets.length ? "A configured assigned target is required" : "Request a service deployment"}
         onPress={() => setShowCreate(true)}><Plus className="size-4" /> Request deployment</Button>} />
@@ -54,7 +54,7 @@ export function DeploymentsPage() {
 
     {!canManage && <Card className="mb-4 p-4 text-sm text-fg-muted">A tenant owner or admin can add, edit, or request removal of deployments.</Card>}
     {canManage && (targets.isSuccess && !requestableTargets.length) && <Card className="mb-4 flex items-center justify-between gap-4 p-4">
-      <p className="text-sm text-fg-muted">No configured Incus or Proxmox target is assigned to this tenant.</p>
+      <p className="text-sm text-fg-muted">No compatible target is assigned to this tenant.</p>
       <Button variant="secondary" size="sm" tooltip="Open the tenant server registry" onPress={() => navigate(`/t/${tenantId}/servers`)}><Server className="size-4" /> Manage servers</Button>
     </Card>}
 
@@ -63,7 +63,7 @@ export function DeploymentsPage() {
       onRetry={() => { void deployments.refetch(); void services.refetch(); void targets.refetch(); }}>
       {() => rows.length === 0 ? <Card className="p-10 text-center">
         <h2 className="font-semibold text-fg">No deployments yet</h2>
-        <p className="mx-auto mt-2 max-w-xl text-sm text-fg-muted">Active deployable services and targets appear here. Add a pinned service definition in the provider catalog, then assign an active Incus or Proxmox system to this tenant.</p>
+        <p className="mx-auto mt-2 max-w-xl text-sm text-fg-muted">Active deployable services and compatible assigned targets appear here. Add a pinned service definition in the provider catalog, then assign a supported system to this tenant.</p>
         {canManage && <Button className="mt-4" variant="primary" isDisabled={!services.data?.items.length || !requestableTargets.length}
           tooltip="Record a deployment request from the active catalog" onPress={() => setShowCreate(true)}><Plus className="size-4" /> Request deployment</Button>}
       </Card> : <div className="grid gap-3">
@@ -77,7 +77,7 @@ export function DeploymentsPage() {
                   <h2 className="font-semibold text-fg">{service?.label ?? item.service_id}</h2>
                   <Badge tone={item.observed_state === "ready" ? "success" : item.observed_state === "failed" ? "danger" : "warning"}>{item.observed_state}</Badge>
                   <Badge>desired {item.desired_state}</Badge>
-                  <Badge tone="info">{item.target_provider === "proxmox" ? "Shippin Prox" : "Incus"}</Badge>
+                  <Badge tone="info">{item.target_provider_label ?? item.target_provider}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-fg-muted">{target?.label ?? item.target_system_id} Â· generation {item.generation} Â· updated {new Date(item.updated_at).toLocaleString()}</p>
                 <p className="mt-1 truncate font-mono text-xs text-fg-subtle" title={serviceSource(item.source)}>{serviceSource(item.source)}</p>
@@ -109,7 +109,7 @@ export function DeploymentsPage() {
 }
 
 function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: {
-  tenantId: string; services: DeploymentService[]; targets: { id: string; label: string; provider: string; site: string; state: string }[];
+  tenantId: string; services: DeploymentService[]; targets: { id: string; label: string; provider: string; provider_label?: string; site: string; state: string }[];
   deployment?: Deployment; onClose: () => void;
 }) {
   const [serviceId, setServiceId] = useState(deployment?.service_id ?? services[0]?.id ?? "");
@@ -147,7 +147,7 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
             setConfigText(JSON.stringify(selected?.default_config ?? {}, null, 2));
           }} />
         <Select label="Target system" value={targetId} options={targets.map((target) => ({ id: target.id,
-          label: `${target.provider === "proxmox" ? "Shippin Prox" : "Incus"} Â· ${target.label} Â· ${target.site}${target.state === "planned" ? " Â· connection unverified" : ""}` }))} onChange={setTargetId} />
+          label: `${target.provider_label ?? target.provider} Â· ${target.label} Â· ${target.site}${target.state === "planned" ? " Â· connection unverified" : ""}` }))} onChange={setTargetId} />
       </>}
       {source && <div className="rounded-lg border border-line p-3">
         <div className="text-sm font-medium text-fg">Pinned source</div>

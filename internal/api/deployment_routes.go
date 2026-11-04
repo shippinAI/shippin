@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/catalog"
+	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/deployments"
 )
 
@@ -55,7 +57,24 @@ func (a *API) listDeploymentTargets(w http.ResponseWriter, r *http.Request) {
 		deploymentUnavailable(w)
 		return
 	}
+	ui := a.uiConfig(r.Context())
+	for i := range items {
+		items[i].ProviderLabel = configuredProviderLabel(ui, items[i].Provider)
+	}
 	writeJSON(w, map[string]any{"items": items, "can_request": c.canDecide(t)})
+}
+
+func configuredProviderLabel(ui config.UI, provider deployments.Provider) string {
+	if presentation, ok := ui.Provider(string(provider)); ok && presentation.Label != "" {
+		return presentation.Label
+	}
+	return string(provider)
+}
+
+func (a *API) decorateDeployment(ctx context.Context, item *deployments.Deployment) {
+	if item != nil {
+		item.TargetProviderLabel = configuredProviderLabel(a.uiConfig(ctx), item.TargetProvider)
+	}
 }
 
 func (a *API) deploymentTenantCtx(w http.ResponseWriter, r *http.Request) (*caller, *tenantView, bool) {
@@ -77,6 +96,10 @@ func (a *API) listDeployments(w http.ResponseWriter, r *http.Request) {
 		deploymentUnavailable(w)
 		return
 	}
+	ui := a.uiConfig(r.Context())
+	for i := range items {
+		items[i].TargetProviderLabel = configuredProviderLabel(ui, items[i].TargetProvider)
+	}
 	writeJSON(w, map[string]any{"items": items, "page": map[string]any{"next_page_token": nil, "total_estimate": len(items)}})
 }
 
@@ -90,6 +113,7 @@ func (a *API) getDeployment(w http.ResponseWriter, r *http.Request) {
 		writeDeploymentError(w, err)
 		return
 	}
+	a.decorateDeployment(r.Context(), item)
 	w.Header().Set("ETag", deploymentETag(item.Generation))
 	writeJSON(w, item)
 }
@@ -118,6 +142,7 @@ func (a *API) createDeployment(w http.ResponseWriter, r *http.Request) {
 			writeDeploymentError(w, err)
 			return
 		}
+		a.decorateDeployment(r.Context(), item)
 		w.Header().Set("ETag", deploymentETag(item.Generation))
 		status := http.StatusOK
 		if created {
@@ -155,6 +180,7 @@ func (a *API) updateDeployment(w http.ResponseWriter, r *http.Request) {
 			writeDeploymentError(w, err)
 			return
 		}
+		a.decorateDeployment(r.Context(), item)
 		w.Header().Set("ETag", deploymentETag(item.Generation))
 		writeJSON(w, item)
 	})
@@ -186,6 +212,7 @@ func (a *API) deleteDeployment(w http.ResponseWriter, r *http.Request) {
 			writeDeploymentError(w, err)
 			return
 		}
+		a.decorateDeployment(r.Context(), item)
 		w.Header().Set("ETag", deploymentETag(item.Generation))
 		writeJSON(w, item)
 	})

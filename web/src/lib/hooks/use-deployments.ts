@@ -13,10 +13,10 @@ export type JsonSchemaProperty = {
   type?: string; title?: string; description?: string; format?: string; enum?: Json[];
   minimum?: number; maximum?: number; properties?: Record<string, JsonSchemaProperty>; required?: string[]; items?: JsonSchemaProperty;
 };
-export type DeploymentTarget = { id: string; label: string; site: string; provider: "incus" | "proxmox"; state: "planned" | "pending" | "active" | "stale" | "revoked" };
+export type DeploymentTarget = { id: string; label: string; site: string; provider: string; provider_label?: string; state: "planned" | "pending" | "active" | "stale" | "revoked" };
 export type DeploymentTargets = { items: DeploymentTarget[]; can_request: boolean };
 export type Deployment = {
-  id: string; service_id: string; target_system_id: string; target_provider: "incus" | "proxmox";
+  id: string; service_id: string; target_system_id: string; target_provider: string; target_provider_label?: string;
   generation: number; desired_state: "present" | "absent";
   observed_state: "unknown" | "pending" | "provisioning" | "ready" | "degraded" | "failed" | "absent";
   definition_sha256: string; config_schema: DeploymentService["config_schema"];
