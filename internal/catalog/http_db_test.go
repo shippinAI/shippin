@@ -77,7 +77,7 @@ func TestCatalogAPIFlow(t *testing.T) {
 	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"backup","label":"Backups","default_config":{"days":7}}`, 201)
 	do(t, mux, "GET", "/v1/operator/catalog/services/backup", "", 200)
 	source := `"deployment_source":{"kind":"github","reference":"https://github.com/acme/postgres","commit":"0123456789abcdef0123456789abcdef01234567","context_path":"deploy/postgres","credential_ref":"vaultix://org/project/runtime/git-token"}`
-	configured := do(t, mux, "POST", "/v1/operator/catalog/services/postgres", `{"id":"postgres","label":"Postgres","kind":"database",`+source+`}`, 201)
+	configured := do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"postgres","label":"Postgres","kind":"database",`+source+`}`, 201)
 	if configured["deployment_source"].(map[string]any)["commit"] != "0123456789abcdef0123456789abcdef01234567" {
 		t.Fatalf("source not returned after create: %v", configured["deployment_source"])
 	}
