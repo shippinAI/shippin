@@ -49,7 +49,9 @@ Replacing `SHIPPIN_SESSION_KEY` makes saved secrets unreadable. The host then re
 
 ### Changing guests
 
-Every change is recorded before it starts, and **Activity** shows who asked and how it ended. A change keeps going if you leave the page. An outcome the panel cannot determine, because the connection dropped or the panel restarted, reads **Unknown** and is never retried: check the guest. **Stop guests** stops the ones you tick, one at a time and in order, each with its own result. It always skips the guest the panel runs on, and stopping that guest on its own asks first (`SHIPPIN_SELF_GUEST`).
+The guest action controls and API routes describe supported driver operations, but provider mutations currently return `503 agenthub_review_unavailable` before dispatch. The old local approval-board workflow no longer applies. Do not use these actions expecting a guest to change until the AgentHub review integration is complete.
+
+After the review gate is implemented, every accepted change must be recorded before it starts, and **Activity** must show who asked and how it ended. A change must keep going if you leave the page. An outcome the panel cannot determine, because the connection dropped or the panel restarted, must read **Unknown** and never be retried automatically. **Stop guests** must stop selected guests one at a time and in order, each with its own result, and skip the guest the panel runs on.
 
 ### Fleets
 
@@ -95,8 +97,8 @@ Every provider change must be audited before it runs. See [the control plane](co
 
 | Caller | Sees | Can change |
 |---|---|---|
-| Infra role | Every server with a hypervisor kind | Power, snapshots, create, delete, migrate, storage, attach |
-| Org owner or admin | Servers that org owns or is assigned | Power and snapshots, only after a configured policy permits the action |
+| Infra role | Every server with a hypervisor kind | Reads and configuration; provider mutations currently fail closed pending AgentHub review |
+| Org owner or admin | Servers that org owns or is assigned | Reads; provider mutations currently fail closed pending AgentHub review |
 | Org member | Those same servers | Read guests and tasks |
 
 Another org's server returns 404. An estate seed row with no assignment is operator-only.

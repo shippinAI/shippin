@@ -42,7 +42,7 @@ Starting or stopping a guest is not finished when the request is accepted. It is
 
 **Done when:** every operation has a durable record of who asked, what they asked for, and how it ended, which survives a restart of the panel. An operator can see in-progress and recent operations for a host. Stopping many guests runs in a stated order with a per-guest result.
 
-**Status:** Done, and run against one real node of each. Every change is recorded before it runs, keeps going if the browser leaves, and shows under Activity. A restart turns open operations into unknown. Bulk stop runs one guest at a time, in order, with a result for each, and skips the guest the panel runs on. Not built: a view of the hypervisor's own running tasks, and bulk start.
+**Status:** The operation store, task polling, read-back, recovery and bulk-stop implementation exist. Provider mutation routes currently return `503 agenthub_review_unavailable` before dispatch, so these actions are unavailable in the current build. Earlier disposable-node exercises predate this fail-closed gate and are not current end-to-end evidence. AgentHub authorization must be implemented first; then rerun the lifecycle and failure-recovery matrix. Not built: a view of the hypervisor's own running tasks, and bulk start.
 
 ### FO-5 Incus and Proxmox operate as one fleet, and stay separate hosts
 
@@ -85,6 +85,7 @@ An operator pastes a Proxmox token or an Incus trust token, tests the connection
 
 ## Order
 
-1. Finish running FO-3, FO-4 and FO-7 against real servers: Incus VMs, Proxmox containers, and real clusters. See the [roadmap](../roadmap.md).
-2. FO-5: operating a fleet at once, capacity and placement.
-3. FO-2: updating from a button.
+1. Implement and test the AgentHub action-bound authorization contract; provider mutations remain gated until then.
+2. After authorization, finish FO-3, FO-4 and FO-7 against disposable servers: Incus VMs, Proxmox containers, clean shutdown, and real clusters. See the [roadmap](../roadmap.md).
+3. FO-5: operating a fleet at once, capacity and placement.
+4. FO-2: updating from a button.

@@ -12,8 +12,8 @@ reviewed tree, so its code and dependencies remain outside this repository.
 | Read API version and report availability | `internal/hv/proxmox` health probe | Already implemented with verified TLS and provider error handling. |
 | List cluster resources for VMs and containers | `internal/hv/proxmox` guest inventory | Already implemented with node-aware guest identity. |
 | Show CPU, memory, disk, network counters, uptime, pool, template, and tags | `hv.Guest` and the existing Infrastructure guest detail card | Newly retained as provider-reported telemetry; other drivers may omit unavailable metrics. |
-| Start, stop, shutdown, and reboot | Existing hypervisor lifecycle methods and audited Infrastructure API | Already implemented with task completion and state read-back. |
-| Create and inspect snapshots | Existing snapshot operation | Already implemented for both QEMU VMs and LXC containers. |
+| Start, stop, shutdown, and reboot | Existing hypervisor lifecycle methods and Infrastructure API | Driver operations, task completion and state read-back exist. All mutation routes currently fail closed before dispatch pending AgentHub review; they are not available in the current build. |
+| Create and inspect snapshots | Existing snapshot operation | Driver support exists for QEMU VMs and LXC containers. Mutation routes are gated pending AgentHub review; do not describe snapshot creation as currently available. |
 | Read node and cluster status | `internal/hv/proxmox/details.go` | Already implemented; restricted cluster access leaves optional cluster details absent. |
 | Read storage and networks | Existing `Storage` and `Networks` driver methods and Infrastructure routes | Already implemented. |
 | API token authentication | Existing server credential sealing and per-request secret resolver | Reused; credentials are not process-global provider settings or API responses. |

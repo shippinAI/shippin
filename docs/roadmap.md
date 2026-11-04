@@ -6,16 +6,16 @@ What works today, what does not, and what comes next. [The objective](objective.
 
 - Deploy with `docker compose up`, or on Debian or Ubuntu with the installer. CI proves both from a clean checkout.
 - First owner and sign-in, with or without an upstream identity provider. Orgs, invites and a waitlist.
-- Infrastructure: an overview and one tab per provider, for Incus and Proxmox. Add a host from the panel with a Proxmox token or an Incus trust token, test it first, and trust a self-signed certificate by its fingerprint. Start, stop and snapshot guests, stop many with a result for each, and see every change in a history that survives a restart. Node detail shows version, kernel, CPU, memory and the host's own cluster. Fleets group hosts of any provider.
+- Infrastructure: an overview and one tab per provider, for Incus and Proxmox. Add a host from the panel with a Proxmox token or an Incus trust token, test it first, and trust a self-signed certificate by its fingerprint. Inventory, node detail, capacity and fleets are available. Provider mutations are currently disabled and return `503 agenthub_review_unavailable` before the hypervisor is called; the old provider approval-board path was removed. See [configurable human review](system-identity-human-review-plan.md).
 - Updates: `git pull --ff-only` and re-running the installer keep the owner, sessions, hosts and saved secrets. CI proves it from an older build.
-- The control plane: a separate system tenant, a permission for each infrastructure duty, a required note on every change, and an audit log the panel's database role cannot rewrite on an installer deployment. See [the control plane](design/control-plane.md).
+- The control plane: a separate system tenant, configured infrastructure permissions, and an audit log the panel's database role cannot rewrite on an installer deployment. Provider mutations are not currently available because AgentHub review is not integrated; rejected requests do not create accepted-operation audit events. See [the control plane](design/control-plane.md).
 - Workspaces and projects, an API explorer, an agent hub, a provider panel, and audited platform settings.
 - Names, navigation and providers are configuration, and owners can change them from the panel.
 - The panel shows its running build and tells operators when a newer one has been pushed.
 
 ## Known gaps
 
-- **Hypervisors:** adding a host, node detail, start, stop, shutdown, reboot, snapshot, restore and bulk stop have been run against Incus 6.0.4 and Proxmox VE 9.2, each on one node in a throwaway container. Incus guests were containers and Proxmox guests were QEMU VMs with no operating system. Not yet run: Incus VMs, Proxmox containers, a guest with a real operating system answering a clean shutdown on Proxmox, and any real cluster. Try it on a disposable guest first.
+- **Hypervisors:** host enrollment and read-only inventory remain available. Although provider drivers, operation records and lifecycle routes exist, every provider mutation currently returns `503 agenthub_review_unavailable` before a driver call. Earlier disposable-node lifecycle exercises predate this gate and do not prove that mutations work in the current build. AgentHub's typed action/system/resource authorization and service identity must be integrated before lifecycle execution can be re-enabled. Then repeat tests for Incus containers and VMs, Proxmox QEMU and LXC, clean shutdown, snapshots, task read-back, denial, timeout, restart and real clusters on disposable infrastructure.
 - **Passkeys and certificates:** browsers refuse passkeys on a site with a certificate warning. With a self-signed certificate, no mail and no identity provider, each sign-in uses up one of eight recovery codes, and they do not renew. Use a real certificate, a provider or mail for anything you intend to keep.
 - **Rollback:** migrations run forward only. Going back to an older build means restoring a backup.
 - **Local agent:** neither deployment path sets up `shippin-hostd`. The features that depend on it, including workspaces on the primary, need `incus.hostd_url` set and hostd installed by hand. See `deploy/hostd-install.sh`.
@@ -28,10 +28,10 @@ What works today, what does not, and what comes next. [The objective](objective.
 
 The order is in [fleet operations](design/fleet-operations.md):
 
-1. Run what is listed under Hypervisors above, and make the run against real servers repeatable in CI.
-2. Finish the [control plane](design/control-plane.md): separating who asks from who approves, and backing up the panel from the panel.
-3. Operating a fleet at once, capacity totals and placement.
-4. Updating from a button.
+1. Implement and verify the AgentHub review contract and least-privilege Shippin identity. Provider mutations remain disabled until that is proven.
+2. Re-enable lifecycle through the review gate, then run the Hypervisors matrix above and make disposable-provider workflows repeatable in CI.
+3. Implement bounded deployment reconciliation and source builds, then managed data services and their backup/restore flows.
+4. Finish fleet capacity totals and placement, then updating from a button with health checks and rollback.
 
 Then secondary-node installation, signed releases, backup and restore with a tested restore, and managed data services. Those are [designed](design/managed-services.md) but not built.
 
