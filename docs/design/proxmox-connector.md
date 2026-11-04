@@ -57,7 +57,7 @@ The **Fleets** tab groups hosts of any provider so you can see them together. It
 
 Start, stop, shutdown, reboot, snapshot, listing snapshots and restoring one are shared by every driver. Calls only Proxmox has answer `409` on an Incus host, and the panel does not offer them.
 
-The local installation owner has no IdP to grant `IAM_INFRA`, so the infrastructure routes and approval rules accept them as the owner. This does not make them a founder: tenant access grants still apply.
+The local installation owner has no IdP to grant `IAM_INFRA`, so the infrastructure routes accept that principal as the installation owner. This does not make it a founder or approve a provider mutation: gated lifecycle actions still require an explicit review policy, and AgentHub integration remains pending.
 
 ## What you set through the API
 
@@ -81,26 +81,22 @@ The local installation owner has no IdP to grant `IAM_INFRA`, so the infrastruct
 4. Grant `IAM_INFRA` in Nomen. `roles.iam` maps it to `op_infra`. The console does not create the Nomen role.
 5. The org opens **Servers**, then the row. Guests, start, stop, snapshot, and task lookup are on that page. The operator page **Hosts** is the same model for every attached server, plus create.
 
-## Approval
+## Authorization and review
 
-A mutation that the policy marks `needs_approval` files one factory-board card and returns `409` with `code` `waiting_on_board`, `card_key` and, when the board is on this panel, `card_id`. Approve that card and send the same request again. The panel offers both as one button, **Approve and run**.
+The sample installation has no local approval policy or board. Provider mutations
+that require a policy fail closed. The old local task board and HTTP board are not
+AgentHub and must not be used to authorize provider changes. AgentHub policy,
+system mapping and reviewed ticket execution are still being implemented; this
+document does not claim that review workflow is available.
 
-Every change here also needs a note: see [the control plane](control-plane.md). An approval covers one change. Running it spends the card, which moves to done, and the next change files a new one. A board that lives elsewhere (`approval.board.driver: http`) keeps its own rule.
-
-Adding or detaching an API is the action `hv.attach`, shipped without a board card because it changes what the console can reach, not any guest. It is still role-gated and audited. A policy with no `hv.attach` rule uses `hv.lifecycle` for it.
-
-**Provider panel → Platform settings → Board approval for hypervisor changes** turns the card off for an installation. The panel can only relax the rule: a config file that says `needs_approval: false` stays off, and clearing the override returns to the file.
-
-The shipped rule `hv-lifecycle` allows `founder`, `op_infra`, `org_owner`, and `org_admin` to request the change. The board still has to approve while `needs_approval` is true. Change the rule in `config/shippin.json` to narrow that.
-
-Set `approval.board.org_id` so the card has an org. If it is empty, a tenant card uses the tenant id and an operator card uses the caller's org, then `operator.platform_org_id`.
+Every provider change must be audited before it runs. See [the control plane](control-plane.md).
 
 ## Who sees which guests
 
 | Caller | Sees | Can change |
 |---|---|---|
 | Infra role | Every server with a hypervisor kind | Power, snapshots, create, delete, migrate, storage, attach |
-| Org owner or admin | Servers that org owns or is assigned | Power and snapshots, after the approval card |
+| Org owner or admin | Servers that org owns or is assigned | Power and snapshots, only after a configured policy permits the action |
 | Org member | Those same servers | Read guests and tasks |
 
 Another org's server returns 404. An estate seed row with no assignment is operator-only.

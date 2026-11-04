@@ -9,10 +9,13 @@ the operator wants the console UI to create and operate Postgres, Dragonfly, Red
 services. The control plane owns them: a registry, one reconciler, and one infra role. They are
 not containers someone starts by hand.
 
-`shippinAI/shippin-cloud` and `shippinAI/shippin-platform` did not resolve for this environment
-(`gh repo view` returned "Could not resolve to a Repository"). Nothing below is claimed from
-those trees. References inside this repo to `gold-homebase/SHIPPIN-CLOUD/` and `agent-hub/docs/`
-are documentation URLs in the catalog seed, not code that was read.
+The historical `D:\localdev\shippin-cloud` checkout was reviewed at commit
+`49475d3b` on 2026-11-04. Its 177 tracked files are mainly plans, OpenAPI draft
+and an older React workbench; its README points product implementation at
+`shippin-platform`. Those materials inform the service design but do not prove
+runtime provisioning. Candidate capabilities and remaining evidence are tracked
+in the [capability absorption ledger](capability-absorption.md). AgentHub policy
+source is reviewed separately and remains an external owner.
 
 ## What exists in shippin-console
 

@@ -7,11 +7,13 @@ must not exist as a Shippin or AgentHub product feature, fixed policy, route,
 identity or default. AgentHub owns the configurable review policy and review
 records; the control plane owns the authoritative system inventory.
 
-> **Status:** written before the shippin-console import landed in PRs #9 to #14.
-> `cmd/console`, `internal/` and `web/` are now in this repository, `web/` is the
-> panel. The "historical console"
-> Gold code described below was imported with it and is still present. Where this plan
-> differs, [source ownership](source-of-truth.md) is current.
+> **Status (2026-11-04):** the console and its one `web/` panel are in this
+> repository. Gold signing, compiled approver defaults and the `HUB_OWNER_*`
+> bypass have been removed from Shippin main. Local approval policy/board code
+> is not AgentHub integration; the implementation gap is tracked in
+> [configurable human review](approval.md). The sample installation now denies
+> gated actions until the AgentHub path exists.
+> Source ownership is defined by [source of truth](source-of-truth.md).
 
 ## Grounded starting point
 
@@ -106,8 +108,8 @@ review requirement, named approver or special runner from a hostname or alias.
    credentials using their actual owner. Compatibility paths, if needed during
    migration, must be temporary, documented and tested; they must not be a new
    product feature.
-5. **Unify the UI and validate the path.** Place policy configuration and human
-   review under the AgentHub capability in the single panel; system detail and
+5. **Unify the UI and validate the path.** Place AgentHub policy configuration
+   and human review under the AgentHub capability in the single panel; system detail and
    review provenance link to the same inventory record. Group files, API clients,
    tests and UI by capability. Verify with real navigation that each supported
    destination is reachable in three or four actions from the relevant starting

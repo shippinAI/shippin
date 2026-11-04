@@ -2,7 +2,7 @@
 
 Source: `shippinAI/shippin-console` `main` at `e35ab817bbfedc626f35aa2f42760df49d4684c2`, imported from a `git archive` of that commit. History was not imported. The archive already omitted 212 doc and test screenshots. App media under `third_party/warden-ct102/static` is included.
 
-The public tree is the squashed, cleaned snapshot. A full history import was not used because this repository is public and the private history was not available to scan.
+The public tree is the squashed, cleaned snapshot. A full history import was not used because this repository is public and the private history was not available to scan. The source repository's current `origin/main` tip remains `e35ab81`, the imported snapshot; no merge is pending from it. This document preserves import history, while current ownership and capability status live in `docs/source-of-truth.md` and `docs/design/capability-absorption.md`.
 
 ## Where each part landed
 
@@ -16,9 +16,9 @@ The public tree is the squashed, cleaned snapshot. A full history import was not
 | `config/shippin.json` | `config/shippin.example.json` | Example only. A site writes `/etc/shippin/shippin.json` from `config/site.env`. |
 | `deploy/hostd.json` | `deploy/hostd.example.json` | Example only. |
 | `third_party/warden-ct102` | same path | Kept. Defaults no longer name a site, a guest, or a token. TLS verification defaults on. |
-| `internal/goldsign`, `internal/goldverify`, `internal/goldexport`, `web/src/lib/gold-sign`, API routes | same paths | Kept. This is the in-panel signing flow, including approval actions. Site paths and tailnet addresses were removed. |
+| Historical signing paths present in the source snapshot | removed from current `main` by commits `30470eb` and `b40911d` | The imported snapshot once contained a site-specific signing workflow. It is not part of the Shippin product and is not an AgentHub review implementation. Historical signed records are not reinterpreted as new decisions. |
 | `internal/hv/proxmox`, `internal/hv/incus` | same paths | Console drivers. Proxmox verifies TLS and has no skip flag. |
-| `internal/approval` | same path | Console board flow, including `409` with `waiting_on_board` and `card_key`. |
+| `internal/approval` | `internal/approval` | Configured Shippin board adapter. It is a separate local/HTTP board contract, not AgentHub policy integration; see `docs/system-identity-human-review-plan.md`. |
 
 ## Dropped
 
@@ -38,7 +38,7 @@ The public tree is the squashed, cleaned snapshot. A full history import was not
 
 ## Wardenclyffe coverage
 
-`third_party/warden-ct102` is a reference import and is not served. The native drivers in `internal/hv/proxmox` and `internal/hv/incus` are what the console calls. They do not replace the Warden UI for firewall editing, backup coverage, DNS screens, or the deployment catalog. Those stay in the Warden module.
+The historical tree at `third_party/warden-ct102` is not served and is not a second panel. Incus and Proxmox providers are owned by `internal/hv/incus` and `internal/hv/proxmox`; the operator-facing Proxmox capability is Shippin Prox. Firewall, backup, DNS, ACME, disk and deployment behaviors remain in the capability ledger until their current API, persistence, UI and failure behavior are verified. No Warden product code or route is introduced.
 
 ## Not done by this import
 

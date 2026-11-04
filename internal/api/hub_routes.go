@@ -12,21 +12,17 @@ import (
 	"shippin.cloud/console/internal/hub"
 )
 
-// RegisterHub mounts the agent checkout board (/v1/hub). Who may approve is approval policy
-// (config/shippin.example.json, plus HUB_OWNER_SUB / HUB_OWNER_EMAIL copied onto that policy). The board
-// stays unmounted when there is no database, or neither a hub.decide rule nor those env values.
+// RegisterHub mounts the agent task board (/v1/hub). Decisions require an explicit configured
+// policy; no owner identity is inferred from environment variables.
 func (a *API) RegisterHub(mux Router) {
 	if a.db == nil {
 		log.Printf("hub: no database; /v1/hub is not mounted")
 		return
 	}
 	pol := a.cfg.Approval
-	owner, email := os.Getenv("HUB_OWNER_SUB"), os.Getenv("HUB_OWNER_EMAIL")
 	if !pol.Enabled || !pol.HasAction("hub.decide") {
-		if owner == "" && email == "" {
-			log.Printf("hub: no hub.decide rule and no HUB_OWNER_*; /v1/hub is not mounted")
-			return
-		}
+		log.Printf("hub: no configured hub.decide policy; /v1/hub is not mounted")
+		return
 	}
 	lease := 10 * time.Minute
 	if d, err := time.ParseDuration(os.Getenv("HUB_LEASE")); err == nil && d > 0 {
@@ -34,8 +30,8 @@ func (a *API) RegisterHub(mux Router) {
 	}
 	live := hub.NewLive()
 	go live.Run(context.Background(), a.db.Pool)
-	h := &hub.Handler{Store: &hub.Store{Pool: a.db.Pool}, OwnerSub: owner, OwnerEmail: email,
-		Policy: &pol, Lease: lease, Who: a.hubWho, Live: live}
+	h := &hub.Handler{Store: &hub.Store{Pool: a.db.Pool}, Policy: &pol,
+		Lease: lease, Who: a.hubWho, Live: live}
 	h.Register(requireAll{mux, a.flow})
 }
 

@@ -4,25 +4,29 @@ The console is the product. The tree in `third_party/warden-ct102` is an import 
 
 Naming. Packages, routes, UI strings, and config keys say Shippin. The panel's product name does not appear in those places. Provenance is this matrix and the import commit.
 
-Counts. 216 imported files plus 5 named sources that were not in the import.
+Inventory count: 188 tracked files plus 28 screenshot rows absent from the current
+tree (216 imported-source matrix rows), and five named source documents reviewed
+separately from `shippin-mesh`. These counts describe source rows, not product
+modules or deployable capabilities.
 
 | Status | Count |
 |---|---|
 | ported | 6 |
 | to-author | 13 |
-| intentionally replaced | 181 |
+| intentionally replaced | 176 |
 | rejected-for-security | 21 |
+| needs-review (additional named sources) | 5 |
 
-`ported` means the behavior was rewritten and is in the console now. `intentionally replaced` means the console already had the job, in its own architecture, and the panel's version was not copied. `to-author` means the coverage doc names the console home and no route is mounted. `rejected-for-security` means it will not be authored.
+`ported` means behavior was re-authored in a platform owner and has implementation evidence. `intentionally replaced` means a current platform capability owns the same concern; its API and behavior still need verification. `to-author` means the row names a target owner but a supported route is not complete. `rejected-for-security` means the behavior is intentionally excluded. `needs-review` means the source is now available but a feature-level comparison and disposition are incomplete.
 
-The imported tree can be deleted when every remaining `to-author` row is either written or moved to `rejected-for-security`. The five mesh sources were not readable (GitHub 404). Their jobs are authored as Shippin documents below, so those rows are `intentionally replaced`.
+The reference tree is not served and is not a second panel. It can be removed only after every `to-author` and `needs-review` row is implemented or explicitly rejected and the import provenance is retained. Do not use the row count as proof that every behavior has been exercised.
 
 ## How alignment was applied
 
 - Identity is Nomen (`internal/auth`). There is no second user table, PAM stack, or PVE user directory.
 - A hypervisor API is columns on `servers` (migration `036_server_hypervisor.sql`), the same rows as enroll and hostd. There is no second registry and no `PROXMOX_*` config.
 - The role is `roles.infra` (`op_infra`). Platform admin is not implied.
-- Mutations use `hv.lifecycle` and the agent hub board. The rule is configuration.
+- Some infrastructure mutations use Shippin's configured local board. That board is not AgentHub; AgentHub policy integration remains a separate planned capability. Do not describe the local board as Gold or as an AgentHub implementation.
 - Secrets are env names or `secret_ref`. Token bytes are not columns.
 - UI is the console shell: `PageHeader`, `Card`, `DataTable`, `EmptyState`, operator nav. No panel template is rendered.
 - TLS verification stays on.
@@ -281,14 +285,19 @@ From `BACKLOG.md` in the import. Checked items the console already covers are re
 | `warden.env.example` | rejected-for-security | servers.hv_* columns and roles.infra | The env file ships VERIFY_TLS=false and a token secret field. Those keys are not read. TLS verify stays on. token_env is a variable name. |
 | `warden.service` | intentionally replaced | shippin.cloud/console module | The nested module is not built or installed. The console process is the process. Agent instruction files in this tree are not console instructions. |
 
-## Sources named in the request that are not in the import
+## Additional source documents now available for review
 
-shippin-mesh `main` `9caff3d` `warden/` returned 404 from GitHub during the import. The text was not invented.
+The five named sources below are readable in the local `shippin-mesh` checkout at
+`26cce35b` (the original matrix recorded GitHub 404 responses). A read-only review
+found site-specific Proxmox configuration, WardenClyffe module/naming rules and
+database options. The exact behaviors have not all been compared with current
+platform code; none are accepted for copying. The checkout has dirty `go.work.sum`
+and no root license was observed.
 
 | Source | Status | Console home | How it was aligned |
 |---|---|---|---|
-| shippin-mesh docs/specs/02-proxmox-connector.md (not in the import; GitHub 404) | intentionally replaced | docs/design/proxmox-connector.md | Adoption is written for this console: server row, token env, CA file, and the calls an agent retries. The unread spec is not copied. |
-| shippin-mesh WARDENCLYFFE_MODULE_MAP (not in the import; GitHub 404) | intentionally replaced | this matrix | This matrix is the module map. Product names are console names. |
-| shippin-mesh NAMING_CONVENTIONS (not in the import; GitHub 404) | intentionally replaced | docs/design/naming.md | The naming rules are written for the console. |
-| shippin-mesh BACKEND_OPTIONS (not in the import; GitHub 404) | intentionally replaced | docs/design/backend-options.md | The driver choice is proxmox, incus, or bare on the server row. |
-| shippin-mesh warden/.cursor and .claude skills (not in the import; GitHub 404) | intentionally replaced | docs/agents/hypervisor.md | The agent instructions are the console routes, error codes, and the retry-after-approval loop. The panel skills were not copied. |
+| `docs/specs/02-proxmox-connector.md` | needs-review | `internal/hv/proxmox`, infrastructure API and tests | Source documents single-node API actions with TLS verification off and no task polling; compare each operation to current driver behavior and official API contracts. |
+| `docs/WARDENCLYFFE_MODULE_MAP.md` | needs-review | capability absorption ledger and existing bounded contexts | Source proposes separate Warden/Clyffe products; those product names and duplicate panel boundaries do not carry forward. Compare only reusable service and ownership concepts. |
+| `docs/WARDENCLYFFE_NAMING_CONVENTIONS.md` | needs-review | `docs/source-of-truth.md` and `docs/design/naming.md` | Historical Warden/Clyffe naming must not enter Shippin product code. Shippin Prox is the requested product name; `proxmox` remains provider terminology. |
+| `docs/WARDENCLYFFE_BACKEND_OPTIONS_2026_05.md` | needs-review | managed-service design and service-context contracts | PostgreSQL/Dragonfly/ClickHouse are relevant candidates; its versions, topology and site assumptions require current product and upstream verification. |
+| `docs/ai/WARDENCLYFFE_BASE_SKILL.md` and Warden agent skills | needs-review | existing Shippin tests, operator docs and configured AgentHub policy | Do not import agent prompts or site policy. Extract only testable provider behavior after security, license and capability comparison. |

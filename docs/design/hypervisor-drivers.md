@@ -57,7 +57,7 @@ Host, port, node, and API URL live on the server row (`031_servers.sql` plus `03
 
 ## Approval and the infra role
 
-Mutations call `hv.Guard` before the driver. The guard uses `internal/approval.Policy` with action `hv.lifecycle` (start/stop/shutdown/reboot/snapshot). The shipped rule shape matches `docs/approval.md`: `approver_roles: ["founder"]` unless config says otherwise, and `needs_approval: true` posts or reads the agent hub card (`hv.lifecycle:<server>:<guest>:<verb>`). A missing board when the rule needs one is an error, not a bypass.
+Mutations currently call `hv.Guard` before the driver and use the local `internal/approval.Policy`. That policy has compiled fallback roles and a Shippin-local board adapter; it is not AgentHub policy evaluation. This is a known ownership gap. The target is a configured AgentHub policy/ticket/review adapter with explicit system mapping and fail-closed behavior; see [configurable human review](../approval.md). Until that integration is implemented, report the current local-board behavior accurately and do not call it AgentHub.
 
 `roles.infra` (shipped as `op_infra`) is the only role that may call `/v1/infra/servers`. Platform admin is not implied. The approval policy still decides whether that caller must wait for a board card. The library refuses a subject the policy does not allow.
 

@@ -66,8 +66,8 @@ func main() {
 	live := hub.NewLive()
 	go live.Run(ctx, d.Pool)
 	mux := http.NewServeMux()
-	h := &hub.Handler{Store: &hub.Store{Pool: d.Pool}, Who: who, OwnerSub: os.Getenv("HUB_OWNER_SUB"),
-		OwnerEmail: os.Getenv("HUB_OWNER_EMAIL"), Lease: leaseFromEnv(), Live: live}
+	h := &hub.Handler{Store: &hub.Store{Pool: d.Pool}, Who: who, Policy: &cfg.Approval,
+		Lease: leaseFromEnv(), Live: live}
 	h.Register(required{mux, flow})
 	mux.HandleFunc("GET /auth/login", flow.Login)
 	mux.HandleFunc("GET /auth/callback", flow.Callback)

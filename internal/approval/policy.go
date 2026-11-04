@@ -40,44 +40,6 @@ type Policy struct {
 	Rules   []Rule      `json:"rules"`
 }
 
-// Default is the shipped behavior: founder role (and any subject/e-mail supplied by env at
-// startup) may approve hub decisions. No host, IP, or person is named here.
-func Default() Policy {
-	return Policy{
-		Enabled: true,
-		Board:   BoardConfig{Driver: "hub", TokenEnv: "SHIPPIN_HUB_TOKEN"},
-		Rules: []Rule{
-			{ID: "hub-decide", Actions: []string{"hub.decide"},
-				ApproverRoles: []string{"founder"}, NeedsApproval: true},
-			{ID: "hv-lifecycle", Actions: []string{"hv.lifecycle"},
-				ApproverRoles: []string{"founder", "op_infra", "org_owner", "org_admin"}, NeedsApproval: true},
-			{ID: "hv-attach", Actions: []string{"hv.attach"},
-				ApproverRoles: []string{"founder", "op_infra"}},
-		},
-	}
-}
-
-// WithRuntime copies deployment-specific subjects into the matching rules. The values stay
-// configuration (env), not source.
-func (p Policy) WithRuntime(getenv func(string) string) Policy {
-	if getenv == nil {
-		return p
-	}
-	hubSub := strings.TrimSpace(getenv("HUB_OWNER_SUB"))
-	hubEmail := strings.TrimSpace(getenv("HUB_OWNER_EMAIL"))
-	for i := range p.Rules {
-		if has(p.Rules[i].Actions, "hub.decide") {
-			if hubSub != "" {
-				p.Rules[i].ApproverSubs = add(p.Rules[i].ApproverSubs, hubSub)
-			}
-			if hubEmail != "" {
-				p.Rules[i].ApproverEmails = add(p.Rules[i].ApproverEmails, hubEmail)
-			}
-		}
-	}
-	return p
-}
-
 // HasAction reports whether any rule names action.
 func (p Policy) HasAction(action string) bool {
 	for _, r := range p.Rules {
@@ -146,11 +108,4 @@ func hasFold(ss []string, v string) bool {
 		}
 	}
 	return false
-}
-
-func add(ss []string, v string) []string {
-	if hasFold(ss, v) {
-		return ss
-	}
-	return append(ss, v)
 }

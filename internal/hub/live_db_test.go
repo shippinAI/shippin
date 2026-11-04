@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"shippin.cloud/console/internal/approval"
 )
 
 func TestHistoryRecordsEveryStepWithNotes(t *testing.T) {
@@ -63,7 +65,9 @@ func TestLiveFansOutOnlyToTheOrg(t *testing.T) {
 }
 
 func TestOwnerByVerifiedEmailOnly(t *testing.T) {
-	h := &Handler{OwnerEmail: "owner@example.com"}
+	h := &Handler{Policy: &approval.Policy{Enabled: true, Rules: []approval.Rule{{
+		ID: "review", Actions: []string{"hub.decide"}, ApproverEmails: []string{"owner@example.com"},
+	}}}}
 	if !h.IsOwner(&Principal{Sub: "s", Email: "Owner@Example.com", EmailVerified: true}) {
 		t.Fatal("verified e-mail must match")
 	}

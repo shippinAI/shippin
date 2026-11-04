@@ -20,13 +20,13 @@ Official shape used below is the PVE 8 API, which PVE 9 still serves under `/api
 
 **Guest placement.** Creating a guest requires a storage selected from the attached node's reported storage and suitable for that guest kind (`rootdir` for LXC, `images` for QEMU), a Linux or Open vSwitch bridge selected from the node's reported network interfaces, and a positive disk size. The panel sends those choices; the driver checks them against the provider again before it creates anything. It never selects the first storage or network and never inserts a disk-size default. Incus keeps its own instance image and project behavior and does not receive these Proxmox-only placement fields.
 
-**Who may call.** `/v1/infra/servers` requires `roles.infra` (`op_infra` unless config says otherwise). Platform admin is not implied. Reads stop there. Mutations also pass `hv.Guard` with action `hv.lifecycle`. The shipped rule names approver role `founder` and `needs_approval: true` with board driver `hub`, so a card `hv.lifecycle:<server id>:<guest or storage>:<verb>` must be `approved`. A deployment that wants the infra role to pass without a board changes that rule. The code does not special-case a person.
+**Who may call.** `/v1/infra/servers` requires `roles.infra` (`op_infra` unless config says otherwise). Platform admin is not implied. Reads stop there. Mutations also pass `hv.Guard` with action `hv.lifecycle`. There is no shipped approver rule now: an empty approval policy denies lifecycle mutations. AgentHub policy and hash-bound ticket review are not integrated yet; see [configurable human review](../approval.md). Do not treat the local Shippin task board as AgentHub.
 
 **Audit.** Each permitted mutation writes one audit row, action `hv.lifecycle`, detail `<server id> <verb> <guest id>`. The token id, the secret, and the API URL are not in the detail. If the audit write fails, the hypervisor is not called.
 
 **Rate limits.** Not implemented in phase 1. Phase 2 adds a per-server token bucket in the client: 10 requests per second, `Retry-After` and HTTP 429 double the wait, and the same error string does not get a new log line (the reconciler rule in `internal/hv`). No limiter is mounted half-finished.
 
-**Tenants.** A tenant lists and operates guests only on a server it owns or is assigned (`server_assignments`). Estate rows with no assignment stay on the operator routes. Create, delete, migrate, upload, and attaching the API token stay operator-only. Everyday power and snapshots are on `/v1/tenants/{tenantId}/servers/{serverId}/...` for an org owner or admin, with the same approval card. Pool ACL (`/pools/{org}`) is still phase 4: until then the server assignment is the isolation boundary, and the console does not show another org's guests.
+**Tenants.** A tenant lists and operates guests only on a server it owns or is assigned (`server_assignments`). Estate rows with no assignment stay on the operator routes. Create, delete, migrate, upload, and attaching the API token stay operator-only. Everyday power and snapshots are on `/v1/tenants/{tenantId}/servers/{serverId}/...` for an org owner or admin, with the same lifecycle policy gate. The sample policy is empty and therefore denies these mutations until AgentHub review is integrated. Pool ACL (`/pools/{org}`) is still phase 4: until then the server assignment is the isolation boundary, and the console does not show another org's guests.
 
 ## Phase plan
 
@@ -132,6 +132,6 @@ The Instances page remains the hostd read of Incus. Hosts is the phase 1 guest p
 | HTTP | `internal/api/infra.go` |
 | Page | `web/src/features/hosts/ui/hosts-page.tsx`, route `/operator/hosts` |
 | Role | `roles.infra` in `config/shippin.json` |
-| Approval | rule `hv-lifecycle` in `config/shippin.json` and `approval.Default` |
+| Approval | Empty configuration denies mutations; AgentHub-owned decision and ticket review integration remains pending |
 
 Phase 1 HTTP does not register HA, SDN, Ceph, ACME, subscription, consoles, agent exec, or `/access/*`.

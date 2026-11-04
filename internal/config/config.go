@@ -199,10 +199,6 @@ func Load() (*Config, error) {
 	if c.Roles.Infra == "" {
 		c.Roles.Infra = "op_infra"
 	}
-	if len(c.Approval.Rules) == 0 {
-		c.Approval = approval.Default()
-	}
-	c.Approval = c.Approval.WithRuntime(os.Getenv)
 	if err := c.loadTenantDB(); err != nil {
 		return nil, err
 	}

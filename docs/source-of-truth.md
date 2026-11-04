@@ -23,6 +23,12 @@ custom inventory connections. It persists configuration and observed resource ro
 under `shippin_` table names, seals credentials through the configured installation
 key, and treats remote inventory as observation rather than a deployed change.
 
+The [capability absorption ledger](design/capability-absorption.md) records which
+behaviors from historical console and mesh sources are already owned here, which
+need implementation, and the evidence required before those sources are archive-ready.
+The Proxmox operator capability is authored as Shippin Prox; `proxmox` remains the
+provider kind and API terminology. Historical Warden names are source provenance only.
+
 The product is one panel, with role-aware customer and operator workflows backed by
 server-side authorization. Shared installation settings
 belong to the control plane; browser-only preferences do not configure an installation.

@@ -13,15 +13,14 @@ Tenant base: `/v1/tenants/{tenantId}/servers/{serverId}`.
 
 Create, delete, migrate, upload, and `PUT /v1/infra/servers/{id}` are operator-only.
 
-## When the response is 409
+## When a mutation is denied or pending
 
-Read `code`, `message`, and `card_key`.
+Read the response code, `code` and `message`. The shipped configuration intentionally has no local
+approver or board. AgentHub policy/ticket integration is not implemented yet.
 
 | code | What to do |
 |---|---|
-| `waiting_on_board` | The console already filed the card. Tell the user the `card_key` and that they approve it on the factory board (`/hub`). Then send the same request again. Do not ask them to confirm a second time in the console. Do not invent a new card key. |
-| `board_org_missing` | `approval.board.org_id` is empty and no org could be chosen. Say that. Do not call the hypervisor. |
-| `approval_denied` | The caller's roles are not on the `hv.lifecycle` rule. Say which role the policy expects. |
+| `approval_denied` | Stop. Do not call the hypervisor, create a local board card, infer a reviewer or suggest a role to add. The AgentHub decision path is pending. |
 
 A 403 that names `op_infra` and `IAM_INFRA` means the caller needs that Nomen role. The console does not create it.
 

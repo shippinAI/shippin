@@ -29,6 +29,13 @@ func TestShippedConfigPassesCheck(t *testing.T) {
 	}
 }
 
+func TestShippedConfigDoesNotSeedLocalApprovals(t *testing.T) {
+	c := shippedConfig(t)
+	if c.Approval.Enabled || len(c.Approval.Rules) != 0 || c.Approval.Board.Driver != "" {
+		t.Fatalf("example config must not seed a local approver or board: %+v", c.Approval)
+	}
+}
+
 // A stranger's install must not come with one installation's products. Keys may name an optional
 // integration; what shows to a person may not.
 func TestShippedConfigNamesNoOnesProducts(t *testing.T) {

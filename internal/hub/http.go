@@ -22,18 +22,15 @@ type Principal struct {
 	Roles []string
 }
 
-// Handler serves /v1/hub. Who resolves the caller (Nomen in the console); OwnerSub is the only
-// subject allowed to approve or reject (HUB_OWNER_SUB); OwnerEmail (HUB_OWNER_EMAIL) also
-// qualifies a caller whose verified e-mail matches. Lease is the checkout lease length; Live
-// (optional) feeds GET /v1/hub/stream.
+// Handler serves /v1/hub. Who resolves the caller (Nomen in the console); approval decisions
+// require an explicit configured policy. Lease is the checkout lease length; Live feeds the
+// optional GET /v1/hub/stream route.
 type Handler struct {
-	Store      *Store
-	Who        func(w http.ResponseWriter, r *http.Request) (*Principal, bool)
-	OwnerSub   string
-	OwnerEmail string
-	Policy     *approval.Policy
-	Lease      time.Duration
-	Live       *Live
+	Store  *Store
+	Who    func(w http.ResponseWriter, r *http.Request) (*Principal, bool)
+	Policy *approval.Policy
+	Lease  time.Duration
+	Live   *Live
 }
 
 // Router is the subset of http.ServeMux the handler needs.
@@ -85,17 +82,12 @@ func (h *Handler) with(fn func(*call)) http.HandlerFunc {
 	}
 }
 
-// IsOwner reports whether p may decide. When Policy is set, the approval rules are the only
-// gate. OwnerSub and OwnerEmail remain for callers that have not loaded a policy (tests and
-// hub-demo); RegisterHub copies those env values into the policy instead.
+// IsOwner reports whether p may decide under an explicitly configured policy.
 func (h *Handler) IsOwner(p *Principal) bool {
-	if h.Policy != nil && h.Policy.Enabled && h.Policy.HasAction("hub.decide") {
-		return h.Policy.Allows(approval.Subject{Sub: p.Sub, Roles: p.Roles, Email: p.Email, EmailVerified: p.EmailVerified}, "hub.decide", "")
+	if h.Policy == nil || p == nil || !h.Policy.Enabled || !h.Policy.HasAction("hub.decide") {
+		return false
 	}
-	if h.OwnerSub != "" && p.Sub == h.OwnerSub {
-		return true
-	}
-	return h.OwnerEmail != "" && p.EmailVerified && strings.EqualFold(p.Email, h.OwnerEmail)
+	return h.Policy.Allows(approval.Subject{Sub: p.Sub, Roles: p.Roles, Email: p.Email, EmailVerified: p.EmailVerified}, "hub.decide", "")
 }
 
 func (h *Handler) postApproval(c *call) {

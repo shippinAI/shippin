@@ -414,58 +414,8 @@
     "support_grant_max_seconds": 14400
   },
   "approval": {
-    "enabled": true,
-    "board": {
-      "driver": "hub",
-      "base_url": "",
-      "org_id": "",
-      "token_env": "SHIPPIN_HUB_TOKEN"
-    },
-    "rules": [
-      {
-        "id": "hub-decide",
-        "actions": [
-          "hub.decide"
-        ],
-        "hosts": [],
-        "approver_roles": [
-          "founder"
-        ],
-        "approver_subs": [],
-        "approver_emails": [],
-        "needs_approval": true
-      },
-      {
-        "id": "hv-lifecycle",
-        "actions": [
-          "hv.lifecycle"
-        ],
-        "hosts": [],
-        "approver_roles": [
-          "founder",
-          "op_infra",
-          "org_owner",
-          "org_admin"
-        ],
-        "approver_subs": [],
-        "approver_emails": [],
-        "needs_approval": true
-      },
-      {
-        "id": "hv-attach",
-        "actions": [
-          "hv.attach"
-        ],
-        "hosts": [],
-        "approver_roles": [
-          "founder",
-          "op_infra"
-        ],
-        "approver_subs": [],
-        "approver_emails": [],
-        "needs_approval": false
-      }
-    ]
+    "enabled": false,
+    "rules": []
   },
   "migrations": {
     "hold": []

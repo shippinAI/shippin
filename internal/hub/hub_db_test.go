@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"shippin.cloud/console/internal/approval"
 	"shippin.cloud/console/internal/db"
 )
 
@@ -86,7 +87,8 @@ func TestDecisionIsOwnerOnly(t *testing.T) {
 	task, _ := s.Create(ctx, "o", "t", "", "j")
 	_, _ = s.Claim(ctx, "o", task.ID, "agent", time.Minute)
 	_, _ = s.RequestApproval(ctx, "o", task.ID, "agent", "")
-	h := &Handler{Store: s, OwnerSub: "owner", Lease: time.Minute, Who: func(w http.ResponseWriter, r *http.Request) (*Principal, bool) {
+	pol := &approval.Policy{Enabled: true, Rules: []approval.Rule{{ID: "review", Actions: []string{"hub.decide"}, ApproverSubs: []string{"owner"}}}}
+	h := &Handler{Store: s, Policy: pol, Lease: time.Minute, Who: func(w http.ResponseWriter, r *http.Request) (*Principal, bool) {
 		return &Principal{Sub: r.Header.Get("X-Sub"), OrgID: "o"}, true
 	}}
 	mux := http.NewServeMux()
@@ -102,9 +104,9 @@ func TestDecisionIsOwnerOnly(t *testing.T) {
 	}
 }
 
-func TestEmptyOwnerApprovesNobody(t *testing.T) {
-	if (&Handler{}).IsOwner(&Principal{Sub: ""}) {
-		t.Fatal("unset owner must fail closed")
+func TestMissingPolicyApprovesNobody(t *testing.T) {
+	if (&Handler{}).IsOwner(&Principal{Sub: "configured-by-environment"}) {
+		t.Fatal("owner identity without an explicit policy must fail closed")
 	}
 }
 
