@@ -13,6 +13,7 @@ export type PlatformSetting = {
 };
 
 const key = ["platform-settings"];
+const agentHubKey = ["agenthub-connection"];
 
 export const usePlatformSettings = () =>
   useQuery({ queryKey: key, queryFn: () => apiGet<{ items: PlatformSetting[] }>("/v1/operator/platform-settings") });
@@ -26,6 +27,24 @@ export function useSetPlatformSetting() {
     onSuccess: () => {
       toast.success("Setting saved");
       return qc.invalidateQueries({ queryKey: key });
+    },
+    onError: (e) => toast.error("Not saved", e.message),
+  });
+}
+
+export type AgentHubConnection = { base_url: string; has_credential: boolean; configured: boolean };
+
+export const useAgentHubConnection = () =>
+  useQuery({ queryKey: agentHubKey, queryFn: () => apiGet<AgentHubConnection>("/v1/operator/agenthub-connection") });
+
+export function useSetAgentHubConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { base_url: string; credential?: string; clear_credential?: boolean; reason: string }) =>
+      apiSend("PUT", "/v1/operator/agenthub-connection", v),
+    onSuccess: () => {
+      toast.success("AgentHub connection settings saved");
+      return qc.invalidateQueries({ queryKey: agentHubKey });
     },
     onError: (e) => toast.error("Not saved", e.message),
   });

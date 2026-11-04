@@ -15,7 +15,7 @@ provider inventory slices and CI evidence are in the capability ledger.
 |---|---|---|---|---|
 | 0 | Source inventory, one-panel ownership, migration rules and capability ledger | `docs/design/`, `third_party/warden-ct102` reference matrix | Every candidate row has source revision, observed behavior, destination, disposition, rights/security status and acceptance evidence | In progress. Sibling trees remain read-only; Warden matrix still has open rows; archive is prohibited until these close. |
 | 1 | Provider declarations, credential-safe edits/tests, Incus and Proxmox guest lifecycle, resources and operation read-back | `internal/servers`, `internal/hv/{incus,proxmox}`, `internal/api`, `web/` | Disposable Incus and Proxmox lifecycle workflows, edit/test denial, read-back, task failure, auth denial and secret redaction | Core lifecycle and shared storage inventory exist. Proxmox physical disk listing and capacity are read-only. Full provider coverage and disposable-host evidence remain open. |
-| 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | **Hard gate.** Shippin mapping exists, but AgentHub decision output can allow on no matched rule and does not type review-required. Do not connect any provider write. AgentHub checkout is dirty and read-only. |
+| 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | **Hard gate.** The Shippin client now requires an explicit matched human-approval rule, and operators can configure its HTTPS endpoint and sealed credential in Platform settings. The candidate AgentHub API still lacks typed review-required/quorum proof; the client is not connected to the provider gate. Keep provider writes unavailable. |
 | 3 | Deployment reconciliation and provider execution | `internal/deployments`, migrations, hostd, provider drivers, jobs, API/OpenAPI, `web/` | Transactional dispatch, fenced lease, immutable generation, provider-specific executor, restart/retry, read-back, health, idempotent removal and negative-path evidence | **Blocked on order 2.** Current API stores desired generations/events only; no reconcile/build handler exists. Implement no executor bypass or pretend-ready state. |
 | 4 | Pinned source resolution and bounded builds | catalog/builder owner, isolated worker, secret resolver | Immutable input commit/digest, build provenance, bounded CPU/memory/time/storage/concurrency/egress, secret mounts, cancellation and cleanup | Not implemented. Must precede GitHub/custom Git deployment; OCI digest path still needs provider compatibility. |
 | 5 | Managed PostgreSQL, Dragonfly, Redis and ClickHouse | managed-service owner, hostd/provider adapters, catalog, `web/` | Engine-specific configure/provision/upgrade/backup/restore/health/delete on supported providers; tenant isolation; restore verification | Design only; `internal/managed` is rrflow state, not an engine runtime. No turnkey engine may be advertised. |
@@ -151,6 +151,17 @@ redaction, stale/unknown states, retention and independent Incus/Proxmox resourc
 failure before the UI calls this a live registry.
 
 ### Implementation progress, 2026-11-04
+
+The AgentHub setup slice adds an audited operator API and existing-panel form for
+the endpoint and a write-only credential. Credentials are sealed with the
+installation session key and a fixed application-purpose context; responses,
+audit details and UI state expose only whether a credential exists. A new
+`shippin_agenthub_connection` migration stores the singleton endpoint and sealed
+bytes. HTTPS endpoint rejection, credential replacement/retention/clear,
+round-trip decryption, ciphertext storage, and audit behavior have focused tests.
+This establishes configuration only: no live AgentHub connection test, mapping
+validation, ticket lifecycle, service principal verification or provider gate
+connection is claimed. Provider mutations continue to return unavailable.
 
 The first implementation slice is now authored in the canonical Go database/API
 owners and existing React admin/overview pages: migration 046 backfills the old

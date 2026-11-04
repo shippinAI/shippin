@@ -59,6 +59,7 @@ GET /v1/me/ssh-keys
 GET /v1/me/subscriptions
 GET /v1/operator/access
 GET /v1/operator/access-requests
+GET /v1/operator/agenthub-connection
 GET /v1/operator/audit
 GET /v1/operator/authz-shadow
 GET /v1/operator/boundaries
@@ -253,6 +254,7 @@ PUT /v1/infra/servers/{id}
 PUT /v1/infra/servers/{id}/fleet
 PUT /v1/infra/servers/{id}/guests/{guest}/config
 PUT /v1/infra/servers/{id}/identity
+PUT /v1/operator/agenthub-connection
 PUT /v1/operator/catalog/defaults
 PUT /v1/operator/catalog/plan-services/{plan}/{service}
 PUT /v1/operator/catalog/plans/{id}

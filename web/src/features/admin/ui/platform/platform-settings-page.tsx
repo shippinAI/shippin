@@ -4,6 +4,7 @@ import { useAdminAccess } from "../../../../lib/hooks/use-admin";
 import { PageHeader } from "../../../../template/page-header";
 import { PlatformSettingRow } from "./platform-setting-row";
 import { PlatformServiceRegistry } from "./platform-service-registry";
+import { AgentHubConnectionSettings } from "./agenthub-connection-settings";
 
 /** Provider panel: the config keys ops may override (the config file stays the default). */
 export function PlatformSettingsPage() {
@@ -20,6 +21,7 @@ export function PlatformSettingsPage() {
             {q.data.items.filter((s) => s.kind !== "json" && s.kind !== "array").map((s) => <PlatformSettingRow key={s.key} s={s} canWrite={canWrite} />)}
           </ul>
           <PlatformServiceRegistry canWrite={canWrite} />
+          <AgentHubConnectionSettings canWrite={canWrite} />
         </Card>
       )}
     </>

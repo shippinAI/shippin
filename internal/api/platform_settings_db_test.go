@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -67,5 +68,48 @@ func TestPlatformSettings(t *testing.T) {
 	}
 	if audits() != 3 {
 		t.Fatalf("want 3 audit rows, got %d", audits())
+	}
+}
+
+func TestAgentHubConnectionConfigurationIsSealedAuditedAndWriteOnly(t *testing.T) {
+	a, d, _ := notifyAPI(t)
+	ctx := t.Context()
+	_, _ = d.Pool.Exec(ctx, `DELETE FROM shippin_agenthub_connection`)
+	c := &caller{id: &auth.Identity{Sub: "ops-" + newUUID()}}
+	put := func(body string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("PUT", "/v1/operator/agenthub-connection", strings.NewReader(body))
+		w := httptest.NewRecorder()
+		a.opSetAgentHubConnection(w, r, c)
+		return w
+	}
+	for _, body := range []string{
+		`{"base_url":"http://review.example.test","credential":"secret-token","reason":"bad protocol"}`,
+		`{"base_url":"https://user:pass@review.example.test","reason":"userinfo rejected"}`,
+		`{"base_url":"https://review.example.test/?token=x","reason":"query rejected"}`,
+	} {
+		if w := put(body); w.Code < 400 {
+			t.Fatalf("unsafe endpoint accepted: %s", body)
+		}
+	}
+	const token = "high-entropy-service-token"
+	w := put(`{"base_url":"https://review.example.test/agenthub","credential":"` + token + `","reason":"configure review service"}`)
+	if w.Code != 200 || strings.Contains(w.Body.String(), token) {
+		t.Fatalf("save status=%d response=%s", w.Code, w.Body.String())
+	}
+	item, err := d.AgentHubConnection(ctx)
+	if err != nil || !item.HasCredential || string(item.TokenCiphertext) == token {
+		t.Fatalf("credential not stored as ciphertext: %#v err=%v", item, err)
+	}
+	plain, err := a.agentHubToken(ctx)
+	if err != nil || plain != token {
+		t.Fatalf("sealed credential did not resolve: %q err=%v", plain, err)
+	}
+	var response map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil || response["has_credential"] != true {
+		t.Fatalf("write-only response malformed: %v err=%v", response, err)
+	}
+	var audits int
+	if err := d.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_log WHERE actor=$1 AND action='platform.agenthub.connection'`, c.id.Sub).Scan(&audits); err != nil || audits != 1 {
+		t.Fatalf("expected one redacted audit row, got %d err=%v", audits, err)
 	}
 }
