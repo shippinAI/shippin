@@ -41,8 +41,8 @@ Guest creation is configured from the attached provider's observed resources. Th
 
 | Kind | Code | Source of truth |
 |---|---|---|
-| `proxmox` | `internal/hv/proxmox` | PVE `/api2/json`. Phase 1: version, cluster resources, qemu and lxc lifecycle, create/clone/template/delete/config/resize/migrate, snapshots and rollback, storage content, upload, download-url, node services and network, firewall read, vzdump, backup list, restore, UPID status and log. |
-| `incus` | `internal/hv/incus` | Incus REST: `GET /1.0`, `GET /1.0/instances`, `GET /1.0/instances/{name}`, `PUT /1.0/instances/{name}/state`, `POST /1.0/instances/{name}/snapshots`, `GET /1.0/storage-pools`, `GET /1.0/networks`. This is the same API hostd already drives with the `incus` CLI (`internal/hostd`). The driver does not shell out. |
+| `proxmox` | `internal/hv/proxmox` | PVE `/api2/json`. Lifecycle methods live in `lifecycle.go`; task/resource APIs stay in `phase1.go`. Covers version, cluster resources, qemu and lxc lifecycle, create/clone/template/delete/config/resize/migrate, snapshots and rollback, storage content, upload, download-url, node services and network, firewall read, vzdump, backup list, restore, UPID status and log. |
+| `incus` | `internal/hv/incus` | Lifecycle methods live in `lifecycle.go`; inventory, transport and resource APIs stay in `driver.go` and `guests.go`. Incus REST: `GET /1.0`, `GET /1.0/instances`, `GET /1.0/instances/{name}`, `PUT /1.0/instances/{name}/state`, `POST /1.0/instances/{name}/snapshots`, `GET /1.0/storage-pools`, `GET /1.0/networks`. This is the same API hostd already drives with the `incus` CLI (`internal/hostd`). The driver does not shell out. |
 | `bare` | `internal/hv/bare` | No hypervisor API. Health and every mutation return `ErrNoHypervisor`. Inventory is never a fake "online" with empty guests. |
 
 `wardenclyffe` as a host kind is dropped. The stub did not speak a different API. A future fork, if it is still PVE-shaped, is a `proxmox` endpoint with its own URL and CA.
@@ -57,7 +57,7 @@ Host, port, node, and API URL live on the server row (`031_servers.sql` plus `03
 
 ## Approval and the infra role
 
-Mutations currently call `hv.Guard` before the driver and use the local `internal/approval.Policy`. That policy has compiled fallback roles and a Shippin-local board adapter; it is not AgentHub policy evaluation. This is a known ownership gap. The target is a configured AgentHub policy/ticket/review adapter with explicit system mapping and fail-closed behavior; see [configurable human review](../approval.md). Until that integration is implemented, report the current local-board behavior accurately and do not call it AgentHub.
+Mutations call `hv.Guard` before the driver and use the local `internal/approval.Policy`. There are no compiled fallback approvers; empty policy denies gated actions. The optional Shippin-local board adapter is not AgentHub policy evaluation, and the example configuration disables that board. This is a known ownership gap. The target is a configured AgentHub policy/ticket/review adapter with explicit system mapping and fail-closed behavior; see [configurable human review](../approval.md). Until that integration is implemented, describe the local policy behavior accurately and do not call it AgentHub.
 
 `roles.infra` (shipped as `op_infra`) is the only role that may call `/v1/infra/servers`. Platform admin is not implied. The approval policy still decides whether that caller must wait for a board card. The library refuses a subject the policy does not allow.
 

@@ -3,7 +3,6 @@ package proxmox
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -125,109 +124,6 @@ func (c *Client) Wait(ctx context.Context, upid string) (Task, error) {
 	}
 }
 
-// Create posts a new qemu or lxc guest, waits for the UPID, and returns the inventory row.
-func (c *Client) Create(ctx context.Context, spec Spec) (hv.Guest, error) {
-	kind, err := kindPath(spec.Kind)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	form := url.Values{}
-	form.Set("vmid", spec.ID)
-	if spec.Name != "" {
-		form.Set("hostname", spec.Name)
-		form.Set("name", spec.Name)
-	}
-	if spec.Memory != "" {
-		form.Set("memory", spec.Memory)
-	}
-	if spec.Cores != "" {
-		form.Set("cores", spec.Cores)
-	}
-	if spec.Disk != "" {
-		if kind == "qemu" {
-			form.Set("scsi0", spec.Disk)
-		} else {
-			form.Set("rootfs", spec.Disk)
-		}
-	}
-	if spec.Bridge != "" {
-		form.Set("net0", "bridge="+spec.Bridge)
-	}
-	if spec.Archive != "" {
-		form.Set("archive", spec.Archive)
-	}
-	upid, err := c.postUPID(ctx, http.MethodPost, "/nodes/"+c.Endpoint.Node+"/"+kind, form)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	if _, err := c.Wait(ctx, upid); err != nil {
-		return hv.Guest{}, err
-	}
-	return c.Guest(ctx, spec.ID)
-}
-
-// Clone copies a guest, waits, and reads the new id back.
-func (c *Client) Clone(ctx context.Context, id string, spec Spec) (hv.Guest, error) {
-	g, err := c.Guest(ctx, id)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	kind, err := apiKind(g)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	form := url.Values{}
-	form.Set("newid", spec.NewID)
-	if spec.Name != "" {
-		form.Set("name", spec.Name)
-	}
-	if spec.Full() {
-		form.Set("full", "1")
-	}
-	upid, err := c.postUPID(ctx, http.MethodPost, fmtPath(c.Endpoint.Node, kind, id, "clone"), form)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	if _, err := c.Wait(ctx, upid); err != nil {
-		return hv.Guest{}, err
-	}
-	return c.Guest(ctx, spec.NewID)
-}
-
-// Full reports whether the clone should be a full copy. Empty means full.
-func (s Spec) Full() bool { return s.Mode == "" || s.Mode == "full" }
-
-// Template converts the guest, then reads it back.
-func (c *Client) Template(ctx context.Context, id string) (hv.Guest, error) {
-	return c.actionThenGuest(ctx, id, "template", id)
-}
-
-// Delete removes the guest. A following GET must be 404-equivalent (absent from inventory).
-func (c *Client) Delete(ctx context.Context, id string) error {
-	g, err := c.Guest(ctx, id)
-	if err != nil {
-		return err
-	}
-	kind, err := apiKind(g)
-	if err != nil {
-		return err
-	}
-	upid, err := c.postUPID(ctx, http.MethodDelete, fmtPath(c.Endpoint.Node, kind, id, ""), nil)
-	if err != nil {
-		return err
-	}
-	if _, err := c.Wait(ctx, upid); err != nil {
-		return err
-	}
-	_, err = c.Guest(ctx, id)
-	if err == nil {
-		return fmt.Errorf("proxmox: guest %s still present after delete", id)
-	} else if !errors.Is(err, hv.ErrGuestNotFound) {
-		return fmt.Errorf("proxmox: couldn't confirm guest %s was deleted: %w", id, err)
-	}
-	return nil
-}
-
 // Config is the raw PVE config object.
 func (c *Client) Config(ctx context.Context, id string) (map[string]any, error) {
 	g, err := c.Guest(ctx, id)
@@ -276,108 +172,6 @@ func (c *Client) SetConfig(ctx context.Context, id string, values map[string]str
 		return nil, fmt.Errorf("proxmox: config HTTP %d: %s", code, clip(body))
 	}
 	return c.Config(ctx, id)
-}
-
-// Resize grows a disk, waits, and returns the guest.
-func (c *Client) Resize(ctx context.Context, id, disk, size string) (hv.Guest, error) {
-	g, err := c.Guest(ctx, id)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	kind, err := apiKind(g)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	form := url.Values{}
-	form.Set("disk", disk)
-	form.Set("size", size)
-	upid, err := c.postUPID(ctx, http.MethodPut, fmtPath(c.Endpoint.Node, kind, id, "resize"), form)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	if _, err := c.Wait(ctx, upid); err != nil {
-		return hv.Guest{}, err
-	}
-	return c.Guest(ctx, id)
-}
-
-// Migrate moves a guest, waits, and reads it back.
-func (c *Client) Migrate(ctx context.Context, id string, spec Spec) (hv.Guest, error) {
-	g, err := c.Guest(ctx, id)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	kind, err := apiKind(g)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	form := url.Values{}
-	form.Set("target", spec.Target)
-	if spec.Online {
-		form.Set("online", "1")
-	}
-	upid, err := c.postUPID(ctx, http.MethodPost, fmtPath(c.Endpoint.Node, kind, id, "migrate"), form)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	if _, err := c.Wait(ctx, upid); err != nil {
-		return hv.Guest{}, err
-	}
-	return c.Guest(ctx, id)
-}
-
-// Snapshots lists snapshot names.
-func (c *Client) Snapshots(ctx context.Context, id string) ([]string, error) {
-	g, err := c.Guest(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	kind, err := apiKind(g)
-	if err != nil {
-		return nil, err
-	}
-	body, code, err := c.do(ctx, http.MethodGet, fmtPath(c.Endpoint.Node, kind, id, "snapshot"), nil)
-	if err != nil {
-		return nil, err
-	}
-	if code != http.StatusOK {
-		return nil, fmt.Errorf("proxmox: snapshots HTTP %d: %s", code, clip(body))
-	}
-	var r struct {
-		Data []struct {
-			Name string `json:"name"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(body, &r); err != nil {
-		return nil, err
-	}
-	out := []string{}
-	for _, s := range r.Data {
-		if s.Name != "" && s.Name != "current" {
-			out = append(out, s.Name)
-		}
-	}
-	return out, nil
-}
-
-// Rollback restores a snapshot and reads the guest back.
-func (c *Client) Rollback(ctx context.Context, id, name string) (hv.Guest, error) {
-	g, err := c.Guest(ctx, id)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	kind, err := apiKind(g)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	upid, err := c.postUPID(ctx, http.MethodPost, fmtPath(c.Endpoint.Node, kind, id, "snapshot/"+url.PathEscape(name)+"/rollback"), url.Values{})
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	if _, err := c.Wait(ctx, upid); err != nil {
-		return hv.Guest{}, err
-	}
-	return c.Guest(ctx, id)
 }
 
 // Content lists files on a storage.
@@ -517,30 +311,6 @@ func (c *Client) Vzdump(ctx context.Context, spec Spec) (string, error) {
 // Backups lists backup volumes on a storage (PBS or vzdump content).
 func (c *Client) Backups(ctx context.Context, storage string) ([]string, error) {
 	return c.Content(ctx, storage, "backup")
-}
-
-// Restore creates a guest from a backup archive and reads it back.
-func (c *Client) Restore(ctx context.Context, spec Spec) (hv.Guest, error) {
-	return c.Create(ctx, spec)
-}
-
-func (c *Client) actionThenGuest(ctx context.Context, id, action, readID string) (hv.Guest, error) {
-	g, err := c.Guest(ctx, id)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	kind, err := apiKind(g)
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	upid, err := c.postUPID(ctx, http.MethodPost, fmtPath(c.Endpoint.Node, kind, id, action), url.Values{})
-	if err != nil {
-		return hv.Guest{}, err
-	}
-	if _, err := c.Wait(ctx, upid); err != nil {
-		return hv.Guest{}, err
-	}
-	return c.Guest(ctx, readID)
 }
 
 func (c *Client) postUPID(ctx context.Context, method, path string, form url.Values) (string, error) {
