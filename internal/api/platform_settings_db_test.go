@@ -37,6 +37,7 @@ func TestPlatformSettings(t *testing.T) {
 		{"services.rrflow.auto_attach", `{"value":true}`},
 		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"file:///etc/passwd"}],"reason":"bad target"}`},
 		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"https://user:pass@example.test/health"}],"reason":"bad credentials"}`},
+		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"https://one.test/health","timeout_seconds":11}],"reason":"timeout too long"}`},
 		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"https://one.test"},{"name":"nomen","kind":"nomen","tcp":"host:5432"}],"reason":"duplicate names"}`}} {
 		if code := put(bad.k, bad.b); code < 400 {
 			t.Fatalf("%s %s accepted (%d)", bad.k, bad.b, code)
@@ -47,11 +48,11 @@ func TestPlatformSettings(t *testing.T) {
 	}
 	if put("idp.account_path", `{"value":"/ui/v2/account","reason":"move to v2 UI"}`) != 200 ||
 		put("services.rrflow.auto_attach", `{"value":true,"reason":"pilot tenant"}`) != 200 ||
-		put("services.probes", `{"value":[{"name":"Nomen","kind":"nomen","instance":"nomen","url":"https://nomen.example.test/health"},{"name":"Vaultix","kind":"vaultix","instance":"vaultix","tcp":"vaultix.internal:8080"}],"reason":"configure platform health targets"}`) != 200 {
+		put("services.probes", `{"value":[{"name":"Nomen","kind":"nomen","instance":"nomen","url":"https://nomen.example.test/health","timeout_seconds":5},{"name":"Vaultix","kind":"vaultix","instance":"vaultix","tcp":"vaultix.internal:8080","timeout_seconds":2}],"reason":"configure platform health targets"}`) != 200 {
 		t.Fatal("valid writes refused")
 	}
 	probes := a.platformProbes(ctx)
-	if len(probes) != 2 || probes[0].URL != "https://nomen.example.test/health" || probes[1].TCP != "vaultix.internal:8080" {
+	if len(probes) != 2 || probes[0].URL != "https://nomen.example.test/health" || probes[0].TimeoutSeconds != 5 || probes[1].TCP != "vaultix.internal:8080" || probes[1].TimeoutSeconds != 2 {
 		t.Fatalf("saved probes did not feed live service health: %#v", probes)
 	}
 	if a.idpAccountURL(ctx) != "https://idp.example.test/ui/v2/account" || !a.rrflowAutoAttach(ctx, "t1") || a.rrflowAutoAttach(ctx, "t2") {

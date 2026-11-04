@@ -43,7 +43,7 @@ export type PublicSettings = {
   email_sign_in?: boolean;
 };
 
-export type Probe = { name: string; kind: string; instance: string; healthy: boolean; configured?: boolean; latency_ms: number; detail: string };
+export type Probe = { name: string; kind: string; instance: string; healthy: boolean; configured?: boolean; latency_ms: number; detail: string; timeout_seconds: number };
 
 export type Instance = {
   name: string;

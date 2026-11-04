@@ -65,6 +65,9 @@ func validateProbes(value any) error {
 		if strings.ContainsAny(p.Host, "\r\n") {
 			return fmt.Errorf("%s has an invalid Host header", name)
 		}
+		if p.TimeoutSeconds < 0 || p.TimeoutSeconds > 10 {
+			return fmt.Errorf("%s timeout must be between 1 and 10 seconds when set", name)
+		}
 	}
 	return nil
 }

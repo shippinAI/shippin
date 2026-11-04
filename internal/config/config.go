@@ -105,12 +105,13 @@ type Onboarding struct {
 }
 
 type Probe struct {
-	Name     string `json:"name"`
-	Kind     string `json:"kind"`
-	URL      string `json:"url,omitempty"`
-	Host     string `json:"host,omitempty"`
-	TCP      string `json:"tcp,omitempty"`
-	Instance string `json:"instance"`
+	Name           string `json:"name"`
+	Kind           string `json:"kind"`
+	URL            string `json:"url,omitempty"`
+	Host           string `json:"host,omitempty"`
+	TCP            string `json:"tcp,omitempty"`
+	Instance       string `json:"instance"`
+	TimeoutSeconds int    `json:"timeout_seconds,omitempty"`
 }
 
 type Config struct {

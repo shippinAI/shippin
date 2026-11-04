@@ -5,8 +5,10 @@ Probe:
     kind: { type: string, description: 'zitadel, infisical, caddy, postgres…' }
     instance: { type: string }
     healthy: { type: boolean }
+    configured: { type: boolean, description: 'Whether a probe target is configured; false means unknown rather than down.' }
     latency_ms: { type: integer }
     detail: { type: string }
+    timeout_seconds: { type: integer, minimum: 1, maximum: 10, description: 'Effective timeout; legacy definitions default to 3 seconds.' }
 PlatformInstance:
   type: object
   properties:

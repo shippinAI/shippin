@@ -3,8 +3,8 @@ import { Badge } from "../../../../lib/design/components/badge/badge";
 import { Button } from "../../../../lib/design/components/button/button";
 import { useSetPlatformSetting, type PlatformSetting } from "../../../../lib/hooks/use-platform-settings";
 
-type ProbeDefinition = { name: string; kind: string; instance?: string; url?: string; tcp?: string; host?: string };
-const emptyProbe: ProbeDefinition = { name: "", kind: "", instance: "", url: "", tcp: "", host: "" };
+type ProbeDefinition = { name: string; kind: string; instance?: string; url?: string; tcp?: string; host?: string; timeout_seconds?: number };
+const emptyProbe: ProbeDefinition = { name: "", kind: "", instance: "", url: "", tcp: "", host: "", timeout_seconds: 3 };
 
 /** Edits the installation's real health targets through audited platform settings. */
 export function PlatformProbeSettings({ setting, canWrite }: { setting: PlatformSetting; canWrite: boolean }) {
@@ -42,7 +42,8 @@ export function PlatformProbeSettings({ setting, canWrite }: { setting: Platform
               {target === "tcp" ? <label className="text-sm">TCP host:port<input className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2" placeholder="host:port" value={draft.tcp} onChange={(e) => update("tcp", e.target.value)} /></label> : <label className="text-sm">Health URL<input className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2" placeholder="https://service.example/health" value={draft.url} onChange={(e) => update("url", e.target.value)} /></label>}
               <label className="text-sm">Incus instance name (optional)<input className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2" value={draft.instance ?? ""} onChange={(e) => update("instance", e.target.value)} /></label>
               <label className="text-sm">HTTP Host header (optional)<input className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2" value={draft.host ?? ""} onChange={(e) => update("host", e.target.value)} /></label>
-              <div className="flex gap-2 sm:col-span-2"><Button size="sm" variant="primary" tooltip="Apply this edit to the proposed configuration" onPress={() => { if (!draft.name.trim() || !draft.kind.trim() || !(draft.url || draft.tcp)) return; setProbes(editIndex === null ? [...probes, draft] : probes.map((p, i) => i === editIndex ? draft : p)); setDraft(null); setEditIndex(null); }}>Apply to list</Button><Button size="sm" variant="ghost" tooltip="Discard this edit" onPress={() => { setDraft(null); setEditIndex(null); }}>Cancel</Button></div>
+              <label className="text-sm">Probe timeout (seconds)<input className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2" type="number" min={1} max={10} value={draft.timeout_seconds ?? 3} onChange={(e) => setDraft((current) => current && ({ ...current, timeout_seconds: Number(e.target.value) }))} /></label>
+              <div className="flex gap-2 sm:col-span-2"><Button size="sm" variant="primary" tooltip="Apply this edit to the proposed configuration" onPress={() => { if (!draft.name.trim() || !draft.kind.trim() || !(draft.url || draft.tcp) || !Number.isInteger(draft.timeout_seconds) || draft.timeout_seconds! < 1 || draft.timeout_seconds! > 10) return; setProbes(editIndex === null ? [...probes, draft] : probes.map((p, i) => i === editIndex ? draft : p)); setDraft(null); setEditIndex(null); }}>Apply to list</Button><Button size="sm" variant="ghost" tooltip="Discard this edit" onPress={() => { setDraft(null); setEditIndex(null); }}>Cancel</Button></div>
             </div>
           ) : <Button size="sm" variant="ghost" tooltip="Add an HTTP or TCP health target" onPress={() => { setEditIndex(null); setTarget("http"); setDraft({ ...emptyProbe }); }}>Add service probe</Button>}
           <div className="flex flex-wrap items-end gap-2"><label className="min-w-64 flex-1 text-sm">Reason (audited)<input className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why are these targets changing?" /></label>

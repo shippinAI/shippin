@@ -20,9 +20,10 @@ type probeResult struct {
 	Instance string `json:"instance"`
 	Healthy  bool   `json:"healthy"`
 	// Configured is false when nobody has said where this service is. That is not the same as down.
-	Configured bool   `json:"configured"`
-	LatencyMs  int64  `json:"latency_ms"`
-	Detail     string `json:"detail"`
+	Configured     bool   `json:"configured"`
+	LatencyMs      int64  `json:"latency_ms"`
+	Detail         string `json:"detail"`
+	TimeoutSeconds int    `json:"timeout_seconds"`
 }
 
 func (a *API) platformProbes(ctx context.Context) []config.Probe {
@@ -36,7 +37,7 @@ func (a *API) platformProbes(ctx context.Context) []config.Probe {
 }
 
 // probeClient verifies TLS against the system trust store. serverName sets SNI when the dial host differs.
-func probeClient(serverName string) *http.Client {
+func probeClient(serverName string, timeout time.Duration) *http.Client {
 	pool, err := x509.SystemCertPool()
 	if err != nil || pool == nil {
 		pool = x509.NewCertPool()
@@ -45,11 +46,19 @@ func probeClient(serverName string) *http.Client {
 	if serverName != "" {
 		cfg.ServerName = serverName
 	}
-	return &http.Client{Timeout: 3 * time.Second, Transport: &http.Transport{TLSClientConfig: cfg}}
+	return &http.Client{Timeout: timeout, Transport: &http.Transport{TLSClientConfig: cfg}}
 }
 
 func probe(ctx context.Context, p config.Probe) (res probeResult) {
-	res = probeResult{Name: p.Name, Kind: p.Kind, Instance: p.Instance}
+	res = probeResult{Name: p.Name, Kind: p.Kind, Instance: p.Instance, TimeoutSeconds: p.TimeoutSeconds}
+	timeout := 3 * time.Second
+	if p.TimeoutSeconds > 0 {
+		timeout = time.Duration(p.TimeoutSeconds) * time.Second
+	} else {
+		res.TimeoutSeconds = 3
+	}
+	probeCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 	t0 := time.Now()
 	defer func() { res.LatencyMs = time.Since(t0).Milliseconds() }()
 	// A named service without a target is configuration, not a successful probe.
@@ -60,7 +69,7 @@ func probe(ctx context.Context, p config.Probe) (res probeResult) {
 	}
 	res.Configured = true
 	if p.TCP != "" {
-		c, err := (&net.Dialer{Timeout: 3 * time.Second}).DialContext(ctx, "tcp", p.TCP)
+		c, err := (&net.Dialer{Timeout: timeout}).DialContext(probeCtx, "tcp", p.TCP)
 		if err == nil {
 			c.Close()
 			res.Healthy, res.Detail = true, "accepting connections"
@@ -69,7 +78,7 @@ func probe(ctx context.Context, p config.Probe) (res probeResult) {
 		}
 		return res
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.URL, nil)
+	req, err := http.NewRequestWithContext(probeCtx, http.MethodGet, p.URL, nil)
 	if err != nil {
 		res.Detail = "invalid probe URL"
 		return res
@@ -77,7 +86,7 @@ func probe(ctx context.Context, p config.Probe) (res probeResult) {
 	if p.Host != "" {
 		req.Host = p.Host
 	}
-	r, err := probeClient(p.Host).Do(req)
+	r, err := probeClient(p.Host, timeout).Do(req)
 	if err != nil {
 		res.Detail = "unreachable"
 		return res

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"shippin.cloud/console/internal/config"
 )
@@ -35,5 +36,17 @@ func TestProbeRejectsInvalidURLAndChecksConfiguredEndpoint(t *testing.T) {
 	got := probe(context.Background(), config.Probe{URL: server.URL})
 	if !got.Healthy || got.Detail != "No Content" {
 		t.Fatalf("configured endpoint not probed: %#v", got)
+	}
+}
+
+func TestProbeHonorsConfiguredTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+	started := time.Now()
+	got := probe(context.Background(), config.Probe{URL: server.URL, TimeoutSeconds: 1})
+	if got.Healthy || got.TimeoutSeconds != 1 || time.Since(started) < time.Second {
+		t.Fatalf("configured timeout was not applied: result=%#v elapsed=%s", got, time.Since(started))
 	}
 }
