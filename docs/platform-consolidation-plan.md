@@ -265,16 +265,19 @@ succeeded or absence as unknown without retrying. Version 3 environment
 references resolve only through the existing lease-, audit- and trust-gated
 Vaultix path. Power, health, delete and all provider mutations remain
 unsupported; the worker still reports runtime_unsupported after recovery.
-Packet **4.2h — final dispatch fence** is partially implemented in `27e3bd6`:
+Packet **4.2h — final dispatch fence** is partially implemented in `27e3bd6`
+and `236bc81`:
 the store verifies lease, generation, recomputed plan, exact original intent,
 prerequisite completion and a same-job AgentHub allow event, then atomically
 consumes a one-time dispatch claim and appends a `dispatch_claimed` step event
 (migration 061). A claimed step is ambiguous after a crash and must go through
-read-only provider recovery; the permit cannot be replayed. GitHub Checks run
-`42017460693` passed all 13 jobs, including the disposable-PostgreSQL suites.
-The worker does not call this method and no provider writes are enabled. Before
-advancing, extend PostgreSQL assertions for altered step/plan, unfinished
-prerequisite, recovery takeover, stale generation and audit/event insert failure.
+read-only provider recovery; the permit cannot be replayed. PostgreSQL tests now
+cover missing current worker decision, valid one-time claim, replay denial,
+altered step and plan, unfinished prerequisite, recovery claimant denial and
+lost lease. GitHub Checks run `42018138184` passed all 13 jobs, including the
+disposable-PostgreSQL suites. The worker does not call this method and no
+provider writes are enabled. Before advancing, extend PostgreSQL assertions for
+stale generation and audit/event insert failure.
 Then continue in this order: **4.3** typed Incus storage
 ensure as the first write with JIT AgentHub authorization, immutable snapshot,
 inventory revalidation, final dispatch fence, provider read-back and journaled
