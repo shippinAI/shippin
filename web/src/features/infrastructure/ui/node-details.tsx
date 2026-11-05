@@ -56,6 +56,26 @@ export function NodeFacts({ node }: { node: InfraNode }) {
           </ul>
         </div>
       )}
+      {d?.quorate !== undefined && (
+        <div className="mt-4" data-testid="cluster-quorum">
+          <span className="text-[12px] text-fg-subtle">{t("infra.fact.quorum")}: </span>
+          <Badge tone={d.quorate ? "success" : "danger"}><StatusDot health={d.quorate ? "up" : "down"} /> {t(d.quorate ? "infra.fact.quorate" : "infra.fact.notQuorate")}</Badge>
+        </div>
+      )}
+      {d?.replication_status_available !== undefined && (
+        <section className="mt-5" data-testid="replication-jobs" aria-label={t("infra.fact.replication")}>
+          <h3 className="text-sm font-medium text-fg">{t("infra.fact.replication")}</h3>
+          {!d.replication_status_available ? <p className="mt-2 text-sm text-fg-muted">{t("infra.fact.replicationUnavailable")}</p> : d.replication_jobs?.length ? (
+            <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+              {d.replication_jobs.map((job) => <li key={job.id} className="grid gap-1 px-3 py-2 text-sm sm:grid-cols-2">
+                <span className="font-mono text-fg">{job.id} · {t("infra.fact.guest")} {job.guest}</span>
+                <span className="text-fg-muted">{job.target ? `${t("infra.fact.target")}: ${job.target}` : ""}{job.schedule ? ` · ${job.schedule}` : ""}{job.running ? ` · ${t("infra.fact.running")}` : ""}</span>
+                {job.fail_count ? <span className="text-danger">{t("infra.fact.replicationFailures", { count: job.fail_count })}{job.error ? ` · ${job.error}` : ""}</span> : null}
+              </li>)}
+            </ul>
+          ) : <p className="mt-2 text-sm text-fg-muted">{t("infra.fact.noReplicationJobs")}</p>}
+        </section>
+      )}
       {d?.disks && d.disks.length > 0 && (
         <div className="mt-5" data-testid="node-disks">
           <h3 className="text-sm font-medium text-fg">{t("infra.fact.disks")}</h3>

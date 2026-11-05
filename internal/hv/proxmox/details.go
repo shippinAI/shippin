@@ -12,6 +12,26 @@ import (
 	"shippin.cloud/console/internal/hv"
 )
 
+const maxReplicationJobs = 200
+
+// apiBool accepts both JSON booleans and the 0/1 values emitted by some PVE
+// API serializers for fields whose API schema is boolean.
+type apiBool bool
+
+func (b *apiBool) UnmarshalJSON(raw []byte) error {
+	var value bool
+	if json.Unmarshal(raw, &value) == nil {
+		*b = apiBool(value)
+		return nil
+	}
+	var number int
+	if err := json.Unmarshal(raw, &number); err != nil || (number != 0 && number != 1) {
+		return fmt.Errorf("expected boolean or 0/1")
+	}
+	*b = apiBool(number == 1)
+	return nil
+}
+
 // Nodes lists the cluster's nodes, so an operator with one node does not have to name it.
 func (c *Client) Nodes(ctx context.Context) ([]string, error) {
 	body, code, err := c.do(ctx, http.MethodGet, "/nodes", nil)
@@ -91,6 +111,7 @@ func (c *Client) Details(ctx context.Context) (hv.NodeDetails, error) {
 		}
 	}
 	c.addCluster(ctx, &d)
+	c.addReplication(ctx, node, &d)
 	return d, nil
 }
 
@@ -137,10 +158,11 @@ func (c *Client) addCluster(ctx context.Context, d *hv.NodeDetails) {
 	}
 	var r struct {
 		Data []struct {
-			Type   string `json:"type"`
-			Name   string `json:"name"`
-			Online int    `json:"online"`
-			Local  int    `json:"local"`
+			Type    string   `json:"type"`
+			Name    string   `json:"name"`
+			Online  apiBool  `json:"online"`
+			Local   apiBool  `json:"local"`
+			Quorate *apiBool `json:"quorate"`
 		} `json:"data"`
 	}
 	if json.Unmarshal(body, &r) != nil {
@@ -150,9 +172,56 @@ func (c *Client) addCluster(ctx context.Context, d *hv.NodeDetails) {
 		switch item.Type {
 		case "cluster":
 			d.Cluster = item.Name
+			if item.Quorate != nil {
+				quorate := bool(*item.Quorate)
+				d.Quorate = &quorate
+			}
 		case "node":
-			d.Members = append(d.Members, hv.ClusterMember{Name: item.Name, Online: item.Online == 1, Local: item.Local == 1})
+			d.Members = append(d.Members, hv.ClusterMember{Name: item.Name, Online: bool(item.Online), Local: bool(item.Local)})
 		}
 	}
 	sort.Slice(d.Members, func(i, j int) bool { return d.Members[i].Name < d.Members[j].Name })
+}
+
+// addReplication observes jobs local to the selected Proxmox node. VM.Audit
+// permission is required by Proxmox; restricted tokens leave status unavailable.
+func (c *Client) addReplication(ctx context.Context, node string, d *hv.NodeDetails) {
+	available := false
+	d.ReplicationStatusAvailable = &available
+	path := "/nodes/" + url.PathEscape(node) + "/replication"
+	body, code, err := c.do(ctx, http.MethodGet, path, nil)
+	if err != nil || code != http.StatusOK {
+		return
+	}
+	var result struct {
+		Data []struct {
+			ID        string `json:"id"`
+			Guest     int    `json:"guest"`
+			Target    string `json:"target"`
+			Schedule  string `json:"schedule"`
+			LastSync  int64  `json:"last_sync"`
+			FailCount int    `json:"fail_count"`
+			Error     string `json:"error"`
+			PID       int    `json:"pid"`
+		} `json:"data"`
+	}
+	if json.Unmarshal(body, &result) != nil {
+		return
+	}
+	available = true
+	limit := len(result.Data)
+	if limit > maxReplicationJobs {
+		limit = maxReplicationJobs
+	}
+	d.ReplicationJobs = make([]hv.ReplicationJob, 0, limit)
+	for _, job := range result.Data[:limit] {
+		if job.ID == "" || job.Guest <= 0 {
+			continue
+		}
+		d.ReplicationJobs = append(d.ReplicationJobs, hv.ReplicationJob{
+			ID: job.ID, Guest: job.Guest, Target: job.Target, Schedule: job.Schedule,
+			LastSync: job.LastSync, FailCount: job.FailCount, Error: job.Error, Running: job.PID > 0,
+		})
+	}
+	sort.Slice(d.ReplicationJobs, func(i, j int) bool { return d.ReplicationJobs[i].ID < d.ReplicationJobs[j].ID })
 }
