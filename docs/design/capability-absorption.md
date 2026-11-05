@@ -69,13 +69,16 @@ workflow, tests, security/rights and failure path have been compared and recorde
 
 `docs/design/warden-capture-matrix.md` has 216 imported-source rows for the 188
 tracked files plus 28 absent screenshots, counted as 6 ported, 13 to-author, 176
-intentionally replaced and 21 rejected. Five separately listed mesh-source rows
-remain `needs-review`; they are not included in those 216 rows or status counts.
-Correct these counts/statuses only when rechecking the rows, not by treating
-screenshot omissions as source code. The five mesh documents listed at the end are readable in local `shippin-mesh` commit
-`26cce35b`; the old GitHub-404 description is obsolete. The matrix's Gold-era
-approval wording also conflicts with current main and must be replaced with the
-AgentHub ownership boundary.
+intentionally replaced and 21 rejected. The five separately listed Mesh
+documents are outside those 216 file rows and are all classified
+`intentionally replaced`; the matrix correctly reports zero additional
+`needs-review` documents. This classification closes document review only, not
+the related feature rows, the Mesh root license, or dependency/asset provenance.
+Do not treat screenshot omissions as source code or change row counts without
+rechecking them. The five Mesh documents are readable in local `shippin-mesh`
+commit `26cce35b`; the old GitHub-404 description is obsolete. Preserve the
+AgentHub ownership boundary: AgentHub owns configurable policy and human review;
+Shippin does not carry a second local approval system.
 
 Do not mark the imported tree archive-ready until each remaining row has current
 platform route/API/schema/test evidence or a documented rejection. Keep the source
