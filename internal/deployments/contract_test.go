@@ -93,6 +93,10 @@ func TestDeploymentRequestV3BindsOnlySchemaDeclaredRuntimeStrings(t *testing.T) 
 		Health:      &catalog.RuntimeHealthCheck{Kind: "tcp", Port: 5432, IntervalSeconds: 30, TimeoutSeconds: 5, FailureThreshold: 3},
 		Environment: &environment,
 	}
+	request.TargetConfig = json.RawMessage(`{}`)
+	if err := request.Validate(); err == nil {
+		t.Fatal("v3 deployment accepted without the required Incus storage pool")
+	}
 	request.TargetConfig = json.RawMessage(`{"storage":{"pool":"tenant-data"}}`)
 	if err := request.Validate(); err != nil {
 		t.Fatalf("valid v3 deployment rejected: %v", err)
