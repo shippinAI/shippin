@@ -175,6 +175,76 @@ func (c *Client) Guest(ctx context.Context, id string) (hv.Guest, error) {
 	return hv.Guest{}, fmt.Errorf("proxmox: guest %s: %w", id, hv.ErrGuestNotFound)
 }
 
+// GuestNetwork reads interface addresses from the Proxmox container API or the
+// QEMU guest agent. A QEMU guest without an enabled/responding agent has no
+// provider-observed addresses; callers must not infer routeability from this.
+func (c *Client) GuestNetwork(ctx context.Context, guest hv.Guest) ([]hv.GuestAddress, error) {
+	if guest.ID == "" {
+		return nil, fmt.Errorf("proxmox: guest id is required for network observation")
+	}
+	kind, err := apiKind(guest)
+	if err != nil {
+		return nil, err
+	}
+	path := fmt.Sprintf("/nodes/%s/%s/%s/interfaces", url.PathEscape(c.nodeOf(guest)), kind, url.PathEscape(guest.ID))
+	if guest.Kind == hv.KindVM {
+		path = fmt.Sprintf("/nodes/%s/qemu/%s/agent/network-get-interfaces", url.PathEscape(c.nodeOf(guest)), url.PathEscape(guest.ID))
+	}
+	body, code, err := c.do(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+	if code != http.StatusOK {
+		return nil, fmt.Errorf("proxmox: guest network HTTP %d: %s", code, clip(body))
+	}
+	var response struct {
+		Data []providerNetworkInterface `json:"data"`
+	}
+	// The QEMU endpoint wraps guest-agent results; the LXC endpoint returns a
+	// flat interface array. Decode both formats without treating missing data as
+	// an empty, observed network.
+	if guest.Kind == hv.KindVM {
+		var qemu struct {
+			Data struct {
+				Result []providerNetworkInterface `json:"result"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(body, &qemu); err != nil {
+			return nil, err
+		}
+		response.Data = qemu.Data.Result
+	} else if err := json.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+	addresses := make([]hv.GuestAddress, 0)
+	for _, iface := range response.Data {
+		if iface.Inet != "" {
+			addresses = append(addresses, hv.GuestAddress{Interface: iface.Name, Address: iface.Inet, Family: "ipv4"})
+		}
+		if iface.Inet6 != "" {
+			addresses = append(addresses, hv.GuestAddress{Interface: iface.Name, Address: iface.Inet6, Family: "ipv6"})
+		}
+		for _, address := range iface.Addresses {
+			if address.Address == "" || address.Family == "" {
+				continue
+			}
+			addresses = append(addresses, hv.GuestAddress{Interface: iface.Name, Address: address.Address, Family: address.Family, Scope: address.Scope})
+		}
+	}
+	return addresses, nil
+}
+
+type providerNetworkInterface struct {
+	Name      string `json:"name"`
+	Inet      string `json:"inet"`
+	Inet6     string `json:"inet6"`
+	Addresses []struct {
+		Family  string `json:"ip-address-type"`
+		Address string `json:"ip-address"`
+		Scope   string `json:"scope"`
+	} `json:"ip-addresses"`
+}
+
 func apiKind(g hv.Guest) (string, error) {
 	switch g.Kind {
 	case hv.KindVM:

@@ -211,6 +211,45 @@ func (c *Client) Guest(ctx context.Context, id string) (hv.Guest, error) {
 	return instance.guest(), nil
 }
 
+// GuestNetwork reads the live instance state from Incus. It reports addresses
+// observed by Incus, which may be absent for stopped guests or unmanaged NICs.
+func (c *Client) GuestNetwork(ctx context.Context, guest hv.Guest) ([]hv.GuestAddress, error) {
+	if guest.ID == "" {
+		return nil, fmt.Errorf("incus: guest id is required for network observation")
+	}
+	body, code, err := c.do(ctx, http.MethodGet, c.path(instancePath(guest.ID)+"/state"), nil)
+	if err != nil {
+		return nil, err
+	}
+	if code != http.StatusOK {
+		return nil, fmt.Errorf("incus: guest state HTTP %d: %s", code, clip(body))
+	}
+	var response struct {
+		Metadata struct {
+			Network map[string]struct {
+				Addresses []struct {
+					Family  string `json:"family"`
+					Address string `json:"address"`
+					Scope   string `json:"scope"`
+				} `json:"addresses"`
+			} `json:"network"`
+		} `json:"metadata"`
+	}
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+	addresses := make([]hv.GuestAddress, 0)
+	for name, iface := range response.Metadata.Network {
+		for _, address := range iface.Addresses {
+			if address.Address == "" || address.Family == "" {
+				continue
+			}
+			addresses = append(addresses, hv.GuestAddress{Interface: name, Address: address.Address, Family: address.Family, Scope: address.Scope})
+		}
+	}
+	return addresses, nil
+}
+
 func (c *Client) instanceDetails(ctx context.Context, id string) (instance, error) {
 	body, code, err := c.do(ctx, http.MethodGet, c.path(instancePath(id)), nil)
 	if err != nil {

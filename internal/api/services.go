@@ -33,16 +33,18 @@ type probeResult struct {
 }
 
 type serviceResource struct {
-	ServerID  string           `json:"server_id"`
-	GuestID   string           `json:"guest_id"`
-	Server    string           `json:"server,omitempty"`
-	Name      string           `json:"name,omitempty"`
-	Kind      string           `json:"kind,omitempty"`
-	Status    string           `json:"status,omitempty"`
-	Observed  bool             `json:"observed"`
-	Detail    string           `json:"detail"`
-	CheckedAt time.Time        `json:"checked_at"`
-	Metrics   *hv.GuestMetrics `json:"metrics,omitempty"`
+	ServerID      string            `json:"server_id"`
+	GuestID       string            `json:"guest_id"`
+	Server        string            `json:"server,omitempty"`
+	Name          string            `json:"name,omitempty"`
+	Kind          string            `json:"kind,omitempty"`
+	Status        string            `json:"status,omitempty"`
+	Observed      bool              `json:"observed"`
+	Detail        string            `json:"detail"`
+	CheckedAt     time.Time         `json:"checked_at"`
+	Metrics       *hv.GuestMetrics  `json:"metrics,omitempty"`
+	Addresses     []hv.GuestAddress `json:"addresses,omitempty"`
+	NetworkDetail string            `json:"network_detail,omitempty"`
 }
 
 type probeConcurrencyGate struct {
@@ -127,6 +129,17 @@ func (a *API) serviceResource(ctx context.Context, p config.Probe) *serviceResou
 		return out
 	}
 	out.Name, out.Kind, out.Status, out.Metrics, out.Observed = guest.Name, guest.Kind, guest.Status, guest.Metrics, true
+	if observer, ok := driver.(hv.GuestNetworkObserver); ok {
+		addresses, networkErr := observer.GuestNetwork(ctx, guest)
+		if networkErr == nil {
+			out.Addresses = addresses
+			out.NetworkDetail = "provider-reported addresses; control-plane reachability not verified"
+		} else {
+			out.NetworkDetail = "provider network observation unavailable"
+		}
+	} else {
+		out.NetworkDetail = "provider does not expose guest addresses"
+	}
 	if guest.Metrics == nil {
 		out.Detail = "provider did not report resource metrics"
 	} else {

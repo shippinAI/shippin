@@ -262,8 +262,13 @@ including the PostgreSQL API suite, in run `42029507436`.
 The current platform-service probe in `internal/api/services.go` dials TCP or
 HTTP from the console process. Its provider-resource join separately asks the
 configured hypervisor for guest status and metrics; it does not establish that
-the application port is reachable. `hv.Guest` contains no guest addresses, and
-the current `shippin-agent` is a read-only diagnostics CLI, not a per-server
+the application port is reachable. The optional `hv.GuestNetworkObserver` now
+reads addresses from Incus live instance state, Proxmox LXC interface inventory,
+and the Proxmox QEMU guest agent. The existing service card labels them as
+provider-reported observations and says reachability is unverified. A QEMU guest
+without a responding guest agent and any provider response without addresses
+remain unknown. These observations do not change probe targets or readiness.
+The current `shippin-agent` is a read-only diagnostics CLI, not a per-server
 probe service. A private Incus bridge address is therefore not a safe implicit
 probe target: a remote console may have no route to that bridge.
 
@@ -275,8 +280,16 @@ timeout, perform the dial from a namespace that can route to the guest, and
 return a timestamped observation without exposing credentials or arbitrary
 addresses. Server-to-agent enrollment and endpoint configuration must work for
 each attached Incus or Proxmox system; the single installation `HostdURL` is
-not proof of reachability for every provider. Proxmox guest IP discovery needs
-its own declared capability (for example, a configured and available guest
-agent) and must remain unsupported when absent. The UI must distinguish
-provider state, guest reachability, and application health. Do not turn a
+not proof of reachability for every provider. Proxmox QEMU IP discovery uses
+the configured guest agent; it remains unknown when absent or unavailable. The
+UI must distinguish provider state, guest reachability, and application health. Do not turn a
 running guest into a healthy or ready service by assumption.
+
+The provider-address slice is covered by simulator tests for Incus project
+scoping and state decoding, Proxmox QEMU guest-agent and LXC response shapes,
+and the existing service-resource/API and panel join. No live provider endpoint
+was available, so real provider permissions and network observations remain
+unverified. The next implementation step is the authenticated per-server probe
+service; it must validate target ownership and perform the declared TCP/HTTP
+check from a namespace with a proven route. Keep deployment health unsupported
+until that contract and persisted fresh observations are implemented.

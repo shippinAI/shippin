@@ -46,6 +46,8 @@ export type PublicSettings = {
 export type ProbeResource = {
   server_id: string; guest_id: string; server?: string; name?: string; kind?: string; status?: string;
   observed: boolean; detail: string; checked_at: string;
+  addresses?: { interface: string; address: string; family: string; scope?: string }[];
+  network_detail?: string;
   metrics?: { cpu_fraction: number; cpu_count?: number; memory_used_bytes: number; memory_total_bytes: number; disk_used_bytes: number; disk_total_bytes: number; network_in_bytes: number; network_out_bytes: number };
 };
 export type Probe = { id?: string; name: string; alias?: string; kind: string; instance: string; healthy: boolean; configured?: boolean; latency_ms?: number; detail: string; timeout_seconds: number; state?: "unknown" | "stale" | "operational" | "down"; observed_at?: string; resource?: ProbeResource };

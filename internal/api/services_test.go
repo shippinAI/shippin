@@ -65,8 +65,16 @@ func TestProbeHonorsConfiguredTimeout(t *testing.T) {
 
 type serviceGuestDriver struct {
 	hv.Driver
-	guest hv.Guest
-	err   error
+	guest      hv.Guest
+	err        error
+	networkErr error
+}
+
+func (d serviceGuestDriver) GuestNetwork(context.Context, hv.Guest) ([]hv.GuestAddress, error) {
+	if d.networkErr != nil {
+		return nil, d.networkErr
+	}
+	return []hv.GuestAddress{{Interface: "eth0", Address: "192.0.2.22", Family: "ipv4", Scope: "global"}}, nil
 }
 
 func (d serviceGuestDriver) Guest(_ context.Context, id string) (hv.Guest, error) {
@@ -95,6 +103,9 @@ func TestServiceProbeJoinsProviderReportedResources(t *testing.T) {
 	if got.Resource.Metrics == nil || got.Resource.Metrics.CPU != .25 || got.Resource.Metrics.Memory != 512<<20 || got.Resource.Metrics.MaxDisk != 40<<30 {
 		t.Fatalf("provider metrics were not preserved: %+v", got.Resource.Metrics)
 	}
+	if len(got.Resource.Addresses) != 1 || got.Resource.Addresses[0].Address != "192.0.2.22" || !strings.Contains(got.Resource.NetworkDetail, "reachability not verified") {
+		t.Fatalf("provider address must be surfaced without claiming control-plane reachability: %+v", got.Resource)
+	}
 }
 
 func TestServiceProbeKeepsHealthSeparateFromMissingProviderResource(t *testing.T) {
@@ -114,6 +125,26 @@ func TestServiceProbeKeepsHealthSeparateFromMissingProviderResource(t *testing.T
 	raw, err := json.Marshal(got)
 	if err != nil || strings.Contains(string(raw), "provider unavailable") || strings.Contains(string(raw), health.URL) {
 		t.Fatalf("resource errors must not expose provider internals: %s err=%v", raw, err)
+	}
+}
+
+func TestServiceProbeKeepsHealthSeparateFromUnavailableGuestNetwork(t *testing.T) {
+	const serverID = "019a0000-0000-7000-8000-0000000000a1"
+	api := &API{
+		hvServers: &memHV{items: []servers.Endpoint{{ID: serverID, Kind: "proxmox", Label: "Build node"}}},
+		openHV: func(servers.Endpoint) (hv.Driver, error) {
+			return serviceGuestDriver{guest: hv.Guest{ID: "101", Name: "postgres", Kind: hv.KindVM, Status: "running"}, networkErr: errors.New("guest agent unavailable")}, nil
+		},
+	}
+	health := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	defer health.Close()
+	got := api.serviceProbe(context.Background(), config.Probe{Name: "Database", Kind: "database", URL: health.URL, ServerID: serverID, GuestID: "101"})
+	if !got.Healthy || got.Resource == nil || !got.Resource.Observed || len(got.Resource.Addresses) != 0 || got.Resource.NetworkDetail != "provider network observation unavailable" {
+		t.Fatalf("missing guest-agent network data must not overwrite independent health or expose provider errors: %+v", got)
+	}
+	raw, err := json.Marshal(got)
+	if err != nil || strings.Contains(string(raw), "guest agent unavailable") {
+		t.Fatalf("provider network error escaped into API response: %s err=%v", raw, err)
 	}
 }
 

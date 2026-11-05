@@ -62,6 +62,13 @@ export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Inst
           ) : (
             <p className="text-fg-subtle">{probe.resource.observed ? probe.resource.detail : `Resource state unavailable: ${probe.resource.detail}`}</p>
           )}
+          {probe.resource.observed && (
+            <div className="mt-2 text-fg-subtle">
+              <span>Provider addresses: </span>
+              {probe.resource.addresses?.length ? probe.resource.addresses.map((address) => `${address.interface}: ${address.address}`).join(", ") : "unknown"}
+              <p className="mt-1">{probe.resource.network_detail || "Provider observation does not verify probe reachability."}</p>
+            </div>
+          )}
         </div>
       )}
     </div>

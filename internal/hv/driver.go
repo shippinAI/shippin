@@ -76,6 +76,21 @@ type Guest struct {
 	Self bool `json:"self,omitempty"`
 }
 
+// GuestNetworkObserver reads addresses reported by the hypervisor or its guest agent.
+// These addresses describe provider observation only; they do not prove that a
+// control-plane probe can route to the guest.
+type GuestNetworkObserver interface {
+	GuestNetwork(ctx context.Context, guest Guest) ([]GuestAddress, error)
+}
+
+// GuestAddress is one address returned by the provider for a guest interface.
+type GuestAddress struct {
+	Interface string `json:"interface"`
+	Address   string `json:"address"`
+	Family    string `json:"family"`
+	Scope     string `json:"scope,omitempty"`
+}
+
 // GuestMetrics are provider-reported resource counters. Missing metrics stay absent; the API
 // never fabricates zeros for a provider that cannot report them.
 type GuestMetrics struct {

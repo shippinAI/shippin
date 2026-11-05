@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"shippin.cloud/console/internal/hv"
 )
 
 func TestStartReadsBack(t *testing.T) {
@@ -146,5 +148,35 @@ func TestGuestIDIsEscapedSoItCannotReachAnotherEndpoint(t *testing.T) {
 	}
 	if saw != "/1.0/instances/..%2Fcertificates" {
 		t.Fatalf("path %q", saw)
+	}
+}
+
+func TestGuestNetworkUsesLiveProjectScopedStateAndPreservesAddressMetadata(t *testing.T) {
+	var paths []string
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.RequestURI())
+		switch r.URL.Path {
+		case "/1.0/instances/app":
+			_ = json.NewEncoder(w).Encode(map[string]any{"metadata": map[string]any{"name": "app", "status": "Running", "type": "container"}})
+		case "/1.0/instances/app/state":
+			_ = json.NewEncoder(w).Encode(map[string]any{"metadata": map[string]any{"network": map[string]any{
+				"eth0": map[string]any{"addresses": []map[string]string{
+					{"family": "inet", "address": "192.0.2.10", "scope": "global"},
+					{"family": "inet6", "address": "fe80::1", "scope": "link"},
+				}},
+			}}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	c := clientFor(t, srv)
+	c.Endpoint.Project = "tenant-a"
+	got, err := c.GuestNetwork(context.Background(), hv.Guest{ID: "app"})
+	if err != nil || len(got) != 2 || got[0].Address != "192.0.2.10" || got[1].Scope != "link" {
+		t.Fatalf("addresses=%+v err=%v", got, err)
+	}
+	if len(paths) != 1 || paths[0] != "/1.0/instances/app/state?project=tenant-a" {
+		t.Fatalf("expected one live-state read in the configured project, got %v", paths)
 	}
 }

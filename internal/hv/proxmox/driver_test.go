@@ -10,6 +10,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"shippin.cloud/console/internal/hv"
 )
 
 func TestStartReadsBackAndSkipsWhenRunning(t *testing.T) {
@@ -144,6 +146,48 @@ func TestTLSRejectsUnknownCA(t *testing.T) {
 	}
 	if _, err := c.Health(context.Background()); err == nil {
 		t.Fatal("system roots must not trust the test certificate")
+	}
+}
+
+func TestGuestNetworkUsesQEMUAgentAndLXCInterfaceAPIs(t *testing.T) {
+	for _, tc := range []struct {
+		name, kind, endpoint, body string
+	}{
+		{"qemu guest agent", "qemu", "/api2/json/nodes/n1/qemu/101/agent/network-get-interfaces", `{"data":{"result":[{"name":"ens18","ip-addresses":[{"ip-address-type":"ipv4","ip-address":"192.0.2.20","scope":"global"}]}]}}`},
+		{"lxc interface inventory", "lxc", "/api2/json/nodes/n1/lxc/102/interfaces", `{"data":[{"name":"eth0","inet":"192.0.2.21/24","inet6":"2001:db8::21/64"}]}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var seen string
+			srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/api2/json/cluster/resources":
+					id := 101
+					if tc.kind == "lxc" {
+						id = 102
+					}
+					_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{{"vmid": id, "name": "guest", "type": tc.kind, "status": "running", "node": "n1"}}})
+				case "/api2/json/nodes/n1/" + tc.kind + "/" + map[string]string{"qemu": "101", "lxc": "102"}[tc.kind] + "/status/current":
+					_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"status": "running"}})
+				default:
+					seen = r.URL.Path
+					if seen != tc.endpoint {
+						http.NotFound(w, r)
+						return
+					}
+					_, _ = w.Write([]byte(tc.body))
+				}
+			}))
+			defer srv.Close()
+			guestID := map[string]string{"qemu": "101", "lxc": "102"}[tc.kind]
+			guestKind := hv.KindVM
+			if tc.kind == "lxc" {
+				guestKind = hv.KindCT
+			}
+			got, err := clientFor(t, srv).GuestNetwork(context.Background(), hv.Guest{ID: guestID, Node: "n1", Kind: guestKind})
+			if err != nil || len(got) == 0 || seen != tc.endpoint {
+				t.Fatalf("addresses=%+v path=%s err=%v", got, seen, err)
+			}
+		})
 	}
 }
 
