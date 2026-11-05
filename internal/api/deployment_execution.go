@@ -18,6 +18,10 @@ type incusOCIExecutorProvider interface {
 	InspectOCIApplicationVolume(context.Context, incus.OCIApplicationSpec) (bool, error)
 	CreateOCIApplicationStopped(context.Context, incus.OCIApplicationSpec) (hv.Guest, error)
 	EnsureOCIApplicationRunning(context.Context, incus.OCIApplicationSpec) (hv.Guest, error)
+	StopOCIApplication(context.Context, incus.OCIApplicationSpec) error
+	DeleteOCIApplicationStopped(context.Context, incus.OCIApplicationSpec) error
+	InspectOCIApplicationPowerState(context.Context, incus.OCIApplicationSpec) (hv.Guest, bool, error)
+	InspectOCIApplicationSnapshots(context.Context, incus.OCIApplicationSpec) (bool, error)
 }
 
 // executeIncusStorageStep runs only the first typed provider write in the

@@ -41,7 +41,9 @@ func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deploy
 		}
 	}
 	if step.ID == "" || (step.Operation != "ensure_persistent_volume" &&
-		step.Operation != "ensure_oci_instance" && step.Operation != "ensure_running") {
+		step.Operation != "ensure_oci_instance" && step.Operation != "ensure_running" &&
+		step.Operation != "stop_owned_instance" && step.Operation != "delete_owned_instance_preserve_volume" &&
+		step.Operation != "verify_instance_absent") {
 		return nil, false, nil
 	}
 	if _, _, err := a.deploymentStore().ClaimExecutionStepRecoveryWithLease(ctx, job.TenantID, deployment.ID,
@@ -81,7 +83,8 @@ func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deploy
 	var guest hv.Guest
 	if step.Operation == "ensure_persistent_volume" {
 		exists, err = provider.InspectOCIApplicationVolume(ctx, spec)
-	} else if step.Operation == "ensure_running" {
+	} else if step.Operation == "ensure_running" || step.Operation == "stop_owned_instance" ||
+		step.Operation == "delete_owned_instance_preserve_volume" || step.Operation == "verify_instance_absent" {
 		guest, exists, err = provider.InspectOCIApplicationPowerState(ctx, spec)
 	} else {
 		spec.Environment, err = a.deploymentRecoveryEnvironment(ctx, job, snapshot)
@@ -93,7 +96,19 @@ func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deploy
 		return nil, false, err
 	}
 	state, failureCode := "succeeded", ""
-	if !exists {
+	if step.Operation == "stop_owned_instance" {
+		if !exists || strings.EqualFold(guest.Status, "Stopped") {
+			state, failureCode = "succeeded", ""
+		} else {
+			state, failureCode = "unknown", "provider_state_mismatch"
+		}
+	} else if step.Operation == "delete_owned_instance_preserve_volume" || step.Operation == "verify_instance_absent" {
+		if exists {
+			state, failureCode = "unknown", "provider_state_present"
+		} else {
+			state, failureCode = "succeeded", ""
+		}
+	} else if !exists {
 		// Absence does not prove that the original mutation did not complete
 		// transiently or that retrying it is authorized. Close as unknown.
 		state, failureCode = "unknown", "provider_state_absent"

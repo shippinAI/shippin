@@ -7,6 +7,7 @@ import (
 	"log"
 	"strconv"
 
+	"shippin.cloud/console/internal/deployments"
 	"shippin.cloud/console/internal/jobs"
 )
 
@@ -50,9 +51,10 @@ func (a *API) relayDeploymentOutbox(ctx context.Context) {
 }
 
 // runDeploymentReconcileJob reloads the latest canonical desired generation.
-// The current executor implements reviewed Incus storage and stopped-workload
-// steps only. It persists an explicit unsupported result until the complete
-// workload, power, health and lifecycle contract is implemented.
+// Present-state deployments support reviewed Incus storage/workload/power but
+// remain unsupported until application health and the remaining lifecycle
+// contract exist. Desired-absent Incus OCI generations have a separate reviewed
+// stop/remove/absence path that preserves the deployment volume.
 func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step func(string)) (any, error) {
 	if job == nil || job.Kind != jobs.KindDeploymentReconcile || job.TargetType != "deployment_generation" || job.TargetID == "" {
 		return nil, jobs.Permanent(errors.New("invalid deployment reconcile job"))
@@ -113,6 +115,23 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 			runtimeStep = powerStep
 			providerMutated = providerMutated || mutated
 		}
+	}
+	if mayProgressIncusRuntime && deployment.DesiredState == deployments.DesiredAbsent {
+		removalStep, handled, mutated, stepErr := a.executeIncusRemovalSteps(ctx, job, deployment, step)
+		if stepErr != nil {
+			return nil, stepErr
+		}
+		if handled {
+			runtimeStep = removalStep
+			providerMutated = providerMutated || mutated
+		}
+	}
+	removalComplete := deployment.DesiredState == deployments.DesiredAbsent && runtimeStep != nil &&
+		runtimeStep["step_id"] == "readback" && runtimeStep["step_state"] == "succeeded"
+	if removalComplete {
+		return map[string]any{"deployment_id": deployment.ID, "generation": wakeup.Generation,
+			"outcome": "absent", "event_recorded": true, "provider_mutated": providerMutated,
+			"recovery": recoveredStep, "runtime_step": runtimeStep}, nil
 	}
 	step("application_runtime_unavailable")
 	created, err := a.deploymentStore().RecordRuntimeUnavailableWithLease(ctx, job.TenantID, deployment.ID,

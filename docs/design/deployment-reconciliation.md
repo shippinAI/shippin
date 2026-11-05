@@ -313,7 +313,10 @@ local checks, and must pass CI before starting its dependent packet.
 2. **Finish deployment runtime** (`internal/deployments`, `internal/jobs`,
    `internal/hv`, `internal/hostd`, existing deployment UI): finish the
    generation-bound health contract, safe update and rollback, delete with
-   provider read-back, restart recovery and unsupported-state reporting. Keep
+   provider read-back, restart recovery and unsupported-state reporting. The
+   desired-absent Incus OCI path is being implemented as an independent typed
+   packet: stop, remove only the exact Shippin workload while preserving its
+   volume, then verify absence. Keep
    Incus OCI and Proxmox guest execution as separate capability matrices. Prove
    one complete Incus service path on a disposable host before widening the
    catalog; implement and prove a separate Proxmox bootstrap/runtime before
@@ -352,9 +355,36 @@ local checks, and must pass CI before starting its dependent packet.
    source checkouts or claim archive readiness while rights, dirty user work,
    unique capabilities or live-install limits remain unresolved.
 
-**Just completed:** health probes no longer follow HTTP redirects. The
+**Previously completed:** health probes no longer follow HTTP redirects. The
 operator-configured origin is the only destination contacted, preventing a
 service response from redirecting the console probe into another network
 destination. A regression test confirms the redirect target receives no request.
 This hardens the current console-side probe; it does not close the per-server
 reachability gate or make deployment health supported.
+
+## Current implementation checkpoint (2026-11-05, removal packet)
+
+The canonical worker now has a desired-absent Incus OCI execution path in
+`internal/api/deployment_removal.go`. It executes the already plan-bound stop,
+workload removal, and absence-verification steps in order. Stop and removal each
+write a durable intent, obtain current lease-fenced AgentHub authorization, use a
+one-time dispatch claim before a provider write, and read back provider state.
+Provider ownership checks use the stable deployment/generation, image, resources,
+network and volume attachment; stopping or removing the workload does not need
+to re-read or reveal its environment secrets. The custom data volume is retained.
+Snapshot presence is checked before the delete dispatch claim and produces a
+visible failed step without attempting deletion. An ambiguous stop/delete is
+inspected on retry and is never blindly repeated.
+Only a fresh absent read-back records deployment `observed_state=absent` and
+returns outcome `absent`; denied, mismatched, stale, or incomplete paths do not.
+The existing deployment list renders observed `absent` as successful, and its
+`runtime_unsupported` message now correctly warns that earlier steps may have
+mutated provider state.
+
+This is a narrow Incus OCI removal path, not complete deployment lifecycle
+support. It does not remove persistent data, remove Incus snapshots, handle
+Proxmox workloads, execute application health, or implement update/rollback,
+backup/restore, or live-provider validation. Database-backed removal, denial,
+snapshot refusal and ambiguous-delete recovery tests are added but need the CI
+disposable-Postgres suite to exercise; local live provider operations were
+unavailable.

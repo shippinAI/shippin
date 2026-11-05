@@ -18,7 +18,7 @@ import {
 import { PageHeader } from "../../../template/page-header";
 import { QueryView } from "../../admin/ui/query-view";
 import { ServiceConfigForm } from "./service-config-form";
-import { currentGenerationFailure, deploymentFailureMessage } from "../deployment-status";
+import { currentGenerationFailure, deploymentFailureMessage, deploymentObservedStateTone } from "../deployment-status";
 import { requiresIncusTargetConfiguration, supportsRuntimeTarget } from "../runtime-targets";
 
 const isObject = (value: unknown): value is Record<string, Json> => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -77,7 +77,7 @@ export function DeploymentsPage() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="font-semibold text-fg">{service?.label ?? item.service_id}</h2>
-                  <Badge tone={item.observed_state === "ready" ? "success" : item.observed_state === "failed" ? "danger" : "warning"}>{item.observed_state}</Badge>
+                  <Badge tone={deploymentObservedStateTone(item.observed_state)}>{item.observed_state}</Badge>
                   <Badge>desired {item.desired_state}</Badge>
                   <Badge tone="info">{item.target_provider_label ?? item.target_provider}</Badge>
                 </div>
@@ -87,9 +87,9 @@ export function DeploymentsPage() {
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="sm" tooltip="Show immutable generation and event history" onPress={() => setHistoryId(historyId === item.id ? "" : item.id)}><History className="size-4" /> History</Button>
                 {canManage && item.desired_state === "present" && <IconButton icon={Pencil} label={`Edit ${service?.label ?? item.service_id}`} onPress={() => setEditing(item)} />}
-                {canManage && item.desired_state === "present" && <IconButton icon={Trash2} label={`Request removal of ${service?.label ?? item.service_id}`}
+                {canManage && item.desired_state === "present" && item.target_provider === "incus" && <IconButton icon={Trash2} label={`Request removal of ${service?.label ?? item.service_id}`}
                   onPress={() => {
-                    if (window.confirm("Record desired absence for this service? This request does not delete a provider resource by itself.")) remove.mutate(item);
+                    if (window.confirm("Request a reviewed stop and removal of this Incus workload? Its deployment data volume is retained. Provider changes occur only after AgentHub approval and provider read-back.")) remove.mutate(item);
                   }} />}
               </div>
             </div>

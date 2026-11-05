@@ -386,6 +386,30 @@ func (c *Client) InspectOCIApplicationPowerState(ctx context.Context, spec OCIAp
 	return instance.guest(), true, nil
 }
 
+// InspectOCIApplicationSnapshots reports whether an exact owned workload has
+// snapshots that deletion would otherwise discard. Callers should use this
+// before claiming a destructive execution step.
+func (c *Client) InspectOCIApplicationSnapshots(ctx context.Context, spec OCIApplicationSpec) (bool, error) {
+	if _, err := validateOCIApplicationSpec(spec); err != nil {
+		return false, err
+	}
+	instance, err := c.instanceDetails(ctx, spec.Name)
+	if err != nil {
+		if errors.Is(err, hv.ErrGuestNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	if err := validateOCIApplicationPowerIdentity(instance, spec); err != nil {
+		return false, err
+	}
+	snapshots, err := c.Snapshots(ctx, spec.Name)
+	if err != nil {
+		return false, fmt.Errorf("incus: inspect application snapshots before delete: %w", err)
+	}
+	return len(snapshots) != 0, nil
+}
+
 // validateOCIApplicationSpec applies the same identity and provider bounds to
 // every lifecycle action. The returned image has already passed immutable
 // digest validation and is safe to use in ownership comparisons.

@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 )
 
 // ExecutionPlanVersion versions Shippin's reviewed provider-step contract. It
@@ -89,13 +88,16 @@ func BuildExecutionPlan(tenantID string, deployment *Deployment) (ExecutionPlan,
 	}
 	if deployment.TargetProvider != ProviderIncus || definition.Runtime.Kind != "incus_oci_container" ||
 		!definition.Runtime.SupportsProvider(string(deployment.TargetProvider)) {
-		return ExecutionPlan{}, fmt.Errorf("deployment plan provider %q is not implemented", deployment.TargetProvider)
-	}
-	if definition.Runtime.Version < 2 {
+		plan.UnsupportedReason = "executor_not_installed"
+	} else if definition.Runtime.Version < 2 {
 		plan.UnsupportedReason = "runtime_recipe_required"
-		return plan, nil
+	} else if deployment.DesiredState == DesiredAbsent {
+		// The reviewed Incus OCI stop/remove/absence path is implemented. Data
+		// deletion remains a separate operation and is never implied here.
+		plan.UnsupportedReason = ""
+	} else {
+		plan.UnsupportedReason = "executor_not_installed"
 	}
-	plan.UnsupportedReason = "executor_not_installed"
 	stepIDs := []struct{ id, operation string }{}
 	if deployment.DesiredState == DesiredPresent {
 		if definition.Runtime.Storage != nil {

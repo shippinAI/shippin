@@ -152,7 +152,7 @@ func TestExecutionPlanRemovePreservesDeploymentVolume(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(plan.Steps) != 3 || plan.Steps[1].Operation != "delete_owned_instance_preserve_volume" {
-		t.Fatalf("removal plan does not preserve persistent data: %+v", plan.Steps)
+	if plan.UnsupportedReason != "" || len(plan.Steps) != 3 || plan.Steps[1].Operation != "delete_owned_instance_preserve_volume" {
+		t.Fatalf("Incus removal plan is unsupported or does not preserve persistent data: %+v", plan)
 	}
 }

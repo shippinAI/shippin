@@ -61,7 +61,7 @@ func (c *Client) DeleteOCIApplication(ctx context.Context, spec OCIApplicationSp
 	if err != nil {
 		return err
 	}
-	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+	if err := validateOCIApplicationPowerIdentity(instance, spec); err != nil {
 		return fmt.Errorf("incus: refusing to delete unowned application: %w", err)
 	}
 	if err := c.ensureOCIApplicationHasNoSnapshots(ctx, spec.Name); err != nil {
@@ -77,6 +77,8 @@ func (c *Client) DeleteOCIApplication(ctx context.Context, spec OCIApplicationSp
 
 // StopOCIApplication changes only the power state of an exact owned instance
 // and confirms the stopped state. It does not remove the instance or volume.
+// Ownership checks use deployment/generation, image and resource/network/storage
+// identity; environment secrets are not needed to stop or remove the workload.
 func (c *Client) StopOCIApplication(ctx context.Context, spec OCIApplicationSpec) error {
 	if _, err := validateOCIApplicationSpec(spec); err != nil {
 		return err
@@ -98,7 +100,7 @@ func (c *Client) DeleteOCIApplicationStopped(ctx context.Context, spec OCIApplic
 	if err != nil {
 		return err
 	}
-	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+	if err := validateOCIApplicationPowerIdentity(instance, spec); err != nil {
 		return fmt.Errorf("incus: refusing to delete application after ownership changed: %w", err)
 	}
 	if !strings.EqualFold(instance.Status, "Stopped") {
@@ -139,7 +141,7 @@ func (c *Client) stopOwnedOCIApplication(ctx context.Context, spec OCIApplicatio
 	if err != nil {
 		return err
 	}
-	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+	if err := validateOCIApplicationPowerIdentity(instance, spec); err != nil {
 		return fmt.Errorf("application ownership changed before stop: %w", err)
 	}
 	if strings.EqualFold(instance.Status, "Stopped") {
@@ -155,7 +157,7 @@ func (c *Client) stopOwnedOCIApplication(ctx context.Context, spec OCIApplicatio
 	if err != nil {
 		return err
 	}
-	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+	if err := validateOCIApplicationPowerIdentity(instance, spec); err != nil {
 		return fmt.Errorf("application ownership changed while stopping: %w", err)
 	}
 	if !strings.EqualFold(instance.Status, "Stopped") {
