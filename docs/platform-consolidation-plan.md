@@ -138,6 +138,11 @@ routes, ACLs or providers. Add database-backed regression tests for attach,
 detach, target rejection and inventory omission before treating this capability
 as fully covered.
 
+**Progress:** the association workflow has PostgreSQL-backed coverage for an
+unknown external resource, revoked target, attach, detach, reattachment and an
+empty inventory snapshot. The network package is included in the existing
+disposable-Postgres CI suite. Local Postgres 16 execution passed.
+
 **Gate:** integrations can be added, edited, tested, synchronized and removed;
 resource associations survive transient inventory gaps; forbidden targets and
 provider writes fail safely; credentials never appear in responses or logs.
@@ -172,14 +177,12 @@ consider; deletion is a separate explicit action.
 
 ## Current next actions
 
-1. Add PostgreSQL-backed tests for the new network resource association, including
-   invalid and revoked target, detach, reattachment and inventory omission.
-2. Review the current lifecycle package and its Incus/Proxmox call graph; write a
+1. Review the current lifecycle package and its Incus/Proxmox call graph; write a
    source-hashed implementation plan before changing lifecycle ownership.
-3. Complete a provenance/dependency/license inventory for the first candidate
+2. Complete a provenance/dependency/license inventory for the first candidate
    folder and adopt one capability at a time under the ownership map.
-4. Trace the AgentHub approval implementation from current client/policy storage
+3. Trace the AgentHub approval implementation from current client/policy storage
    through infrastructure provider calls and tests; do not enable writes until
    the phase 3 gate passes.
-5. Maintain this document with commit/CI evidence and mark a phase complete only
+4. Maintain this document with commit/CI evidence and mark a phase complete only
    when every stated acceptance gate is met.

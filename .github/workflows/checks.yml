@@ -74,7 +74,7 @@ jobs:
           go-version: '1.26.x'
           cache: false
       - run: SHIPPIN_TEST_DATABASE_URL=postgres://shippin:shippin@127.0.0.1:5432/shippin?sslmode=disable go test -p 1 -count=1 ./internal/identity -run TestStore
-      - run: SHIPPIN_TEST_DATABASE_URL=postgres://shippin:shippin@127.0.0.1:5432/shippin?sslmode=disable go test -p 1 -count=1 ./internal/servers ./internal/hub ./internal/db ./internal/api ./internal/catalog ./internal/deployments
+      - run: SHIPPIN_TEST_DATABASE_URL=postgres://shippin:shippin@127.0.0.1:5432/shippin?sslmode=disable go test -p 1 -count=1 ./internal/servers ./internal/hub ./internal/db ./internal/api ./internal/catalog ./internal/deployments ./internal/networking
   panel:
     runs-on: ubuntu-latest
     defaults:
