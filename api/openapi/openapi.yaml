@@ -97,6 +97,8 @@ paths:
     $ref: paths/deployments-runtime.yaml#/deploymentEvents
   /tenants/{tenantId}/deployments/{deploymentId}/review:
     $ref: paths/deployments-runtime.yaml#/deploymentReview
+  /tenants/{tenantId}/deployments/{deploymentId}/review/authorize:
+    $ref: paths/deployments-runtime.yaml#/deploymentReviewAuthorization
   /tenants/{tenantId}/workspaces/{workspaceId}:
     $ref: paths/workspaces.yaml#/workspace
   /tenants/{tenantId}/workspaces/{workspaceId}/actions/{action}:

@@ -203,6 +203,73 @@ func TestDeploymentReviewIsDurableIdempotentAndGenerationBound(t *testing.T) {
 	}
 }
 
+func TestReviewAuthorizationProvenanceIsFencedAppendOnlyAndIdempotent(t *testing.T) {
+	store, tenantID, serverID := deploymentTestStore(t)
+	ctx := context.Background()
+	deployment, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
+		ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reviewID := uuid.NewString()
+	ticketID := "shp-" + strings.ReplaceAll(reviewID, "-", "")
+	if _, _, err := store.ReserveReview(ctx, tenantID, deployment.ID, deployment.Generation, "operator@example.test", uuid.NewString(),
+		reviewID, ticketID, strings.Repeat("a", 64)); err != nil {
+		t.Fatal(err)
+	}
+	ticketSHA := strings.Repeat("c", 64)
+	if _, err := store.SetReviewState(ctx, reviewID, "operator@example.test", "pending_review", ticketSHA, ""); err != nil {
+		t.Fatal(err)
+	}
+	provenance := ReviewDecisionProvenance{
+		DecisionID: "decision-1", TenantID: "agenthub-tenant", MachineID: "machine-1", TicketID: ticketID,
+		TicketSHA256: ticketSHA, PolicySHA256: strings.Repeat("b", 64), PolicyVersion: 3,
+		MatchedRules: []string{"deployment-review"}, ActionSHA256: strings.Repeat("a", 64),
+	}
+	key := uuid.NewString()
+	event, err := store.RecordReviewDecision(ctx, tenantID, deployment.ID, deployment.Generation,
+		"operator@example.test", key, true, provenance, "")
+	if err != nil || event.Type != EventReviewAllowed || event.ReviewProvenance == nil || event.RecordedAt.IsZero() {
+		t.Fatalf("review authorization event=%+v err=%v", event, err)
+	}
+	provenance.DecisionID = "decision-replay"
+	replayed, err := store.RecordReviewDecision(ctx, tenantID, deployment.ID, deployment.Generation,
+		"operator@example.test", key, true, provenance, "")
+	if err != nil || replayed.ID != event.ID || replayed.ReviewProvenance == nil || replayed.ReviewProvenance.DecisionID != "decision-1" {
+		t.Fatalf("authorization idempotent replay=%+v err=%v", replayed, err)
+	}
+	denied, err := store.RecordReviewDecision(ctx, tenantID, deployment.ID, deployment.Generation,
+		"operator@example.test", uuid.NewString(), false, ReviewDecisionProvenance{}, "agenthub_review_denied")
+	if err != nil || denied.Type != EventReviewDenied || denied.ReviewProvenance != nil {
+		t.Fatalf("denial event=%+v err=%v", denied, err)
+	}
+	events, err := store.Events(ctx, tenantID, deployment.ID, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var allowedFound, deniedFound bool
+	for _, got := range events {
+		allowedFound = allowedFound || got.Type == EventReviewAllowed && got.ReviewProvenance != nil && got.ReviewProvenance.PolicyVersion == 3
+		deniedFound = deniedFound || got.Type == EventReviewDenied && got.FailureCode == "agenthub_review_denied"
+	}
+	if !allowedFound || !deniedFound {
+		t.Fatalf("review decision provenance missing from event history: %+v", events)
+	}
+	if _, err := store.pool.Exec(ctx, `UPDATE shippin_deployment_events SET actor='changed' WHERE id=$1`, event.ID); err == nil {
+		t.Fatal("review authorization event is not append-only")
+	}
+	if _, _, err := store.Update(ctx, tenantID, deployment.ID, "operator@example.test", deployment.Generation,
+		UpdateInput{DesiredState: DesiredPresent, IdempotencyKey: uuid.NewString()}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.RecordReviewDecision(ctx, tenantID, deployment.ID, deployment.Generation,
+		"operator@example.test", uuid.NewString(), true, provenance, ""); !errors.Is(err, ErrGenerationConflict) {
+		t.Fatalf("stale generation authorization event was accepted: %v", err)
+	}
+}
+
 func TestStoreAcceptsAssignedPlannedProxmoxTargetAsDesiredIntent(t *testing.T) {
 	store, tenantID, _ := deploymentTestStore(t)
 	targetID := uuid.NewString()

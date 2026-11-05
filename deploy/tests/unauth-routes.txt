@@ -225,6 +225,7 @@ POST /v1/tenants/{tenantId}/db/tables/{table}/rows
 POST /v1/tenants/{tenantId}/db/templates/{templateId}
 POST /v1/tenants/{tenantId}/deployments
 POST /v1/tenants/{tenantId}/deployments/{deploymentId}/review
+POST /v1/tenants/{tenantId}/deployments/{deploymentId}/review/authorize
 POST /v1/tenants/{tenantId}/desktop/prepare
 POST /v1/tenants/{tenantId}/github/import
 POST /v1/tenants/{tenantId}/identity/agents

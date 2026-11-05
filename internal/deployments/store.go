@@ -422,7 +422,7 @@ func (s *Store) Events(ctx context.Context, tenant, id string, limit int) ([]Dep
 	}
 	rows, err := s.pool.Query(ctx, `SELECT id::text,deployment_id::text,tenant_id::text,generation,event_type,
 		coalesce(observed_state,''),coalesce(provider_operation_id,''),coalesce(health_status,''),health_duration_ms,
-		coalesce(failure_code,''),actor,recorded_at FROM shippin_deployment_events
+		coalesce(failure_code,''),actor,recorded_at,review_provenance FROM shippin_deployment_events
 		WHERE tenant_id=$1 AND deployment_id=$2 ORDER BY recorded_at,id LIMIT $3`, tenant, id, limit)
 	if err != nil {
 		return nil, err
@@ -432,11 +432,19 @@ func (s *Store) Events(ctx context.Context, tenant, id string, limit int) ([]Dep
 	for rows.Next() {
 		var event DeploymentEvent
 		var eventType, observed, durationStatus string
+		var provenanceJSON []byte
 		if err := rows.Scan(&event.ID, &event.DeploymentID, &event.TenantID, &event.Generation, &eventType,
-			&observed, &event.ProviderOperationID, &durationStatus, &event.HealthDurationMS, &event.FailureCode, &event.Actor, &event.RecordedAt); err != nil {
+			&observed, &event.ProviderOperationID, &durationStatus, &event.HealthDurationMS, &event.FailureCode, &event.Actor, &event.RecordedAt, &provenanceJSON); err != nil {
 			return nil, err
 		}
 		event.Type, event.ObservedState, event.HealthStatus = EventType(eventType), ObservedState(observed), durationStatus
+		if len(provenanceJSON) > 0 {
+			var provenance ReviewDecisionProvenance
+			if err := json.Unmarshal(provenanceJSON, &provenance); err != nil {
+				return nil, err
+			}
+			event.ReviewProvenance = &provenance
+		}
 		events = append(events, event)
 	}
 	return events, rows.Err()

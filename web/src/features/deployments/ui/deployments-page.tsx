@@ -12,7 +12,7 @@ import { useNavigate } from "../../../lib/router/router";
 import { useTenant } from "../../../lib/hooks/use-tenant";
 import {
   useCreateDeployment, useDeployableServices, useDeploymentEvents, useDeploymentTargets,
-  useDeploymentReview, useDeployments, usePrepareDeploymentReview, useRequestDeploymentRemoval, useUpdateDeployment,
+  useAuthorizeDeploymentReview, useDeploymentReview, useDeployments, usePrepareDeploymentReview, useRequestDeploymentRemoval, useUpdateDeployment,
   type Deployment, type DeploymentService, type DeploymentSource,
 } from "../../../lib/hooks/use-deployments";
 import { PageHeader } from "../../../template/page-header";
@@ -175,9 +175,14 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
 
 function DeploymentReviewPanel({ tenantId, deployment, canManage }: { tenantId: string; deployment: Deployment; canManage: boolean }) {
   const review = useDeploymentReview(tenantId, deployment.id);
+  const events = useDeploymentEvents(tenantId, deployment.id);
   const prepare = usePrepareDeploymentReview(tenantId, deployment.id);
+  const authorize = useAuthorizeDeploymentReview(tenantId, deployment.id);
   const state = review.data?.review?.state ?? review.data?.state ?? "not_requested";
   const canRequest = canManage && !prepare.isPending && (state === "not_requested" || state === "failed");
+  const canAuthorize = canManage && !authorize.isPending && state === "pending_review" && review.data?.agenthub_status === "passed";
+  const lastReviewDecision = [...(events.data?.items ?? [])].filter((event) => event.generation === deployment.generation)
+    .reverse().find((event) => event.event_type === "review_allowed" || event.event_type === "review_denied");
   return <section className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-line p-3" aria-label="AgentHub review">
     {state === "pending_review" ? <>
       <CheckCircle2 className="size-4 text-info" />
@@ -188,9 +193,17 @@ function DeploymentReviewPanel({ tenantId, deployment, canManage }: { tenantId: 
         : <span className="text-sm text-fg-muted">No AgentHub review ticket for this generation.</span>}
     {canRequest && <Button variant="secondary" size="sm" tooltip="Create an AgentHub ticket for this exact generation. This does not execute it."
       onPress={() => prepare.mutate(deployment.generation)}>{state === "failed" ? "Retry review request" : "Request AgentHub review"}</Button>}
+    {canAuthorize && <Button variant="secondary" size="sm" tooltip="Recheck the current ticket, policy, mapped system and quorum with AgentHub. This does not execute the deployment."
+      onPress={() => authorize.mutate(deployment.generation)}>Verify authorization</Button>}
     {review.isError && <span role="alert" className="text-xs text-danger">Review status could not be loaded: {review.error.message}</span>}
     {review.data?.review && <span className="font-mono text-xs text-fg-subtle">ticket {review.data.review.agenthub_ticket_id} · action {review.data.review.action_sha256.slice(0, 12)}</span>}
-    <p className="basis-full text-xs text-fg-subtle">A review ticket does not execute the deployment. Provider runtime and authorization gates are still required.</p>
+    {lastReviewDecision?.event_type === "review_allowed" && lastReviewDecision.review_provenance && <span className="basis-full text-xs text-fg-subtle">
+      Authorization recorded {new Date(lastReviewDecision.recorded_at).toLocaleString()} · policy v{lastReviewDecision.review_provenance.policy_version} · {lastReviewDecision.review_provenance.matched_rules.join(", ")}.
+    </span>}
+    {lastReviewDecision?.event_type === "review_denied" && <span className="basis-full text-xs text-danger">
+      Latest authorization check did not pass ({lastReviewDecision.failure_code ?? "unknown"}).
+    </span>}
+    <p className="basis-full text-xs text-fg-subtle">A review ticket or recorded authorization does not execute the deployment. The reconciler must reauthorize immediately before provider changes.</p>
   </section>;
 }
 

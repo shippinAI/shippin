@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 161,
+  "operationCount": 162,
   "tags": [
     "agents-runtime",
     "audit",
@@ -536,6 +536,16 @@
       "path": "/tenants/{tenantId}/deployments/{deploymentId}/review",
       "operationId": "prepareDeploymentReview",
       "summary": "Create and submit an action-bound AgentHub review ticket",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/deployments/{deploymentId}/review/authorize",
+      "operationId": "recordDeploymentReviewAuthorization",
+      "summary": "Check and persist current AgentHub authorization provenance",
       "tags": [
         "deployments"
       ],

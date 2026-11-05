@@ -81,7 +81,7 @@ order, not a claim that all stages are currently implemented.
 |---|---|---|---|
 | A | Source provenance, dirty-work preservation, license/dependency/security review; reconcile each Cloud, Console, Mesh and Warden feature family | `docs/design/`, source ledger and Warden matrix | Every source row has revision, source behavior, rights status, current owner, adopt/rewrite/reject disposition and linked behavior evidence. No sibling source is modified or archived. |
 | B | Stable Shippin system identity, hostname observation, operator aliases/tags, explicit AgentHub mapping | `internal/servers`, `internal/db`, `internal/api`, existing infrastructure UI | Identity persists through restart; aliases never authorize; mapping is verified against AgentHub and records freshness/provenance; ambiguous or stale mapping blocks. |
-| C | AgentHub-configured review preparation, exact operation snapshot, safe evidence, submit/review status and policy provenance | `internal/agenthub`, `internal/api`, `internal/db/migrations`, `web/` Platform settings and deployment details | Additive `shippin_` generation-bound correlation, idempotent draft/evidence/submit calls, bounded redacted snapshot evidence, and deployment review status/action UI are implemented. Focused Go race/vet, isolated PostgreSQL, full local repository checks, OpenAPI consistency, hardcoding checks, and all 13 CI jobs pass (`6081250`, run `41936135681`). Acceptance still requires disposable AgentHub integration, least-privilege principal evidence, human/quorum read-back, review decision polling/binding, stale ticket/policy and timeout coverage. Provider mutation stays blocked until these pass. |
+| C | AgentHub-configured review preparation, exact operation snapshot, safe evidence, submit/review status and policy provenance | `internal/agenthub`, `internal/api`, `internal/db/migrations`, `web/` Platform settings and deployment details | Commits `6081250` and `c196b35` provide generation-bound ticket/evidence preparation, required review context, bounded redaction and status UI; local checks and all 13 CI jobs pass (`41938627494`). Current worktree adds owner/admin authorization recheck for the exact action/ticket/policy/system, normalized denial events, append-only `shippin_deployment_events` provenance, OpenAPI and panel feedback. Focused PostgreSQL-backed API/store tests, race tests and full `scripts/check.sh` pass locally; CI for this worktree is pending. Synthetic fixture identities do not prove the least-privilege production AgentHub credential. Provider mutation stays blocked until deployment credential permissions and future worker-side reauthorization are verified. |
 | D | Multi-server Incus and Proxmox declarations, credential-safe edit/test, capability discovery, provider-local VM/container lifecycle, task polling/read-back and resource inventory | `internal/servers`, `internal/hv/incus`, `internal/hv/proxmox`, existing infra API/UI | Multiple configured endpoints work without source edits. Incus and Proxmox behavior stays provider-specific; authorization/audit precede writes; task failure, denial, retry, restart, deletion and observed read-back are covered on fakes and disposable hosts. |
 | E | Review-gated durable deployment reconciliation from desired generation to provider execution | `internal/deployments`, prefixed migrations, `cmd/console`, hostd/provider drivers, API/OpenAPI and `web/src/features/deployments` | Intent and outbox commit atomically; fenced leases re-read generation and review decision; provider task and read-back persist truthful observed state; restart, duplicate request, stale generation, rollback and removal are exercised. |
 | F | Pinned GitHub/custom HTTPS Git/OCI resolution and isolated builds | `internal/catalog`, bounded builder owner, secret resolver contract, deployment UI | Immutable source digest and provenance; bounded time/CPU/memory/storage/concurrency/egress; cancellation and cleanup; credentials never appear in URLs/logs; no arbitrary privileged host commands. |
@@ -137,20 +137,32 @@ installation. If external identity provisioning remains unavailable, keep that
 acceptance item explicitly open while continuing independent stages D and later
 only where their contract does not require mutation authorization.
 
+Implementation status, 2026-11-05: the worktree currently implements the explicit
+authorization action and append-only provenance described above. The disposable
+PostgreSQL API test covers an exact allow, a no-match deny, tenant-member
+forbidden, stale-generation rejection before AgentHub calls, durable provenance,
+and unchanged provider-observed state. Focused race tests and `scripts/check.sh`
+pass. The code is not yet committed; remote CI and production least-privilege
+credential verification are still required before considering this slice closed.
+
 Each implementation slice must name its stage and source rows in the commit and
 journal, list canonical files it owns, state what is deliberately excluded, and
 show an end-to-end acceptance result plus a relevant denial/failure result. If a
 stage depends on an unavailable external contract, continue other independent
 read-only or bounded work, but do not bypass the dependency or mark the stage
-complete. Current active gate is Stage C. The worktree creates and submits an
-action-bound AgentHub ticket with policy context fields, a bounded redacted
-deployment snapshot naming the exact ticket, persists only Shippin correlation
-metadata, and exposes review preparation/status in the existing deployment
-panel. Focused Go tests and full local checks pass. Disposable AgentHub contract
-behavior passed with seeded synthetic principals; all 13 CI jobs pass on
-`c196b35` (run `41938627494`). Least-privilege principal evidence and a provider-side authorization
-decision bound to the submitted review remain absent. All provider mutations
-remain unavailable until the entire gate has acceptance evidence.
+complete. Current active gate is Stage C. The main commits prepare and display
+generation-bound AgentHub review tickets; the current worktree adds explicit
+authorization recheck and durable allow/deny provenance tied to action, ticket,
+policy and generation. Focused Go tests/vet, panel tests/build/budget, and
+governance tests pass. The repository check script's Go steps could not run in
+Git Bash because Go is absent from that shell; direct Windows `go test ./...`
+hits unrelated Unix-shell, permission, path and remote-catalog failures. The
+implementation's Linux CI is pending. Live disposable AgentHub contract
+behavior passed with synthetic seeded principals, and c196b35 CI passed all 13
+jobs (run `41938627494`). Production least-privilege credential evidence remains
+open. Authorization records are audit evidence only; provider mutations remain
+unavailable until the credential and just-in-time worker authorization gates
+are proven.
 
 ### Stop conditions
 

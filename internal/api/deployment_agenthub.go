@@ -72,19 +72,11 @@ func (a *API) prepareDeploymentReview(w http.ResponseWriter, r *http.Request) {
 		writeDeploymentError(w, deployments.ErrGenerationConflict)
 		return
 	}
-	action := deploymentReviewAction{
-		Operation: "deployment." + string(deployment.DesiredState), TenantID: tenant.ID,
-		DeploymentID: deployment.ID, Generation: deployment.Generation, DesiredState: string(deployment.DesiredState),
-		TargetSystemID: deployment.TargetSystemID, TargetProvider: string(deployment.TargetProvider),
-		ServiceID: deployment.ServiceID, DefinitionSHA: deployment.DefinitionSHA256, Source: deployment.Source, Config: deployment.Config,
-	}
-	canonicalAction, err := json.Marshal(action)
+	action, actionSHA256, err := deploymentReviewSnapshot(tenant.ID, deployment)
 	if err != nil {
 		deploymentUnavailable(w)
 		return
 	}
-	actionDigest := sha256.Sum256(canonicalAction)
-	actionSHA256 := hex.EncodeToString(actionDigest[:])
 	command := deploymentReviewCommand(deployment.ID, deployment.Generation, actionSHA256, deployment.DesiredState)
 	path := "/shippin/deployments/" + deployment.ID + "/generations/" + strconv.FormatInt(deployment.Generation, 10) + "/review.json"
 	reviewID := uuid.NewString()
@@ -175,6 +167,123 @@ func (a *API) prepareDeploymentReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeStatus(w, http.StatusAccepted, map[string]any{"review": review, "agenthub_status": submitted.Status})
+}
+
+func (a *API) authorizeDeploymentReview(w http.ResponseWriter, r *http.Request) {
+	c, tenant, ok := a.deploymentTenantCtx(w, r)
+	if !ok {
+		return
+	}
+	if !c.canDecide(tenant) {
+		auth.Problem(w, http.StatusForbidden, "A tenant owner or admin is required to verify deployment authorization.")
+		return
+	}
+	if a.db == nil {
+		deploymentUnavailable(w)
+		return
+	}
+	key, ok := deploymentIdempotencyKey(w, r)
+	if !ok {
+		return
+	}
+	var input deploymentReviewInput
+	if !decodeDeploymentBody(w, r, &input) {
+		return
+	}
+	if input.Generation < 1 {
+		auth.Problem(w, http.StatusBadRequest, "A positive deployment generation is required.")
+		return
+	}
+	deployment, err := a.deploymentStore().Get(r.Context(), tenant.ID, r.PathValue("deploymentId"))
+	if err != nil {
+		writeDeploymentError(w, err)
+		return
+	}
+	if deployment.Generation != input.Generation {
+		writeDeploymentError(w, deployments.ErrGenerationConflict)
+		return
+	}
+	review, err := a.deploymentStore().GetReview(r.Context(), tenant.ID, deployment.ID, deployment.Generation)
+	if err != nil {
+		writeDeploymentError(w, err)
+		return
+	}
+	if review.State != "pending_review" || review.TicketSHA256 == "" {
+		writeHVProblem(w, http.StatusConflict, "agenthub_review_not_ready", "The current generation does not have a submitted AgentHub review ticket.", "", "")
+		return
+	}
+	_, actionSHA, err := deploymentReviewSnapshot(tenant.ID, deployment)
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	if actionSHA != review.ActionSHA256 {
+		a.recordDeploymentReviewDenial(w, r, tenant.ID, deployment, c.id.Sub, key, "agenthub_review_stale", http.StatusConflict)
+		return
+	}
+	client, identity, err := a.deploymentReviewClient(r.Context(), deployment.TargetSystemID)
+	if err != nil {
+		a.recordDeploymentReviewDenial(w, r, tenant.ID, deployment, c.id.Sub, key, "agenthub_review_unavailable", http.StatusBadGateway)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	defer cancel()
+	command := deploymentReviewCommand(deployment.ID, deployment.Generation, actionSHA, deployment.DesiredState)
+	tool := "shippin:deployment.apply"
+	if deployment.DesiredState == deployments.DesiredAbsent {
+		tool = "shippin:deployment.remove"
+	}
+	decision, err := client.Authorize(ctx, agenthub.Request{
+		TenantID: identity.AgentHubTenantID, MachineID: identity.AgentHubMachineID,
+		TicketID: review.AgentHubTicket, Tool: tool, Command: command, ActionSHA256: actionSHA,
+	})
+	if err != nil {
+		code, status := "agenthub_review_unavailable", http.StatusBadGateway
+		if errors.Is(err, agenthub.ErrDenied) {
+			code, status = "agenthub_review_denied", http.StatusConflict
+		}
+		a.recordDeploymentReviewDenial(w, r, tenant.ID, deployment, c.id.Sub, key, code, status)
+		return
+	}
+	provenance := deployments.ReviewDecisionProvenance{
+		DecisionID: decision.DecisionID, TenantID: decision.TenantID, MachineID: decision.MachineID,
+		TicketID: decision.TicketID, TicketSHA256: decision.TicketSHA256, PolicySHA256: decision.PolicySHA256,
+		PolicyVersion: decision.PolicyVersion, MatchedRules: decision.MatchedRules, ActionSHA256: actionSHA,
+	}
+	event, err := a.deploymentStore().RecordReviewDecision(r.Context(), tenant.ID, deployment.ID, deployment.Generation,
+		c.id.Sub, key, true, provenance, "")
+	if err != nil {
+		a.writeReviewDecisionError(w, err)
+		return
+	}
+	writeStatus(w, http.StatusOK, map[string]any{
+		"event": event, "authorization": event.ReviewProvenance,
+		"message": "AgentHub authorization was recorded for audit. No provider operation was executed.",
+	})
+}
+
+func (a *API) recordDeploymentReviewDenial(w http.ResponseWriter, r *http.Request, tenantID string, deployment *deployments.Deployment,
+	actor, key, code string, status int) {
+	event, err := a.deploymentStore().RecordReviewDecision(r.Context(), tenantID, deployment.ID, deployment.Generation,
+		actor, key, false, deployments.ReviewDecisionProvenance{}, code)
+	if err != nil {
+		a.writeReviewDecisionError(w, err)
+		return
+	}
+	writeStatus(w, status, map[string]any{"event": event, "message": "AgentHub did not authorize this deployment action."})
+}
+
+func (a *API) writeReviewDecisionError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, deployments.ErrGenerationConflict):
+		writeDeploymentError(w, err)
+	case errors.Is(err, deployments.ErrReviewAuthorizationConflict), errors.Is(err, deployments.ErrIdempotencyConflict):
+		writeHVProblem(w, http.StatusConflict, "agenthub_review_stale", "The deployment generation or AgentHub review changed. Refresh the review before retrying.", "", "")
+	case errors.Is(err, deployments.ErrNotFound):
+		writeDeploymentError(w, err)
+	default:
+		deploymentUnavailable(w)
+	}
 }
 
 func (a *API) getDeploymentReview(w http.ResponseWriter, r *http.Request) {
@@ -271,6 +380,24 @@ func deploymentReviewCommand(deploymentID string, generation int64, actionSHA256
 		ActionSHA256 string `json:"action_sha256"`
 	}{operation, deploymentID, generation, actionSHA256})
 	return string(command)
+}
+
+func deploymentReviewSnapshot(tenantID string, deployment *deployments.Deployment) (deploymentReviewAction, string, error) {
+	if deployment == nil {
+		return deploymentReviewAction{}, "", errors.New("deployment is required")
+	}
+	action := deploymentReviewAction{
+		Operation: "deployment." + string(deployment.DesiredState), TenantID: tenantID,
+		DeploymentID: deployment.ID, Generation: deployment.Generation, DesiredState: string(deployment.DesiredState),
+		TargetSystemID: deployment.TargetSystemID, TargetProvider: string(deployment.TargetProvider),
+		ServiceID: deployment.ServiceID, DefinitionSHA: deployment.DefinitionSHA256, Source: deployment.Source, Config: deployment.Config,
+	}
+	canonical, err := json.Marshal(action)
+	if err != nil {
+		return deploymentReviewAction{}, "", err
+	}
+	digest := sha256.Sum256(canonical)
+	return action, hex.EncodeToString(digest[:]), nil
 }
 
 func deploymentReviewFields(action deploymentReviewAction, ticketID, evidencePath, actionSHA256 string) map[string]string {

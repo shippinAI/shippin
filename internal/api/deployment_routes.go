@@ -34,6 +34,7 @@ func (a *API) deploymentRoutes(mux Router) {
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployments/{deploymentId}/events", a.flow.Require(a.listDeploymentEvents))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployments/{deploymentId}/review", a.flow.Require(a.getDeploymentReview))
 	mux.HandleFunc("POST /v1/tenants/{tenantId}/deployments/{deploymentId}/review", a.flow.Require(a.prepareDeploymentReview))
+	mux.HandleFunc("POST /v1/tenants/{tenantId}/deployments/{deploymentId}/review/authorize", a.flow.Require(a.authorizeDeploymentReview))
 }
 
 func (a *API) listDeployableServices(w http.ResponseWriter, r *http.Request) {

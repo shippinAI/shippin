@@ -144,7 +144,35 @@ deploymentReview:
       "400": { $ref: ../components/responses.yaml#/Problem400 }
       "401": { $ref: ../components/responses.yaml#/Problem401 }
       "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
       "409": { $ref: ../components/responses.yaml#/Problem409 }
       "412": { $ref: ../components/responses.yaml#/Problem412 }
       "502": { description: AgentHub ticket lifecycle failed; the same generation can retry against the same ticket., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentReviewStatus } } } }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
+deploymentReviewAuthorization:
+  x-implementation-status: registered
+  parameters:
+    - { $ref: ../components/parameters.yaml#/TenantId }
+    - name: deploymentId
+      in: path
+      required: true
+      schema: { $ref: ../schemas/common.yaml#/Uuid }
+  post:
+    tags: [deployments]
+    operationId: recordDeploymentReviewAuthorization
+    summary: Check and persist current AgentHub authorization provenance
+    description: Revalidates the exact current action, mapped system, ticket, policy and human quorum with AgentHub, then appends safe provenance. It does not execute a provider operation; a future reconciler must reauthorize immediately before each side effect.
+    parameters: [{ $ref: ../components/parameters.yaml#/IdempotencyKey }]
+    requestBody:
+      required: true
+      content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentReviewAuthorizationRequest } } }
+    responses:
+      "200": { description: Authorization provenance appended to deployment event history., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentReviewAuthorizationResult } } } }
+      "400": { $ref: ../components/responses.yaml#/Problem400 }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "403": { $ref: ../components/responses.yaml#/Problem403 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      "412": { $ref: ../components/responses.yaml#/Problem412 }
+      "502": { description: AgentHub authorization is unavailable., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentReviewAuthorizationResult } } } }
       default: { $ref: ../components/responses.yaml#/ProblemDefault }

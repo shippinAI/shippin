@@ -26,7 +26,11 @@ export type Deployment = {
 export type DeploymentEvent = {
   id: string; deployment_id: string; tenant_id: string; generation: number; event_type: string;
   observed_state?: string; provider_operation_id?: string; health_status?: string; health_duration_ms?: number;
-  failure_code?: string; actor: string; recorded_at: string;
+  failure_code?: string; review_provenance?: ReviewDecisionProvenance; actor: string; recorded_at: string;
+};
+export type ReviewDecisionProvenance = {
+  decision_id: string; tenant_id: string; machine_id: string; ticket_id: string;
+  ticket_sha256: string; policy_sha256: string; policy_version: number; matched_rules: string[]; action_sha256: string;
 };
 export type DeploymentReview = {
   id: string; deployment_id: string; tenant_id: string; generation: number; action_sha256: string;
@@ -89,6 +93,20 @@ export function usePrepareDeploymentReview(tenantId: string, deploymentId: strin
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: [...key(tenantId), deploymentId, "review"] });
       void qc.invalidateQueries({ queryKey: key(tenantId) });
+    },
+  });
+}
+
+export function useAuthorizeDeploymentReview(tenantId: string, deploymentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (generation: number) => apiSend<{ event: DeploymentEvent; authorization?: ReviewDecisionProvenance; message: string }>(
+      "POST", `${collection(tenantId)}/${encodeURIComponent(deploymentId)}/review/authorize`, { generation }),
+    onSuccess: () => toast.success("AgentHub authorization recorded", "This is audit provenance only; no provider operation was executed."),
+    onError: (error) => toast.error("AgentHub authorization was not recorded", error.message),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: [...key(tenantId), deploymentId, "review"] });
+      void qc.invalidateQueries({ queryKey: [...key(tenantId), deploymentId, "events"] });
     },
   });
 }

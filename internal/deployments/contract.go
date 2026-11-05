@@ -136,18 +136,19 @@ func (r DeploymentRequest) RequestFingerprint() (string, error) {
 }
 
 type DeploymentEvent struct {
-	ID                  string        `json:"id"`
-	DeploymentID        string        `json:"deployment_id"`
-	TenantID            string        `json:"tenant_id"`
-	Generation          int64         `json:"generation"`
-	Type                EventType     `json:"event_type"`
-	ObservedState       ObservedState `json:"observed_state,omitempty"`
-	ProviderOperationID string        `json:"provider_operation_id,omitempty"`
-	HealthStatus        string        `json:"health_status,omitempty"`
-	HealthDurationMS    *int64        `json:"health_duration_ms,omitempty"`
-	FailureCode         string        `json:"failure_code,omitempty"`
-	Actor               string        `json:"actor"`
-	RecordedAt          time.Time     `json:"recorded_at"`
+	ID                  string                    `json:"id"`
+	DeploymentID        string                    `json:"deployment_id"`
+	TenantID            string                    `json:"tenant_id"`
+	Generation          int64                     `json:"generation"`
+	Type                EventType                 `json:"event_type"`
+	ObservedState       ObservedState             `json:"observed_state,omitempty"`
+	ProviderOperationID string                    `json:"provider_operation_id,omitempty"`
+	HealthStatus        string                    `json:"health_status,omitempty"`
+	HealthDurationMS    *int64                    `json:"health_duration_ms,omitempty"`
+	FailureCode         string                    `json:"failure_code,omitempty"`
+	ReviewProvenance    *ReviewDecisionProvenance `json:"review_provenance,omitempty"`
+	Actor               string                    `json:"actor"`
+	RecordedAt          time.Time                 `json:"recorded_at"`
 }
 
 func (e DeploymentEvent) Validate() error {
@@ -177,6 +178,20 @@ func (e DeploymentEvent) Validate() error {
 	}
 	if e.Type == EventHealthObserved && e.HealthStatus == "" {
 		return errors.New("health observations require a health status")
+	}
+	if e.Type == EventReviewAllowed && (e.ReviewProvenance == nil || e.FailureCode != "") {
+		return errors.New("allowed review events require authorization provenance")
+	}
+	if e.Type == EventReviewDenied && (e.ReviewProvenance != nil || e.FailureCode == "") {
+		return errors.New("denied review events require a normalized failure code")
+	}
+	if e.Type != EventReviewAllowed && e.ReviewProvenance != nil {
+		return errors.New("authorization provenance is only valid on allowed review events")
+	}
+	if e.ReviewProvenance != nil {
+		if err := e.ReviewProvenance.Validate(); err != nil {
+			return err
+		}
 	}
 	if len(e.Actor) == 0 || len(e.Actor) > 255 || strings.TrimSpace(e.Actor) != e.Actor || strings.ContainsAny(e.Actor, "\r\n\x00") {
 		return errors.New("event actor is invalid")
