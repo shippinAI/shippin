@@ -308,9 +308,10 @@ func (c *Client) now() time.Time {
 }
 
 type instance struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
-	Type   string `json:"type"`
+	Name   string            `json:"name"`
+	Status string            `json:"status"`
+	Type   string            `json:"type"`
+	Config map[string]string `json:"config"`
 }
 
 func (in instance) guest() hv.Guest {
