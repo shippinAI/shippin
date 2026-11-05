@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 162,
+  "operationCount": 163,
   "tags": [
     "agents-runtime",
     "audit",
@@ -456,6 +456,16 @@
       "path": "/tenants/{tenantId}/deployment-targets",
       "operationId": "listDeploymentTargets",
       "summary": "List assigned Incus and Proxmox targets",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/deployment-targets/{systemId}/storage",
+      "operationId": "listDeploymentTargetStorage",
+      "summary": "List live storage pools for an assigned Incus deployment target",
       "tags": [
         "deployments"
       ],

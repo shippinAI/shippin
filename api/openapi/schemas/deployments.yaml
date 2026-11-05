@@ -1,6 +1,6 @@
 Deployment:
   type: object
-  required: [id, service_id, target_system_id, target_provider, generation, desired_state, observed_state, definition_sha256, config_schema, source, config, created_at, updated_at]
+  required: [id, service_id, target_system_id, target_provider, generation, desired_state, observed_state, definition_sha256, config_schema, source, config, target_config, created_at, updated_at]
   properties:
     id: { $ref: common.yaml#/Uuid }
     service_id: { type: string }
@@ -22,6 +22,7 @@ Deployment:
         context_path: { type: string }
       additionalProperties: false
     config: { type: object, description: Values are schema-validated; secret fields contain Vaultix or SOPS references only. }
+    target_config: { $ref: '#/DeploymentTargetConfig' }
     created_by: { type: string }
     created_at: { $ref: common.yaml#/Timestamp }
     updated_by: { type: string }
@@ -64,6 +65,30 @@ DeploymentTargetList:
   properties:
     items: { type: array, items: { $ref: '#/DeploymentTarget' } }
     can_request: { type: boolean, description: Tenant authorization result for deployment mutations. }
+DeploymentTargetStorageList:
+  type: object
+  required: [items]
+  properties:
+    items:
+      type: array
+      items:
+        type: object
+        required: [name, type]
+        properties:
+          name: { type: string }
+          type: { type: string, description: Incus storage backend driver. }
+          used_bytes: { type: integer, minimum: 0 }
+          total_bytes: { type: integer, minimum: 0 }
+DeploymentTargetConfig:
+  type: object
+  properties:
+    storage:
+      type: object
+      required: [pool]
+      properties:
+        pool: { type: string, minLength: 1, maxLength: 63, description: Target-specific live Incus pool selection, immutable after creation until storage migration is supported. }
+      additionalProperties: false
+  additionalProperties: false
 DeployableServiceList:
   type: object
   required: [items]
@@ -77,6 +102,7 @@ DeploymentCreate:
     target_system_id: { $ref: common.yaml#/Uuid }
     desired_state: { type: string, const: present }
     config: { type: object, description: Validated against the selected service definition. Secret values must be references. }
+    target_config: { $ref: '#/DeploymentTargetConfig' }
   additionalProperties: false
 DeploymentUpdate:
   type: object
@@ -84,6 +110,7 @@ DeploymentUpdate:
   properties:
     desired_state: { type: string, enum: [present, absent] }
     config: { type: object, description: When omitted the prior generation configuration is retained. }
+    target_config: { $ref: '#/DeploymentTargetConfig', description: When supplied, it must match the existing target placement; storage pool migration is not supported. }
   additionalProperties: false
 DeploymentList:
   type: object

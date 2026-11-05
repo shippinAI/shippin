@@ -184,6 +184,18 @@ health polling, upgrade, backup/restore or removal semantics; the worker must
 continue to fail closed with `runtime_unsupported` until the corresponding
 executor is proven.
 
+The current local storage-configuration slice is authored in the existing deployment
+context. It adds tenant-assignment-scoped, read-only Incus pool discovery;
+persists `target_config.storage.pool` alongside each immutable generation;
+requires a pool for storage-bearing runtime v2 requests; shows live pools in
+the existing deployment editor; and includes the selected pool in AgentHub's
+exact action hash and review artifact. Pool changes on an existing deployment
+are rejected until an explicit data migration lifecycle exists. This records
+desired target configuration only: it does not create a volume, connect the
+deployment worker to Incus, or enable provider calls. The local database-backed
+API tests require `SHIPPIN_TEST_DATABASE_URL`, which is not configured in the
+current environment; the repository CI database job remains required evidence.
+
 Each implementation slice names its stage and source rows in the commit and
 journal, lists canonical files it owns, states what it excludes, and shows an
 acceptance result plus a denial/failure result. If an external contract is

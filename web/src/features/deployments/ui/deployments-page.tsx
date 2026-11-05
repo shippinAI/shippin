@@ -13,7 +13,7 @@ import { useTenant } from "../../../lib/hooks/use-tenant";
 import {
   useCreateDeployment, useDeployableServices, useDeploymentEvents, useDeploymentTargets,
   useAuthorizeDeploymentReview, useDeploymentReview, useDeployments, usePrepareDeploymentReview, useRequestDeploymentRemoval, useUpdateDeployment,
-  type Deployment, type DeploymentService, type DeploymentSource,
+  useDeploymentTargetStorage, type Deployment, type DeploymentService, type DeploymentSource,
 } from "../../../lib/hooks/use-deployments";
 import { PageHeader } from "../../../template/page-header";
 import { QueryView } from "../../admin/ui/query-view";
@@ -97,6 +97,8 @@ export function DeploymentsPage() {
             <DeploymentReviewPanel tenantId={tenantId} deployment={item} canManage={canManage} />
             <details className="mt-3">
               <summary className="cursor-pointer text-xs text-fg-muted">Configuration</summary>
+              <div className="mt-2 text-xs text-fg-subtle">Target settings</div>
+              <pre className="mt-1 max-h-32 overflow-auto rounded-md bg-canvas p-3 text-xs text-fg-muted">{JSON.stringify(item.target_config, null, 2)}</pre>
               <pre className="mt-2 max-h-48 overflow-auto rounded-md bg-canvas p-3 text-xs text-fg-muted">{JSON.stringify(item.config, null, 2)}</pre>
             </details>
             {historyId === item.id && <DeploymentHistory tenantId={tenantId} deployment={item} />}
@@ -122,6 +124,11 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
   const schema = deployment?.config_schema ?? service?.config_schema;
   const source = deployment?.source ?? service?.deployment_source;
   const [targetId, setTargetId] = useState(deployment?.target_system_id ?? compatibleTargets[0]?.id ?? "");
+  const [storagePool, setStoragePool] = useState(deployment?.target_config.storage?.pool ?? "");
+  const selectedTarget = compatibleTargets.find((target) => target.id === targetId);
+  const storageRequired = !deployment && service?.runtime_contract.version === 2;
+  const targetStorage = useDeploymentTargetStorage(tenantId, targetId,
+    storageRequired && selectedTarget?.provider === "incus" && selectedTarget.state === "active");
   const [configText, setConfigText] = useState(() => JSON.stringify(deployment?.config ?? service?.default_config ?? {}, null, 2));
   const [schemaValid, setSchemaValid] = useState(true);
   const setSchemaValidity = useCallback((value: boolean) => setSchemaValid(value), []);
@@ -131,16 +138,18 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
   const valid = isObject(config);
   const configObject = isObject(config) ? config : {};
   const busy = create.isPending || update.isPending;
+  const storagePoolValid = !storageRequired || !!targetStorage.data?.items.some((item) => item.name === storagePool);
   return <Drawer isOpen onOpenChange={(open) => !open && onClose()} title={deployment ? `Edit ${service?.label ?? deployment.service_id}` : "Request deployment"}
     subtitle="This records desired configuration and a pinned catalog revision; provider execution is not connected yet."
     footer={<>
       <div className="flex-1" />
       <Button variant="ghost" tooltip="Close without saving" onPress={onClose}>Cancel</Button>
-      <Button variant="primary" tooltip={deployment ? "Append a generation using the current ETag" : "Record desired service configuration"} isDisabled={(!deployment && !service) || !valid || !schemaValid || busy || (!deployment && (!targetId || !compatibleTargets.some((target) => target.id === targetId)))}
+      <Button variant="primary" tooltip={deployment ? "Append a generation using the current ETag" : "Record desired service configuration"} isDisabled={(!deployment && !service) || !valid || !schemaValid || busy || (!deployment && (!targetId || !compatibleTargets.some((target) => target.id === targetId) || !storagePoolValid || targetStorage.isPending))}
         onPress={() => {
           if (!isObject(config) || !schemaValid) return;
           if (deployment) update.mutate({ deployment, config }, { onSuccess: onClose });
-          else if (service) create.mutate({ service_id: service.id, target_system_id: targetId, desired_state: "present", config }, { onSuccess: onClose });
+          else if (service) create.mutate({ service_id: service.id, target_system_id: targetId, desired_state: "present", config,
+            target_config: storageRequired ? { storage: { pool: storagePool } } : {} }, { onSuccess: onClose });
         }}>{deployment ? "Save generation" : "Record request"}</Button>
     </>}>
     <div className="grid gap-4 px-6 py-5">
@@ -152,10 +161,21 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
             setConfigText(JSON.stringify(selected?.default_config ?? {}, null, 2));
             const nextTarget = targets.find((target) => supportsRuntimeTarget(selected?.runtime_contract, target.provider));
             setTargetId(nextTarget?.id ?? "");
+            setStoragePool("");
           }} />
         <Select label="Target system" value={targetId} options={compatibleTargets.map((target) => ({ id: target.id,
-          label: `${target.provider_label ?? target.provider} Â· ${target.label} Â· ${target.site}${target.state === "planned" ? " Â· connection unverified" : ""}` }))} onChange={setTargetId} />
+          label: `${target.provider_label ?? target.provider} Â· ${target.label} Â· ${target.site}${target.state === "planned" ? " Â· connection unverified" : ""}` }))} onChange={(id) => { setTargetId(id); setStoragePool(""); }} />
         {compatibleTargets.length === 0 && <p className="text-sm text-fg-muted">No assigned target supports this service runtime declaration.</p>}
+        {storageRequired && <>
+          {selectedTarget?.state !== "active" ? <p className="text-sm text-warning">Connect and verify this target to discover its live storage pools.</p>
+            : targetStorage.isPending ? <p className="text-sm text-fg-muted">Loading storage pools from the selected target…</p>
+              : targetStorage.isError ? <p role="alert" className="text-sm text-danger">Storage pools could not be loaded: {targetStorage.error.message}</p>
+                : (targetStorage.data?.items.length ?? 0) === 0 ? <p className="text-sm text-warning">The target reports no storage pools.</p>
+                  : <Select label="Incus storage pool" value={storagePool}
+                    options={(targetStorage.data?.items ?? []).map((pool) => ({ id: pool.name, label: `${pool.name} · ${pool.type}` }))}
+                    onChange={setStoragePool} />}
+          <p className="text-xs text-fg-subtle">Pool choice is read from the selected target and saved with this deployment generation. It cannot be changed after creation until data migration is supported.</p>
+        </>}
       </>}
       {source && <div className="rounded-lg border border-line p-3">
         <div className="text-sm font-medium text-fg">Pinned source</div>

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,8 @@ import (
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/deployments"
+	"shippin.cloud/console/internal/hv"
+	"shippin.cloud/console/internal/servers"
 )
 
 func deploymentRouteAPI(t *testing.T) (*API, string, string) {
@@ -111,14 +114,14 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 	}
 	a.resolveCaller = managerResolver
 	createKey := uuid.NewString()
-	body := `{"service_id":"postgres","target_system_id":"` + targetID + `","desired_state":"present","config":{"password":"vaultix://production/services/postgres/password"}}`
+	body := `{"service_id":"postgres","target_system_id":"` + targetID + `","desired_state":"present","config":{"password":"vaultix://production/services/postgres/password"},"target_config":{"storage":{"pool":"tenant-data"}}}`
 	rec := httptest.NewRecorder()
 	a.createDeployment(rec, deploymentRequest(http.MethodPost, tenantID, "", body, createKey, ""))
 	if rec.Code != http.StatusCreated || rec.Header().Get("ETag") != `"1"` {
 		t.Fatalf("create response: %d %v %s", rec.Code, rec.Header(), rec.Body)
 	}
 	var created deployments.Deployment
-	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil || created.Generation != 1 || created.TargetProvider != deployments.ProviderIncus || created.ObservedState != deployments.ObservedUnknown || len(created.ConfigSchema) == 0 {
+	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil || created.Generation != 1 || created.TargetProvider != deployments.ProviderIncus || created.ObservedState != deployments.ObservedUnknown || len(created.ConfigSchema) == 0 || created.TargetConfig.Storage == nil || created.TargetConfig.Storage.Pool != "tenant-data" {
 		t.Fatalf("created intent: %+v err=%v", created, err)
 	}
 	if strings.Contains(string(created.ConfigSchema), "vaultix://") || strings.Contains(string(created.ConfigSchema), "sops://") {
@@ -137,6 +140,12 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 	if updated.Code != http.StatusOK || updated.Header().Get("ETag") != `"2"` {
 		t.Fatalf("update response: %d %v %s", updated.Code, updated.Header(), updated.Body)
 	}
+	movePool := httptest.NewRecorder()
+	a.updateDeployment(movePool, deploymentRequest(http.MethodPatch, tenantID, created.ID,
+		`{"desired_state":"present","target_config":{"storage":{"pool":"other-pool"}}}`, uuid.NewString(), `"2"`))
+	if movePool.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("in-place storage pool change must be rejected: %d %s", movePool.Code, movePool.Body)
+	}
 	stale := httptest.NewRecorder()
 	a.updateDeployment(stale, deploymentRequest(http.MethodPatch, tenantID, created.ID, updateBody, uuid.NewString(), `"1"`))
 	if stale.Code != http.StatusPreconditionFailed {
@@ -152,5 +161,38 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 	a.listDeploymentEvents(events, deploymentRequest(http.MethodGet, tenantID, created.ID, "", "", ""))
 	if events.Code != http.StatusOK || !strings.Contains(events.Body.String(), `"total_estimate":3`) {
 		t.Fatalf("generation history response: %d %s", events.Code, events.Body)
+	}
+}
+
+type deploymentStorageInventoryDriver struct{ hv.Driver }
+
+func (deploymentStorageInventoryDriver) Kind() string { return "incus" }
+func (deploymentStorageInventoryDriver) Storage(context.Context) ([]hv.Volume, error) {
+	return []hv.Volume{{Name: "tenant-data", Type: "zfs"}, {Name: "fast", Type: "btrfs"}}, nil
+}
+
+func TestDeploymentTargetStorageIsTenantAssignmentScoped(t *testing.T) {
+	a, tenantID, targetID := deploymentRouteAPI(t)
+	a.hvServers = &memHV{items: []servers.Endpoint{{ID: targetID, Kind: "incus"}}}
+	opened := 0
+	a.openHV = func(servers.Endpoint) (hv.Driver, error) {
+		opened++
+		return deploymentStorageInventoryDriver{}, nil
+	}
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	request.SetPathValue("tenantId", tenantID)
+	request.SetPathValue("systemId", targetID)
+	rec := httptest.NewRecorder()
+	a.listDeploymentTargetStorage(rec, request)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"name":"tenant-data"`) || opened != 1 {
+		t.Fatalf("assigned target storage: status=%d opened=%d body=%s", rec.Code, opened, rec.Body)
+	}
+	request = httptest.NewRequest(http.MethodGet, "/", nil)
+	request.SetPathValue("tenantId", tenantID)
+	request.SetPathValue("systemId", uuid.NewString())
+	rec = httptest.NewRecorder()
+	a.listDeploymentTargetStorage(rec, request)
+	if rec.Code != http.StatusNotFound || opened != 1 {
+		t.Fatalf("unassigned target storage must not reach a provider: status=%d opened=%d body=%s", rec.Code, opened, rec.Body)
 	}
 }

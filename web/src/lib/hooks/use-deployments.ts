@@ -16,12 +16,14 @@ export type JsonSchemaProperty = {
 };
 export type DeploymentTarget = { id: string; label: string; site: string; provider: string; provider_label?: string; state: "planned" | "pending" | "active" | "stale" | "revoked" };
 export type DeploymentTargets = { items: DeploymentTarget[]; can_request: boolean };
+export type DeploymentTargetConfig = { storage?: { pool: string } };
+export type DeploymentTargetStorage = { name: string; type: string; used_bytes?: number; total_bytes?: number };
 export type Deployment = {
   id: string; service_id: string; target_system_id: string; target_provider: string; target_provider_label?: string;
   generation: number; desired_state: "present" | "absent";
   observed_state: "unknown" | "pending" | "provisioning" | "ready" | "degraded" | "failed" | "absent";
   definition_sha256: string; config_schema: DeploymentService["config_schema"];
-  source: DeploymentSource; config: Record<string, Json>;
+  source: DeploymentSource; config: Record<string, Json>; target_config: DeploymentTargetConfig;
   created_by: string; created_at: string; updated_by: string; updated_at: string;
 };
 export type DeploymentEvent = {
@@ -60,6 +62,15 @@ export const useDeploymentTargets = (tenantId: string) => useQuery({
   queryFn: () => apiGet<DeploymentTargets>(`/v1/tenants/${encodeURIComponent(tenantId)}/deployment-targets`),
   enabled: !!tenantId,
   retry: false,
+});
+
+export const useDeploymentTargetStorage = (tenantId: string, systemId: string, enabled: boolean) => useQuery({
+  queryKey: ["deployment-target-storage", tenantId, systemId],
+  queryFn: () => apiGet<Items<DeploymentTargetStorage>>(
+    `/v1/tenants/${encodeURIComponent(tenantId)}/deployment-targets/${encodeURIComponent(systemId)}/storage`),
+  enabled: !!tenantId && !!systemId && enabled,
+  retry: false,
+  refetchInterval: 30_000,
 });
 
 export const useDeployments = (tenantId: string) => useQuery({
@@ -126,7 +137,7 @@ function useDeploymentMutation<TInput>(tenantId: string, mutationFn: (input: TIn
 }
 
 export function useCreateDeployment(tenantId: string) {
-  return useDeploymentMutation(tenantId, (input: { service_id: string; target_system_id: string; desired_state: "present"; config: Record<string, Json> }) =>
+  return useDeploymentMutation(tenantId, (input: { service_id: string; target_system_id: string; desired_state: "present"; config: Record<string, Json>; target_config: DeploymentTargetConfig }) =>
     apiSend<Deployment>("POST", collection(tenantId), input), "Deployment request recorded");
 }
 

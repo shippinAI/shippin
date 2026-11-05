@@ -23,6 +23,25 @@ deploymentTargets:
       "200": { description: Available assigned targets., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentTargetList } } } }
       "401": { $ref: ../components/responses.yaml#/Problem401 }
       default: { $ref: ../components/responses.yaml#/ProblemDefault }
+deploymentTargetStorage:
+  x-implementation-status: registered
+  parameters:
+    - { $ref: ../components/parameters.yaml#/TenantId }
+    - name: systemId
+      in: path
+      required: true
+      schema: { $ref: ../schemas/common.yaml#/Uuid }
+  get:
+    tags: [deployments]
+    operationId: listDeploymentTargetStorage
+    summary: List live storage pools for an assigned Incus deployment target
+    description: Read-only inventory is returned only for an active Incus server assigned to the tenant. The chosen pool is stored in immutable deployment target configuration; this endpoint does not create a volume or enable provider execution.
+    responses:
+      "200": { description: Live provider storage pool inventory., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentTargetStorageList } } } }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
 deployments:
   x-implementation-status: registered
   parameters: [{ $ref: ../components/parameters.yaml#/TenantId }]

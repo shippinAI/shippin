@@ -25,17 +25,18 @@ type deploymentReviewInput struct {
 }
 
 type deploymentReviewAction struct {
-	Operation      string                 `json:"operation"`
-	TenantID       string                 `json:"tenant_id"`
-	DeploymentID   string                 `json:"deployment_id"`
-	Generation     int64                  `json:"generation"`
-	DesiredState   string                 `json:"desired_state"`
-	TargetSystemID string                 `json:"target_system_id"`
-	TargetProvider string                 `json:"target_provider"`
-	ServiceID      string                 `json:"service_id"`
-	DefinitionSHA  string                 `json:"definition_sha256"`
-	Source         deployments.SourceView `json:"source"`
-	Config         json.RawMessage        `json:"config"`
+	Operation      string                   `json:"operation"`
+	TenantID       string                   `json:"tenant_id"`
+	DeploymentID   string                   `json:"deployment_id"`
+	Generation     int64                    `json:"generation"`
+	DesiredState   string                   `json:"desired_state"`
+	TargetSystemID string                   `json:"target_system_id"`
+	TargetProvider string                   `json:"target_provider"`
+	ServiceID      string                   `json:"service_id"`
+	DefinitionSHA  string                   `json:"definition_sha256"`
+	Source         deployments.SourceView   `json:"source"`
+	Config         json.RawMessage          `json:"config"`
+	TargetConfig   deployments.TargetConfig `json:"target_config"`
 }
 
 func (a *API) prepareDeploymentReview(w http.ResponseWriter, r *http.Request) {
@@ -339,7 +340,8 @@ func deploymentReviewSnapshot(tenantID string, deployment *deployments.Deploymen
 		Operation: "deployment." + string(deployment.DesiredState), TenantID: tenantID,
 		DeploymentID: deployment.ID, Generation: deployment.Generation, DesiredState: string(deployment.DesiredState),
 		TargetSystemID: deployment.TargetSystemID, TargetProvider: string(deployment.TargetProvider),
-		ServiceID: deployment.ServiceID, DefinitionSHA: deployment.DefinitionSHA256, Source: deployment.Source, Config: deployment.Config,
+		ServiceID: deployment.ServiceID, DefinitionSHA: deployment.DefinitionSHA256, Source: deployment.Source,
+		Config: deployment.Config, TargetConfig: deployment.TargetConfig,
 	}
 	canonical, err := json.Marshal(action)
 	if err != nil {
@@ -383,20 +385,21 @@ func deploymentReviewLists(action deploymentReviewAction, evidencePath string) m
 func deploymentReviewEvidence(action deploymentReviewAction, ticketID string) (string, error) {
 	redactedConfig := catalog.RedactSecretReferences(action.Config)
 	artifact := struct {
-		TicketID       string          `json:"ticket_id"`
-		Operation      string          `json:"operation"`
-		TenantID       string          `json:"tenant_id"`
-		DeploymentID   string          `json:"deployment_id"`
-		Generation     int64           `json:"generation"`
-		DesiredState   string          `json:"desired_state"`
-		TargetSystemID string          `json:"target_system_id"`
-		TargetProvider string          `json:"target_provider"`
-		ServiceID      string          `json:"service_id"`
-		DefinitionSHA  string          `json:"definition_sha256"`
-		Source         any             `json:"source"`
-		Config         json.RawMessage `json:"config"`
+		TicketID       string                   `json:"ticket_id"`
+		Operation      string                   `json:"operation"`
+		TenantID       string                   `json:"tenant_id"`
+		DeploymentID   string                   `json:"deployment_id"`
+		Generation     int64                    `json:"generation"`
+		DesiredState   string                   `json:"desired_state"`
+		TargetSystemID string                   `json:"target_system_id"`
+		TargetProvider string                   `json:"target_provider"`
+		ServiceID      string                   `json:"service_id"`
+		DefinitionSHA  string                   `json:"definition_sha256"`
+		Source         any                      `json:"source"`
+		Config         json.RawMessage          `json:"config"`
+		TargetConfig   deployments.TargetConfig `json:"target_config"`
 	}{ticketID, action.Operation, action.TenantID, action.DeploymentID, action.Generation, action.DesiredState, action.TargetSystemID,
-		action.TargetProvider, action.ServiceID, action.DefinitionSHA, action.Source, redactedConfig}
+		action.TargetProvider, action.ServiceID, action.DefinitionSHA, action.Source, redactedConfig, action.TargetConfig}
 	text, err := json.Marshal(artifact)
 	if err != nil || len(text) > 20_000 {
 		return "", errors.New("bounded review evidence could not be encoded")

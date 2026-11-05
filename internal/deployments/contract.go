@@ -105,6 +105,7 @@ type DeploymentRequest struct {
 	Actor          string             `json:"actor"`
 	Definition     DefinitionSnapshot `json:"definition"`
 	Config         json.RawMessage    `json:"config"`
+	TargetConfig   json.RawMessage    `json:"target_config"`
 }
 
 func (r DeploymentRequest) Validate() error {
@@ -129,7 +130,58 @@ func (r DeploymentRequest) Validate() error {
 	if err := r.Definition.Validate(r.Config); err != nil {
 		return err
 	}
+	if err := validateTargetConfig(r.TargetConfig, r.TargetProvider, r.Definition.Runtime); err != nil {
+		return err
+	}
 	return nil
+}
+
+type TargetConfig struct {
+	Storage *TargetStorageConfig `json:"storage,omitempty"`
+}
+
+type TargetStorageConfig struct {
+	Pool string `json:"pool"`
+}
+
+var targetPoolPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$`)
+
+// normalizeTargetConfig rejects unknown provider-specific fields, supplies the
+// canonical empty object and verifies that placement settings match the pinned
+// runtime. The caller stores this value in the immutable generation.
+func normalizeTargetConfig(raw json.RawMessage, provider Provider, runtime catalog.RuntimeContract) (json.RawMessage, error) {
+	if len(raw) == 0 {
+		raw = json.RawMessage(`{}`)
+	}
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || trimmed[0] != '{' {
+		return nil, errors.New("target configuration must be a JSON object")
+	}
+	decoder := json.NewDecoder(bytes.NewReader(trimmed))
+	decoder.DisallowUnknownFields()
+	var config TargetConfig
+	if err := decoder.Decode(&config); err != nil {
+		return nil, errors.New("target configuration is invalid")
+	}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		return nil, errors.New("target configuration must contain one JSON object")
+	}
+	if config.Storage != nil && (!targetPoolPattern.MatchString(config.Storage.Pool) || strings.TrimSpace(config.Storage.Pool) != config.Storage.Pool) {
+		return nil, errors.New("target storage pool is invalid")
+	}
+	if runtime.Storage != nil {
+		if provider != ProviderIncus || config.Storage == nil || config.Storage.Pool == "" {
+			return nil, errors.New("this runtime requires an explicitly selected Incus storage pool")
+		}
+	} else if config.Storage != nil {
+		return nil, errors.New("target storage selection is not declared by this runtime")
+	}
+	return json.Marshal(config)
+}
+
+func validateTargetConfig(raw json.RawMessage, provider Provider, runtime catalog.RuntimeContract) error {
+	_, err := normalizeTargetConfig(raw, provider, runtime)
+	return err
 }
 
 // RequestFingerprint binds a tenant's idempotency key to the exact desired input.

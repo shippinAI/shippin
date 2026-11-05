@@ -114,6 +114,7 @@ GET /v1/tenants/{tenantId}/db/tables/{table}
 GET /v1/tenants/{tenantId}/db/templates
 GET /v1/tenants/{tenantId}/deployable-services
 GET /v1/tenants/{tenantId}/deployment-targets
+GET /v1/tenants/{tenantId}/deployment-targets/{systemId}/storage
 GET /v1/tenants/{tenantId}/deployments
 GET /v1/tenants/{tenantId}/deployments/{deploymentId}
 GET /v1/tenants/{tenantId}/deployments/{deploymentId}/events

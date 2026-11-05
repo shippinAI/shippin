@@ -20,6 +20,7 @@ func TestDeploymentRoutesRegistered(t *testing.T) {
 	want := []string{
 		"GET /v1/tenants/{tenantId}/deployable-services",
 		"GET /v1/tenants/{tenantId}/deployment-targets",
+		"GET /v1/tenants/{tenantId}/deployment-targets/{systemId}/storage",
 		"GET /v1/tenants/{tenantId}/deployments",
 		"POST /v1/tenants/{tenantId}/deployments",
 		"GET /v1/tenants/{tenantId}/deployments/{deploymentId}",

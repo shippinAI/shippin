@@ -35,12 +35,14 @@ type CreateInput struct {
 	DesiredState   DesiredState    `json:"desired_state"`
 	IdempotencyKey string          `json:"-"`
 	Config         json.RawMessage `json:"config"`
+	TargetConfig   json.RawMessage `json:"target_config,omitempty"`
 }
 
 type UpdateInput struct {
 	DesiredState   DesiredState    `json:"desired_state"`
 	IdempotencyKey string          `json:"-"`
 	Config         json.RawMessage `json:"config,omitempty"`
+	TargetConfig   json.RawMessage `json:"target_config,omitempty"`
 }
 
 type SourceView struct {
@@ -72,6 +74,7 @@ type Deployment struct {
 	ConfigSchema        json.RawMessage `json:"config_schema"`
 	Source              SourceView      `json:"source"`
 	Config              json.RawMessage `json:"config"`
+	TargetConfig        TargetConfig    `json:"target_config"`
 	CreatedBy           string          `json:"created_by"`
 	CreatedAt           time.Time       `json:"created_at"`
 	UpdatedBy           string          `json:"updated_by"`
@@ -81,7 +84,7 @@ type Deployment struct {
 
 const deploymentSelect = `SELECT d.id::text, d.service_id, d.target_system_id::text,
   d.target_provider, d.desired_generation, g.desired_state, d.observed_state,
-  g.definition_sha256, g.definition_snapshot::text, g.config::text,
+  g.definition_sha256, g.definition_snapshot::text, g.config::text, g.target_config::text,
   d.created_by, d.created_at, d.updated_by, d.updated_at
   FROM shippin_deployments d
   JOIN shippin_deployment_generations g ON g.deployment_id=d.id AND g.tenant_id=d.tenant_id
@@ -89,7 +92,7 @@ const deploymentSelect = `SELECT d.id::text, d.service_id, d.target_system_id::t
 
 const deploymentGenerationSelect = `SELECT d.id::text, d.service_id, d.target_system_id::text,
   d.target_provider, g.generation, g.desired_state, d.observed_state,
-  g.definition_sha256, g.definition_snapshot::text, g.config::text,
+  g.definition_sha256, g.definition_snapshot::text, g.config::text, g.target_config::text,
   d.created_by, d.created_at, d.updated_by, d.updated_at
   FROM shippin_deployments d
   JOIN shippin_deployment_generations g ON g.deployment_id=d.id AND g.tenant_id=d.tenant_id`
@@ -97,9 +100,9 @@ const deploymentGenerationSelect = `SELECT d.id::text, d.service_id, d.target_sy
 func scanDeployment(row pgx.Row) (*Deployment, error) {
 	d := &Deployment{}
 	var provider, desired, observed string
-	var snapshot, config []byte
+	var snapshot, config, targetConfigRaw []byte
 	if err := row.Scan(&d.ID, &d.ServiceID, &d.TargetSystemID, &provider, &d.Generation, &desired,
-		&observed, &d.DefinitionSHA256, &snapshot, &config, &d.CreatedBy, &d.CreatedAt, &d.UpdatedBy, &d.UpdatedAt); err != nil {
+		&observed, &d.DefinitionSHA256, &snapshot, &config, &targetConfigRaw, &d.CreatedBy, &d.CreatedAt, &d.UpdatedBy, &d.UpdatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
@@ -107,6 +110,9 @@ func scanDeployment(row pgx.Row) (*Deployment, error) {
 	}
 	d.TargetProvider, d.DesiredState, d.ObservedState = Provider(provider), DesiredState(desired), ObservedState(observed)
 	d.Config = json.RawMessage(config)
+	if err := json.Unmarshal(targetConfigRaw, &d.TargetConfig); err != nil {
+		return nil, fmt.Errorf("stored deployment target configuration is invalid: %w", err)
+	}
 	d.definitionSnapshot = json.RawMessage(snapshot)
 	var definition DefinitionSnapshot
 	if err := json.Unmarshal(snapshot, &definition); err != nil {
@@ -178,6 +184,11 @@ func (s *Store) Create(ctx context.Context, tenant, actor string, input CreateIn
 	request := DeploymentRequest{TenantID: tenant, ServiceID: input.ServiceID, TargetSystemID: input.TargetSystemID,
 		TargetProvider: Provider(provider), DesiredState: input.DesiredState, IdempotencyKey: input.IdempotencyKey,
 		Actor: actor, Definition: definition, Config: input.Config}
+	input.TargetConfig, err = normalizeTargetConfig(input.TargetConfig, request.TargetProvider, definition.Runtime)
+	if err != nil {
+		return nil, false, fmt.Errorf("%w: %v", ErrInvalidConfig, err)
+	}
+	request.TargetConfig = input.TargetConfig
 	if err := request.Validate(); err != nil {
 		return nil, false, fmt.Errorf("%w: %v", ErrInvalidConfig, err)
 	}
@@ -204,9 +215,9 @@ func (s *Store) Create(ctx context.Context, tenant, actor string, input CreateIn
 		return nil, false, err
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO shippin_deployment_generations
-		(deployment_id,tenant_id,generation,desired_state,definition_sha256,definition_snapshot,config,idempotency_key,request_sha256,created_by)
-		VALUES($1,$2,1,$3,$4,$5,$6,$7,$8,$9)`, deploymentID, tenant, input.DesiredState,
-		definitionHash, snapshot, []byte(input.Config), input.IdempotencyKey, bodyHash, actor); err != nil {
+		(deployment_id,tenant_id,generation,desired_state,definition_sha256,definition_snapshot,config,target_config,idempotency_key,request_sha256,created_by)
+		VALUES($1,$2,1,$3,$4,$5,$6,$7,$8,$9,$10)`, deploymentID, tenant, input.DesiredState,
+		definitionHash, snapshot, []byte(input.Config), []byte(input.TargetConfig), input.IdempotencyKey, bodyHash, actor); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return nil, false, ErrIdempotencyConflict
@@ -279,9 +290,30 @@ func (s *Store) Update(ctx context.Context, tenant, id, actor string, expectedGe
 	if len(input.Config) == 0 {
 		input.Config = current.Config
 	}
+	if len(input.TargetConfig) == 0 {
+		input.TargetConfig, err = json.Marshal(current.TargetConfig)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	input.TargetConfig, err = normalizeTargetConfig(input.TargetConfig, current.TargetProvider, definition.Runtime)
+	if err != nil {
+		return nil, false, fmt.Errorf("%w: %v", ErrInvalidConfig, err)
+	}
+	currentTargetConfigRaw, err := json.Marshal(current.TargetConfig)
+	if err != nil {
+		return nil, false, err
+	}
+	currentTargetConfig, err := normalizeTargetConfig(currentTargetConfigRaw, current.TargetProvider, definition.Runtime)
+	if err != nil {
+		return nil, false, ErrDefinitionUnavailable
+	}
+	if string(input.TargetConfig) != string(currentTargetConfig) {
+		return nil, false, fmt.Errorf("%w: target storage is fixed after initial creation; create a new deployment to change pools", ErrInvalidConfig)
+	}
 	request := DeploymentRequest{TenantID: tenant, ServiceID: current.ServiceID, TargetSystemID: current.TargetSystemID,
 		TargetProvider: current.TargetProvider, DesiredState: input.DesiredState, IdempotencyKey: input.IdempotencyKey,
-		Actor: actor, Definition: definition, Config: input.Config}
+		Actor: actor, Definition: definition, Config: input.Config, TargetConfig: input.TargetConfig}
 	if err := request.Validate(); err != nil {
 		return nil, false, fmt.Errorf("%w: %v", ErrInvalidConfig, err)
 	}
@@ -295,9 +327,9 @@ func (s *Store) Update(ctx context.Context, tenant, id, actor string, expectedGe
 		return nil, false, err
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO shippin_deployment_generations
-		(deployment_id,tenant_id,generation,desired_state,definition_sha256,definition_snapshot,config,idempotency_key,request_sha256,created_by)
-		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, id, tenant, nextGeneration, input.DesiredState,
-		current.DefinitionSHA256, current.definitionSnapshot, []byte(input.Config), input.IdempotencyKey, bodyHash, actor); err != nil {
+		(deployment_id,tenant_id,generation,desired_state,definition_sha256,definition_snapshot,config,target_config,idempotency_key,request_sha256,created_by)
+		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, id, tenant, nextGeneration, input.DesiredState,
+		current.DefinitionSHA256, current.definitionSnapshot, []byte(input.Config), []byte(input.TargetConfig), input.IdempotencyKey, bodyHash, actor); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return nil, false, ErrIdempotencyConflict
@@ -328,7 +360,8 @@ func fingerprintUpdateInput(tenant, id, actor string, expected int64, input Upda
 		Desired  DesiredState    `json:"desired_state"`
 		Key      string          `json:"idempotency_key"`
 		Config   json.RawMessage `json:"config"`
-	}{tenant, id, actor, expected, input.DesiredState, input.IdempotencyKey, input.Config})
+		Target   json.RawMessage `json:"target_config"`
+	}{tenant, id, actor, expected, input.DesiredState, input.IdempotencyKey, input.Config, input.TargetConfig})
 }
 
 // fingerprintCreateInput excludes the catalog snapshot because replaying an identical HTTP body
@@ -336,7 +369,7 @@ func fingerprintUpdateInput(tenant, id, actor string, expected int64, input Upda
 func fingerprintCreateInput(tenant, actor string, input CreateInput) (string, error) {
 	return (&DeploymentRequest{TenantID: tenant, ServiceID: input.ServiceID, TargetSystemID: input.TargetSystemID,
 		DesiredState: input.DesiredState, IdempotencyKey: input.IdempotencyKey, Actor: actor,
-		Config: input.Config}).RequestFingerprint()
+		Config: input.Config, TargetConfig: input.TargetConfig}).RequestFingerprint()
 }
 
 func loadDefinition(ctx context.Context, tx pgx.Tx, serviceID string) (DefinitionSnapshot, error) {

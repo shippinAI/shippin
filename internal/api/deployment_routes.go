@@ -26,6 +26,7 @@ func (a *API) deploymentStore() *deployments.Store {
 func (a *API) deploymentRoutes(mux Router) {
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployable-services", a.flow.Require(a.listDeployableServices))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployment-targets", a.flow.Require(a.listDeploymentTargets))
+	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployment-targets/{systemId}/storage", a.flow.Require(a.listDeploymentTargetStorage))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployments", a.flow.Require(a.listDeployments))
 	mux.HandleFunc("POST /v1/tenants/{tenantId}/deployments", a.flow.Require(a.createDeployment))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployments/{deploymentId}", a.flow.Require(a.getDeployment))
@@ -65,6 +66,50 @@ func (a *API) listDeploymentTargets(w http.ResponseWriter, r *http.Request) {
 		items[i].ProviderLabel = configuredProviderLabel(ui, items[i].Provider)
 	}
 	writeJSON(w, map[string]any{"items": items, "can_request": c.canDecide(t)})
+}
+
+// listDeploymentTargetStorage exposes live read-only storage inventory only
+// after confirming that the requested host is actively assigned to this tenant.
+func (a *API) listDeploymentTargetStorage(w http.ResponseWriter, r *http.Request) {
+	_, t, ok := a.deploymentTenantCtx(w, r)
+	if !ok {
+		return
+	}
+	targets, err := a.deploymentStore().Targets(r.Context(), t.ID)
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	var target *deployments.Target
+	for i := range targets {
+		if targets[i].ID == r.PathValue("systemId") {
+			target = &targets[i]
+			break
+		}
+	}
+	if target == nil {
+		auth.Problem(w, http.StatusNotFound, "Deployment target not found.")
+		return
+	}
+	if target.State != "active" {
+		auth.Problem(w, http.StatusConflict, "Storage inventory requires an active, connected target.")
+		return
+	}
+	if target.Provider != deployments.ProviderIncus {
+		auth.Problem(w, http.StatusConflict, "This runtime does not support storage selection for the target provider.")
+		return
+	}
+	driver, err := a.driver(r.Context(), target.ID)
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	items, err := driver.Storage(r.Context())
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	writeJSON(w, map[string]any{"items": items})
 }
 
 func configuredProviderLabel(ui config.UI, provider deployments.Provider) string {
