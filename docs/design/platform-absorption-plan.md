@@ -1,16 +1,18 @@
 # Shippin platform absorption plan
 
-Status: active execution plan, refreshed 2026-11-05 against `main` at `3efd1a7`.
+Status: active execution plan, refreshed 2026-11-05 against `main` at `f2e9ff3`.
 This describes the target and acceptance gates; it does not claim unimplemented
 workflows are live. The [capability ledger](capability-absorption.md) holds
-source-by-source evidence and dispositions. Checks run `41963346185` passed all
-13 jobs for `537f304`, and documentation-only run `41963735539` passed all 13
-jobs for `3efd1a7`.
+source-by-source evidence and dispositions. Checks run `41965325001` passed all
+13 jobs for `f2e9ff3`; earlier runtime authorization and source-review updates
+also passed their respective CI runs.
 
 ## Current execution checkpoint (2026-11-05)
 
-`main` is at `3efd1a7`. GitHub Checks run `41963346185` passed all 13 jobs for
-`537f304`; documentation-only follow-up run `41963735539` passed all 13 jobs.
+`main` is at `f2e9ff3`. GitHub Checks run `41965325001` passed all 13 jobs.
+Its structured Incus OCI runtime editor update preserves all one-panel
+boundaries and leaves the worker gated; previous code run `41963346185` passed
+all 13 jobs for `537f304`, and documentation run `41963735539` passed all 13.
 No PRs are open. PR 17 is closed without merge, but its reserved
 `198.51.100.1` fixture correction is already present in `main`, so no repair
 branch remains to merge. Windows standalone builds of `cmd/console` and
@@ -166,12 +168,15 @@ The catalog runtime declaration now has two versions. Version 1 preserves the
 existing compatibility-only Incus/OCI marker. Version 2 requires CPU/memory,
 persistent storage size and normalized mount path, private/Edge exposure with
 declared ports, and a bounded TCP/HTTP health check. The catalog UI edits the
-recipe through the existing service form; API validation is authoritative and
-PostgreSQL rejects incomplete version 2 shapes. Tenant discovery and immutable
-deployment generations carry the validated version. This contract work does
-not implement secret delivery, networking, an executor, health polling,
-upgrade, backup/restore or removal semantics; the worker must continue to fail
-closed with `runtime_unsupported` until the corresponding executor is proven.
+recipe through structured controls in the existing service form; new recipes
+start incomplete instead of assuming service-specific values, and API
+validation remains authoritative. Version 1 edits remain version 1. PostgreSQL
+rejects incomplete version 2 shapes. Tenant discovery and immutable deployment
+generations carry the validated version. This UI and contract work does not
+implement provider storage/network attachment, secret delivery, an executor,
+health polling, upgrade, backup/restore or removal semantics; the worker must
+continue to fail closed with `runtime_unsupported` until the corresponding
+executor is proven.
 
 Each implementation slice names its stage and source rows in the commit and
 journal, lists canonical files it owns, states what it excludes, and shows an
