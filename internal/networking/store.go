@@ -156,13 +156,25 @@ func (s *Store) ReplaceResources(ctx context.Context, id string, items []Resourc
 		return err
 	}
 	defer tx.Rollback(ctx)
-	if _, err := tx.Exec(ctx, `DELETE FROM shippin_network_resources WHERE connection_id=$1`, id); err != nil {
-		return err
-	}
 	for _, item := range items {
 		if _, err := tx.Exec(ctx, `INSERT INTO shippin_network_resources(connection_id,external_id,provider,kind,name,state,address,details,observed_at)
 			VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(connection_id,external_id) DO UPDATE SET
 			provider=EXCLUDED.provider,kind=EXCLUDED.kind,name=EXCLUDED.name,state=EXCLUDED.state,address=EXCLUDED.address,details=EXCLUDED.details,observed_at=EXCLUDED.observed_at`, id, item.ID, item.Provider, item.Kind, item.Name, item.State, item.Address, rawObject(item.Details), item.ObservedAt); err != nil {
+			return err
+		}
+	}
+	// Delete only observations absent from this successful snapshot. Desired server
+	// attachments are kept independently, including through temporary provider omissions.
+	if len(items) == 0 {
+		if _, err := tx.Exec(ctx, `DELETE FROM shippin_network_resources WHERE connection_id=$1`, id); err != nil {
+			return err
+		}
+	} else {
+		ids := make([]string, 0, len(items))
+		for _, item := range items {
+			ids = append(ids, item.ID)
+		}
+		if _, err := tx.Exec(ctx, `DELETE FROM shippin_network_resources WHERE connection_id=$1 AND NOT (external_id = ANY($2::text[]))`, id, ids); err != nil {
 			return err
 		}
 	}
@@ -176,8 +188,14 @@ func (s *Store) Resources(ctx context.Context, id string) ([]Resource, error) {
 	if uuid.Validate(id) != nil {
 		return nil, ErrNotFound
 	}
-	rows, err := s.Pool.Query(ctx, `SELECT external_id,connection_id::text,provider,kind,name,state,address,details,observed_at
-		FROM shippin_network_resources WHERE connection_id=$1 ORDER BY kind,name`, id)
+	rows, err := s.Pool.Query(ctx, `SELECT a.external_id,a.connection_id::text,coalesce(r.provider,c.provider),coalesce(r.kind,'unknown'),coalesce(r.name,a.external_id),coalesce(r.state,''),coalesce(r.address,''),coalesce(r.details,'{}'::jsonb),coalesce(r.observed_at,a.updated_at),coalesce(a.server_id::text,''),coalesce(s.label,''),r.external_id IS NOT NULL
+		FROM shippin_network_resource_attachments a JOIN shippin_network_connections c ON c.id=a.connection_id
+		LEFT JOIN shippin_network_resources r ON r.connection_id=a.connection_id AND r.external_id=a.external_id
+		LEFT JOIN servers s ON s.id=a.server_id WHERE a.connection_id=$1
+		UNION ALL
+		SELECT r.external_id,r.connection_id::text,r.provider,r.kind,r.name,r.state,r.address,r.details,r.observed_at,coalesce(a.server_id::text,''),coalesce(s.label,''),true
+		FROM shippin_network_resources r LEFT JOIN shippin_network_resource_attachments a ON a.connection_id=r.connection_id AND a.external_id=r.external_id
+		LEFT JOIN servers s ON s.id=a.server_id WHERE r.connection_id=$1 AND a.connection_id IS NULL ORDER BY 3,5`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -185,12 +203,39 @@ func (s *Store) Resources(ctx context.Context, id string) ([]Resource, error) {
 	out := []Resource{}
 	for rows.Next() {
 		var v Resource
-		if err := rows.Scan(&v.ID, &v.ConnectionID, &v.Provider, &v.Kind, &v.Name, &v.State, &v.Address, &v.Details, &v.ObservedAt); err != nil {
+		if err := rows.Scan(&v.ID, &v.ConnectionID, &v.Provider, &v.Kind, &v.Name, &v.State, &v.Address, &v.Details, &v.ObservedAt, &v.ServerID, &v.ServerLabel, &v.Observed); err != nil {
 			return nil, err
 		}
 		out = append(out, v)
 	}
 	return out, rows.Err()
+}
+
+// AttachResource links an observed provider resource to an existing, non-revoked
+// Shippin server without making a provider-side change.
+func (s *Store) AttachResource(ctx context.Context, connectionID, externalID, serverID string) error {
+	if uuid.Validate(connectionID) != nil || uuid.Validate(serverID) != nil || externalID == "" || len(externalID) > 512 {
+		return ErrNotFound
+	}
+	tag, err := s.Pool.Exec(ctx, `INSERT INTO shippin_network_resource_attachments(connection_id,external_id,server_id)
+	SELECT $1,$2,s.id FROM servers s WHERE s.id=$3 AND s.state<>'revoked'
+	  AND (EXISTS (SELECT 1 FROM shippin_network_resources r WHERE r.connection_id=$1 AND r.external_id=$2)
+	       OR EXISTS (SELECT 1 FROM shippin_network_resource_attachments a WHERE a.connection_id=$1 AND a.external_id=$2))
+	ON CONFLICT(connection_id,external_id) DO UPDATE SET server_id=EXCLUDED.server_id,updated_at=now()`, connectionID, externalID, serverID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *Store) DetachResource(ctx context.Context, connectionID, externalID string) error {
+	if uuid.Validate(connectionID) != nil || externalID == "" || len(externalID) > 512 {
+		return ErrNotFound
+	}
+	return s.exec(ctx, `DELETE FROM shippin_network_resource_attachments WHERE connection_id=$1 AND external_id=$2`, connectionID, externalID)
 }
 
 func (s *Store) exec(ctx context.Context, q string, args ...any) error {

@@ -68,6 +68,8 @@ func (a *API) infraRouteTable() []infraRoute {
 		{"POST /v1/infra/servers/{id}/identity/test", "infra.hosts.write", true, a.infraTestSystemIdentity},
 		{"GET /v1/infra/networks", "infra.read", false, a.infraNetworkConnections},
 		{"GET /v1/infra/networks/{id}/resources", "infra.read", false, a.infraNetworkResources},
+		{"PUT /v1/infra/networks/{id}/resources/{resource}/attachment", "infra.network.write", true, a.infraNetworkAttachResource},
+		{"DELETE /v1/infra/networks/{id}/resources/{resource}/attachment", "infra.network.write", true, a.infraNetworkDetachResource},
 		{"POST /v1/infra/networks/{id}/sync", "infra.read", false, a.infraNetworkSync},
 		{"POST /v1/infra/networks/test", "infra.network.write", false, a.infraNetworkTest},
 		{"POST /v1/infra/networks", "infra.network.write", true, a.infraNetworkCreate},

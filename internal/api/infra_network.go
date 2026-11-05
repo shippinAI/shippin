@@ -198,6 +198,50 @@ func (a *API) infraNetworkResources(w http.ResponseWriter, r *http.Request, _ *c
 	writeJSON(w, map[string]any{"items": items})
 }
 
+func (a *API) infraNetworkAttachResource(w http.ResponseWriter, r *http.Request, _ *caller) {
+	var body struct {
+		ServerID string `json:"server_id"`
+	}
+	if !decodeStrict(w, r, &body) {
+		return
+	}
+	store := a.requireNetworkStore(w)
+	if store == nil {
+		return
+	}
+	if _, err := store.Get(r.Context(), r.PathValue("id")); err != nil {
+		infraErr(w, err)
+		return
+	}
+	if err := store.AttachResource(r.Context(), r.PathValue("id"), r.PathValue("resource"), body.ServerID); err != nil {
+		infraErr(w, err)
+		return
+	}
+	items, err := store.Resources(r.Context(), r.PathValue("id"))
+	if err != nil {
+		authUnavailable(w, "The resource association could not be read.")
+		return
+	}
+	writeJSON(w, map[string]any{"items": items})
+}
+
+func (a *API) infraNetworkDetachResource(w http.ResponseWriter, r *http.Request, _ *caller) {
+	store := a.requireNetworkStore(w)
+	if store == nil {
+		return
+	}
+	if err := store.DetachResource(r.Context(), r.PathValue("id"), r.PathValue("resource")); err != nil {
+		infraErr(w, err)
+		return
+	}
+	items, err := store.Resources(r.Context(), r.PathValue("id"))
+	if err != nil {
+		authUnavailable(w, "The resource association could not be read.")
+		return
+	}
+	writeJSON(w, map[string]any{"items": items})
+}
+
 func (a *API) infraNetworkSync(w http.ResponseWriter, r *http.Request, _ *caller) {
 	store := a.requireNetworkStore(w)
 	if store == nil {

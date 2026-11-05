@@ -45,6 +45,9 @@ type Resource struct {
 	Address      string          `json:"address,omitempty"`
 	Details      json.RawMessage `json:"details"`
 	ObservedAt   time.Time       `json:"observed_at"`
+	ServerID     string          `json:"server_id,omitempty"`
+	ServerLabel  string          `json:"server_label,omitempty"`
+	Observed     bool            `json:"observed"`
 }
 
 // Config uses provider-specific, non-secret settings only.

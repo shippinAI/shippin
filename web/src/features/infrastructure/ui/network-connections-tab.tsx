@@ -9,7 +9,7 @@ import { EmptyState } from "../../../lib/design/components/empty-state/empty-sta
 import { TextField } from "../../../lib/design/components/field/text-field";
 import { Select } from "../../../lib/design/components/select/select";
 import { StatusDot } from "../../../lib/design/components/status-dot/status-dot";
-import { useDeleteNetwork, useNetworkConnections, useNetworkResources, useSaveNetwork, useSyncNetwork, useTestNetwork, type NetworkConnection, type NetworkConnectionInput, type NetworkProvider, type NetworkResource } from "../../../lib/hooks/use-infra";
+import { useDeleteNetwork, useInfraServerRegistry, useNetworkConnections, useNetworkResources, useSaveNetwork, useSetNetworkResourceServer, useSyncNetwork, useTestNetwork, type NetworkConnection, type NetworkConnectionInput, type NetworkProvider, type NetworkResource } from "../../../lib/hooks/use-infra";
 import { useInfraCan } from "../../../lib/hooks/use-infra";
 
 const providerLabels: Record<NetworkProvider, string> = {
@@ -32,6 +32,8 @@ function configFor(c?: NetworkConnection): Record<string, string> {
 
 function IntegrationCard({ item, canWrite, onEdit }: { item: NetworkConnection; canWrite: boolean; onEdit: () => void }) {
   const q = useNetworkResources(item.id, true);
+  const registry = useInfraServerRegistry();
+  const associate = useSetNetworkResourceServer();
   const sync = useSyncNetwork();
   const remove = useDeleteNetwork();
   const [note, setNote] = useState("");
@@ -50,6 +52,17 @@ function IntegrationCard({ item, canWrite, onEdit }: { item: NetworkConnection; 
       <div className="px-5 pb-5">
         <DataTable label={`${item.label} resources`} columns={resourceColumns} rows={q.data?.items ?? []}
           empty={<EmptyState title={q.isLoading ? "Loading inventory" : "No inventory captured"} description={q.error?.message ?? "Refresh this integration to read its current resources."} />} />
+        <div className="mt-3 space-y-2">
+          {(q.data?.items ?? []).map((resource) => <div key={resource.id} className="flex flex-wrap items-center gap-2 rounded-md border border-line px-3 py-2 text-sm">
+            <span className="min-w-36 flex-1 font-medium">{resource.name}</span>
+            {resource.observed ? <Badge tone="success">Observed</Badge> : <Badge tone="warning">Not in latest inventory</Badge>}
+            <Select label={`Shippin system for ${resource.name}`} options={[{ id: "", label: "No system attached" }, ...(registry.data?.items ?? []).map((server) => ({ id: server.id, label: `${server.label} · ${server.kind || "unconfigured"}` }))]}
+              value={resource.server_id ?? ""} onChange={(serverId) => associate.mutate({ connectionId: item.id, resourceId: resource.id, ...(serverId ? { serverId } : {}), note })}
+              isDisabled={!canWrite || note.trim().length < 5 || associate.isPending || registry.isPending} />
+          </div>)}
+          {registry.isError && <p role="alert" className="text-xs text-danger">Could not load Shippin systems: {registry.error.message}</p>}
+          {canWrite && note.trim().length < 5 && <p className="text-xs text-fg-subtle">Enter a change note before changing a resource association.</p>}
+        </div>
         <div className="mt-4 flex flex-wrap items-end gap-2 border-t border-line pt-4">
           <div className="min-w-48 flex-1"><TextField label="Change note" value={note} onChange={setNote} isDisabled={!canWrite} /></div>
           {canWrite && <>

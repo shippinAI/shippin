@@ -113,7 +113,9 @@ export type NetworkConnection = {
 export type NetworkResource = {
   id: string; connection_id: string; provider: NetworkProvider; kind: string; name: string;
   state?: string; address?: string; details?: Record<string, string>; observed_at: string;
+  server_id?: string; server_label?: string; observed: boolean;
 };
+export type InfraServerRef = { id: string; slug: string; label: string; site: string; kind?: string };
 export type NetworkConnectionInput = { label: string; provider: NetworkProvider; config: Record<string, string>; credential?: string; sync_interval_seconds?: number };
 export type NetworkTestResult = { ok: boolean; error?: string; resource_count?: number; resources?: NetworkResource[] };
 
@@ -178,6 +180,25 @@ export const useNetworkResources = (id: string, enabled = true) => useQuery({
   queryFn: () => apiGet<{ items: NetworkResource[] }>(`/v1/infra/networks/${encodeURIComponent(id)}/resources`),
   enabled,
 });
+
+export const useInfraServerRegistry = () => useQuery({
+  queryKey: ["infra", "server-registry"],
+  queryFn: () => apiGet<{ items: InfraServerRef[] }>("/v1/infra/servers/registry"),
+});
+
+export function useSetNetworkResourceServer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { connectionId: string; resourceId: string; serverId?: string; note: string }) => apiSend<{ items: NetworkResource[] }>(
+      v.serverId ? "PUT" : "DELETE",
+      `/v1/infra/networks/${encodeURIComponent(v.connectionId)}/resources/${encodeURIComponent(v.resourceId)}/attachment`,
+      v.serverId ? { server_id: v.serverId } : undefined,
+      { note: v.note },
+    ),
+    onSuccess: async (_v, input) => { await qc.invalidateQueries({ queryKey: [...networkKey, input.connectionId, "resources"] }); },
+    onError: (e) => toast.error("Could not update network resource association", e.message),
+  });
+}
 
 export const useTestNetwork = () => useMutation({
   mutationFn: (v: NetworkConnectionInput) => apiSend<NetworkTestResult>("POST", "/v1/infra/networks/test", v),
