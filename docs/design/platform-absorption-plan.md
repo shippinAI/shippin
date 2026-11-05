@@ -1,15 +1,14 @@
 # Shippin platform absorption plan
 
-Status: active execution plan, refreshed 2026-11-05 against `main` at `c7e908c`.
+Status: active execution plan, refreshed 2026-11-05 against `main` at `40dcadb`.
 This describes the target and acceptance gates; it does not claim unimplemented
 workflows are live. The [capability ledger](capability-absorption.md) holds
-source-by-source evidence and dispositions. Checks run `41953590058` passed all
-13 jobs for this baseline; the preceding lease-fencing commit's run
-`41952422775` also passed all 13 jobs.
+source-by-source evidence and dispositions. Checks run `41956701504` passed all
+13 jobs for the current baseline.
 
 ## Current execution checkpoint (2026-11-05)
 
-`main` is at `c7e908c` and GitHub Checks run `41955710273` passed all 13
+`main` is at `40dcadb` and GitHub Checks run `41956701504` passed all 13
 jobs. No PRs are open. PR 17 is closed without merge, but its reserved
 `198.51.100.1` fixture correction is already present in `main`, so no repair
 branch remains to merge. Windows standalone builds of `cmd/console` and
@@ -38,7 +37,7 @@ and [application-container launch path](https://linuxcontainers.org/incus/docs/m
 
 The order below is a dependency order. Each row closes only when its observable
 acceptance checks pass; a panel or catalog screen alone does not close a runtime
-capability. Commits through `c7e908c` are on `main`; CI run `41955710273` passed
+capability. Commits through `40dcadb` are on `main`; CI run `41956701504` passed
 all 13 jobs. AgentHub ticket preparation, exact action authorization and safe
 decision provenance are implemented, but production least-privilege identity
 verification and worker-side authorization immediately before a provider write
