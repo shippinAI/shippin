@@ -41,6 +41,33 @@ func TestPlatformSettings(t *testing.T) {
 	if a.idpAccountURL(ctx) != "https://idp.example.test/ui/console/users/me" || a.rrflowAutoAttach(ctx, "t1") {
 		t.Fatal("config defaults not used")
 	}
+	if got, ok := a.platformValue(ctx, "infra.power_review_ttl_minutes").(float64); !ok || got != 30 {
+		t.Fatalf("guest power review TTL default = %v (%T), want 30", got, got)
+	}
+	settingsResponse := httptest.NewRecorder()
+	a.opPlatformSettings(settingsResponse, httptest.NewRequest("GET", "/v1/operator/platform-settings", nil), nil)
+	var settings struct {
+		Items []struct {
+			Key string `json:"key"`
+			Min int    `json:"min"`
+			Max int    `json:"max"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(settingsResponse.Body.Bytes(), &settings); err != nil {
+		t.Fatal(err)
+	}
+	settingsHaveTTL := false
+	for _, item := range settings.Items {
+		if item.Key == "infra.power_review_ttl_minutes" && (item.Min != 1 || item.Max != 1440) {
+			t.Fatalf("operator settings did not expose review TTL bounds: %+v", item)
+		}
+		if item.Key == "infra.power_review_ttl_minutes" {
+			settingsHaveTTL = true
+		}
+	}
+	if !settingsHaveTTL {
+		t.Fatal("operator settings did not expose the guest power review TTL")
+	}
 	for _, bad := range []struct{ k, b string }{{"idp.account_path", `{"value":"https://evil.test/x","reason":"test change"}`},
 		{"idp.account_path", `{"value":true,"reason":"test change"}`}, {"nope", `{"value":1,"reason":"test change"}`},
 		{"approval.hv_board", `{"value":false,"reason":"disable approval"}`},
@@ -48,7 +75,9 @@ func TestPlatformSettings(t *testing.T) {
 		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"file:///etc/passwd"}],"reason":"bad target"}`},
 		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"https://user:pass@example.test/health"}],"reason":"bad credentials"}`},
 		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"https://one.test/health","timeout_seconds":11}],"reason":"timeout too long"}`},
-		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"https://one.test"},{"name":"nomen","kind":"nomen","tcp":"host:5432"}],"reason":"duplicate names"}`}} {
+		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"https://one.test"},{"name":"nomen","kind":"nomen","tcp":"host:5432"}],"reason":"duplicate names"}`},
+		{"infra.power_review_ttl_minutes", `{"value":0,"reason":"zero review window"}`},
+		{"infra.power_review_ttl_minutes", `{"value":1441,"reason":"unbounded review window"}`}} {
 		if code := put(bad.k, bad.b); code < 400 {
 			t.Fatalf("%s %s accepted (%d)", bad.k, bad.b, code)
 		}
@@ -57,17 +86,21 @@ func TestPlatformSettings(t *testing.T) {
 		t.Fatal("refused writes were audited")
 	}
 	if put("idp.account_path", `{"value":"/ui/v2/account","reason":"move to v2 UI"}`) != 200 ||
-		put("services.rrflow.auto_attach", `{"value":true,"reason":"pilot tenant"}`) != 200 {
+		put("services.rrflow.auto_attach", `{"value":true,"reason":"pilot tenant"}`) != 200 ||
+		put("infra.power_review_ttl_minutes", `{"value":45,"reason":"longer review window"}`) != 200 {
 		t.Fatal("valid writes refused")
 	}
 	if a.idpAccountURL(ctx) != "https://idp.example.test/ui/v2/account" || !a.rrflowAutoAttach(ctx, "t1") || a.rrflowAutoAttach(ctx, "t2") {
 		t.Fatal("overrides not effective (or auto-attach ignored the rrflow rollout)")
 	}
+	if got := a.powerReviewTTLMinutes(ctx); got != 45 {
+		t.Fatalf("configured guest power TTL = %d minutes, want 45", got)
+	}
 	if put("idp.account_path", `{"value":null,"reason":"back to config"}`) != 200 || a.idpAccountURL(ctx) != "https://idp.example.test/ui/console/users/me" {
 		t.Fatal("clearing did not fall back to the config value")
 	}
-	if audits() != 3 {
-		t.Fatalf("want 3 audit rows, got %d", audits())
+	if audits() != 4 {
+		t.Fatalf("want 4 audit rows, got %d", audits())
 	}
 }
 

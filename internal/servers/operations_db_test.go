@@ -74,7 +74,7 @@ func TestPowerReviewIsIdempotentHashBoundOneShotAndRecoversUnknown(t *testing.T)
 	key := uuid.NewString()
 	id := uuid.NewString()
 	input := PowerReview{ID: id, ServerID: host.ID, Guest: "guest-a", Verb: "reboot", Provider: "incus", EndpointSHA256: endpointSHA,
-		ActionSHA256: actionSHA, IdempotencyKey: key, AgentHubTicket: "shp-" + strings.ReplaceAll(id, "-", ""), Actor: "operator", ActorName: "Operator", Note: "Restart after maintenance"}
+		ActionSHA256: actionSHA, IdempotencyKey: key, AgentHubTicket: "shp-" + strings.ReplaceAll(id, "-", ""), Actor: "operator", ActorName: "Operator", Note: "Restart after maintenance", ReviewWindowMinutes: 60}
 	created, fresh, err := s.ReservePowerReview(ctx, input)
 	if err != nil || !fresh || created.State != "preparing" {
 		t.Fatalf("reserve: %+v fresh=%v err=%v", created, fresh, err)
@@ -135,6 +135,31 @@ func TestPowerReviewIsIdempotentHashBoundOneShotAndRecoversUnknown(t *testing.T)
 	var events int
 	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM shippin_infra_power_review_events WHERE review_id=$1`, created.ID).Scan(&events); err != nil || events != 4 {
 		t.Fatalf("review transition journal count=%d err=%v", events, err)
+	}
+	expiring := input
+	expiring.ID = uuid.NewString()
+	expiring.IdempotencyKey = uuid.NewString()
+	expiring.AgentHubTicket = "shp-" + strings.ReplaceAll(expiring.ID, "-", "")
+	expiring.ReviewWindowMinutes = 60
+	expiringReview, _, err := s.ReservePowerReview(ctx, expiring)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.SetPowerReviewState(ctx, expiringReview.ID, "pending_review", ticketSHA, ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Pool.Exec(ctx, `UPDATE shippin_infra_power_reviews SET expires_at=now()-interval '1 second' WHERE id=$1`, expiringReview.ID); err != nil {
+		t.Fatal(err)
+	}
+	if claimed, err := s.ClaimPowerReview(ctx, expiringReview.ID, host.ID, actionSHA, ticketSHA, provenance); err != nil || claimed {
+		t.Fatalf("expired review must not be claimed: claimed=%v err=%v", claimed, err)
+	}
+	expired, err := s.GetPowerReview(ctx, expiringReview.ID, host.ID)
+	if err != nil || expired.State != "expired" || expired.FailureCode != "review_expired" {
+		t.Fatalf("expired review state: %+v err=%v", expired, err)
+	}
+	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM shippin_infra_power_review_events WHERE review_id=$1`, expiringReview.ID).Scan(&events); err != nil || events != 3 {
+		t.Fatalf("expiry event journal count=%d err=%v", events, err)
 	}
 	if _, err := s.Pool.Exec(ctx, `UPDATE shippin_infra_power_review_events SET state='failed' WHERE review_id=$1`, created.ID); err == nil {
 		t.Fatal("append-only review events accepted an update")

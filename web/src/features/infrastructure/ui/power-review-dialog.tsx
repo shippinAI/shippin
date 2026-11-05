@@ -7,7 +7,7 @@ import { TextField } from "../../../lib/design/components/field/text-field";
 import { noteOK } from "../model";
 
 type Verb = "start" | "stop" | "shutdown" | "reboot";
-type Review = { id: string; agenthub_ticket_id: string; state: string };
+type Review = { id: string; agenthub_ticket_id: string; state: string; expires_at: string };
 type ReviewView = { review: Review; agenthub_status: string; agenthub_ticket_sha256?: string };
 
 /** Guest power remains an explicit two-step AgentHub workflow in both operator and tenant views. */
@@ -25,7 +25,12 @@ export function PowerReviewDialog({ base, guest, verb, confirmSelf = false, onCl
     queryKey: ["infra", "power-review", base, guest, review?.id],
     queryFn: () => apiGet<ReviewView>(`${base}/guests/${encodeURIComponent(guest)}/power-reviews/${review!.id}`),
     enabled: !!review?.id,
-    refetchInterval: (q) => ["passed", "denied", "rejected", "failed", "succeeded", "failed_execution", "unknown", "binding_mismatch", "stale"].includes(q.state.data?.agenthub_status ?? "") ? false : 3000,
+    refetchInterval: (q) => {
+      const review = q.state.data?.review;
+      const status = q.state.data?.agenthub_status ?? "";
+      if (status === "passed" && review?.expires_at && Date.parse(review.expires_at) > Date.now()) return 3000;
+      return ["passed", "denied", "rejected", "failed", "succeeded", "failed_execution", "unknown", "expired", "binding_mismatch", "stale"].includes(status) ? false : 3000;
+    },
   });
   const request = async () => {
     setError("");
@@ -62,7 +67,9 @@ export function PowerReviewDialog({ base, guest, verb, confirmSelf = false, onCl
             <div><dt className="text-fg-subtle">AgentHub ticket</dt><dd className="break-all font-mono text-fg">{review.agenthub_ticket_id}</dd></div>
             <div><dt className="text-fg-subtle">Review state</dt><dd className="text-fg">{status.data?.agenthub_status ?? review.state}</dd></div>
           </dl>
-          {agentHubStatus === "passed" && <Button variant="primary" tooltip="Recheck AgentHub and execute this exact action once" isDisabled={executing} onPress={() => void execute()}>{executing ? "Executing…" : "Execute reviewed action"}</Button>}
+          {review.expires_at && <p className="text-sm text-fg-muted">Shippin review window ends {new Date(review.expires_at).toLocaleString()}.</p>}
+          {agentHubStatus === "passed" && <Button variant="primary" tooltip="Recheck AgentHub and execute this exact action once" isDisabled={executing || !review.expires_at || Date.parse(review.expires_at) <= Date.now()} onPress={() => void execute()}>{executing ? "Executing…" : "Execute reviewed action"}</Button>}
+          {agentHubStatus === "expired" && <p role="alert" className="text-sm text-danger">This Shippin review window expired. Request a new AgentHub review before executing.</p>}
           {agentHubStatus === "unavailable" && <p role="status" className="text-sm text-warning">AgentHub could not be reached. Execution stays disabled while this panel retries.</p>}
           {agentHubStatus === "binding_mismatch" && <p role="alert" className="text-sm text-danger">The AgentHub ticket no longer matches this action. Request a new review.</p>}
           {agentHubStatus === "stale" && <p role="alert" className="text-sm text-danger">The provider connection changed after review. Request a new review.</p>}

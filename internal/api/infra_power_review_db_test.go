@@ -234,6 +234,27 @@ func TestInfraGuestPowerRequiresCurrentAgentHubReviewAndConsumesOnce(t *testing.
 	if denied.Code != http.StatusConflict || !strings.Contains(denied.Body.String(), "agenthub_review_denied") || driver.calls.Load() != 1 {
 		t.Fatalf("pending ticket was not denied: %d %s calls=%d", denied.Code, denied.Body, driver.calls.Load())
 	}
+	status.Store("passed")
+	expiredRequest := prepare(uuid.NewString())
+	if expiredRequest.Code != http.StatusAccepted {
+		t.Fatalf("expired-path review request %d %s", expiredRequest.Code, expiredRequest.Body)
+	}
+	var expiredReview struct {
+		Review servers.PowerReview `json:"review"`
+	}
+	if err := json.Unmarshal(expiredRequest.Body.Bytes(), &expiredReview); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.db.Pool.Exec(ctx, `UPDATE shippin_infra_power_reviews SET expires_at=now()-interval '1 second' WHERE id=$1`, expiredReview.Review.ID); err != nil {
+		t.Fatal(err)
+	}
+	lateExecution := execute(expiredReview.Review.ID)
+	if lateExecution.Code != http.StatusConflict || !strings.Contains(lateExecution.Body.String(), "agenthub_review_consumed") || driver.calls.Load() != 1 {
+		t.Fatalf("expired AgentHub approval reached provider: %d %s calls=%d", lateExecution.Code, lateExecution.Body, driver.calls.Load())
+	}
+	if err := a.db.Pool.QueryRow(ctx, `SELECT state FROM shippin_infra_power_reviews WHERE id=$1`, expiredReview.Review.ID).Scan(&state); err != nil || state != "expired" {
+		t.Fatalf("expired review state %q err=%v", state, err)
+	}
 	server.Close()
 	outage := execute(second.Review.ID)
 	if outage.Code != http.StatusBadGateway || !strings.Contains(outage.Body.String(), "agenthub_review_unavailable") || driver.calls.Load() != 1 {

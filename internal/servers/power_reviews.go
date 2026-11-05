@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -14,31 +15,33 @@ var ErrPowerReviewConflict = errors.New("servers: guest power review conflicts w
 // PowerReview is Shippin's correlation and one-shot execution record. AgentHub
 // remains authoritative for approval, policy and reviewer state.
 type PowerReview struct {
-	ID             string          `json:"id"`
-	ServerID       string          `json:"server_id"`
-	Guest          string          `json:"guest"`
-	Verb           string          `json:"verb"`
-	Provider       string          `json:"provider"`
-	EndpointSHA256 string          `json:"endpoint_sha256"`
-	ActionSHA256   string          `json:"action_sha256"`
-	IdempotencyKey string          `json:"-"`
-	AgentHubTicket string          `json:"agenthub_ticket_id"`
-	TicketSHA256   string          `json:"ticket_sha256,omitempty"`
-	State          string          `json:"state"`
-	FailureCode    string          `json:"failure_code,omitempty"`
-	Provenance     json.RawMessage `json:"provenance,omitempty"`
-	Actor          string          `json:"-"`
-	ActorName      string          `json:"actor_name,omitempty"`
-	Note           string          `json:"note"`
+	ID                  string          `json:"id"`
+	ServerID            string          `json:"server_id"`
+	Guest               string          `json:"guest"`
+	Verb                string          `json:"verb"`
+	Provider            string          `json:"provider"`
+	EndpointSHA256      string          `json:"endpoint_sha256"`
+	ActionSHA256        string          `json:"action_sha256"`
+	IdempotencyKey      string          `json:"-"`
+	AgentHubTicket      string          `json:"agenthub_ticket_id"`
+	TicketSHA256        string          `json:"ticket_sha256,omitempty"`
+	State               string          `json:"state"`
+	FailureCode         string          `json:"failure_code,omitempty"`
+	Provenance          json.RawMessage `json:"provenance,omitempty"`
+	Actor               string          `json:"-"`
+	ActorName           string          `json:"actor_name,omitempty"`
+	Note                string          `json:"note"`
+	ExpiresAt           time.Time       `json:"expires_at"`
+	ReviewWindowMinutes int             `json:"-"`
 }
 
-const powerReviewColumns = `id::text,server_id::text,guest,verb,provider,endpoint_sha256,action_sha256,idempotency_key::text,agenthub_ticket_id,coalesce(ticket_sha256,''),state,coalesce(failure_code,''),provenance,actor,actor_name,change_note`
+const powerReviewColumns = `id::text,server_id::text,guest,verb,provider,endpoint_sha256,action_sha256,idempotency_key::text,agenthub_ticket_id,coalesce(ticket_sha256,''),state,coalesce(failure_code,''),provenance,actor,actor_name,change_note,expires_at`
 
 func scanPowerReview(row pgx.Row) (PowerReview, error) {
 	var v PowerReview
 	err := row.Scan(&v.ID, &v.ServerID, &v.Guest, &v.Verb, &v.Provider, &v.EndpointSHA256, &v.ActionSHA256,
 		&v.IdempotencyKey, &v.AgentHubTicket, &v.TicketSHA256, &v.State, &v.FailureCode, &v.Provenance,
-		&v.Actor, &v.ActorName, &v.Note)
+		&v.Actor, &v.ActorName, &v.Note, &v.ExpiresAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return PowerReview{}, ErrNotFound
 	}
@@ -49,7 +52,7 @@ func scanPowerReview(row pgx.Row) (PowerReview, error) {
 // a key for a different action is rejected; the same action resumes its record.
 func (s *Store) ReservePowerReview(ctx context.Context, v PowerReview) (PowerReview, bool, error) {
 	if uuid.Validate(v.ID) != nil || uuid.Validate(v.ServerID) != nil || uuid.Validate(v.IdempotencyKey) != nil ||
-		v.Guest == "" || v.Actor == "" || v.Note == "" || (v.Verb != "start" && v.Verb != "stop" && v.Verb != "shutdown" && v.Verb != "reboot") {
+		v.Guest == "" || v.Actor == "" || v.Note == "" || v.ReviewWindowMinutes < 1 || v.ReviewWindowMinutes > 1440 || (v.Verb != "start" && v.Verb != "stop" && v.Verb != "shutdown" && v.Verb != "reboot") {
 		return PowerReview{}, false, ErrIdentityInvalid
 	}
 	tx, err := s.Pool.Begin(ctx)
@@ -58,10 +61,10 @@ func (s *Store) ReservePowerReview(ctx context.Context, v PowerReview) (PowerRev
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	tag, err := tx.Exec(ctx, `INSERT INTO shippin_infra_power_reviews
-		(id,server_id,guest,verb,provider,endpoint_sha256,action_sha256,idempotency_key,agenthub_ticket_id,state,actor,actor_name,change_note)
-		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'preparing',$10,$11,$12)
+		(id,server_id,guest,verb,provider,endpoint_sha256,action_sha256,idempotency_key,agenthub_ticket_id,state,actor,actor_name,change_note,expires_at)
+		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'preparing',$10,$11,$12,now()+($13 * interval '1 minute'))
 		ON CONFLICT (server_id,idempotency_key) DO NOTHING`, v.ID, v.ServerID, v.Guest, v.Verb, v.Provider,
-		v.EndpointSHA256, v.ActionSHA256, v.IdempotencyKey, v.AgentHubTicket, v.Actor, v.ActorName, v.Note)
+		v.EndpointSHA256, v.ActionSHA256, v.IdempotencyKey, v.AgentHubTicket, v.Actor, v.ActorName, v.Note, v.ReviewWindowMinutes)
 	if err != nil {
 		return PowerReview{}, false, err
 	}
@@ -88,6 +91,32 @@ func (s *Store) GetPowerReview(ctx context.Context, id, serverID string) (PowerR
 		return PowerReview{}, ErrNotFound
 	}
 	return scanPowerReview(s.Pool.QueryRow(ctx, `SELECT `+powerReviewColumns+` FROM shippin_infra_power_reviews WHERE id=$1 AND server_id=$2`, id, serverID))
+}
+
+// ExpirePowerReviewIfDue atomically records expiry for a pending review whose fixed
+// local execution window has elapsed. The append-only event is committed with state.
+func (s *Store) ExpirePowerReviewIfDue(ctx context.Context, id, serverID string) (bool, error) {
+	if uuid.Validate(id) != nil || uuid.Validate(serverID) != nil {
+		return false, ErrNotFound
+	}
+	tx, err := s.Pool.Begin(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var actor string
+	err = tx.QueryRow(ctx, `UPDATE shippin_infra_power_reviews SET state='expired',failure_code='review_expired',updated_at=now()
+		WHERE id=$1 AND server_id=$2 AND state='pending_review' AND expires_at<=clock_timestamp() RETURNING actor`, id, serverID).Scan(&actor)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, tx.Commit(ctx)
+	}
+	if err != nil {
+		return false, err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO shippin_infra_power_review_events(id,review_id,state,failure_code,actor) VALUES($1,$2,'expired','review_expired',$3)`, uuid.NewString(), id, actor); err != nil {
+		return false, err
+	}
+	return true, tx.Commit(ctx)
 }
 
 func (s *Store) SetPowerReviewState(ctx context.Context, id, state, ticketSHA, failure string) (PowerReview, error) {
@@ -139,9 +168,20 @@ func (s *Store) ClaimPowerReview(ctx context.Context, id, serverID, actionSHA, t
 	defer func() { _ = tx.Rollback(ctx) }()
 	var actor string
 	err = tx.QueryRow(ctx, `UPDATE shippin_infra_power_reviews SET state='executing',provenance=$5,updated_at=now()
-		WHERE id=$1 AND server_id=$2 AND action_sha256=$3 AND ticket_sha256=$4 AND state='pending_review' RETURNING actor`, id, serverID, actionSHA, ticketSHA, data).Scan(&actor)
+		WHERE id=$1 AND server_id=$2 AND action_sha256=$3 AND ticket_sha256=$4 AND state='pending_review' AND expires_at>clock_timestamp() RETURNING actor`, id, serverID, actionSHA, ticketSHA, data).Scan(&actor)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return false, nil
+		err = tx.QueryRow(ctx, `UPDATE shippin_infra_power_reviews SET state='expired',failure_code='review_expired',updated_at=now()
+			WHERE id=$1 AND server_id=$2 AND state='pending_review' AND expires_at<=clock_timestamp() RETURNING actor`, id, serverID).Scan(&actor)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO shippin_infra_power_review_events(id,review_id,state,failure_code,actor) VALUES($1,$2,'expired','review_expired',$3)`, uuid.NewString(), id, actor); err != nil {
+			return false, err
+		}
+		return false, tx.Commit(ctx)
 	}
 	if err != nil {
 		return false, err

@@ -98,6 +98,7 @@ func (a *API) prepareInfraPowerReviewFor(w http.ResponseWriter, r *http.Request,
 		ID: id.String(), ServerID: serverID, Guest: guest, Verb: verb, Provider: ep.Kind,
 		EndpointSHA256: endpointSHA, ActionSHA256: actionSHA, IdempotencyKey: key.String(),
 		AgentHubTicket: ticketID, State: "preparing", Actor: c.id.Sub, ActorName: displayName(c), Note: c.note,
+		ReviewWindowMinutes: a.powerReviewTTLMinutes(r.Context()),
 	})
 	if errors.Is(err, servers.ErrPowerReviewConflict) {
 		writeHVProblem(w, http.StatusConflict, "review_action_conflict", "This idempotency key belongs to a different guest power action.", "", "")
@@ -181,6 +182,10 @@ func (a *API) getInfraPowerReviewFor(w http.ResponseWriter, r *http.Request, _ *
 			return
 		}
 	}
+	if _, err := a.serverStore().ExpirePowerReviewIfDue(r.Context(), reviewID, serverID); err != nil {
+		infraReviewUnavailable(w)
+		return
+	}
 	review, err := a.serverStore().GetPowerReview(r.Context(), reviewID, serverID)
 	if err != nil {
 		infraErr(w, err)
@@ -214,6 +219,14 @@ func (a *API) getInfraPowerReviewFor(w http.ResponseWriter, r *http.Request, _ *
 		return
 	}
 	writeJSON(w, map[string]any{"review": review, "agenthub_status": ticket.Status, "agenthub_ticket_sha256": ticket.SHA256})
+}
+
+func (a *API) powerReviewTTLMinutes(ctx context.Context) int {
+	minutes := 30
+	if configured, ok := a.platformValue(ctx, "infra.power_review_ttl_minutes").(float64); ok && configured >= 1 && configured <= 1440 {
+		minutes = int(configured)
+	}
+	return minutes
 }
 
 func (a *API) executeInfraPowerReview(w http.ResponseWriter, r *http.Request, c *caller, tenant string, endpoint servers.Endpoint, serverID, guest, verb string) bool {

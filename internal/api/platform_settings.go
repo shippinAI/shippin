@@ -22,6 +22,7 @@ import (
 type platformKey struct {
 	Key, Label, Help string
 	Kind             string            // "string" | "bool" | "json"
+	Min, Max         int               // integer bounds exposed to the existing settings UI
 	def              func(a *API) any  // the config file value
 	valid            func(v any) error // nil = ok
 }
@@ -84,7 +85,7 @@ func validateProbes(value any) error {
 
 func (a *API) platformKeys() []platformKey {
 	keys := []platformKey{
-		{Key: "services.probe_concurrency", Kind: "integer", Label: "Concurrent health checks",
+		{Key: "services.probe_concurrency", Kind: "integer", Min: 1, Max: config.MaxProbeConcurrency, Label: "Concurrent health checks",
 			Help: fmt.Sprintf("Maximum simultaneous scheduled, manual HTTP/TCP and provider-resource checks across this console process (1–%d).", config.MaxProbeConcurrency),
 			def:  func(a *API) any { return a.cfg.ProbeConcurrency }, valid: func(v any) error {
 				n, ok := v.(float64)
@@ -93,12 +94,21 @@ func (a *API) platformKeys() []platformKey {
 				}
 				return nil
 			}},
-		{Key: "services.observation_retention_days", Kind: "integer", Label: "Health observation retention (days)",
+		{Key: "services.observation_retention_days", Kind: "integer", Min: 1, Max: 365, Label: "Health observation retention (days)",
 			Help: "How long platform health observations remain available (1 to 365 days; default 30).",
 			def:  func(*API) any { return 30 }, valid: func(v any) error {
 				n, ok := v.(float64)
 				if !ok || n != float64(int(n)) || n < 1 || n > 365 {
 					return fmt.Errorf("must be a whole number between 1 and 365")
+				}
+				return nil
+			}},
+		{Key: "infra.power_review_ttl_minutes", Kind: "integer", Min: 1, Max: 1440, Label: "Guest power review window (minutes)",
+			Help: "How long Shippin accepts an AgentHub guest power review before requiring a new review (1 to 1440 minutes; default 30). This does not expire or close the AgentHub ticket.",
+			def:  func(*API) any { return float64(30) }, valid: func(v any) error {
+				n, ok := v.(float64)
+				if !ok || n != float64(int(n)) || n < 1 || n > 1440 {
+					return fmt.Errorf("must be a whole number between 1 and 1440")
 				}
 				return nil
 			}},
@@ -165,7 +175,7 @@ func (a *API) opPlatformSettings(w http.ResponseWriter, r *http.Request, _ *call
 	out := []map[string]any{}
 	for _, k := range a.platformKeys() {
 		_, over := m[k.Key]
-		out = append(out, map[string]any{"key": k.Key, "label": k.Label, "help": k.Help, "kind": k.Kind,
+		out = append(out, map[string]any{"key": k.Key, "label": k.Label, "help": k.Help, "kind": k.Kind, "min": k.Min, "max": k.Max,
 			"config_value": k.def(a), "value": a.platformValue(r.Context(), k.Key), "overridden": over})
 	}
 	writeJSON(w, map[string]any{"items": out})

@@ -11,7 +11,7 @@ export function PlatformSettingRow({ s, canWrite }: { s: PlatformSetting; canWri
   const [value, setValue] = useState<string | boolean>(s.value as string | boolean);
   const [reason, setReason] = useState("");
   const parsedNumber = Number(value);
-  const validInteger = Number.isInteger(parsedNumber) && parsedNumber >= 1 && parsedNumber <= 50;
+  const validInteger = Number.isInteger(parsedNumber) && parsedNumber >= (s.min ?? 1) && parsedNumber <= (s.max ?? Number.MAX_SAFE_INTEGER);
   const ok = reason.trim().length >= 5 && value !== s.value && (s.kind !== "integer" || validInteger);
   return (
     <li className="space-y-3 px-4 py-4">
@@ -28,7 +28,7 @@ export function PlatformSettingRow({ s, canWrite }: { s: PlatformSetting; canWri
           {value ? "On" : "Off"}
         </Switch>
       ) : (
-        <TextField label="Value" type={s.kind === "integer" ? "number" : "text"} value={String(value)} onChange={setValue} isDisabled={!canWrite} min={s.kind === "integer" ? 1 : undefined} max={s.kind === "integer" ? 50 : undefined} step={s.kind === "integer" ? 1 : undefined} />
+        <TextField label="Value" type={s.kind === "integer" ? "number" : "text"} value={String(value)} onChange={setValue} isDisabled={!canWrite} min={s.kind === "integer" ? s.min : undefined} max={s.kind === "integer" ? s.max : undefined} step={s.kind === "integer" ? 1 : undefined} />
       )}
       {canWrite && (
         <div className="flex items-end gap-2">

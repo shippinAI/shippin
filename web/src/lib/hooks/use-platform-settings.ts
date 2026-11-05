@@ -7,6 +7,8 @@ export type PlatformSetting = {
   label: string;
   help: string;
   kind: "string" | "bool" | "integer" | "json" | "array";
+  min?: number;
+  max?: number;
   config_value: unknown;
   value: unknown;
   overridden: boolean;
