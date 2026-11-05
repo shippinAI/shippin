@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"shippin.cloud/console/internal/deployments"
 	"shippin.cloud/console/internal/hv"
@@ -16,8 +17,9 @@ type incusOCIRecoveryProvider interface {
 	InspectOCIApplication(context.Context, incus.OCIApplicationSpec) (hv.Guest, bool, error)
 }
 
-// recoverDeploymentIntent only observes the first unresolved step when it is
-// the persistent-volume ensure operation. It never retries a provider write.
+// recoverDeploymentIntent observes only exact Incus storage, workload-create,
+// and start state for the first unresolved approved step. It never retries a
+// provider write.
 func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deployment *deployments.Deployment) (map[string]any, bool, error) {
 	if deployment.TargetProvider != deployments.ProviderIncus {
 		return nil, false, nil
@@ -37,7 +39,8 @@ func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deploy
 			break
 		}
 	}
-	if step.ID == "" || (step.Operation != "ensure_persistent_volume" && step.Operation != "ensure_oci_instance") {
+	if step.ID == "" || (step.Operation != "ensure_persistent_volume" &&
+		step.Operation != "ensure_oci_instance" && step.Operation != "ensure_running") {
 		return nil, false, nil
 	}
 	if _, _, err := a.deploymentStore().ClaimExecutionStepRecoveryWithLease(ctx, job.TenantID, deployment.ID,
@@ -74,12 +77,13 @@ func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deploy
 		return nil, false, err
 	}
 	var exists bool
+	var guest hv.Guest
 	if step.Operation == "ensure_persistent_volume" {
 		exists, err = provider.InspectOCIApplicationVolume(ctx, spec)
 	} else {
 		spec.Environment, err = a.deploymentRecoveryEnvironment(ctx, job, snapshot)
 		if err == nil {
-			_, exists, err = provider.InspectOCIApplication(ctx, spec)
+			guest, exists, err = provider.InspectOCIApplication(ctx, spec)
 		}
 	}
 	if err != nil {
@@ -90,6 +94,10 @@ func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deploy
 		// Absence does not prove that the original mutation did not complete
 		// transiently or that retrying it is authorized. Close as unknown.
 		state, failureCode = "unknown", "provider_state_absent"
+	} else if step.Operation == "ensure_oci_instance" && !strings.EqualFold(guest.Status, "Stopped") {
+		state, failureCode = "unknown", "provider_state_mismatch"
+	} else if step.Operation == "ensure_running" && !strings.EqualFold(guest.Status, "Running") {
+		state, failureCode = "unknown", "provider_state_mismatch"
 	}
 	if _, err := a.deploymentStore().RecordExecutionStepOutcomeWithLease(ctx, job.TenantID,
 		deployment.ID, deployment.Generation, job.ID, job.LeaseOwner, planDigest,

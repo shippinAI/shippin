@@ -16,10 +16,11 @@ import (
 )
 
 type deploymentRecoveryProviderFake struct {
-	exists   bool
-	appFound bool
-	calls    int
-	spec     incus.OCIApplicationSpec
+	exists    bool
+	appFound  bool
+	appStatus string
+	calls     int
+	spec      incus.OCIApplicationSpec
 }
 
 func TestDeploymentRecoverySkipsUnsupportedProviderBeforePlanLookup(t *testing.T) {
@@ -40,7 +41,7 @@ func (f *deploymentRecoveryProviderFake) InspectOCIApplicationVolume(_ context.C
 func (f *deploymentRecoveryProviderFake) InspectOCIApplication(_ context.Context, spec incus.OCIApplicationSpec) (hv.Guest, bool, error) {
 	f.calls++
 	f.spec = spec
-	return hv.Guest{ID: spec.Name, Status: "Stopped"}, f.appFound, nil
+	return hv.Guest{ID: spec.Name, Status: f.appStatus}, f.appFound, nil
 }
 
 func TestDeploymentOutboxRelayAndWorkerUseGenerationFencedJobs(t *testing.T) {
@@ -142,11 +143,16 @@ func TestDeploymentWorkerRecoversOnlyExactObservedIncusState(t *testing.T) {
 		name      string
 		operation string
 		exists    bool
+		status    string
 	}{
 		{name: "owned_volume", operation: "ensure_persistent_volume", exists: true},
 		{name: "absent_volume", operation: "ensure_persistent_volume"},
-		{name: "owned_workload", operation: "ensure_oci_instance", exists: true},
+		{name: "owned_workload", operation: "ensure_oci_instance", exists: true, status: "Stopped"},
 		{name: "absent_workload", operation: "ensure_oci_instance"},
+		{name: "unexpected_running_workload", operation: "ensure_oci_instance", exists: true, status: "Running"},
+		{name: "running_power_step", operation: "ensure_running", exists: true, status: "Running"},
+		{name: "stopped_power_step", operation: "ensure_running", exists: true, status: "Stopped"},
+		{name: "absent_power_step", operation: "ensure_running"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			a, tenantID, targetID := deploymentRouteAPI(t)
@@ -189,23 +195,28 @@ func TestDeploymentWorkerRecoversOnlyExactObservedIncusState(t *testing.T) {
 			if _, err := a.deploymentStore().RecordReviewDecision(ctx, tenantID, deployment.ID, 1, "recovery-test", uuid.NewString(), true, provenance, ""); err != nil {
 				t.Fatal(err)
 			}
-			if _, started, err := a.deploymentStore().BeginExecutionStepWithLease(ctx, tenantID, deployment.ID, 1,
-				originalJobID, originalOwner, planDigest, plan.Steps[0]); err != nil || !started {
-				t.Fatalf("approved intent start=%t err=%v", started, err)
+			targetIndex := -1
+			for i, planStep := range plan.Steps {
+				if planStep.Operation == tc.operation {
+					targetIndex = i
+					break
+				}
 			}
-			step := plan.Steps[0]
-			if tc.operation == "ensure_oci_instance" {
-				if _, err := a.deploymentStore().RecordExecutionStepOutcomeWithLease(ctx, tenantID, deployment.ID, 1,
-					originalJobID, originalOwner, planDigest, step.IdempotencyKey, "succeeded", "", ""); err != nil {
-					t.Fatal(err)
-				}
-				step = plan.Steps[1]
-				if step.Operation != tc.operation {
-					t.Fatalf("workload plan step=%+v", step)
-				}
+			if targetIndex < 0 {
+				t.Fatalf("operation %q is missing from plan: %+v", tc.operation, plan.Steps)
+			}
+			var step deployments.ExecutionStep
+			for i := 0; i <= targetIndex; i++ {
+				step = plan.Steps[i]
 				if _, started, err := a.deploymentStore().BeginExecutionStepWithLease(ctx, tenantID, deployment.ID, 1,
 					originalJobID, originalOwner, planDigest, step); err != nil || !started {
-					t.Fatalf("workload intent start=%t err=%v", started, err)
+					t.Fatalf("step %s intent start=%t err=%v", step.ID, started, err)
+				}
+				if i < targetIndex {
+					if _, err := a.deploymentStore().RecordExecutionStepOutcomeWithLease(ctx, tenantID, deployment.ID, 1,
+						originalJobID, originalOwner, planDigest, step.IdempotencyKey, "succeeded", "", ""); err != nil {
+						t.Fatalf("prior step %s outcome: %v", step.ID, err)
+					}
 				}
 			}
 			if _, err := a.db.Pool.Exec(ctx, `UPDATE jobs SET status='failed',lease_owner=NULL,lease_until=NULL WHERE id=$1`, originalJobID); err != nil {
@@ -217,7 +228,7 @@ func TestDeploymentWorkerRecoversOnlyExactObservedIncusState(t *testing.T) {
 				recoveryJobID, tenantID, deployment.ID+":1", recoveryOwner); err != nil {
 				t.Fatal(err)
 			}
-			provider := &deploymentRecoveryProviderFake{exists: tc.exists, appFound: tc.exists}
+			provider := &deploymentRecoveryProviderFake{exists: tc.exists, appFound: tc.exists, appStatus: tc.status}
 			a.hvServers = &memHV{items: []servers.Endpoint{{ID: targetID, Kind: "incus"}}}
 			a.openHV = func(servers.Endpoint) (hv.Driver, error) { return deploymentStorageInventoryDriver{}, nil }
 			a.hvVisible = func(context.Context, string, string) (servers.Endpoint, error) {
@@ -234,9 +245,12 @@ func TestDeploymentWorkerRecoversOnlyExactObservedIncusState(t *testing.T) {
 			}
 			out := result.(map[string]any)
 			recovery := out["recovery"].(map[string]any)
-			wantState := "succeeded"
+			wantState, wantFailure := "succeeded", ""
 			if !tc.exists {
-				wantState = "unknown"
+				wantState, wantFailure = "unknown", "provider_state_absent"
+			} else if tc.operation == "ensure_oci_instance" && tc.status != "Stopped" ||
+				tc.operation == "ensure_running" && tc.status != "Running" {
+				wantState, wantFailure = "unknown", "provider_state_mismatch"
 			}
 			if out["outcome"] != "runtime_unsupported" || out["provider_mutated"] != false || recovery["step_state"] != wantState || provider.calls != 1 {
 				t.Fatalf("worker result=%v provider calls=%d", result, provider.calls)
@@ -250,7 +264,7 @@ func TestDeploymentWorkerRecoversOnlyExactObservedIncusState(t *testing.T) {
 			if err := a.db.Pool.QueryRow(ctx, `SELECT state,coalesce(failure_code,'') FROM shippin_deployment_execution_steps WHERE tenant_id=$1 AND idempotency_key=$2`, tenantID, step.IdempotencyKey).Scan(&state, &failureCode); err != nil {
 				t.Fatal(err)
 			}
-			if state != wantState || tc.exists && failureCode != "" || !tc.exists && failureCode != "provider_state_absent" {
+			if state != wantState || failureCode != wantFailure {
 				t.Fatalf("recovered step state=%s failure=%s", state, failureCode)
 			}
 		})
