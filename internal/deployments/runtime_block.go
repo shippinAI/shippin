@@ -9,10 +9,29 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+var ErrLostJobLease = errors.New("deployment worker job lease lost")
+
 // RecordRuntimeUnavailable records that desired state reached the worker but no
 // supported application executor is installed. It intentionally performs no
 // provider I/O. The generation lock and event check make lease replays safe.
 func (s *Store) RecordRuntimeUnavailable(ctx context.Context, tenantID, deploymentID, actor string, expectedGeneration int64) (bool, error) {
+	return s.recordRuntimeUnavailable(ctx, tenantID, deploymentID, actor, expectedGeneration, "", "")
+}
+
+// RecordRuntimeUnavailableWithLease records the unsupported-runtime outcome
+// only while the worker still owns a live deployment job lease. Locking the
+// job row in the same transaction as the deployment event prevents a reclaimed
+// worker from publishing stale state. The transaction performs no network I/O.
+func (s *Store) RecordRuntimeUnavailableWithLease(ctx context.Context, tenantID, deploymentID, actor string,
+	expectedGeneration int64, jobID, leaseOwner string) (bool, error) {
+	if !validUUID(jobID) || strings.TrimSpace(leaseOwner) == "" || len(leaseOwner) > 255 {
+		return false, ErrInvalidRequest
+	}
+	return s.recordRuntimeUnavailable(ctx, tenantID, deploymentID, actor, expectedGeneration, jobID, leaseOwner)
+}
+
+func (s *Store) recordRuntimeUnavailable(ctx context.Context, tenantID, deploymentID, actor string,
+	expectedGeneration int64, jobID, leaseOwner string) (bool, error) {
 	if !validUUID(tenantID) || !validUUID(deploymentID) || expectedGeneration < 1 || len(actor) == 0 ||
 		len(actor) > 255 || strings.TrimSpace(actor) != actor || strings.ContainsAny(actor, "\r\n\x00") {
 		return false, ErrInvalidRequest
@@ -22,6 +41,17 @@ func (s *Store) RecordRuntimeUnavailable(ctx context.Context, tenantID, deployme
 		return false, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	if jobID != "" {
+		var owned string
+		err = tx.QueryRow(ctx, `SELECT id::text FROM jobs WHERE id=$1 AND kind='deployment.reconcile'
+			AND status='running' AND lease_owner=$2 AND lease_until>now() FOR UPDATE`, jobID, leaseOwner).Scan(&owned)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, ErrLostJobLease
+		}
+		if err != nil {
+			return false, err
+		}
+	}
 
 	var generation int64
 	err = tx.QueryRow(ctx, `SELECT desired_generation FROM shippin_deployments

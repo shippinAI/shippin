@@ -73,8 +73,8 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 			"outcome": "superseded", "provider_mutated": false}, nil
 	}
 	step("application_runtime_unavailable")
-	created, err := a.deploymentStore().RecordRuntimeUnavailable(ctx, job.TenantID, deployment.ID,
-		job.CreatedBy, wakeup.Generation)
+	created, err := a.deploymentStore().RecordRuntimeUnavailableWithLease(ctx, job.TenantID, deployment.ID,
+		job.CreatedBy, wakeup.Generation, job.ID, job.LeaseOwner)
 	if err != nil {
 		return nil, err
 	}
