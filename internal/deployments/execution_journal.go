@@ -209,6 +209,99 @@ func (s *Store) RecordExecutionStepOutcomeWithLease(ctx context.Context, tenantI
 	return record, nil
 }
 
+// CheckExecutionStepDispatchWithLease is the final database fence a worker
+// must pass immediately before a provider side effect. It binds the current
+// lease and generation to the exact persisted intent and requires the same
+// worker's current, plan-matching AgentHub allow event. It does not authorize
+// the provider call by itself; callers must invoke it adjacent to dispatch.
+func (s *Store) CheckExecutionStepDispatchWithLease(ctx context.Context, tenantID, deploymentID string, generation int64,
+	jobID, leaseOwner, planSHA256 string, step ExecutionStep) error {
+	if !validUUID(tenantID) || !validUUID(deploymentID) || !validUUID(jobID) || generation < 1 ||
+		!validExecutionLeaseOwner(leaseOwner) || !validSHA256Value(planSHA256) || step.ID == "" ||
+		step.Operation == "" || !validSHA256Value(step.IdempotencyKey) {
+		return ErrInvalidRequest
+	}
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if err := checkExecutionLease(ctx, tx, tenantID, deploymentID, generation, jobID, leaseOwner); err != nil {
+		return err
+	}
+	deployment, err := scanDeployment(tx.QueryRow(ctx, deploymentGenerationSelect+
+		` WHERE d.tenant_id=$1 AND d.id=$2 AND g.generation=$3 FOR UPDATE OF d`, tenantID, deploymentID, generation))
+	if err != nil {
+		return err
+	}
+	plan, err := BuildExecutionPlan(tenantID, deployment)
+	if err != nil {
+		return err
+	}
+	digest, err := plan.Fingerprint()
+	if err != nil || digest != planSHA256 || !planContainsStep(plan, step) {
+		return ErrReviewConflict
+	}
+	var state, intentJobID, intentOwner string
+	var recoveryJobID, recoveryOwner string
+	err = tx.QueryRow(ctx, `SELECT state,intent_job_id::text,intent_lease_owner,
+		coalesce(recovery_job_id::text,''),coalesce(recovery_lease_owner,'')
+		FROM shippin_deployment_execution_steps WHERE tenant_id=$1 AND deployment_id=$2 AND generation=$3
+		AND plan_sha256=$4 AND step_id=$5 AND operation=$6 AND idempotency_key=$7 FOR UPDATE`,
+		tenantID, deploymentID, generation, digest, step.ID, step.Operation, step.IdempotencyKey).
+		Scan(&state, &intentJobID, &intentOwner, &recoveryJobID, &recoveryOwner)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrExecutionStepConflict
+	}
+	if err != nil {
+		return err
+	}
+	if state != "intent" || intentJobID != jobID || intentOwner != leaseOwner || recoveryJobID != "" || recoveryOwner != "" {
+		return ErrExecutionStepConflict
+	}
+	var index int
+	for index = range plan.Steps {
+		if plan.Steps[index] == step {
+			break
+		}
+	}
+	if index > 0 {
+		for _, prerequisite := range plan.Steps[:index] {
+			var prerequisiteState string
+			err := tx.QueryRow(ctx, `SELECT state FROM shippin_deployment_execution_steps
+				WHERE tenant_id=$1 AND deployment_id=$2 AND generation=$3 AND plan_sha256=$4
+				AND step_id=$5 AND operation=$6 AND idempotency_key=$7`, tenantID, deploymentID,
+				generation, digest, prerequisite.ID, prerequisite.Operation, prerequisite.IdempotencyKey).Scan(&prerequisiteState)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrExecutionStepConflict
+			}
+			if err != nil {
+				return err
+			}
+			if prerequisiteState != "succeeded" {
+				return ErrExecutionStepConflict
+			}
+		}
+	}
+	var authorized bool
+	err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM shippin_deployment_reviews r
+		JOIN shippin_deployment_events e ON e.tenant_id=r.tenant_id AND e.deployment_id=r.deployment_id
+			AND e.generation=r.generation AND e.event_type='review_allowed' AND e.idempotency_key=$5
+		WHERE r.tenant_id=$1 AND r.deployment_id=$2 AND r.generation=$3 AND r.state='pending_review'
+			AND r.execution_plan_version=$6 AND r.execution_plan_sha256=$4
+			AND e.review_provenance->>'action_sha256'=r.action_sha256
+			AND e.review_provenance->>'ticket_id'=r.agenthub_ticket_id
+			AND e.review_provenance->>'ticket_sha256'=r.ticket_sha256)`,
+		tenantID, deploymentID, generation, digest, jobID, plan.Version).Scan(&authorized)
+	if err != nil {
+		return err
+	}
+	if !authorized {
+		return ErrReviewAuthorizationConflict
+	}
+	return tx.Commit(ctx)
+}
+
 // ClaimExecutionStepRecoveryWithLease transfers an ambiguous provider-step
 // intent to the current leased worker. It never authorizes a provider retry:
 // callers must inspect exact provider ownership and state before recording an

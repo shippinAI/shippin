@@ -64,6 +64,18 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 	if err != nil || !started || intent.State != "intent" || intent.Attempt != 1 {
 		t.Fatalf("intent=%+v started=%t err=%v", intent, started, err)
 	}
+	if err := store.CheckExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step); !errors.Is(err, ErrReviewAuthorizationConflict) {
+		t.Fatalf("step dispatched without a current worker decision: %v", err)
+	}
+	workerProvenance := provenance
+	workerProvenance.DecisionID = "worker-decision"
+	if _, err := store.RecordReviewDecisionWithLease(ctx, tenantID, deployment.ID, 1,
+		"operator@example.test", jobID, jobID, owner, true, workerProvenance, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.CheckExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step); err != nil {
+		t.Fatalf("current approved step dispatch rejected: %v", err)
+	}
 	unresolvedPlan, unresolvedDigest, unresolved, err := store.UnresolvedExecutionStepsWithLease(ctx, tenantID,
 		deployment.ID, 1, jobID, owner)
 	if err != nil || unresolvedDigest != planSHA || unresolvedPlan.Version != plan.Version || len(unresolved) != 1 || unresolved[0].IdempotencyKey != step.IdempotencyKey {
@@ -139,6 +151,9 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 	}
 	if _, err := store.RecordExecutionStepOutcomeWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step.IdempotencyKey, "succeeded", "provider-op-1", ""); !errors.Is(err, ErrLostJobLease) {
 		t.Fatalf("replaced lease wrote a result: %v", err)
+	}
+	if err := store.CheckExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step); !errors.Is(err, ErrLostJobLease) {
+		t.Fatalf("replaced lease passed the final dispatch fence: %v", err)
 	}
 	completed, err := store.RecordExecutionStepOutcomeWithLease(ctx, tenantID, deployment.ID, 1, finalJobID, finalOwner, planSHA, step.IdempotencyKey, "succeeded", "provider-op-1", "")
 	if err != nil || completed.State != "succeeded" || completed.ProviderOperationID != "provider-op-1" {

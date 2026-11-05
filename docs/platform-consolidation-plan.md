@@ -265,8 +265,30 @@ succeeded or absence as unknown without retrying. Version 3 environment
 references resolve only through the existing lease-, audit- and trust-gated
 Vaultix path. Power, health, delete and all provider mutations remain
 unsupported; the worker still reports runtime_unsupported after recovery.
-Continue through the remaining named subpackets and retain explicit unsupported states until
-their behavior is implemented and verified.
+The next implementation packet is **4.2h — final dispatch fence**. Before any
+provider mutation can be authored, add a store-level preflight that atomically
+checks the active job lease, desired generation, recomputed plan digest, exact
+persisted step intent and ownership, success of every prerequisite step, and a
+current AgentHub allow event from that same worker bound to the plan and ticket.
+The provider call must happen immediately after this check; no provider writes
+are enabled by adding the fence. PostgreSQL tests must reject a missing or
+mismatched decision, altered step/plan, unfinished prerequisite, recovered or
+replayed intent, stale generation, and lost/replaced lease, and accept only the
+current exact step. Then continue in this order: **4.3** typed Incus storage
+ensure as the first write with JIT AgentHub authorization, immutable snapshot,
+inventory revalidation, final dispatch fence, provider read-back and journaled
+outcome; **4.4** stopped OCI workload create with no implicit storage or power
+change; **4.5** explicit start and observed health; **4.6** update/cancel/remove
+with data-preserving recovery; **4.7** separately designed Proxmox VM runtime;
+**4.8** bounded Git/custom artifact acquisition and builds. Every provider write
+is a separately reviewed operation and must retain zero-write denial, stale
+lease/generation, audit failure, provider error, read-back mismatch, crash and
+recovery coverage. PostgreSQL/Dragonfly/Redis/ClickHouse offerings, remote
+Cloudflare/Tailscale writes, service runtime configuration, unified dashboards,
+source-by-source archive readiness and rollout remain in their existing packet
+order above; they do not inherit support from an Incus OCI capability. Until a
+packet passes its gate, affected behavior remains `unsupported` and cannot be
+described as deployable.
 
 ### Evidence update rules
 
