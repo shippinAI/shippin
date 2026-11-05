@@ -92,6 +92,51 @@ order, not a claim that all stages are currently implemented.
 | K | One-panel navigation, fully configurable operator and tenant workflows, clean standalone developer build and rollout | `web/`, `cmd/console`, installers/deploy docs | Every implemented destination is reachable in at most four user actions; no dead/mock controls; config survives restart; clean checkout builds console and hostd, migrates, installs and upgrades with supported workflows proven. |
 | L | Archive decision for each historical checkout | capability ledger and user-review checklist | All useful source rows closed, local dirty data retained, rights/dependencies recorded, and exact remaining gaps listed. Archiving/deleting source trees requires a separate user decision after this evidence is reviewable. |
 
+#### Next Stage C implementation slice: review decision provenance
+
+Current source inspection shows `internal/agenthub.Client.Authorize` already
+checks current policy and ticket snapshots, explicit human approval plus a
+role-scoped quorum on every matched rule, decision identity, policy version and
+action hash. It is covered by TLS fixtures and a disposable live AgentHub test.
+The deployment API currently stops after ticket submission and status read;
+the database does not persist a final authorization decision, and the existing
+UI cannot request or display one. Close that gap as one bounded slice:
+
+1. Add an explicit owner/admin `POST .../review/authorize` API action for the
+   current immutable generation. Recompute its canonical action hash and
+   command, require them to match the reserved Shippin review and current
+   AgentHub ticket, then call `Client.Authorize` with the mapped tenant,
+   machine, and exact `shippin:deployment.apply` or `.remove` tool. No-match,
+   pending review, ticket/policy/action change, identity mismatch, timeout or
+   malformed decision must deny and produce no `review_allowed` event.
+2. Persist safe `agenthub.Provenance` on the append-only
+   `shippin_deployment_events` row for `review_allowed` and normalized denial
+   events; add a `shippin_` migration with constraints requiring complete
+   decision ID, ticket/policy SHA-256, policy version and matched rule IDs for
+   allow events. Never store bearer credentials, reviewer identities, raw
+   decision responses or review text. Keep current desired generation fenced
+   through the event transaction. Rollback is forward-only: preserve old rows,
+   make new provenance nullable for historical events, and keep authorization
+   fail-closed if migration is absent.
+3. Extend OpenAPI and the existing React deployment review panel with an
+   explicit authorization action and persisted provenance display. Distinguish
+   AgentHub review status from Shippin's recorded authorization decision. An
+   authorization record is audit evidence, not a durable permission to perform
+   a later provider side effect; the future reconciler must call AgentHub again
+   immediately before each side effect and fence the generation.
+4. Verify decision allow/deny, seed no-match, all human/quorum rules, stale
+   ticket/action/policy, wrong mapped identity, duplicate calls, race with a
+   new desired generation, restart persistence, append-only audit, tenant
+   isolation, TLS timeout and secret non-disclosure against isolated
+   PostgreSQL and disposable AgentHub. Run focused race/vet, full
+   `scripts/check.sh`, OpenAPI consistency and all CI jobs.
+
+Do not proceed to provider reconciliation until this slice passes and a
+least-privilege AgentHub service credential is verified on the actual target
+installation. If external identity provisioning remains unavailable, keep that
+acceptance item explicitly open while continuing independent stages D and later
+only where their contract does not require mutation authorization.
+
 Each implementation slice must name its stage and source rows in the commit and
 journal, list canonical files it owns, state what is deliberately excluded, and
 show an end-to-end acceptance result plus a relevant denial/failure result. If a
