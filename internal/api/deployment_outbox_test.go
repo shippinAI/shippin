@@ -21,6 +21,15 @@ type deploymentRecoveryProviderFake struct {
 	spec   incus.OCIApplicationSpec
 }
 
+func TestDeploymentRecoverySkipsUnsupportedProviderBeforePlanLookup(t *testing.T) {
+	api := &API{}
+	result, handled, err := api.recoverDeploymentIntent(context.Background(), nil,
+		&deployments.Deployment{TargetProvider: deployments.ProviderProxmox})
+	if err != nil || handled || result != nil {
+		t.Fatalf("Proxmox recovery result=%v handled=%t err=%v", result, handled, err)
+	}
+}
+
 func (f *deploymentRecoveryProviderFake) InspectOCIApplicationVolume(_ context.Context, spec incus.OCIApplicationSpec) (bool, error) {
 	f.calls++
 	f.spec = spec

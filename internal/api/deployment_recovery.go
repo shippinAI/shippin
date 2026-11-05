@@ -17,6 +17,9 @@ type incusOCIRecoveryProvider interface {
 // recoverDeploymentIntent only observes the first unresolved step when it is
 // the persistent-volume ensure operation. It never retries a provider write.
 func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deployment *deployments.Deployment) (map[string]any, bool, error) {
+	if deployment.TargetProvider != deployments.ProviderIncus {
+		return nil, false, nil
+	}
 	plan, planDigest, unresolved, err := a.deploymentStore().UnresolvedExecutionStepsWithLease(ctx,
 		job.TenantID, deployment.ID, deployment.Generation, job.ID, job.LeaseOwner)
 	if err != nil {
@@ -32,7 +35,7 @@ func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deploy
 			break
 		}
 	}
-	if step.ID == "" || step.Operation != "ensure_persistent_volume" || deployment.TargetProvider != deployments.ProviderIncus {
+	if step.ID == "" || step.Operation != "ensure_persistent_volume" {
 		return nil, false, nil
 	}
 	if _, _, err := a.deploymentStore().ClaimExecutionStepRecoveryWithLease(ctx, job.TenantID, deployment.ID,
