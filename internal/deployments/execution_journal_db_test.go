@@ -73,6 +73,36 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 		"operator@example.test", jobID, jobID, owner, true, workerProvenance, ""); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := store.pool.Exec(ctx, `CREATE OR REPLACE FUNCTION shippin_test_reject_dispatch_claim() RETURNS trigger
+		LANGUAGE plpgsql AS $$ BEGIN IF NEW.event_type='dispatch_claimed' THEN
+		RAISE EXCEPTION 'injected dispatch audit failure'; END IF; RETURN NEW; END $$`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.pool.Exec(ctx, `CREATE TRIGGER shippin_test_reject_dispatch_claim
+		BEFORE INSERT ON shippin_deployment_execution_step_events FOR EACH ROW
+		EXECUTE FUNCTION shippin_test_reject_dispatch_claim()`); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = store.pool.Exec(context.Background(), `DROP TRIGGER IF EXISTS shippin_test_reject_dispatch_claim ON shippin_deployment_execution_step_events`)
+		_, _ = store.pool.Exec(context.Background(), `DROP FUNCTION IF EXISTS shippin_test_reject_dispatch_claim()`)
+	})
+	if err := store.ClaimExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1,
+		jobID, owner, planSHA, step); err == nil {
+		t.Fatal("dispatch proceeded when append-only audit insertion failed")
+	}
+	var claimRolledBack bool
+	if err := store.pool.QueryRow(ctx, `SELECT dispatch_claimed_at IS NULL FROM shippin_deployment_execution_steps
+		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=1 AND idempotency_key=$3`,
+		tenantID, deployment.ID, step.IdempotencyKey).Scan(&claimRolledBack); err != nil || !claimRolledBack {
+		t.Fatalf("dispatch claim persisted after audit failure: rolled_back=%t err=%v", claimRolledBack, err)
+	}
+	if _, err := store.pool.Exec(ctx, `DROP TRIGGER shippin_test_reject_dispatch_claim ON shippin_deployment_execution_step_events`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.pool.Exec(ctx, `DROP FUNCTION shippin_test_reject_dispatch_claim()`); err != nil {
+		t.Fatal(err)
+	}
 	if err := store.ClaimExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1,
 		jobID, owner, strings.Repeat("f", 64), step); !errors.Is(err, ErrReviewConflict) {
 		t.Fatalf("altered plan passed dispatch claim: %v", err)
@@ -199,5 +229,14 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 	}
 	if _, err := store.pool.Exec(ctx, `UPDATE shippin_deployment_execution_step_events SET actor='changed' WHERE tenant_id=$1 AND idempotency_key=$2`, tenantID, step.IdempotencyKey); err == nil {
 		t.Fatal("execution step history was mutable")
+	}
+	if _, _, err := store.Update(ctx, tenantID, deployment.ID, "operator@example.test", 1,
+		UpdateInput{DesiredState: DesiredPresent, IdempotencyKey: uuid.NewString(),
+			Config: json.RawMessage(deployment.Config), TargetConfig: json.RawMessage(`{"storage":{"pool":"tenant-pool"},"network":{"name":"tenant-net"}}`)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.ClaimExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1,
+		finalJobID, finalOwner, planSHA, step); !errors.Is(err, ErrGenerationConflict) {
+		t.Fatalf("stale desired generation passed dispatch claim: %v", err)
 	}
 }

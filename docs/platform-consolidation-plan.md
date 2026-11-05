@@ -274,10 +274,11 @@ consumes a one-time dispatch claim and appends a `dispatch_claimed` step event
 read-only provider recovery; the permit cannot be replayed. PostgreSQL tests now
 cover missing current worker decision, valid one-time claim, replay denial,
 altered step and plan, unfinished prerequisite, recovery claimant denial and
-lost lease. GitHub Checks run `42018138184` passed all 13 jobs, including the
-disposable-PostgreSQL suites. The worker does not call this method and no
-provider writes are enabled. Before advancing, extend PostgreSQL assertions for
-stale generation and audit/event insert failure.
+lost lease. The follow-up test also injects an append-only audit insert failure
+and verifies that the dispatch claim rolls back, and rejects a stale desired
+generation. GitHub Checks run `42018138184` passed all 13 jobs before these last
+two assertions; a new PostgreSQL CI run is required for the additions. The
+worker does not call this method and no provider writes are enabled.
 Then continue in this order: **4.3** typed Incus storage
 ensure as the first write with JIT AgentHub authorization, immutable snapshot,
 inventory revalidation, final dispatch fence, provider read-back and journaled
