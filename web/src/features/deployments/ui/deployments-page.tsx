@@ -18,6 +18,7 @@ import {
 import { PageHeader } from "../../../template/page-header";
 import { QueryView } from "../../admin/ui/query-view";
 import { ServiceConfigForm } from "./service-config-form";
+import { currentGenerationFailure, deploymentFailureMessage } from "../deployment-status";
 
 const isObject = (value: unknown): value is Record<string, Json> => value !== null && typeof value === "object" && !Array.isArray(value);
 const serviceSource = (source: DeploymentSource) => source.kind === "oci"
@@ -91,6 +92,7 @@ export function DeploymentsPage() {
                   }} />}
               </div>
             </div>
+            <DeploymentExecutionStatus tenantId={tenantId} deployment={item} />
             <DeploymentReviewPanel tenantId={tenantId} deployment={item} canManage={canManage} />
             <details className="mt-3">
               <summary className="cursor-pointer text-xs text-fg-muted">Configuration</summary>
@@ -205,6 +207,17 @@ function DeploymentReviewPanel({ tenantId, deployment, canManage }: { tenantId: 
     </span>}
     <p className="basis-full text-xs text-fg-subtle">A review ticket or recorded authorization does not execute the deployment. The reconciler must reauthorize immediately before provider changes.</p>
   </section>;
+}
+
+function DeploymentExecutionStatus({ tenantId, deployment }: { tenantId: string; deployment: Deployment }) {
+  const events = useDeploymentEvents(tenantId, deployment.id);
+  const failure = currentGenerationFailure(events.data?.items ?? [], deployment.generation);
+  if (!failure) return null;
+  return <div role="status" className="mt-3 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
+    <p className="font-medium text-fg">Deployment generation {deployment.generation} did not run</p>
+    <p className="mt-1 text-fg-muted">{deploymentFailureMessage(failure.failure_code)}</p>
+    <p className="mt-1 text-xs text-fg-subtle">Recorded {new Date(failure.recorded_at).toLocaleString()}.</p>
+  </div>;
 }
 
 function DeploymentHistory({ tenantId, deployment }: { tenantId: string; deployment: Deployment }) {
