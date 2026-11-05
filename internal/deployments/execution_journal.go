@@ -209,12 +209,10 @@ func (s *Store) RecordExecutionStepOutcomeWithLease(ctx context.Context, tenantI
 	return record, nil
 }
 
-// CheckExecutionStepDispatchWithLease is the final database fence a worker
-// must pass immediately before a provider side effect. It binds the current
-// lease and generation to the exact persisted intent and requires the same
-// worker's current, plan-matching AgentHub allow event. It does not authorize
-// the provider call by itself; callers must invoke it adjacent to dispatch.
-func (s *Store) CheckExecutionStepDispatchWithLease(ctx context.Context, tenantID, deploymentID string, generation int64,
+// ClaimExecutionStepDispatchWithLease consumes the one-time database permit
+// immediately before a provider side effect. A claimed dispatch is ambiguous
+// after a crash and can only be resolved by provider read-back, never replay.
+func (s *Store) ClaimExecutionStepDispatchWithLease(ctx context.Context, tenantID, deploymentID string, generation int64,
 	jobID, leaseOwner, planSHA256 string, step ExecutionStep) error {
 	if !validUUID(tenantID) || !validUUID(deploymentID) || !validUUID(jobID) || generation < 1 ||
 		!validExecutionLeaseOwner(leaseOwner) || !validSHA256Value(planSHA256) || step.ID == "" ||
@@ -244,19 +242,22 @@ func (s *Store) CheckExecutionStepDispatchWithLease(ctx context.Context, tenantI
 	}
 	var state, intentJobID, intentOwner string
 	var recoveryJobID, recoveryOwner string
+	var dispatchClaimed bool
 	err = tx.QueryRow(ctx, `SELECT state,intent_job_id::text,intent_lease_owner,
+		dispatch_claimed_at IS NOT NULL,
 		coalesce(recovery_job_id::text,''),coalesce(recovery_lease_owner,'')
 		FROM shippin_deployment_execution_steps WHERE tenant_id=$1 AND deployment_id=$2 AND generation=$3
 		AND plan_sha256=$4 AND step_id=$5 AND operation=$6 AND idempotency_key=$7 FOR UPDATE`,
 		tenantID, deploymentID, generation, digest, step.ID, step.Operation, step.IdempotencyKey).
-		Scan(&state, &intentJobID, &intentOwner, &recoveryJobID, &recoveryOwner)
+		Scan(&state, &intentJobID, &intentOwner, &dispatchClaimed, &recoveryJobID, &recoveryOwner)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrExecutionStepConflict
 	}
 	if err != nil {
 		return err
 	}
-	if state != "intent" || intentJobID != jobID || intentOwner != leaseOwner || recoveryJobID != "" || recoveryOwner != "" {
+	if state != "intent" || intentJobID != jobID || intentOwner != leaseOwner || dispatchClaimed ||
+		recoveryJobID != "" || recoveryOwner != "" {
 		return ErrExecutionStepConflict
 	}
 	var index int
@@ -298,6 +299,22 @@ func (s *Store) CheckExecutionStepDispatchWithLease(ctx context.Context, tenantI
 	}
 	if !authorized {
 		return ErrReviewAuthorizationConflict
+	}
+	tag, err := tx.Exec(ctx, `UPDATE shippin_deployment_execution_steps SET dispatch_claimed_at=now()
+		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=$3 AND plan_sha256=$4 AND step_id=$5
+		AND operation=$6 AND idempotency_key=$7 AND state='intent' AND dispatch_claimed_at IS NULL
+		AND intent_job_id=$8 AND intent_lease_owner=$9 AND recovery_job_id IS NULL`,
+		tenantID, deploymentID, generation, digest, step.ID, step.Operation, step.IdempotencyKey, jobID, leaseOwner)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return ErrExecutionStepConflict
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO shippin_deployment_execution_step_events
+		(id,tenant_id,idempotency_key,event_type,actor) VALUES($1,$2,$3,'dispatch_claimed',$4)`,
+		uuid.NewString(), tenantID, step.IdempotencyKey, leaseOwner); err != nil {
+		return err
 	}
 	return tx.Commit(ctx)
 }

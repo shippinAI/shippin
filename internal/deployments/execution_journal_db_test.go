@@ -64,7 +64,7 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 	if err != nil || !started || intent.State != "intent" || intent.Attempt != 1 {
 		t.Fatalf("intent=%+v started=%t err=%v", intent, started, err)
 	}
-	if err := store.CheckExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step); !errors.Is(err, ErrReviewAuthorizationConflict) {
+	if err := store.ClaimExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step); !errors.Is(err, ErrReviewAuthorizationConflict) {
 		t.Fatalf("step dispatched without a current worker decision: %v", err)
 	}
 	workerProvenance := provenance
@@ -73,8 +73,34 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 		"operator@example.test", jobID, jobID, owner, true, workerProvenance, ""); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.CheckExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step); err != nil {
+	if err := store.ClaimExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1,
+		jobID, owner, strings.Repeat("f", 64), step); !errors.Is(err, ErrReviewConflict) {
+		t.Fatalf("altered plan passed dispatch claim: %v", err)
+	}
+	alteredStep := step
+	alteredStep.Operation = "other_operation"
+	if err := store.ClaimExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1,
+		jobID, owner, planSHA, alteredStep); !errors.Is(err, ErrReviewConflict) {
+		t.Fatalf("altered step passed dispatch claim: %v", err)
+	}
+	prerequisiteBlocked := plan.Steps[1]
+	if _, started, err := store.BeginExecutionStepWithLease(ctx, tenantID, deployment.ID, 1,
+		jobID, owner, planSHA, prerequisiteBlocked); err != nil || !started {
+		t.Fatalf("persist next-step test intent started=%t err=%v", started, err)
+	}
+	if err := store.ClaimExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1,
+		jobID, owner, planSHA, prerequisiteBlocked); !errors.Is(err, ErrExecutionStepConflict) {
+		t.Fatalf("step with unfinished prerequisite passed dispatch claim: %v", err)
+	}
+	if _, err := store.RecordExecutionStepOutcomeWithLease(ctx, tenantID, deployment.ID, 1,
+		jobID, owner, planSHA, prerequisiteBlocked.IdempotencyKey, "failed", "", "precondition_test"); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.ClaimExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step); err != nil {
 		t.Fatalf("current approved step dispatch rejected: %v", err)
+	}
+	if err := store.ClaimExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step); !errors.Is(err, ErrExecutionStepConflict) {
+		t.Fatalf("replayed provider dispatch permit accepted: %v", err)
 	}
 	unresolvedPlan, unresolvedDigest, unresolved, err := store.UnresolvedExecutionStepsWithLease(ctx, tenantID,
 		deployment.ID, 1, jobID, owner)
@@ -98,6 +124,10 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 		recoveryJobID, recoveryOwner, planSHA, step)
 	if err != nil || !didClaim || claimed.State != "intent" {
 		t.Fatalf("recovery claim=%+v didClaim=%t err=%v", claimed, didClaim, err)
+	}
+	if err := store.ClaimExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1,
+		recoveryJobID, recoveryOwner, planSHA, step); !errors.Is(err, ErrExecutionStepConflict) {
+		t.Fatalf("recovery claimant replayed provider dispatch: %v", err)
 	}
 	claimed, didClaim, err = store.ClaimExecutionStepRecoveryWithLease(ctx, tenantID, deployment.ID, 1,
 		recoveryJobID, recoveryOwner, planSHA, step)
@@ -152,7 +182,7 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 	if _, err := store.RecordExecutionStepOutcomeWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step.IdempotencyKey, "succeeded", "provider-op-1", ""); !errors.Is(err, ErrLostJobLease) {
 		t.Fatalf("replaced lease wrote a result: %v", err)
 	}
-	if err := store.CheckExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step); !errors.Is(err, ErrLostJobLease) {
+	if err := store.ClaimExecutionStepDispatchWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step); !errors.Is(err, ErrLostJobLease) {
 		t.Fatalf("replaced lease passed the final dispatch fence: %v", err)
 	}
 	completed, err := store.RecordExecutionStepOutcomeWithLease(ctx, tenantID, deployment.ID, 1, finalJobID, finalOwner, planSHA, step.IdempotencyKey, "succeeded", "provider-op-1", "")
@@ -164,8 +194,8 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 		t.Fatalf("completed step replay=%+v started=%t err=%v", replayed, started, err)
 	}
 	var eventCount int
-	if err := store.pool.QueryRow(ctx, `SELECT count(*) FROM shippin_deployment_execution_step_events WHERE tenant_id=$1 AND idempotency_key=$2`, tenantID, step.IdempotencyKey).Scan(&eventCount); err != nil || eventCount != 5 {
-		t.Fatalf("expected intent, recovery claims and outcome events, count=%d err=%v", eventCount, err)
+	if err := store.pool.QueryRow(ctx, `SELECT count(*) FROM shippin_deployment_execution_step_events WHERE tenant_id=$1 AND idempotency_key=$2`, tenantID, step.IdempotencyKey).Scan(&eventCount); err != nil || eventCount != 6 {
+		t.Fatalf("expected intent, dispatch claim, recovery claims and outcome events, count=%d err=%v", eventCount, err)
 	}
 	if _, err := store.pool.Exec(ctx, `UPDATE shippin_deployment_execution_step_events SET actor='changed' WHERE tenant_id=$1 AND idempotency_key=$2`, tenantID, step.IdempotencyKey); err == nil {
 		t.Fatal("execution step history was mutable")

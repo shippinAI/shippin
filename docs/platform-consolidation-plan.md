@@ -265,16 +265,17 @@ succeeded or absence as unknown without retrying. Version 3 environment
 references resolve only through the existing lease-, audit- and trust-gated
 Vaultix path. Power, health, delete and all provider mutations remain
 unsupported; the worker still reports runtime_unsupported after recovery.
-The next implementation packet is **4.2h — final dispatch fence**. Before any
-provider mutation can be authored, add a store-level preflight that atomically
-checks the active job lease, desired generation, recomputed plan digest, exact
-persisted step intent and ownership, success of every prerequisite step, and a
-current AgentHub allow event from that same worker bound to the plan and ticket.
-The provider call must happen immediately after this check; no provider writes
-are enabled by adding the fence. PostgreSQL tests must reject a missing or
-mismatched decision, altered step/plan, unfinished prerequisite, recovered or
-replayed intent, stale generation, and lost/replaced lease, and accept only the
-current exact step. Then continue in this order: **4.3** typed Incus storage
+Packet **4.2h — final dispatch fence** is partially implemented in `27e3bd6`:
+the store verifies lease, generation, recomputed plan, exact original intent,
+prerequisite completion and a same-job AgentHub allow event, then atomically
+consumes a one-time dispatch claim and appends a `dispatch_claimed` step event
+(migration 061). A claimed step is ambiguous after a crash and must go through
+read-only provider recovery; the permit cannot be replayed. GitHub Checks run
+`42017460693` passed all 13 jobs, including the disposable-PostgreSQL suites.
+The worker does not call this method and no provider writes are enabled. Before
+advancing, extend PostgreSQL assertions for altered step/plan, unfinished
+prerequisite, recovery takeover, stale generation and audit/event insert failure.
+Then continue in this order: **4.3** typed Incus storage
 ensure as the first write with JIT AgentHub authorization, immutable snapshot,
 inventory revalidation, final dispatch fence, provider read-back and journaled
 outcome; **4.4** stopped OCI workload create with no implicit storage or power
