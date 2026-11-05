@@ -176,32 +176,36 @@ func TestAddHostCreatesARowAndAttachesItsAPI(t *testing.T) {
 	dir := &memHV{}
 	a := infraAPI(t, "op_infra", dir)
 	a.cfg.UI.DefaultSite = "lab"
-	rec := addRequest(t, a, fmt.Sprintf(`{"kind":"incus","label":"Lab","slug":"lab-1","base_url":%q,"node":"default","token_env":"TEST_INCUS_TOKEN","ca_file":%q}`, srv.URL, ca))
+	rec := addRequest(t, a, fmt.Sprintf(`{"kind":"incus","label":"Lab","slug":"lab-1","base_url":%q,"node":"default","token_env":"TEST_INCUS_TOKEN","ca_file":%q,"allow_tenant_deployment_secrets":true}`, srv.URL, ca))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
-	if len(dir.items) != 1 || dir.items[0].Kind != "incus" || dir.items[0].Site != "lab" || dir.items[0].Node != "default" {
+	if len(dir.items) != 1 || dir.items[0].Kind != "incus" || dir.items[0].Site != "lab" || dir.items[0].Node != "default" || !dir.items[0].AllowTenantDeploymentSecrets {
 		t.Fatalf("row: %+v", dir.items)
 	}
 	if strings.Contains(rec.Body.String(), "s3cret-value") {
 		t.Fatalf("secret in response: %s", rec.Body)
 	}
+	if !strings.Contains(rec.Body.String(), `"allow_tenant_deployment_secrets":true`) {
+		t.Fatalf("operator trust decision missing from host response: %s", rec.Body)
+	}
 }
 
 func TestAddHostRefusesBadInput(t *testing.T) {
 	for name, body := range map[string]string{
-		"no name":         `{"kind":"incus","slug":"a","base_url":"https://x.invalid","token_env":"T"}`,
-		"bad slug":        `{"kind":"incus","label":"A","slug":"Not Valid","base_url":"https://x.invalid","token_env":"T"}`,
-		"bad site":        `{"kind":"incus","label":"A","slug":"a","site":"Not Valid","base_url":"https://x.invalid","token_env":"T"}`,
-		"unknown kind":    `{"kind":"vmware","label":"A","slug":"a","base_url":"https://x.invalid","token_env":"T"}`,
-		"plain http":      `{"kind":"incus","label":"A","slug":"a","base_url":"http://x.invalid","token_env":"T"}`,
-		"url with path":   `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid/admin","token_env":"T"}`,
-		"incus no auth":   `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid"}`,
-		"cert no key":     `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid","cert_file":"/c.pem"}`,
-		"proxmox no node": `{"kind":"proxmox","label":"A","slug":"a","base_url":"https://x.invalid","token_id":"u@r!t","token_env":"T"}`,
-		"foreign field":   `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid","token_env":"T","token_id":"u@r!t"}`,
-		"secret as env":   `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid","token_env":"s3cr3t value"}`,
-		"unknown field":   `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid","token_env":"T","password":"x"}`,
+		"no name":                      `{"kind":"incus","slug":"a","base_url":"https://x.invalid","token_env":"T"}`,
+		"bad slug":                     `{"kind":"incus","label":"A","slug":"Not Valid","base_url":"https://x.invalid","token_env":"T"}`,
+		"bad site":                     `{"kind":"incus","label":"A","slug":"a","site":"Not Valid","base_url":"https://x.invalid","token_env":"T"}`,
+		"unknown kind":                 `{"kind":"vmware","label":"A","slug":"a","base_url":"https://x.invalid","token_env":"T"}`,
+		"plain http":                   `{"kind":"incus","label":"A","slug":"a","base_url":"http://x.invalid","token_env":"T"}`,
+		"url with path":                `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid/admin","token_env":"T"}`,
+		"incus no auth":                `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid"}`,
+		"cert no key":                  `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid","cert_file":"/c.pem"}`,
+		"proxmox no node":              `{"kind":"proxmox","label":"A","slug":"a","base_url":"https://x.invalid","token_id":"u@r!t","token_env":"T"}`,
+		"foreign field":                `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid","token_env":"T","token_id":"u@r!t"}`,
+		"secret as env":                `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid","token_env":"s3cr3t value"}`,
+		"unknown field":                `{"kind":"incus","label":"A","slug":"a","base_url":"https://x.invalid","token_env":"T","password":"x"}`,
+		"provider trust is Incus-only": `{"kind":"proxmox","label":"A","slug":"a","base_url":"https://x.invalid","node":"n1","token_id":"u@pam!t","token_env":"T","allow_tenant_deployment_secrets":true}`,
 	} {
 		dir := &memHV{}
 		rec := addRequest(t, infraAPI(t, "op_infra", dir), body)

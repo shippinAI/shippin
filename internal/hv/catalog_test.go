@@ -15,3 +15,14 @@ func TestStorageInventoryCapabilityIsProviderDeclared(t *testing.T) {
 		t.Fatalf("Incus storage inventory capability missing: %+v", incus)
 	}
 }
+
+func TestTenantSecretExposureAcknowledgementIsProviderDeclared(t *testing.T) {
+	incus, ok := SpecFor("incus")
+	if !ok || !slices.Contains(incus.Capabilities, CapTenantSecretExposurePolicy) {
+		t.Fatalf("Incus secret exposure policy capability missing: %+v", incus)
+	}
+	proxmox, ok := SpecFor("proxmox")
+	if !ok || slices.Contains(proxmox.Capabilities, CapTenantSecretExposurePolicy) {
+		t.Fatalf("unsupported provider must not expose secret policy capability: %+v", proxmox)
+	}
+}

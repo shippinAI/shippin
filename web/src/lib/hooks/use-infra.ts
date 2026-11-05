@@ -41,6 +41,7 @@ export type InfraNode = {
   base_url?: string;
   config?: Record<string, string>;
   has_secret?: boolean;
+  allow_tenant_deployment_secrets?: boolean;
   scope?: string;
   online: boolean;
   version?: string;
@@ -75,6 +76,7 @@ export type InfraProvider = {
   capabilities: string[];
   verbs: string[];
   create_fields?: string[];
+  tenant_secret_exposure_policy: boolean;
   fields: InfraField[];
   nodes: InfraNode[];
   totals: InfraTotals;
@@ -247,10 +249,12 @@ export const useOperations = (serverId?: string) =>
     refetchInterval: (q) => (q.state.data?.items.some(isOpen) ? 2_000 : 20_000),
   });
 
-export type HostValues = { kind: string; values: Record<string, string>; trustedCert?: string; serverId?: string };
+export type HostValues = { kind: string; values: Record<string, string>; trustedCert?: string; serverId?: string; allowTenantDeploymentSecrets?: boolean };
 export type NewHost = HostValues & { label: string; slug: string; site: string };
 
-const bodyOf = (v: HostValues) => ({ kind: v.kind, ...v.values, ...(v.trustedCert ? { trusted_cert: v.trustedCert } : {}), ...(v.serverId ? { server_id: v.serverId } : {}) });
+const bodyOf = (v: HostValues) => ({ kind: v.kind, ...v.values,
+  ...(v.allowTenantDeploymentSecrets !== undefined ? { allow_tenant_deployment_secrets: v.allowTenantDeploymentSecrets } : {}),
+  ...(v.trustedCert ? { trusted_cert: v.trustedCert } : {}), ...(v.serverId ? { server_id: v.serverId } : {}) });
 
 function useRefresh() {
   const qc = useQueryClient();

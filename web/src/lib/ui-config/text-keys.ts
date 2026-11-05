@@ -72,6 +72,8 @@ export const textDefaults = {
   "infra.dialog.slug.help": "Lowercase letters, digits and dashes. Used in IDs and logs.",
   "infra.dialog.site": "Site",
   "infra.dialog.site.help": "Where this host lives.",
+  "infra.dialog.tenantSecrets.label": "Allow tenant deployment secrets on this target",
+  "infra.dialog.tenantSecrets.help": "Provider administrators can read workload environment values in instance configuration. Enable only when those administrators are trusted with tenant secrets. Secret delivery remains disabled until a deployment runtime is implemented.",
   "infra.dialog.cancel": "Cancel",
   "infra.dialog.cancelTooltip": "Close without adding",
   "infra.dialog.submit": "Add host",

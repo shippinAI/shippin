@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/catalog"
+	"shippin.cloud/console/internal/deployments"
 	"shippin.cloud/console/internal/vaultix"
 )
 
@@ -34,6 +35,14 @@ func (a *API) revealTenantDeploymentSecret(ctx context.Context, tenantID, deploy
 		return "", err
 	}
 	if a.cfg == nil || a.db == nil || a.n2.vx == nil || a.n2.vx.c == nil || !a.cfg.Vaultix.Enabled || !a.cfg.Vaultix.HasEnv(parsed.Environment) {
+		return "", errDeploymentSecretUnavailable
+	}
+	deployment, err := a.deploymentStore().Get(ctx, tenantID, deploymentID)
+	if err != nil || deployment.Generation != generation || deployment.TargetProvider != deployments.ProviderIncus {
+		return "", errDeploymentSecretUnavailable
+	}
+	target, err := a.visibleEndpoint(ctx, tenantID, deployment.TargetSystemID)
+	if err != nil || target.Kind != string(deployments.ProviderIncus) || !target.AllowTenantDeploymentSecrets {
 		return "", errDeploymentSecretUnavailable
 	}
 	projectSlug := a.cfg.Vaultix.ProjectPrefix + tenantID

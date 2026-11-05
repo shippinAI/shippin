@@ -380,10 +380,14 @@ type hvAttach struct {
 	TokenSecret string `json:"token_secret"`
 	TrustToken  string `json:"trust_token"`
 	TrustedCert string `json:"trusted_cert"`
+	// nil preserves an existing operator decision for older clients; a supplied
+	// false value explicitly revokes permission to expose tenant secrets.
+	AllowTenantDeploymentSecrets *bool `json:"allow_tenant_deployment_secrets,omitempty"`
 }
 
 func (in hvAttach) endpoint() servers.Endpoint {
-	return servers.Endpoint{Kind: in.Kind, BaseURL: in.BaseURL, Node: in.Node, TokenID: in.TokenID, TokenEnv: in.TokenEnv, CAFile: in.CAFile, CertFile: in.CertFile, KeyFile: in.KeyFile, TrustedCert: in.TrustedCert}
+	return servers.Endpoint{Kind: in.Kind, BaseURL: in.BaseURL, Node: in.Node, TokenID: in.TokenID, TokenEnv: in.TokenEnv, CAFile: in.CAFile, CertFile: in.CertFile, KeyFile: in.KeyFile, TrustedCert: in.TrustedCert,
+		AllowTenantDeploymentSecrets: in.AllowTenantDeploymentSecrets != nil && *in.AllowTenantDeploymentSecrets}
 }
 
 func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, _ *caller) {
@@ -395,6 +399,9 @@ func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, _ *caller) {
 	ep.ID = r.PathValue("id")
 	// Re-attaching keeps what was stored unless this request replaces it.
 	if old, err := a.hvDir().Endpoint(r.Context(), ep.ID); err == nil && old.Kind == ep.Kind {
+		if in.AllowTenantDeploymentSecrets == nil {
+			ep.AllowTenantDeploymentSecrets = old.AllowTenantDeploymentSecrets
+		}
 		if in.TokenSecret == "" && in.TokenEnv == old.TokenEnv {
 			ep.SealedSecret = old.SealedSecret
 		}
@@ -1096,6 +1103,9 @@ func validateEndpoint(e servers.Endpoint, in hvAttach) error {
 			kinds = append(kinds, s.Kind)
 		}
 		return fmt.Errorf("kind must be one of %s", strings.Join(kinds, ", "))
+	}
+	if e.AllowTenantDeploymentSecrets && e.Kind != "incus" {
+		return fmt.Errorf("tenant deployment secret exposure acknowledgement currently applies only to Incus")
 	}
 	values := map[string]string{hv.FieldBaseURL: e.BaseURL, hv.FieldNode: e.Node, hv.FieldTokenID: e.TokenID, hv.FieldTokenEnv: e.TokenEnv,
 		hv.FieldCAFile: e.CAFile, hv.FieldCertFile: e.CertFile, hv.FieldKeyFile: e.KeyFile, hv.FieldTokenSecret: in.TokenSecret, hv.FieldTrustToken: in.TrustToken}

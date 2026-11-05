@@ -69,6 +69,11 @@ provider execution remains unimplemented. See the
 Single-guest Incus and Proxmox power actions now also use persisted exact-action
 AgentHub review and one-shot Shippin execution provenance. Live policy/quorum and
 provider execution remain unverified; other provider writes stay fail-closed.
+Incus provider records can explicitly acknowledge that provider administrators
+may read tenant deployment secrets projected into instance configuration. The
+setting is operator-managed, defaults to deny, and gates the lease-fenced
+Vaultix reveal helper; it does not provide isolation from provider administrators
+or enable the unwired deployment executor.
 
 The draft service-definition and attachment shapes live in
 `api/openapi/schemas/service-catalog.json`, registered in the OpenAPI document.

@@ -33,7 +33,9 @@ func TestRevealTenantDeploymentSecretDerivesTenantProjectAndAuditsBeforeReveal(t
 		t.Fatal(err)
 	}
 	var revealCount int
+	var requestCount int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/auth/universal-auth/login":
 			json.NewEncoder(w).Encode(map[string]any{"accessToken": "test-token", "expiresIn": 3600})
@@ -71,6 +73,16 @@ func TestRevealTenantDeploymentSecretDerivesTenantProjectAndAuditsBeforeReveal(t
 	a.cfg.Vaultix.ProjectPrefix = "tenant-"
 	a.n2.vx = &vaultixDeps{c: vaultix.New(server.URL, "client-id", "client-secret", time.Second), cfg: a.cfg.Vaultix, db: a.db}
 
+	if _, err := a.revealTenantDeploymentSecret(context.Background(), tenantID, deploymentID, 1,
+		"deployment-test-worker", "vaultix://production/services/postgres/db-password", jobID, leaseOwner); err == nil {
+		t.Fatal("secret resolution must be denied until the operator accepts Incus administrator visibility")
+	}
+	if requestCount != 0 || revealCount != 0 {
+		t.Fatalf("Vaultix was called before target trust acceptance: requests=%d reveals=%d", requestCount, revealCount)
+	}
+	if _, err := a.db.Pool.Exec(context.Background(), `UPDATE servers SET hv_allow_tenant_deployment_secrets=true WHERE id=$1`, targetID); err != nil {
+		t.Fatal(err)
+	}
 	value, err := a.revealTenantDeploymentSecret(context.Background(), tenantID, deploymentID, 1,
 		"deployment-test-worker", "vaultix://production/services/postgres/db-password", jobID, leaseOwner)
 	if err != nil || value != "test-secret-value" {

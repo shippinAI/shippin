@@ -25,6 +25,9 @@ type Endpoint struct {
 	CertFile string `json:"cert_file,omitempty"`
 	KeyFile  string `json:"key_file,omitempty"`
 	FleetID  string `json:"fleet_id,omitempty"`
+	// AllowTenantDeploymentSecrets is an operator acknowledgement that provider
+	// administrators can read secrets projected into workload configuration.
+	AllowTenantDeploymentSecrets bool `json:"allow_tenant_deployment_secrets"`
 	// TrustedCert is one certificate an operator accepted, or one a trust token vouched for.
 	TrustedCert string `json:"trusted_cert,omitempty"`
 	// HasSecret says a secret is stored. The secret itself never leaves the server.
@@ -37,11 +40,11 @@ type Endpoint struct {
 	Secret string `json:"-"`
 }
 
-const epCols = `id, slug, label, site, coalesce(hv_kind,''), coalesce(hv_api_url,''), coalesce(hv_node,''), coalesce(hv_token_id,''), coalesce(hv_token_env,''), coalesce(hv_ca_file,''), coalesce(hv_cert_file,''), coalesce(hv_key_file,''), coalesce(fleet_id::text,''), coalesce(hv_trusted_cert,''), coalesce(hv_client_cert,''), hv_client_key, hv_secret`
+const epCols = `id, slug, label, site, coalesce(hv_kind,''), coalesce(hv_api_url,''), coalesce(hv_node,''), coalesce(hv_token_id,''), coalesce(hv_token_env,''), coalesce(hv_ca_file,''), coalesce(hv_cert_file,''), coalesce(hv_key_file,''), coalesce(fleet_id::text,''), coalesce(hv_allow_tenant_deployment_secrets,false), coalesce(hv_trusted_cert,''), coalesce(hv_client_cert,''), hv_client_key, hv_secret`
 
 func scanEndpoint(row pgx.Row) (Endpoint, error) {
 	var e Endpoint
-	err := row.Scan(&e.ID, &e.Slug, &e.Label, &e.Site, &e.Kind, &e.BaseURL, &e.Node, &e.TokenID, &e.TokenEnv, &e.CAFile, &e.CertFile, &e.KeyFile, &e.FleetID, &e.TrustedCert, &e.ClientCert, &e.SealedKey, &e.SealedSecret)
+	err := row.Scan(&e.ID, &e.Slug, &e.Label, &e.Site, &e.Kind, &e.BaseURL, &e.Node, &e.TokenID, &e.TokenEnv, &e.CAFile, &e.CertFile, &e.KeyFile, &e.FleetID, &e.AllowTenantDeploymentSecrets, &e.TrustedCert, &e.ClientCert, &e.SealedKey, &e.SealedSecret)
 	e.HasSecret = len(e.SealedKey) > 0 || len(e.SealedSecret) > 0
 	return e, err
 }
@@ -130,8 +133,9 @@ func (s *Store) SetEndpoint(ctx context.Context, e Endpoint) error {
 	if e.Kind != "" {
 		kind = e.Kind
 	}
-	tag, err := s.Pool.Exec(ctx, `UPDATE servers SET hv_kind=$2, hv_api_url=$3, hv_node=$4, hv_token_id=$5, hv_token_env=$6, hv_ca_file=$7, hv_cert_file=$8, hv_key_file=$9, hv_trusted_cert=$10, hv_client_cert=$11, hv_client_key=$12, hv_secret=$13, fleet_id=CASE WHEN $2::text IS NULL THEN NULL ELSE fleet_id END WHERE id=$1`,
-		e.ID, kind, e.BaseURL, e.Node, e.TokenID, e.TokenEnv, e.CAFile, e.CertFile, e.KeyFile, e.TrustedCert, e.ClientCert, e.SealedKey, e.SealedSecret)
+	allowSecrets := e.AllowTenantDeploymentSecrets && e.Kind == "incus"
+	tag, err := s.Pool.Exec(ctx, `UPDATE servers SET hv_kind=$2, hv_api_url=$3, hv_node=$4, hv_token_id=$5, hv_token_env=$6, hv_ca_file=$7, hv_cert_file=$8, hv_key_file=$9, hv_allow_tenant_deployment_secrets=$10, hv_trusted_cert=$11, hv_client_cert=$12, hv_client_key=$13, hv_secret=$14, fleet_id=CASE WHEN $2::text IS NULL THEN NULL ELSE fleet_id END WHERE id=$1`,
+		e.ID, kind, e.BaseURL, e.Node, e.TokenID, e.TokenEnv, e.CAFile, e.CertFile, e.KeyFile, allowSecrets, e.TrustedCert, e.ClientCert, e.SealedKey, e.SealedSecret)
 	if err != nil {
 		return err
 	}
@@ -147,9 +151,10 @@ func (s *Store) CreateEndpoint(ctx context.Context, e Endpoint, by string) (Endp
 	if uuid.Validate(e.ID) != nil {
 		return Endpoint{}, errors.New("servers: a new host needs its id set first, because its secrets are sealed to it")
 	}
-	_, err := s.Pool.Exec(ctx, `INSERT INTO servers(id, tenant_id, slug, label, site, state, created_by, hv_kind, hv_api_url, hv_node, hv_token_id, hv_token_env, hv_ca_file, hv_cert_file, hv_key_file, hv_trusted_cert, hv_client_cert, hv_client_key, hv_secret)
-		VALUES($1,'`+SystemTenantID+`',$2,$3,$4,'planned',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
-		e.ID, e.Slug, e.Label, e.Site, by, e.Kind, e.BaseURL, e.Node, e.TokenID, e.TokenEnv, e.CAFile, e.CertFile, e.KeyFile, e.TrustedCert, e.ClientCert, e.SealedKey, e.SealedSecret)
+	allowSecrets := e.AllowTenantDeploymentSecrets && e.Kind == "incus"
+	_, err := s.Pool.Exec(ctx, `INSERT INTO servers(id, tenant_id, slug, label, site, state, created_by, hv_kind, hv_api_url, hv_node, hv_token_id, hv_token_env, hv_ca_file, hv_cert_file, hv_key_file, hv_allow_tenant_deployment_secrets, hv_trusted_cert, hv_client_cert, hv_client_key, hv_secret)
+		VALUES($1,'`+SystemTenantID+`',$2,$3,$4,'planned',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+		e.ID, e.Slug, e.Label, e.Site, by, e.Kind, e.BaseURL, e.Node, e.TokenID, e.TokenEnv, e.CAFile, e.CertFile, e.KeyFile, allowSecrets, e.TrustedCert, e.ClientCert, e.SealedKey, e.SealedSecret)
 	var pg *pgconn.PgError
 	if errors.As(err, &pg) && pg.Code == "23505" {
 		return Endpoint{}, ErrSlugTaken

@@ -4,6 +4,7 @@ import { ModalDialog } from "../../../lib/design/components/dialog/modal-dialog"
 import { Disclosure } from "../../../lib/design/components/disclosure/disclosure";
 import { TextField } from "../../../lib/design/components/field/text-field";
 import { Select } from "../../../lib/design/components/select/select";
+import { Checkbox } from "../../../lib/design/components/checkbox/checkbox";
 import { useAddHost, useTestHost, type ConnectResult, type InfraField, type InfraNode, type InfraOverview } from "../../../lib/hooks/use-infra";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { fieldsComplete, filledValues, initialValues, noteOK, siteOK, slugFrom, slugOK } from "../model";
@@ -63,6 +64,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
   const [site, setSite] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [trusted, setTrusted] = useState("");
+  const [allowTenantSecrets, setAllowTenantSecrets] = useState(false);
   const [note, setNote] = useState("");
   const provider = providers.find((p) => p.kind === kind) ?? providers[0];
   const fields = provider?.fields ?? [];
@@ -85,6 +87,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
     setSlugEdited(false);
     setSite(data.default_site ?? "");
     setTrusted("");
+    setAllowTenantSecrets(editNode?.allow_tenant_deployment_secrets ?? false);
     setNote("");
     resetTest();
     // Reset only when the dialog opens: the overview refreshes on a timer behind it.
@@ -95,6 +98,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
     setKind(next);
     setValues(initialValues(providers.find((p) => p.kind === next)?.fields ?? []));
     setTrusted("");
+    setAllowTenantSecrets(false);
     resetTest();
   };
   const setField = (name: string, value: string) => {
@@ -107,7 +111,8 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
   const editableFields = editNode ? fields.map((f) => ({ ...f, required: f.required && !f.secret })) : fields;
   const filled = fieldsComplete(editableFields, values) && Object.keys(filledValues(fields, values)).length > 0;
   const valid = !!provider && hostOK && filled && noteOK(note) && test.data?.ok === true;
-  const hostValues = () => ({ kind: provider!.kind, values: filledValues(fields, values), trustedCert: trusted || undefined, serverId: editNode?.id });
+  const hostValues = () => ({ kind: provider!.kind, values: filledValues(fields, values), trustedCert: trusted || undefined,
+    allowTenantDeploymentSecrets: allowTenantSecrets, serverId: editNode?.id });
   const runTest = (trust?: string) => {
     if (!provider) return;
     test.mutate({ ...hostValues(), trustedCert: trust ?? (trusted || undefined) });
@@ -160,6 +165,8 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
           </>
         )}
         {fields.filter((f) => !f.advanced).map(field)}
+        {provider?.tenant_secret_exposure_policy && <Checkbox isSelected={allowTenantSecrets} onChange={setAllowTenantSecrets}
+          description={t("infra.dialog.tenantSecrets.help")}>{t("infra.dialog.tenantSecrets.label")}</Checkbox>}
         {advanced.length > 0 && <Disclosure title={t("infra.dialog.advanced")}><div className="space-y-4 p-4">{advanced.map(field)}</div></Disclosure>}
         {trusted && <p className="text-[13px] text-fg-muted">{t("infra.trust.accepted")}</p>}
         <div ref={outcome} className="space-y-2 empty:hidden">

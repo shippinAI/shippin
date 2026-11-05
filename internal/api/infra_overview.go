@@ -123,14 +123,15 @@ type infraNode struct {
 	Scope   string `json:"scope,omitempty"`
 	// Config contains only non-secret values needed to edit this attachment. Secret fields
 	// and accepted certificate material remain server-side.
-	Config    map[string]string `json:"config,omitempty"`
-	HasSecret bool              `json:"has_secret,omitempty"`
-	Online    bool              `json:"online"`
-	Version   string            `json:"version,omitempty"`
-	Error     string            `json:"error,omitempty"`
-	Guests    infraGuestCount   `json:"guests"`
-	FleetID   string            `json:"fleet_id,omitempty"`
-	Details   *hv.NodeDetails   `json:"details,omitempty"`
+	Config                       map[string]string `json:"config,omitempty"`
+	HasSecret                    bool              `json:"has_secret,omitempty"`
+	AllowTenantDeploymentSecrets bool              `json:"allow_tenant_deployment_secrets"`
+	Online                       bool              `json:"online"`
+	Version                      string            `json:"version,omitempty"`
+	Error                        string            `json:"error,omitempty"`
+	Guests                       infraGuestCount   `json:"guests"`
+	FleetID                      string            `json:"fleet_id,omitempty"`
+	Details                      *hv.NodeDetails   `json:"details,omitempty"`
 	// ControlPlane says this host runs the panel itself.
 	ControlPlane bool `json:"control_plane,omitempty"`
 }
@@ -143,16 +144,17 @@ type infraTotals struct {
 }
 
 type infraProvider struct {
-	Kind         string       `json:"kind"`
-	Label        string       `json:"label"`
-	Description  string       `json:"description,omitempty"`
-	Attachable   bool         `json:"attachable"`
-	Capabilities []string     `json:"capabilities"`
-	Verbs        []string     `json:"verbs"`
-	CreateFields []string     `json:"create_fields,omitempty"`
-	Fields       []infraField `json:"fields"`
-	Nodes        []infraNode  `json:"nodes"`
-	Totals       infraTotals  `json:"totals"`
+	Kind                       string       `json:"kind"`
+	Label                      string       `json:"label"`
+	Description                string       `json:"description,omitempty"`
+	Attachable                 bool         `json:"attachable"`
+	Capabilities               []string     `json:"capabilities"`
+	Verbs                      []string     `json:"verbs"`
+	CreateFields               []string     `json:"create_fields,omitempty"`
+	TenantSecretExposurePolicy bool         `json:"tenant_secret_exposure_policy"`
+	Fields                     []infraField `json:"fields"`
+	Nodes                      []infraNode  `json:"nodes"`
+	Totals                     infraTotals  `json:"totals"`
 }
 
 // infraAgent reports the local agent that is not answering, so it is not mistaken for a host.
@@ -164,7 +166,9 @@ type infraAgent struct {
 // describeProvider joins what the driver can do with how this installation names it.
 func describeProvider(spec hv.Spec, ui config.UI) (infraProvider, bool) {
 	p := infraProvider{Kind: spec.Kind, Label: spec.Kind, Attachable: len(spec.Fields) > 0,
-		Capabilities: spec.Capabilities, Verbs: spec.Verbs, CreateFields: spec.CreateFields, Fields: []infraField{}, Nodes: []infraNode{}}
+		Capabilities: spec.Capabilities, Verbs: spec.Verbs, CreateFields: spec.CreateFields,
+		TenantSecretExposurePolicy: slices.Contains(spec.Capabilities, hv.CapTenantSecretExposurePolicy),
+		Fields:                     []infraField{}, Nodes: []infraNode{}}
 	cfg, _ := ui.Provider(spec.Kind)
 	if cfg.Label != "" {
 		p.Label = cfg.Label
@@ -274,7 +278,8 @@ func (t *infraTotals) add(n infraNode) {
 
 func (a *API) probeNode(ctx context.Context, ep servers.Endpoint) infraNode {
 	n := infraNode{ID: ep.ID, Slug: ep.Slug, Label: ep.Label, Site: ep.Site, Kind: ep.Kind, Source: sourceAPI, BaseURL: ep.BaseURL, Scope: ep.Node, FleetID: ep.FleetID,
-		Config: map[string]string{"base_url": ep.BaseURL, "node": ep.Node, "token_id": ep.TokenID, "token_env": ep.TokenEnv, "ca_file": ep.CAFile, "cert_file": ep.CertFile, "key_file": ep.KeyFile}, HasSecret: ep.HasSecret || len(ep.SealedKey) > 0 || len(ep.SealedSecret) > 0}
+		AllowTenantDeploymentSecrets: ep.AllowTenantDeploymentSecrets,
+		Config:                       map[string]string{"base_url": ep.BaseURL, "node": ep.Node, "token_id": ep.TokenID, "token_env": ep.TokenEnv, "ca_file": ep.CAFile, "cert_file": ep.CertFile, "key_file": ep.KeyFile}, HasSecret: ep.HasSecret || len(ep.SealedKey) > 0 || len(ep.SealedSecret) > 0}
 	if n.Label == "" {
 		n.Label = ep.Slug
 	}

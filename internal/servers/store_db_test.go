@@ -141,8 +141,25 @@ func TestHypervisorColumns(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := s.Endpoint(ctx, g.ID)
-	if err != nil || got.Kind != "proxmox" || got.TokenEnv != "SHIPPIN_HV_TOKEN" || got.Slug != "pve" {
+	if err != nil || got.Kind != "proxmox" || got.TokenEnv != "SHIPPIN_HV_TOKEN" || got.Slug != "pve" || got.AllowTenantDeploymentSecrets {
 		t.Fatalf("%+v %v", got, err)
+	}
+	ep.AllowTenantDeploymentSecrets = true
+	ep.Kind = "incus"
+	if err := s.SetEndpoint(ctx, ep); err != nil {
+		t.Fatal(err)
+	}
+	got, err = s.Endpoint(ctx, g.ID)
+	if err != nil || !got.AllowTenantDeploymentSecrets {
+		t.Fatalf("explicit Incus secret trust setting was not persisted: %+v %v", got, err)
+	}
+	ep.Kind = "proxmox"
+	if err := s.SetEndpoint(ctx, ep); err != nil {
+		t.Fatal(err)
+	}
+	got, err = s.Endpoint(ctx, g.ID)
+	if err != nil || got.AllowTenantDeploymentSecrets {
+		t.Fatalf("provider change must clear Incus-only trust setting: %+v %v", got, err)
 	}
 	all, err := s.Endpoints(ctx)
 	if err != nil || len(all) != 1 {
