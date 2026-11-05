@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -73,6 +74,48 @@ func (s *Store) RecordReviewDecisionWithLease(ctx context.Context, tenantID, dep
 	}
 	return s.recordReviewDecision(ctx, tenantID, deploymentID, generation, actor, idempotencyKey,
 		allowed, provenance, failureCode, jobID, leaseOwner)
+}
+
+// CheckReviewDecisionLease rejects a worker before it asks AgentHub for a
+// decision when its lease or generation is already stale. The later
+// RecordReviewDecisionWithLease transaction fences the result again after the
+// network call, closing races while avoiding decisions from already-lost jobs.
+func (s *Store) CheckReviewDecisionLease(ctx context.Context, tenantID, deploymentID string, generation int64,
+	jobID, leaseOwner string) error {
+	if !validUUID(tenantID) || !validUUID(deploymentID) || !validUUID(jobID) || generation < 1 ||
+		strings.TrimSpace(leaseOwner) == "" || len(leaseOwner) > 255 {
+		return ErrInvalidRequest
+	}
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var leased string
+	targetID := deploymentID + ":" + strconv.FormatInt(generation, 10)
+	err = tx.QueryRow(ctx, `SELECT id::text FROM jobs WHERE id=$1 AND tenant_id=$2
+		AND kind='deployment.reconcile' AND target_type='deployment_generation' AND target_id=$3
+		AND status='running' AND lease_owner=$4 AND lease_until>now() FOR UPDATE`,
+		jobID, tenantID, targetID, leaseOwner).Scan(&leased)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrLostJobLease
+	}
+	if err != nil {
+		return err
+	}
+	var current int64
+	err = tx.QueryRow(ctx, `SELECT desired_generation FROM shippin_deployments
+		WHERE tenant_id=$1 AND id=$2 FOR UPDATE`, tenantID, deploymentID).Scan(&current)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if current != generation {
+		return ErrGenerationConflict
+	}
+	return tx.Commit(ctx)
 }
 
 func (s *Store) recordReviewDecision(ctx context.Context, tenantID, deploymentID string, generation int64,

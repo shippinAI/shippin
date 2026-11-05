@@ -101,9 +101,12 @@ worker authorization decisions, but is not wired into the unsupported worker.
    same database transaction. API/store tests prove an expired or replaced
    worker cannot append an event or change observed state and a current lease
    can persist `runtime_unsupported`. This slice performs no provider I/O.
-   Commit `537f304` also adds `RecordReviewDecisionWithLease`; PostgreSQL
-   integration coverage proves an expired or replaced lease cannot append
-   AgentHub decision provenance. The reconciler does not call it yet.
+   Commit `537f304` added lease-fenced decision persistence. The worker
+   authorization path now checks its current lease/generation before requesting
+   an AgentHub decision, then persists allow/deny with a second lease fence.
+   PostgreSQL coverage proves a valid worker decision is recorded and an
+   already-expired lease is rejected before the AgentHub call. The reconciler
+   does not invoke it while no supported executor exists.
 3. Define a complete versioned runtime recipe before writing an executor: source
    digest and provider compatibility; process/config contract; resource bounds;
    persistent volume layout; exposure; health/read-back; secret references and
@@ -494,9 +497,13 @@ failures. The Shippin client binds the ticket to the exact machine, command and
 action hash; re-reads ticket and policy after the decision; rejects no-match,
 permissive rules and any matched rule lacking approval plus reviewer quorum. The
 operator review endpoint uses this client and persists action-bound provenance.
-The worker still does not call it: there is no provider executor to dispatch after
-JIT authorization. Production service-principal permissions and deployment-time
-credential scope remain unverified. The example installation denies gated
+The worker authorization variant now checks its live tenant/deployment-generation
+lease before calling AgentHub and persists decision or denial with a second
+lease-fenced transaction. Database-backed tests cover allowed provenance and an
+expired lease being rejected before any AgentHub call. The worker still does not
+invoke this path because there is no supported provider executor to dispatch
+after JIT authorization. Production service-principal permissions and
+deployment-time credential scope remain unverified. The example installation denies gated
 actions; local approver defaults and the `HUB_OWNER_*` bypass remain removed.
 
 **Exit gate:** identity collision/change tests pass; AgentHub decision, review,

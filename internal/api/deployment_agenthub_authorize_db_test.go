@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -143,6 +144,28 @@ func TestAuthorizeDeploymentReviewRecordsAllowAndNoMatchDenial(t *testing.T) {
 	if allowed.Code != http.StatusOK || !strings.Contains(allowed.Body.String(), `"event_type":"review_allowed"`) ||
 		!strings.Contains(allowed.Body.String(), `"policy_version":3`) || strings.Contains(allowed.Body.String(), serviceToken) || decisionCalls != 1 {
 		t.Fatalf("authorization allow response: %d %s", allowed.Code, allowed.Body)
+	}
+	jobID, leaseOwner := uuid.NewString(), "deployment-auth-test-worker"
+	if _, err := a.db.Pool.Exec(ctx, `INSERT INTO jobs(id,tenant_id,kind,target_type,target_id,status,created_by,lease_owner,lease_until)
+		VALUES($1,$2,'deployment.reconcile','deployment_generation',$3,'running','deployment-auth-test-worker',$4,now()+interval '1 minute')`,
+		jobID, tenantID, deployment.ID+":1", leaseOwner); err != nil {
+		t.Fatal(err)
+	}
+	workerAllowed, err := a.authorizeDeploymentActionWithLease(ctx, tenantID, deployment,
+		"deployment-auth-test-worker", jobID, leaseOwner)
+	if err != nil || workerAllowed.Status != http.StatusOK || workerAllowed.Event.Type != deployments.EventReviewAllowed {
+		t.Fatalf("worker JIT authorization was not recorded under its lease: result=%+v err=%v", workerAllowed, err)
+	}
+	decisionCount := decisionCalls
+	if _, err := a.db.Pool.Exec(ctx, `UPDATE jobs SET lease_until=now()-interval '1 second' WHERE id=$1`, jobID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.authorizeDeploymentActionWithLease(ctx, tenantID, deployment,
+		"deployment-auth-test-worker", jobID, leaseOwner); !errors.Is(err, deployments.ErrLostJobLease) {
+		t.Fatalf("expired worker lease should fail before AgentHub authorization: %v", err)
+	}
+	if decisionCalls != decisionCount {
+		t.Fatalf("expired worker called AgentHub: calls before=%d after=%d", decisionCount, decisionCalls)
 	}
 	matched = []string{}
 	denied := request(uuid.NewString())
