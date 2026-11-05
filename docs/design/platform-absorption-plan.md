@@ -9,9 +9,10 @@ ledger](capability-absorption.md) holds source-by-source evidence and dispositio
 The order below is a dependency order. Each row closes only when its observable
 acceptance checks pass; a panel or catalog screen alone does not close a runtime
 capability. Latest green implementation commit before this slice: `6081250`
-(Checks run `41936135681`, all 13 jobs passed, 2026-11-04). Current worktree adds
-AgentHub policy context fields and binds evidence to its ticket; focused Go tests
-and full local `scripts/check.sh` pass. A disposable AgentHub contract run passed
+(Checks run `41936135681`, all 13 jobs passed, 2026-11-04). Commit `c196b35`
+adds AgentHub policy context fields and binds evidence to its ticket; focused Go
+tests and full local `scripts/check.sh` pass, and all 13 CI jobs pass (run
+`41938627494`, 2026-11-05). A disposable AgentHub contract run passed
 ticket/evidence/submit/read-back, idempotency replay, configured human plus
 reviewer quorum, no-match fail-closed behavior and stale-ticket denial. It used
 seeded synthetic principals; Shippin's least-privilege principal, live service
@@ -22,7 +23,7 @@ execute provider deployment.
 |---|---|---|---|---|
 | 0 | Source inventory, one-panel ownership, migration rules and capability ledger | `docs/design/`, `third_party/warden-ct102` reference matrix | Every candidate row has source revision, observed behavior, destination, disposition, rights/security status and acceptance evidence | In progress. Sibling trees remain read-only; Warden matrix still has open rows; archive is prohibited until these close. |
 | 1 | Provider declarations, credential-safe edits/tests, Incus and Proxmox guest lifecycle, resources and operation read-back | `internal/servers`, `internal/hv/{incus,proxmox}`, `internal/api`, `web/` | Disposable Incus and Proxmox lifecycle workflows, edit/test denial, read-back, task failure, auth denial and secret redaction | Core lifecycle and shared storage inventory exist. Proxmox physical disk listing and capacity are read-only. Full provider coverage and disposable-host evidence remain open. |
-| 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | **Hard gate, in progress.** Operators configure the HTTPS endpoint and sealed credential, read-test tenant policy, and run a recorded read-only machine/tenant mapping check. The client requires every matched policy rule to explicitly require approval plus a positive role-scoped reviewer quorum. Current worktree prepares generation-bound review context, bounded redacted ticket-bound evidence and exact ticket read-back. Disposable AgentHub test passed configured human/quorum and stale-ticket denial using seeded synthetic principals; AgentHub's seed policy matched no rule and Shippin correctly fails closed. Focused Go tests and full `scripts/check.sh` pass locally; current-slice CI pending. Production least-privilege principal, Shippin live client, timeout/restart and provider decision integration remain open; provider writes remain unavailable. |
+| 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | **Hard gate, in progress.** Operators configure the HTTPS endpoint and sealed credential, read-test tenant policy, and run a recorded read-only machine/tenant mapping check. The client requires every matched policy rule to explicitly require approval plus a positive role-scoped reviewer quorum. Commit `c196b35` prepares generation-bound review context, bounded redacted ticket-bound evidence and exact ticket read-back; focused Go tests, full `scripts/check.sh` and all 13 CI jobs (run `41938627494`) pass. Disposable AgentHub test passed configured human/quorum and stale-ticket denial using seeded synthetic principals; AgentHub's seed policy matched no rule and Shippin correctly fails closed. Production least-privilege principal, Shippin live client, timeout/restart and provider decision integration remain open; provider writes remain unavailable. |
 | 3 | Deployment reconciliation and provider execution | `internal/deployments`, migrations, hostd, provider drivers, jobs, API/OpenAPI, `web/` | Transactional dispatch, fenced lease, immutable generation, provider-specific executor, restart/retry, read-back, health, idempotent removal and negative-path evidence | **Blocked on order 2.** Current API stores desired generations/events only; no reconcile/build handler exists. Implement no executor bypass or pretend-ready state. |
 | 4 | Pinned source resolution and bounded builds | catalog/builder owner, isolated worker, secret resolver | Immutable input commit/digest, build provenance, bounded CPU/memory/time/storage/concurrency/egress, secret mounts, cancellation and cleanup | Not implemented. Must precede GitHub/custom Git deployment; OCI digest path still needs provider compatibility. |
 | 5 | Managed PostgreSQL, Dragonfly, Redis and ClickHouse | managed-service owner, hostd/provider adapters, catalog, `web/` | Engine-specific configure/provision/upgrade/backup/restore/health/delete on supported providers; tenant isolation; restore verification | Design only; `internal/managed` is rrflow state, not an engine runtime. No turnkey engine may be advertised. |
@@ -101,8 +102,8 @@ action-bound AgentHub ticket with policy context fields, a bounded redacted
 deployment snapshot naming the exact ticket, persists only Shippin correlation
 metadata, and exposes review preparation/status in the existing deployment
 panel. Focused Go tests and full local checks pass. Disposable AgentHub contract
-behavior passed with seeded synthetic principals; current-slice CI remains
-pending. Least-privilege principal evidence and a provider-side authorization
+behavior passed with seeded synthetic principals; all 13 CI jobs pass on
+`c196b35` (run `41938627494`). Least-privilege principal evidence and a provider-side authorization
 decision bound to the submitted review remain absent. All provider mutations
 remain unavailable until the entire gate has acceptance evidence.
 
