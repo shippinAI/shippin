@@ -175,14 +175,43 @@ candidate source contains unique unreviewed capability, and the user can inspect
 the archive ledger. Only then is archival of the external folders safe to
 consider; deletion is a separate explicit action.
 
-## Current next actions
+## Execution register
 
-1. Review the current lifecycle package and its Incus/Proxmox call graph; write a
-   source-hashed implementation plan before changing lifecycle ownership.
-2. Complete a provenance/dependency/license inventory for the first candidate
-   folder and adopt one capability at a time under the ownership map.
-3. Trace the AgentHub approval implementation from current client/policy storage
-   through infrastructure provider calls and tests; do not enable writes until
-   the phase 3 gate passes.
-4. Maintain this document with commit/CI evidence and mark a phase complete only
-   when every stated acceptance gate is met.
+This register is the active work order. It deliberately separates implemented
+metadata and design from behavior that has actually been exercised. Complete
+each packet in order, update its status with commit and CI evidence, and do not
+start a dependent packet while its gate is open. Source-by-source provenance and
+dispositions remain in [`design/capability-absorption.md`](design/capability-absorption.md);
+the architecture and UI path remain in [`design/platform-absorption-plan.md`](design/platform-absorption-plan.md).
+
+| Order | Packet and canonical owner | Current status | Implementation order and observable exit gate |
+| --- | --- | --- | --- |
+| 0 | Baseline and one deployable: `web/`, `cmd/console`, `cmd/shippin-hostd`, `install/`, CI | **Passed locally** on `main` `d01f51c`; `bash scripts/check.sh` passed on 2026-11-05. Full Linux CI is tracked separately. | Keep all panel work inside `web/`; verify clean standalone control-plane and host-agent artifacts, install/upgrade/migration flow, and no sibling checkout runtime dependency. Record Linux CI and installation evidence. |
+| 1 | Source inventory and rights: historical `shippin-mesh`, `shippin-cloud`, `shippin-console`, and Warden-named source; ledger in `.ai/data/` | **Partially audited; not archive-ready.** Existing ledger records revisions and broad feature families; candidate-level rights/dependency/test review is incomplete. | Inventory every candidate path by source revision/hash, behavior, dependency/license, security boundary, current canonical owner, implementation evidence and disposition. Read-only review only; no wholesale import, reset, merge, or deletion. Exit when no useful capability or user-local change is unresolved. |
+| 2 | Provider mutation approval: `internal/agenthub/`, `internal/api/infra*`, `internal/servers/`, one `web/` guest workflow | **Blocked by deliberate fail-closed stub.** All current provider mutation routes return `503 agenthub_review_unavailable`; read-only inventory works. | First implement one narrow guest-power flow end to end: persisted exact-action review, AgentHub ticket/evidence, current policy/quorum recheck, one-shot consume, existing operation journal, operator and tenant panel paths. Prove replay, changed target/config, denial, outage, audit/store failure and unknown provider result. Then extend the same reviewed contract operation-by-operation; do not enable other mutations incidentally. |
+| 3 | Incus and Proxmox lifecycle: `internal/hv/{incus,proxmox}/`, `internal/hv/`, infra API and UI | **Drivers and lifecycle files exist; all current writes remain disabled.** | Finish guest power first; then create/configure/clone/delete, snapshots/restore, storage and networking as distinct typed provider capabilities with provider-specific contracts. Test unsupported paths, auth/TLS failures, idempotency, operation recovery, read-back and disposable Incus and Proxmox behavior. UI add/edit/test/remove uses configured endpoints, certs and credentials only. |
+| 4 | Deployment runtime and source builder: `internal/deployments/`, `internal/catalog/`, `internal/jobs/`, `internal/hostd/`, deployment UI | **Desired generations, source metadata, outbox, jobs, fences and review helpers exist; executor is deliberately `runtime_unsupported`.** | Specify and implement a bounded isolated Git/custom builder with immutable source/artifact provenance and configured limits; then tenant-safe typed Incus OCI executor and separate supported Proxmox guest runtime. Add JIT AgentHub immediately before provider writes, secret delivery policy, reconciliation/read-back, health, cancellation, update, rollback and deletion. Keep unsupported targets visibly unsupported. |
+| 5 | Turnkey data services: catalog/runtime adapters and deployment UI | **Design/catalog groundwork only; no verified turnkey service deployment.** | On the verified runtime, implement PostgreSQL, Dragonfly, Redis and ClickHouse as explicit engine-specific versioned offerings. Configure compute, storage, placement, network, users, secret rotation, health, upgrades, backups and actual restore tests. Never call a catalog card deployed until provider read-back and health prove it. |
+| 6 | Networking: `internal/networking/`, `shippin_network_*` schema, infrastructure UI | **Configuration, inventory sync and local resource association exist; remote tunnel/device/routes writes do not.** | Finish add/edit/test/rotate/revoke and permission-scoped writes for Cloudflare Tunnel and Tailscale; define a minimal validated custom integration contract. Persist desired links apart from observations; verify stale inventory, removal, tenant/target denial, audit and secret redaction. |
+| 7 | Platform services and health: platform service domain, API and existing settings/overview UI | **Editable registry, bounded probes, observations and stale/unknown state exist; some probes/resource integrations remain incomplete.** | Complete Nomen, Vaultix, Operator, service catalog and platform deployment configuration through persisted create/edit/disable/test APIs. Replace missing measurements with `unknown`, expose freshness/revision/provenance and errors, enforce revision fences, and test persistence across restart. No installation-specific address or credentials in defaults. |
+| 8 | Dashboards and navigation: the existing `web/` feature routes | **Separate infrastructure, health, services and deployment views exist; unified live deployment/resource history remains incomplete.** | Join only by stable system/service/deployment IDs. Build operator views for provider resources, service instances, operation events and health; preserve role/tenant access and keep each destination within four actions from its parent workflow. Validate API-backed behavior and failure/empty/stale states. |
+| 9 | Developer build, rollout, evaluation and source retirement: `scripts/`, CI, installer, docs and absorption ledger | **Local repo checks pass; standalone rollout and live provider acceptance are not yet evidenced.** | Verify Linux release binaries, clean install, upgrade, backup/restore, secret/public-tree scan, migration replay and disposable-provider workflows. Use independent evaluation targets. Finish every source ledger row and rights review, then produce archive readiness evidence. Source deletion is separate and is not authorized by this plan. |
+
+### Current execution slice
+
+The next code change is packet 2, limited to guest power actions and the existing
+AgentHub identity/review authority. The source-hashed handoff is stored in the
+Git-ignored session `.ai/data/sessions/2026/11/9db05ac5-2958-4ec6-95c2-f5d9e9692ece/`.
+Its baseline hashes validate against `d01f51c`; no product source has been
+changed for that slice yet. Its exit gate is the one in packet 2 above plus the
+focused checks recorded in that handoff. All other provider writes remain
+fail-closed until they have their own exact-action review and recovery coverage.
+
+### Evidence update rules
+
+Each packet update names the owning files and migration, tests actually run,
+local environment limits, resulting main commit, and GitHub workflow conclusion.
+Do not mark a packet complete from schema presence, mocked UI, accepted HTTP
+requests, or an agent's summary. If the provider or AgentHub environment is
+unavailable, keep that behavior explicitly unverified and continue only with
+independent work that does not depend on it.
