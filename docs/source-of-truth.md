@@ -26,23 +26,15 @@ key, and treats remote inventory as observation rather than a deployed change.
 `internal/catalog/` owns reusable service definitions, customer plan/configuration
 and pinned source provenance. `internal/deployments/` owns tenant-scoped deployment
 generations, the transactional `shippin_` outbox, provider targets, desired/observed
-state, reconciliation and deployment events. The transactional outbox producer,
-leader relay and generation-keyed job worker are implemented; current requests
-receive an explicit `runtime_unsupported` failure until an authorized typed
-provider/runtime executor is implemented. No provider application mutation is
-performed by this worker today. A lease-fenced store method for worker review
-provenance exists, but no worker invokes it yet; just-in-time worker
-authorization, provider application runtime and deployment event UI remain
-planned. `internal/jobs/`
-remains the durable worker lease/retry mechanism, not deployment truth. `internal/hv/incus/` and
-`internal/hv/proxmox/` retain provider-specific guest behavior; `internal/hostd/`
-owns only the bounded in-guest bootstrap and workload operations exposed through its
-authenticated contract. No provider or builder implementation may be hidden in the
+state, reconciliation and deployment events. The transactional outbox producer, leader relay and generation-keyed job worker are implemented. For an approved Incus desired-present generation, the worker currently executes only the `ensure_persistent_volume` step: it reloads the immutable reviewed generation under its live lease, revalidates tenant-assigned storage/network inventory, obtains current AgentHub authorization, consumes a one-time dispatch claim, ensures the deployment-owned volume and reads it back. The step is journaled, but the deployment still ends `runtime_unsupported` because workload creation, power, health, deletion and service runtime are not implemented; Proxmox application execution is absent. This narrow operation is not a deployable service. Lease-fenced worker decision/outcome persistence and audited Vaultix lookup exist; Vaultix delivery is not currently needed or performed by the volume step. `internal/jobs/` remains the durable worker lease/retry mechanism, not deployment truth. `internal/hv/incus/` and `internal/hv/proxmox/` retain provider-specific guest behavior; `internal/hostd/` owns only the bounded in-guest bootstrap and workload operations exposed through its authenticated contract. No provider or builder implementation may be hidden in the
 catalog handlers or the React panel.
 
 The [capability absorption ledger](design/capability-absorption.md) records which
-behaviors from historical console and mesh sources are already owned here, which
-need implementation, and the evidence required before those sources are archive-ready.
+behaviors from historical console, cloud, mesh and Warden sources are already owned
+here, which need implementation, and the evidence required before those sources are
+archive-ready. The [archive-readiness ledger](design/archive-readiness.md) records
+the observed state and preservation gates for each checkout; no source tree is
+deleted or cleaned as part of capability review.
 The [platform absorption plan](design/platform-absorption-plan.md) defines the target
 domain model, UI destinations, phase order and acceptance gates.
 The Proxmox operator capability is authored as Shippin Prox; `proxmox` remains the
@@ -63,18 +55,18 @@ of a site's records. AgentHub's Gold-specific seed and runner assumptions live i
 AgentHub and must be retired there through a reviewed migration. Preserve historical
 records and verify their meaning without treating them as new AgentHub decisions.
 Shippin now has AgentHub-backed deployment review preparation and exact-action
-operator authorization in the existing panel; worker-side authorization before
+operator authorization in the existing panel. Worker-side authorization is implemented for the Incus persistent-volume step only; other
 provider execution remains unimplemented. See the
 [system identity and human review plan](system-identity-human-review-plan.md).
-Deployment review reservations also persist the version and digest of a deterministic provider execution plan derived from the immutable generation. The AgentHub action and review evidence bind that plan; a stale plan digest is rejected before an authorization request. The current plan is descriptive and the worker remains `runtime_unsupported`; it is not an execution record or proof that a provider operation ran.
+Deployment review reservations also persist the version and digest of a deterministic provider execution plan derived from the immutable generation. The AgentHub action and review evidence bind that plan; a stale plan digest is rejected before an authorization request. The reviewed plan binds the deployment generation; the journal records the Incus volume step, but the generation remains `runtime_unsupported` and this is not proof that a service was deployed.
 Single-guest Incus and Proxmox power actions now also use persisted exact-action
 AgentHub review and one-shot Shippin execution provenance. Live policy/quorum and
-provider execution remain unverified; other provider writes stay fail-closed.
+provider execution remain unverified; other provider writes stay fail-closed. The deployment worker volume step is the sole reviewed provider-write exception.
 Incus provider records can explicitly acknowledge that provider administrators
 may read tenant deployment secrets projected into instance configuration. The
 setting is operator-managed, defaults to deny, and gates the lease-fenced
 Vaultix reveal helper; it does not provide isolation from provider administrators
-or enable the unwired deployment executor.
+or make the volume-only deployment executor a complete service runtime.
 
 The draft service-definition and attachment shapes live in
 `api/openapi/schemas/service-catalog.json`, registered in the OpenAPI document.
