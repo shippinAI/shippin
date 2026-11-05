@@ -41,9 +41,14 @@ export function OverviewTab({ data, onAdd }: Props) {
       id: "status", label: t("infra.column.status"),
       render: (n) => (
         <>
-          <Badge tone={n.online && !n.error ? "success" : "danger"}>
-            <StatusDot health={n.online && !n.error ? "up" : "down"} /> {n.online ? t("infra.status.online") : t("infra.status.offline")}
+          <Badge tone={n.health_state === "operational" ? "success" : n.health_state === "down" ? "danger" : "neutral"}>
+            <StatusDot health={n.health_state === "operational" ? "up" : n.health_state === "down" ? "down" : "unknown"} />
+            {t(`infra.health.${n.health_state}`)}
           </Badge>
+          {(n.health_checked_at || n.health_latency_ms !== undefined) && <p className="mt-1 text-[12px] text-fg-subtle">
+            {n.health_checked_at && <span>{t("infra.health.checked_at", { time: new Date(n.health_checked_at).toLocaleString() })}</span>}
+            {n.health_latency_ms !== undefined && <span className="ml-2">{t("infra.health.latency", { latency: n.health_latency_ms })}</span>}
+          </p>}
           {n.error && <p className="mt-1 max-w-xs truncate text-[12px] text-danger" title={n.error}>{n.error}</p>}
         </>
       ),

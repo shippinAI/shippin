@@ -28,6 +28,8 @@ type Endpoint struct {
 	// AllowTenantDeploymentSecrets is an operator acknowledgement that provider
 	// administrators can read secrets projected into workload configuration.
 	AllowTenantDeploymentSecrets bool `json:"allow_tenant_deployment_secrets"`
+	// Revision fences provider observations against endpoint edits and detach.
+	Revision int64 `json:"revision"`
 	// TrustedCert is one certificate an operator accepted, or one a trust token vouched for.
 	TrustedCert string `json:"trusted_cert,omitempty"`
 	// HasSecret says a secret is stored. The secret itself never leaves the server.
@@ -40,11 +42,11 @@ type Endpoint struct {
 	Secret string `json:"-"`
 }
 
-const epCols = `id, slug, label, site, coalesce(hv_kind,''), coalesce(hv_api_url,''), coalesce(hv_node,''), coalesce(hv_token_id,''), coalesce(hv_token_env,''), coalesce(hv_ca_file,''), coalesce(hv_cert_file,''), coalesce(hv_key_file,''), coalesce(fleet_id::text,''), coalesce(hv_allow_tenant_deployment_secrets,false), coalesce(hv_trusted_cert,''), coalesce(hv_client_cert,''), hv_client_key, hv_secret`
+const epCols = `id, slug, label, site, coalesce(hv_kind,''), coalesce(hv_api_url,''), coalesce(hv_node,''), coalesce(hv_token_id,''), coalesce(hv_token_env,''), coalesce(hv_ca_file,''), coalesce(hv_cert_file,''), coalesce(hv_key_file,''), coalesce(fleet_id::text,''), coalesce(hv_allow_tenant_deployment_secrets,false), hv_revision, coalesce(hv_trusted_cert,''), coalesce(hv_client_cert,''), hv_client_key, hv_secret`
 
 func scanEndpoint(row pgx.Row) (Endpoint, error) {
 	var e Endpoint
-	err := row.Scan(&e.ID, &e.Slug, &e.Label, &e.Site, &e.Kind, &e.BaseURL, &e.Node, &e.TokenID, &e.TokenEnv, &e.CAFile, &e.CertFile, &e.KeyFile, &e.FleetID, &e.AllowTenantDeploymentSecrets, &e.TrustedCert, &e.ClientCert, &e.SealedKey, &e.SealedSecret)
+	err := row.Scan(&e.ID, &e.Slug, &e.Label, &e.Site, &e.Kind, &e.BaseURL, &e.Node, &e.TokenID, &e.TokenEnv, &e.CAFile, &e.CertFile, &e.KeyFile, &e.FleetID, &e.AllowTenantDeploymentSecrets, &e.Revision, &e.TrustedCert, &e.ClientCert, &e.SealedKey, &e.SealedSecret)
 	e.HasSecret = len(e.SealedKey) > 0 || len(e.SealedSecret) > 0
 	return e, err
 }
@@ -134,7 +136,7 @@ func (s *Store) SetEndpoint(ctx context.Context, e Endpoint) error {
 		kind = e.Kind
 	}
 	allowSecrets := e.AllowTenantDeploymentSecrets && e.Kind == "incus"
-	tag, err := s.Pool.Exec(ctx, `UPDATE servers SET hv_kind=$2, hv_api_url=$3, hv_node=$4, hv_token_id=$5, hv_token_env=$6, hv_ca_file=$7, hv_cert_file=$8, hv_key_file=$9, hv_allow_tenant_deployment_secrets=$10, hv_trusted_cert=$11, hv_client_cert=$12, hv_client_key=$13, hv_secret=$14, fleet_id=CASE WHEN $2::text IS NULL THEN NULL ELSE fleet_id END WHERE id=$1`,
+	tag, err := s.Pool.Exec(ctx, `UPDATE servers SET hv_kind=$2, hv_api_url=$3, hv_node=$4, hv_token_id=$5, hv_token_env=$6, hv_ca_file=$7, hv_cert_file=$8, hv_key_file=$9, hv_allow_tenant_deployment_secrets=$10, hv_trusted_cert=$11, hv_client_cert=$12, hv_client_key=$13, hv_secret=$14, fleet_id=CASE WHEN $2::text IS NULL THEN NULL ELSE fleet_id END, hv_revision=hv_revision+1 WHERE id=$1`,
 		e.ID, kind, e.BaseURL, e.Node, e.TokenID, e.TokenEnv, e.CAFile, e.CertFile, e.KeyFile, allowSecrets, e.TrustedCert, e.ClientCert, e.SealedKey, e.SealedSecret)
 	if err != nil {
 		return err

@@ -44,6 +44,10 @@ export type InfraNode = {
   allow_tenant_deployment_secrets?: boolean;
   scope?: string;
   online: boolean;
+  health_state: "operational" | "down" | "unknown";
+  health_checked_at?: string;
+  health_latency_ms?: number;
+  endpoint_revision?: number;
   version?: string;
   error?: string;
   guests: InfraGuestCount;

@@ -151,8 +151,15 @@ func (a *API) serviceResource(ctx context.Context, p config.Probe) *serviceResou
 func (a *API) platformProbeConcurrency(ctx context.Context) int {
 	a.probeLimitMu.Lock()
 	defer a.probeLimitMu.Unlock()
+	if a.probeGate == nil {
+		a.probeGate = newProbeConcurrencyGate(config.DefaultProbeConcurrency)
+	}
 	limit := config.DefaultProbeConcurrency
-	switch value := a.platformValue(ctx, "services.probe_concurrency").(type) {
+	var configured any
+	if a.db != nil {
+		configured = a.platformValue(ctx, "services.probe_concurrency")
+	}
+	switch value := configured.(type) {
 	case int:
 		if value >= 1 && value <= config.MaxProbeConcurrency {
 			limit = value

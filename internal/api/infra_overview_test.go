@@ -134,6 +134,9 @@ func TestOverviewShowsLiveCountsAndNeverHidesADeadHost(t *testing.T) {
 	if u["online"] != true || u["version"] != "6.0" || u["source"] != "api" {
 		t.Fatalf("up: %v", u)
 	}
+	if u["health_state"] != "operational" || u["health_checked_at"] == nil || u["health_latency_ms"] == nil {
+		t.Fatalf("health observation is incomplete: %v", u)
+	}
 	if g := u["guests"].(map[string]any); g["total"] != 3.0 || g["running"] != 2.0 {
 		t.Fatalf("guests: %v", g)
 	}
@@ -146,6 +149,27 @@ func TestOverviewShowsLiveCountsAndNeverHidesADeadHost(t *testing.T) {
 	}
 	if body, _ := json.Marshal(ov); strings.Contains(string(body), "s3cret-value") {
 		t.Fatal("token secret in the overview")
+	}
+}
+
+func TestOverviewKeepsProviderHealthOperationalWhenGuestInventoryFails(t *testing.T) {
+	t.Setenv("TEST_INCUS_TOKEN", "test-token")
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/1.0" {
+			_ = json.NewEncoder(w).Encode(map[string]any{"metadata": map[string]any{"environment": map[string]string{"server_version": "6.1"}}})
+			return
+		}
+		http.Error(w, "inventory denied", http.StatusForbidden)
+	}))
+	t.Cleanup(srv.Close)
+	ca := filepath.Join(t.TempDir(), "ca.pem")
+	if err := os.WriteFile(ca, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: srv.Certificate().Raw}), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	endpoint := incusEndpoint(srv, ca, "inventory-error", "Inventory error")
+	node := providerOf(t, overviewOf(t, infraAPI(t, "op_infra", &memHV{items: []servers.Endpoint{endpoint}})), "incus")["nodes"].([]any)[0].(map[string]any)
+	if node["health_state"] != "operational" || node["online"] != true || node["error"] != "Guest inventory is unavailable." {
+		t.Fatalf("guest inventory error changed provider API health: %v", node)
 	}
 }
 

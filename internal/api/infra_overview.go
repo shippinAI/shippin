@@ -19,6 +19,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/servers"
 )
@@ -127,6 +128,10 @@ type infraNode struct {
 	HasSecret                    bool              `json:"has_secret,omitempty"`
 	AllowTenantDeploymentSecrets bool              `json:"allow_tenant_deployment_secrets"`
 	Online                       bool              `json:"online"`
+	HealthState                  string            `json:"health_state"`
+	HealthCheckedAt              *time.Time        `json:"health_checked_at,omitempty"`
+	HealthLatencyMs              *int64            `json:"health_latency_ms,omitempty"`
+	EndpointRevision             int64             `json:"endpoint_revision,omitempty"`
 	Version                      string            `json:"version,omitempty"`
 	Error                        string            `json:"error,omitempty"`
 	Guests                       infraGuestCount   `json:"guests"`
@@ -202,16 +207,33 @@ func (a *API) infraOverview(w http.ResponseWriter, r *http.Request, _ *caller) {
 		return
 	}
 	nodes := make([]infraNode, len(eps))
+	limit := a.platformProbeConcurrency(r.Context())
+	workers := min(limit, len(eps))
+	indices := make(chan int)
 	var wg sync.WaitGroup
-	for i, ep := range eps {
-		wg.Add(1)
+	wg.Add(workers)
+	for worker := 0; worker < workers; worker++ {
 		go func() {
 			defer wg.Done()
-			ctx, cancel := context.WithTimeout(r.Context(), probeTimeout)
-			defer cancel()
-			nodes[i] = a.probeNode(ctx, ep)
+			for i := range indices {
+				ep := eps[i]
+				if a.probeGate != nil && !a.probeGate.acquire(r.Context()) {
+					nodes[i] = a.unprobedNode(ep)
+					continue
+				}
+				ctx, cancel := context.WithTimeout(r.Context(), probeTimeout)
+				nodes[i] = a.probeNode(ctx, ep)
+				cancel()
+				if a.probeGate != nil {
+					a.probeGate.release()
+				}
+			}
 		}()
 	}
+	for i := range eps {
+		indices <- i
+	}
+	close(indices)
 	wg.Wait()
 
 	ui := a.uiConfig(r.Context())
@@ -279,24 +301,40 @@ func (t *infraTotals) add(n infraNode) {
 func (a *API) probeNode(ctx context.Context, ep servers.Endpoint) infraNode {
 	n := infraNode{ID: ep.ID, Slug: ep.Slug, Label: ep.Label, Site: ep.Site, Kind: ep.Kind, Source: sourceAPI, BaseURL: ep.BaseURL, Scope: ep.Node, FleetID: ep.FleetID,
 		AllowTenantDeploymentSecrets: ep.AllowTenantDeploymentSecrets,
-		Config:                       map[string]string{"base_url": ep.BaseURL, "node": ep.Node, "token_id": ep.TokenID, "token_env": ep.TokenEnv, "ca_file": ep.CAFile, "cert_file": ep.CertFile, "key_file": ep.KeyFile}, HasSecret: ep.HasSecret || len(ep.SealedKey) > 0 || len(ep.SealedSecret) > 0}
+		HealthState:                  "unknown", EndpointRevision: ep.Revision,
+		Config: map[string]string{"base_url": ep.BaseURL, "node": ep.Node, "token_id": ep.TokenID, "token_env": ep.TokenEnv, "ca_file": ep.CAFile, "cert_file": ep.CertFile, "key_file": ep.KeyFile}, HasSecret: ep.HasSecret || len(ep.SealedKey) > 0 || len(ep.SealedSecret) > 0}
 	if n.Label == "" {
 		n.Label = ep.Slug
 	}
 	d, err := a.openDriver(ep)
 	if err != nil {
-		n.Error = err.Error()
+		n.Error = "Provider API could not be configured."
 		return n
 	}
+	started := time.Now()
 	h, err := d.Health(ctx)
+	checked := time.Now().UTC()
+	latency := time.Since(started).Milliseconds()
+	n.HealthCheckedAt, n.HealthLatencyMs = &checked, &latency
 	if err != nil {
-		n.Error = err.Error()
+		n.HealthState = "down"
+		n.Error = "Provider API check failed."
+		if a.recordServerHealth(ctx, ep, n.HealthState, checked, &latency, "", n.Error) {
+			n.HealthState, n.Online = "unknown", false
+		}
 		return n
 	}
 	n.Online, n.Version = h.Online, h.Version
+	n.HealthState = "operational"
+	if !h.Online {
+		n.HealthState, n.Error = "down", "Provider API did not report online."
+	}
+	if a.recordServerHealth(ctx, ep, n.HealthState, checked, &latency, h.Version, n.Error) {
+		n.HealthState, n.Online = "unknown", false
+	}
 	guests, err := d.Guests(ctx)
 	if err != nil {
-		n.Error = err.Error()
+		n.Error = "Guest inventory is unavailable."
 		return n
 	}
 	n.Guests.Total = len(guests)
@@ -317,6 +355,34 @@ func (a *API) probeNode(ctx context.Context, ep servers.Endpoint) infraNode {
 	return n
 }
 
+func (a *API) unprobedNode(ep servers.Endpoint) infraNode {
+	n := infraNode{ID: ep.ID, Slug: ep.Slug, Label: ep.Label, Site: ep.Site, Kind: ep.Kind, Source: sourceAPI,
+		BaseURL: ep.BaseURL, Scope: ep.Node, FleetID: ep.FleetID, HealthState: "unknown", EndpointRevision: ep.Revision,
+		AllowTenantDeploymentSecrets: ep.AllowTenantDeploymentSecrets,
+		Config:                       map[string]string{"base_url": ep.BaseURL, "node": ep.Node, "token_id": ep.TokenID, "token_env": ep.TokenEnv, "ca_file": ep.CAFile, "cert_file": ep.CertFile, "key_file": ep.KeyFile},
+		HasSecret:                    ep.HasSecret || len(ep.SealedKey) > 0 || len(ep.SealedSecret) > 0}
+	if n.Label == "" {
+		n.Label = ep.Slug
+	}
+	n.Error = "Provider API check was not run."
+	return n
+}
+
+func (a *API) recordServerHealth(ctx context.Context, ep servers.Endpoint, state string, checked time.Time, latency *int64, version, detail string) bool {
+	if a.db == nil || ep.Revision < 1 {
+		return false
+	}
+	err := a.db.RecordServerHealthObservation(ctx, db.ServerHealthObservation{ServerID: ep.ID, Revision: ep.Revision,
+		State: state, Checked: checked, Latency: latency, Version: version, Detail: detail})
+	if errors.Is(err, db.ErrServerEndpointChanged) {
+		return true
+	}
+	if err != nil {
+		log.Printf("infra health observation: %v", err)
+	}
+	return false
+}
+
 // probeAgent reads the Incus project behind the local agent. An agent that does not answer is
 // not a host someone added: a fresh install has none, so it comes back only as a note.
 func (a *API) probeAgent(ctx context.Context) (*infraNode, *infraAgent) {
@@ -333,7 +399,9 @@ func (a *API) probeAgent(ctx context.Context) (*infraNode, *infraAgent) {
 	if err != nil {
 		return nil, &infraAgent{Label: label, Error: "Not answering."}
 	}
-	n := &infraNode{ID: sourceAgent, Label: label, Kind: "incus", Source: sourceAgent, Scope: a.cfg.Incus.Project, Online: true}
+	checked := time.Now().UTC()
+	n := &infraNode{ID: sourceAgent, Label: label, Kind: "incus", Source: sourceAgent, Scope: a.cfg.Incus.Project,
+		Online: true, HealthState: "operational", HealthCheckedAt: &checked}
 	n.Guests.Total = len(insts)
 	for _, i := range insts {
 		if strings.EqualFold(i.Status, "running") {

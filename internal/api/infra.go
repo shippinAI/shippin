@@ -440,17 +440,37 @@ func (a *API) infraAttach(w http.ResponseWriter, r *http.Request, _ *caller) {
 }
 
 func (a *API) infraHealth(w http.ResponseWriter, r *http.Request, _ *caller) {
-	c, err := a.driver(r.Context(), r.PathValue("id"))
+	ep, err := a.hvDir().Endpoint(r.Context(), r.PathValue("id"))
 	if err != nil {
 		infraErr(w, err)
 		return
 	}
+	if a.platformProbeConcurrency(r.Context()); !a.probeGate.acquire(r.Context()) {
+		auth.Problem(w, http.StatusRequestTimeout, "Provider API check was cancelled before it started.")
+		return
+	}
+	defer a.probeGate.release()
+	c, err := a.openDriver(ep)
+	if err != nil {
+		auth.Problem(w, http.StatusBadGateway, "Provider API could not be configured.")
+		return
+	}
+	started := time.Now()
 	h, err := c.Health(r.Context())
+	checked := time.Now().UTC()
+	latency := time.Since(started).Milliseconds()
+	state := "operational"
+	detail := ""
 	if err != nil {
-		infraErr(w, err)
-		return
+		state, detail = "down", "Provider API check failed."
+	} else if !h.Online {
+		state, detail = "down", "Provider API did not report online."
 	}
-	writeJSON(w, h)
+	if a.recordServerHealth(r.Context(), ep, state, checked, &latency, h.Version, detail) {
+		state, h.Online = "unknown", false
+	}
+	writeJSON(w, map[string]any{"online": h.Online, "version": h.Version, "error": detail,
+		"checked": checked, "latency_ms": latency, "health_state": state, "endpoint_revision": ep.Revision})
 }
 
 func (a *API) infraGuests(w http.ResponseWriter, r *http.Request, _ *caller) {

@@ -297,7 +297,7 @@ requests, or an agent's summary. If the provider or AgentHub environment is
 unavailable, keep that behavior explicitly unverified and continue only with
 independent work that does not depend on it.
 
-### Current checkpoint � Incus desired-absent removal
+### Current checkpoint — Incus desired-absent removal
 
 The canonical worker now executes the reviewed Incus OCI removal packet: stop,
 remove the exact owned workload while retaining its deployment volume, and
@@ -334,3 +334,25 @@ host was available.
 ### CI result — corrected removal fixtures
 
 Commit `e7e1dc6` corrected the database fixtures to create present, request absent through Update, and supply the read-only recovery fake. GitHub Checks run `42039645110` passed all 13 jobs, including the disposable-Postgres API suite. No live Incus host was available, so provider execution remains unverified on a real server.
+
+### Current checkpoint -- revision-fenced provider API health
+
+The existing infrastructure overview and authenticated per-server health route
+now record one latest provider API observation per server in
+`shippin_server_health_observations`. Migration 062 adds a monotonically
+increasing `servers.hv_revision`; endpoint create starts at revision 1 and every
+edit or detach advances it. The observation write compares the live endpoint
+revision, and reads exclude observations for a changed or detached endpoint.
+This check reports API reachability only. It does not report guest or
+application health. Provider API state remains operational when a later guest
+inventory call fails; UI text, checked time and measured latency remain in the
+single infrastructure panel. Overview fanout uses the existing configurable
+shared probe gate.
+
+Focused Go tests and the full repository `bash scripts/check.sh` passed locally.
+PostgreSQL 16 migration, endpoint revision and stale-probe tests passed against
+a temporary trust-auth database container; the container was removed after the
+run. GitHub Checks and a live Incus/Proxmox credential path have not yet been
+verified for this checkpoint. The broader rollout, deployment runtime, managed
+database offerings, network provider writes, source absorption review and
+archive-readiness gates remain open in their ordered packets above.
