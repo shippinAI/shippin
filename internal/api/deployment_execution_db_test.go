@@ -105,7 +105,7 @@ func TestDeploymentWorkerExecutesAuthorizedIncusStorageAndStoppedWorkloadSteps(t
 	}
 	var dispatchEvents int
 	if err := a.db.Pool.QueryRow(context.Background(), `SELECT count(*) FROM shippin_deployment_execution_step_events
-		WHERE tenant_id=$1 AND event_type='dispatch_claimed'`, tenantID).Scan(&dispatchEvents); err != nil || dispatchEvents != 2 {
+		WHERE tenant_id=$1 AND event_type='dispatch_claimed'`, tenantID).Scan(&dispatchEvents); err != nil || dispatchEvents != 3 {
 		t.Fatalf("dispatch events=%d err=%v", dispatchEvents, err)
 	}
 	var completedSteps int

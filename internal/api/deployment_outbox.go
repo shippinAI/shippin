@@ -101,6 +101,9 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 			providerMutated = providerMutated || mutated
 		}
 	}
+	if runtimeStep != nil && runtimeStep["step_state"] != "succeeded" {
+		mayProgressIncusRuntime = false
+	}
 	if mayProgressIncusRuntime {
 		powerStep, handled, mutated, stepErr := a.executeIncusPowerStep(ctx, job, deployment, step)
 		if stepErr != nil {
