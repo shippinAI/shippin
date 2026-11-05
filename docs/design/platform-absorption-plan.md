@@ -1,15 +1,15 @@
 # Shippin platform absorption plan
 
 Status: active execution plan, refreshed 2026-11-05 against `main` at
-`249611a`. This describes target contracts and acceptance gates; it does not
+`99689a5`. This describes target contracts and acceptance gates; it does not
 claim unimplemented workflows are live. The [capability ledger](capability-absorption.md)
 holds source-by-source evidence and dispositions. The latest feature checkpoint
-`509eef0` passed all 13 jobs in run `42044128379`; documentation run
-`42044754808` is still running at this refresh.
+`509eef0` passed all 13 jobs in run `42044128379`, and current documentation commit
+`99689a5` passed all 13 jobs in run `42047167113`.
 
 ## Current execution checkpoint (2026-11-05, refreshed after provider health)
 
-Canonical `main` is `249611aab0688809ed57b2f70b2f4cbda6a23938` and the worktree was clean before this documentation packet. `bash scripts/check.sh` passes on this baseline. Feature commit `509eef090a91b3a7f0b3bb301dbc4d5bbbd2dde0` passed all 13 GitHub Checks in run `42044128379`; the follow-up documentation run `42044754808` is still in progress as of 2026-11-05 14:39 UTC (12 jobs passed, `agent` still running). Do not begin product code until that run is green.
+Canonical `main` is `99689a5d36c554e7e3810461441f65a0430b9cfa`; the worktree is clean and synchronized. `bash scripts/check.sh` passes locally. Feature commit `509eef090a91b3a7f0b3bb301dbc4d5bbbd2dde0` passed all 13 GitHub Checks in run `42044128379`. Current exact-head documentation commit `99689a5` passed all 13 jobs in run `42047167113`. The superseded run `42044754808` was cancelled after its Go race-test job remained in progress for more than 15 minutes; the replacement exact-head run is green.
 
 The latest delivered provider slice persists bounded API reachability observations separately from guest inventory, keys them to provider configuration revision, and surfaces status, time and latency in the existing infrastructure view. It does not prove a guest OS is healthy or validate a live Incus/Proxmox credential. No live hypervisor, AgentHub, Vaultix, Cloudflare or Tailscale operation has been run.
 
@@ -84,10 +84,10 @@ schema-validated session `2026/11/b54b453c-1a83-41a5-a945-d1614180fe37` contains
 the complete user-scope execution plan, source hashes, gates and unknowns. It is
 not a product feature and does not imply any unsupported stage is done.
 
-1. **Baseline verified:** canonical `main` was clean at `249611a`; local
-   `bash scripts/check.sh` passed. Feature CI `42044128379` passed all 13 jobs.
-   Documentation run `42044754808` was still running at the time of the source
-   review; no new main commit may be added until it completes green.
+1. **Baseline verified:** canonical `main` is clean at `99689a5`; local
+   `bash scripts/check.sh` and all 13 exact-head jobs in run `42047167113` passed.
+   The superseded run `42044754808` was cancelled; no failure remains on current
+   main.
 2. **Current source slice completed, not whole inventory:** the 12 Warden
    implementation rows for local backups, certs, disks, logs and packages now
    have explicit dispositions. Unsafe host-local operations are rejected as

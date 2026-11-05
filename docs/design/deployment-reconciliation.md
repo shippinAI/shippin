@@ -252,10 +252,13 @@ reveal environment secrets.
 
 This is still not a successful service deployment: the worker records
 `runtime_unsupported` after the power step. The declared TCP health contract has
-no verified guest address/reachability path from the control plane, and there
-is no complete delete/upgrade/backup/restore lifecycle or Proxmox application
-executor. No live Incus operation has been verified. Commit `0722b96` passed `bash scripts/check.sh` and all 13 GitHub Checks,
-including the PostgreSQL API suite, in run `42029507436`.
+no verified guest address/reachability path from the control plane. The narrow
+Incus desired-absent stop/remove/absence path is now separately implemented and
+verified (see the removal checkpoint below); complete upgrade/rollback/backup/
+restore and Proxmox application execution remain absent. No live Incus operation
+has been verified. Earlier create/start checkpoint `0722b96` passed all 13 jobs
+in run `42029507436`; the later removal checkpoint passed all 13 jobs in run
+`42039645110`.
 
 ### Health reachability gate
 
@@ -302,12 +305,12 @@ listed behavior and failure evidence. Each implementation stays in the canonical
 owner in `platform-consolidation-plan.md`, is committed directly to `main` after
 local checks, and must pass CI before starting its dependent packet.
 
-1. **Close the health-probe security boundary** (`internal/api`, health tests):
-   bound configured probes, prevent redirects from changing their network
-   destination, keep endpoint health separate from provider state, and test
-   cancellation, unreachable targets and redaction. Then implement the
-   authenticated per-server probe protocol described above; include target
-   generation, owner revalidation, bounded protocol/port/timeout, probe
+1. **Complete the health-probe security boundary** (`agent`, `internal/api`, health tests):
+   configured console probes are bounded, do not follow redirects, keep endpoint
+   health separate from provider state, and cover cancellation, unreachable
+   targets and redaction. The remaining task is an authenticated per-server
+   probe protocol; include target generation, owner revalidation, bounded
+   protocol/port/timeout, probe
    namespace routing, replay protection and timestamped results. Do not infer a
    route from provider-reported guest addresses.
 2. **Finish deployment runtime** (`internal/deployments`, `internal/jobs`,
