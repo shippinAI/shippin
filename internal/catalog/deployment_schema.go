@@ -126,6 +126,49 @@ func ValidateRuntimeConfigBindings(runtime RuntimeContract, schemaRaw, valuesRaw
 	return nil
 }
 
+// ExtractRuntimeEnvironmentInputs returns only the configured values named by
+// a version 3 runtime contract. Vaultix references stay typed references so a
+// worker can resolve them under its current lease immediately before provider
+// dispatch. The function has no side effects and never returns partial output.
+func ExtractRuntimeEnvironmentInputs(runtime RuntimeContract, schemaRaw, valuesRaw json.RawMessage) ([]RuntimeEnvironmentInput, error) {
+	if runtime.Version != 3 || runtime.Environment == nil {
+		return nil, errors.New("runtime environment extraction requires a version 3 contract")
+	}
+	if err := ValidateDeploymentConfigValues(schemaRaw, valuesRaw); err != nil {
+		return nil, errors.New("runtime environment configuration is invalid")
+	}
+	if err := ValidateRuntimeConfigBindings(runtime, schemaRaw, valuesRaw); err != nil {
+		return nil, errors.New("runtime environment bindings are invalid")
+	}
+	values, err := decodeJSONValue(valuesRaw)
+	if err != nil {
+		return nil, errors.New("runtime environment configuration is invalid")
+	}
+	out := make([]RuntimeEnvironmentInput, 0, len(*runtime.Environment))
+	for _, binding := range *runtime.Environment {
+		segments, ok := parseConfigJSONPointer(binding.ConfigPath)
+		if !ok {
+			return nil, errors.New("runtime environment bindings are invalid")
+		}
+		value, present := configValueAtPath(values, segments)
+		if !present {
+			continue // Optional config paths remain absent from the provider environment.
+		}
+		text, ok := value.(string)
+		if !ok || len(text) > 8192 {
+			return nil, errors.New("runtime environment value is invalid or exceeds 8 KiB")
+		}
+		input := RuntimeEnvironmentInput{Name: binding.Name}
+		if strings.HasPrefix(text, "vaultix://") {
+			input.VaultixReference = text
+		} else {
+			input.Value = &text
+		}
+		out = append(out, input)
+	}
+	return out, nil
+}
+
 func parseConfigJSONPointer(pointer string) ([]string, bool) {
 	if !validConfigJSONPointer(pointer) {
 		return nil, false
@@ -265,7 +308,7 @@ func validateSchemaPolicy(schema map[string]any, root bool) error {
 			if !ok {
 				return errors.New("configuration properties must be schema objects")
 			}
-			if isSensitiveFieldName(name) && property["format"] != secretReferenceFormat {
+			if isSensitiveFieldName(name) && property["type"] != "object" && property["format"] != secretReferenceFormat {
 				return fmt.Errorf("sensitive parameter %q must use format %q", name, secretReferenceFormat)
 			}
 			if err := validateSchemaPolicy(property, false); err != nil {
@@ -280,7 +323,7 @@ func validateSchemaPolicy(schema map[string]any, root bool) error {
 				if !ok {
 					return errors.New("schema definitions must be objects")
 				}
-				if isSensitiveFieldName(name) && nested["format"] != secretReferenceFormat {
+				if isSensitiveFieldName(name) && nested["type"] != "object" && nested["format"] != secretReferenceFormat {
 					return fmt.Errorf("sensitive schema definition %q must use format %q", name, secretReferenceFormat)
 				}
 				if err := validateSchemaPolicy(nested, false); err != nil {

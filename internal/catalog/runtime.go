@@ -30,6 +30,15 @@ type RuntimeEnvironmentBinding struct {
 	ConfigPath string `json:"config_path"`
 }
 
+// RuntimeEnvironmentInput is one catalog-declared value before secret
+// resolution. Exactly one of Value or VaultixReference is set. Secret bytes
+// never belong in the catalog contract or this extraction result.
+type RuntimeEnvironmentInput struct {
+	Name             string
+	Value            *string
+	VaultixReference string
+}
+
 // Version 2 describes the minimum resources and runtime behavior a provider adapter
 // must honor. It is declarative only; accepting a recipe does not enable execution.
 type RuntimeResources struct {

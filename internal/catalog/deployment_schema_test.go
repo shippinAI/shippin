@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -26,6 +27,18 @@ func TestDeployableConfigSchemaValidatesClosedValuesAndSecretReferences(t *testi
 				t.Fatalf("unsafe config accepted: %s", name)
 			}
 		})
+	}
+}
+
+func TestDeployableConfigAllowsCredentialObjectWithMarkedSecretChild(t *testing.T) {
+	schema := json.RawMessage(`{"type":"object","properties":{"credentials":{"type":"object","properties":{"username":{"type":"string"},"password":{"type":"string","format":"shippin-secret-ref"}},"required":["username","password"],"additionalProperties":false}},"required":["credentials"],"additionalProperties":false}`)
+	defaults := json.RawMessage(`{"credentials":{"username":"app","password":"vaultix://production/database/password"}}`)
+	if err := ValidateDeploymentConfig(schema, defaults); err != nil {
+		t.Fatalf("credential container with declared secret child was rejected: %v", err)
+	}
+	unsafeSchema := json.RawMessage(strings.Replace(string(schema), `,"format":"shippin-secret-ref"`, "", 1))
+	if err := ValidateDeploymentConfig(unsafeSchema, defaults); err == nil {
+		t.Fatal("unmarked nested password field was accepted")
 	}
 }
 
@@ -55,6 +68,63 @@ func TestRuntimeV3EnvironmentBindingsMatchConfigSchemaAndSecretPolicy(t *testing
 				t.Fatal("invalid runtime configuration binding accepted")
 			}
 		})
+	}
+}
+
+func TestExtractRuntimeEnvironmentInputsKeepsSecretsAsReferences(t *testing.T) {
+	schema := json.RawMessage(`{"type":"object","properties":{"credentials":{"type":"object","properties":{"password":{"type":"string","format":"shippin-secret-ref"}},"required":["password"],"additionalProperties":false},"database":{"type":"string"},"options":{"type":"object","properties":{"quoted/name":{"type":"string"}},"additionalProperties":false}},"required":["credentials","database"],"additionalProperties":false}`)
+	environment := []RuntimeEnvironmentBinding{
+		{Name: "DB_PASSWORD", ConfigPath: "/credentials/password"},
+		{Name: "POSTGRES_DB", ConfigPath: "/database"},
+		{Name: "OPTIONAL_VALUE", ConfigPath: "/options/quoted~1name"},
+	}
+	runtime := RuntimeContract{Version: 3, Environment: &environment}
+	values := json.RawMessage(`{"credentials":{"password":"vaultix://production/services/postgres/password"},"database":"app"}`)
+	if err := ValidateDeploymentConfigValues(schema, values); err != nil {
+		t.Fatalf("valid config rejected before extraction: %v", err)
+	}
+	inputs, err := ExtractRuntimeEnvironmentInputs(runtime, schema, values)
+	if err != nil {
+		t.Fatalf("valid runtime inputs rejected: %v", err)
+	}
+	if len(inputs) != 2 || inputs[0].Name != "DB_PASSWORD" || inputs[0].Value != nil ||
+		inputs[0].VaultixReference != "vaultix://production/services/postgres/password" ||
+		inputs[1].Name != "POSTGRES_DB" || inputs[1].Value == nil || *inputs[1].Value != "app" || inputs[1].VaultixReference != "" {
+		t.Fatalf("unexpected extracted inputs: %+v", inputs)
+	}
+	withOptional := json.RawMessage(`{"credentials":{"password":"vaultix://production/services/postgres/password"},"database":"app","options":{"quoted/name":"present"}}`)
+	inputs, err = ExtractRuntimeEnvironmentInputs(runtime, schema, withOptional)
+	if err != nil || len(inputs) != 3 || inputs[2].Name != "OPTIONAL_VALUE" || inputs[2].Value == nil || *inputs[2].Value != "present" {
+		t.Fatalf("escaped optional pointer inputs=%+v err=%v", inputs, err)
+	}
+	emptyLiteral := json.RawMessage(`{"credentials":{"password":"vaultix://production/services/postgres/password"},"database":""}`)
+	inputs, err = ExtractRuntimeEnvironmentInputs(runtime, schema, emptyLiteral)
+	if err != nil || len(inputs) != 2 || inputs[1].Value == nil || *inputs[1].Value != "" {
+		t.Fatalf("empty literal must remain distinct from an unresolved secret: inputs=%+v err=%v", inputs, err)
+	}
+}
+
+func TestExtractRuntimeEnvironmentInputsFailsClosedWithoutPartialValues(t *testing.T) {
+	schema := json.RawMessage(`{"type":"object","properties":{"database":{"type":"string"},"password":{"type":"string","format":"shippin-secret-ref"}},"required":["database","password"],"additionalProperties":false}`)
+	environment := []RuntimeEnvironmentBinding{{Name: "DB", ConfigPath: "/database"}, {Name: "PASSWORD", ConfigPath: "/password"}}
+	runtime := RuntimeContract{Version: 3, Environment: &environment}
+	for name, values := range map[string]json.RawMessage{
+		"malformed secret reference": json.RawMessage(`{"database":"app","password":"vaultix://production/"}`),
+		"wrong literal type":         json.RawMessage(`{"database":4,"password":"vaultix://production/db/password"}`),
+		"oversized literal":          json.RawMessage(`{"database":"` + strings.Repeat("x", 8193) + `","password":"vaultix://production/db/password"}`),
+	} {
+		t.Run(name, func(t *testing.T) {
+			inputs, err := ExtractRuntimeEnvironmentInputs(runtime, schema, values)
+			if err == nil || inputs != nil {
+				t.Fatalf("invalid config must return no partial inputs: inputs=%+v err=%v", inputs, err)
+			}
+			if strings.Contains(err.Error(), "vaultix://") || strings.Contains(err.Error(), strings.Repeat("x", 32)) {
+				t.Fatalf("error leaked config material: %v", err)
+			}
+		})
+	}
+	if inputs, err := ExtractRuntimeEnvironmentInputs(RuntimeContract{Version: 2}, schema, json.RawMessage(`{"database":"app","password":"vaultix://production/db/password"}`)); err == nil || inputs != nil {
+		t.Fatalf("non-v3 runtime must return no inputs: %+v err=%v", inputs, err)
 	}
 }
 
