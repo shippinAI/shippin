@@ -1,14 +1,14 @@
 # Shippin platform absorption plan
 
-Status: active execution plan, refreshed 2026-11-05 against `main` at `b16207e`.
+Status: active execution plan, refreshed 2026-11-05 against `main` at `6163c28`.
 This describes the target and acceptance gates; it does not claim unimplemented
 workflows are live. The [capability ledger](capability-absorption.md) holds
-source-by-source evidence and dispositions. Checks run `41957003160` passed all
+source-by-source evidence and dispositions. Checks run `41958014373` passed all
 13 jobs for the current baseline.
 
 ## Current execution checkpoint (2026-11-05)
 
-`main` is at `b16207e` and GitHub Checks run `41957003160` passed all 13
+`main` is at `6163c28` and GitHub Checks run `41958014373` passed all 13
 jobs. No PRs are open. PR 17 is closed without merge, but its reserved
 `198.51.100.1` fixture correction is already present in `main`, so no repair
 branch remains to merge. Windows standalone builds of `cmd/console` and
@@ -22,14 +22,18 @@ not described as provider/runtime failures. No live Incus, Proxmox, AgentHub,
 Vaultix, Cloudflare or Tailscale operation was run. The deployment worker still
 makes no provider call, and archive readiness remains open.
 
-The Incus driver now has a tested OCI application-container primitive with
+PR 17 remains closed unmerged, but its CGNAT fixture correction is present on
+`main` as an independently authored equivalent patch (`b3992ab`); no open PR
+was found. The Incus driver now has a tested OCI application-container primitive with
 deployment-generation identity checks and retry reconciliation: it
 requires an immutable `sha256` image reference, validates resource inputs,
 preflights Incus 7.3.0 or newer, waits for the create operation, and confirms
 the OCI marker and requested run state by reading the instance back. It is not
 wired to the catalog worker and does not yet provide managed data volumes,
 network exposure, health checks, secret delivery, updates, backups, or removal
-ownership; it is not a deployable catalog runtime yet. The implementation is
+ownership; it is not a deployable catalog runtime yet. Proxmox health now
+rejects malformed version responses and versions outside the documented 8/9
+major support window. The implementation is
 limited to the Incus provider and follows Incus' [OCI remote and application
 container workflow](https://linuxcontainers.org/incus/docs/main/howto/images_remote/)
 and [application-container launch path](https://linuxcontainers.org/incus/docs/main/howto/instances_create/).
@@ -38,7 +42,7 @@ and [application-container launch path](https://linuxcontainers.org/incus/docs/m
 
 The order below is a dependency order. Each row closes only when its observable
 acceptance checks pass; a panel or catalog screen alone does not close a runtime
-capability. Commits through `b16207e` are on `main`; CI run `41957003160` passed
+capability. Commits through `6163c28` are on `main`; CI run `41958014373` passed
 all 13 jobs. AgentHub ticket preparation, exact action authorization and safe
 decision provenance are implemented, but production least-privilege identity
 verification and worker-side authorization immediately before a provider write

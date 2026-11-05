@@ -83,10 +83,37 @@ func (c *Client) Health(ctx context.Context) (hv.Health, error) {
 			Version string `json:"version"`
 		} `json:"data"`
 	}
-	_ = json.Unmarshal(body, &ver)
-	h.Online = true
+	if err := json.Unmarshal(body, &ver); err != nil {
+		h.Error = "version response is invalid"
+		return h, fmt.Errorf("proxmox: %s", h.Error)
+	}
 	h.Version = ver.Data.Version
+	if !supportedVersion(h.Version) {
+		h.Error = fmt.Sprintf("unsupported Proxmox VE version %q; supported major versions are 8 and 9", h.Version)
+		return h, fmt.Errorf("proxmox: %s", h.Error)
+	}
+	h.Online = true
 	return h, nil
+}
+
+func supportedVersion(version string) bool {
+	parts := strings.Split(version, ".")
+	if len(parts) < 2 || len(parts) > 3 {
+		return false
+	}
+	major, err := strconv.Atoi(parts[0])
+	if err != nil || (major != 8 && major != 9) {
+		return false
+	}
+	for _, part := range parts[1:] {
+		if part == "" {
+			return false
+		}
+		if _, err := strconv.Atoi(part); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func (c *Client) Guests(ctx context.Context) ([]hv.Guest, error) {

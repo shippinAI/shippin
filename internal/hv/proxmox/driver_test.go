@@ -67,6 +67,38 @@ func TestStartReadsBackAndSkipsWhenRunning(t *testing.T) {
 	}
 }
 
+func TestHealthAcceptsOnlySupportedProxmoxMajors(t *testing.T) {
+	for _, test := range []struct {
+		version string
+		valid   bool
+	}{
+		{version: "8.2.2", valid: true},
+		{version: "9.2.11", valid: true},
+		{version: "7.4.17"},
+		{version: "10.0.1"},
+		{version: "8.x"},
+		{version: ""},
+	} {
+		t.Run(test.version, func(t *testing.T) {
+			srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/api2/json/version" {
+					http.NotFound(w, r)
+					return
+				}
+				_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]string{"version": test.version}})
+			}))
+			defer srv.Close()
+			health, err := clientFor(t, srv).Health(context.Background())
+			if test.valid && (err != nil || !health.Online || health.Version != test.version) {
+				t.Fatalf("supported version health=%+v err=%v", health, err)
+			}
+			if !test.valid && (err == nil || health.Online || !strings.Contains(health.Error, "supported major versions are 8 and 9")) {
+				t.Fatalf("unsupported version health=%+v err=%v", health, err)
+			}
+		})
+	}
+}
+
 func TestStartFailsWhenReadBackDisagrees(t *testing.T) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/status/current") {
