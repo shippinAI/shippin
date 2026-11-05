@@ -87,7 +87,8 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 			return nil, err
 		}
 	}
-	mayCreateWorkload := recoveredStep == nil || recoveredStep["step_state"] == "succeeded"
+	mayCreateWorkload := recoveredStep == nil ||
+		recoveredStep["step_id"] == "storage" && recoveredStep["step_state"] == "succeeded"
 	if runtimeStep != nil && runtimeStep["step_state"] != "succeeded" {
 		mayCreateWorkload = false
 	}

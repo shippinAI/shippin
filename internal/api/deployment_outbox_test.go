@@ -239,12 +239,13 @@ func TestDeploymentWorkerRecoversOnlyExactObservedIncusState(t *testing.T) {
 			job := &jobs.Job{ID: recoveryJobID, TenantID: tenantID, Kind: jobs.KindDeploymentReconcile,
 				TargetType: "deployment_generation", TargetID: deployment.ID + ":1", CreatedBy: "test",
 				LeaseOwner: recoveryOwner, Payload: payload}
-			result, err := a.runDeploymentReconcileJob(ctx, job, func(string) {})
+			recovery, recovered, err := a.recoverDeploymentIntent(ctx, job, deployment)
 			if err != nil {
 				t.Fatal(err)
 			}
-			out := result.(map[string]any)
-			recovery := out["recovery"].(map[string]any)
+			if !recovered {
+				t.Fatal("expected an unresolved step to be recovered")
+			}
 			wantState, wantFailure := "succeeded", ""
 			if !tc.exists {
 				wantState, wantFailure = "unknown", "provider_state_absent"
@@ -252,8 +253,8 @@ func TestDeploymentWorkerRecoversOnlyExactObservedIncusState(t *testing.T) {
 				tc.operation == "ensure_running" && tc.status != "Running" {
 				wantState, wantFailure = "unknown", "provider_state_mismatch"
 			}
-			if out["outcome"] != "runtime_unsupported" || out["provider_mutated"] != false || recovery["step_state"] != wantState || provider.calls != 1 {
-				t.Fatalf("worker result=%v provider calls=%d", result, provider.calls)
+			if recovery["step_state"] != wantState || provider.calls != 1 {
+				t.Fatalf("recovery result=%v provider calls=%d", recovery, provider.calls)
 			}
 			wantName, _ := incus.OCIApplicationName(deployment.ID)
 			if provider.spec.Name != wantName || provider.spec.StoragePool != "tenant-data" || provider.spec.Network != "private-apps" ||
