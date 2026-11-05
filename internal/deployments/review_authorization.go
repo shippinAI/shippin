@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -56,6 +57,27 @@ func (p ReviewDecisionProvenance) Validate() error {
 // audit provenance; callers must reauthorize immediately before provider writes.
 func (s *Store) RecordReviewDecision(ctx context.Context, tenantID, deploymentID string, generation int64,
 	actor, idempotencyKey string, allowed bool, provenance ReviewDecisionProvenance, failureCode string) (DeploymentEvent, error) {
+	return s.recordReviewDecision(ctx, tenantID, deploymentID, generation, actor, idempotencyKey,
+		allowed, provenance, failureCode, "", "")
+}
+
+// RecordReviewDecisionWithLease records worker authorization provenance only
+// while the caller owns the live deployment reconcile lease. The lease row,
+// desired generation, review, and append-only event are checked in one
+// transaction so a reclaimed worker cannot publish a stale decision.
+func (s *Store) RecordReviewDecisionWithLease(ctx context.Context, tenantID, deploymentID string, generation int64,
+	actor, idempotencyKey, jobID, leaseOwner string, allowed bool, provenance ReviewDecisionProvenance,
+	failureCode string) (DeploymentEvent, error) {
+	if !validUUID(jobID) || strings.TrimSpace(leaseOwner) == "" || len(leaseOwner) > 255 {
+		return DeploymentEvent{}, ErrInvalidRequest
+	}
+	return s.recordReviewDecision(ctx, tenantID, deploymentID, generation, actor, idempotencyKey,
+		allowed, provenance, failureCode, jobID, leaseOwner)
+}
+
+func (s *Store) recordReviewDecision(ctx context.Context, tenantID, deploymentID string, generation int64,
+	actor, idempotencyKey string, allowed bool, provenance ReviewDecisionProvenance, failureCode,
+	jobID, leaseOwner string) (DeploymentEvent, error) {
 	if !validUUID(tenantID) || !validUUID(deploymentID) || !validUUID(idempotencyKey) || generation < 1 || !validReviewActor(actor) {
 		return DeploymentEvent{}, ErrInvalidRequest
 	}
@@ -73,6 +95,17 @@ func (s *Store) RecordReviewDecision(ctx context.Context, tenantID, deploymentID
 		return DeploymentEvent{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	if jobID != "" {
+		var owned string
+		err = tx.QueryRow(ctx, `SELECT id::text FROM jobs WHERE id=$1 AND kind='deployment.reconcile'
+			AND status='running' AND lease_owner=$2 AND lease_until>now() FOR UPDATE`, jobID, leaseOwner).Scan(&owned)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return DeploymentEvent{}, ErrLostJobLease
+		}
+		if err != nil {
+			return DeploymentEvent{}, err
+		}
+	}
 	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, tenantID+":"+idempotencyKey); err != nil {
 		return DeploymentEvent{}, err
 	}

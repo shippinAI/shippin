@@ -399,6 +399,60 @@ func TestReviewAuthorizationProvenanceIsFencedAppendOnlyAndIdempotent(t *testing
 	}
 }
 
+func TestWorkerReviewDecisionRequiresCurrentLease(t *testing.T) {
+	store, tenantID, serverID := deploymentTestStore(t)
+	ctx := context.Background()
+	deployment, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
+		ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://production/services/postgres/password"}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reviewID := uuid.NewString()
+	ticketID := "shp-" + strings.ReplaceAll(reviewID, "-", "")
+	if _, _, err := store.ReserveReview(ctx, tenantID, deployment.ID, deployment.Generation,
+		"operator@example.test", uuid.NewString(), reviewID, ticketID, strings.Repeat("a", 64)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.SetReviewState(ctx, reviewID, "operator@example.test", "pending_review", strings.Repeat("c", 64), ""); err != nil {
+		t.Fatal(err)
+	}
+	jobID, owner := uuid.NewString(), "worker-a"
+	if _, err := store.pool.Exec(ctx, `INSERT INTO jobs(id,tenant_id,kind,target_type,target_id,status,attempts,max_attempts,
+		created_by,lease_owner,lease_until) VALUES($1,$2,'deployment.reconcile','deployment_generation',$3,'running',1,3,
+		'test',$4,now()-interval '1 second')`, jobID, tenantID, deployment.ID+":1", owner); err != nil {
+		t.Fatal(err)
+	}
+	provenance := ReviewDecisionProvenance{DecisionID: "decision-lease", TenantID: "agenthub-tenant", MachineID: "machine-1",
+		TicketID: ticketID, TicketSHA256: strings.Repeat("c", 64), PolicySHA256: strings.Repeat("b", 64), PolicyVersion: 1,
+		MatchedRules: []string{"deployment-review"}, ActionSHA256: strings.Repeat("a", 64)}
+	key := uuid.NewString()
+	if _, err := store.RecordReviewDecisionWithLease(ctx, tenantID, deployment.ID, 1, "operator@example.test", key,
+		jobID, owner, true, provenance, ""); !errors.Is(err, ErrLostJobLease) {
+		t.Fatalf("expired lease must not persist authorization provenance: %v", err)
+	}
+	var eventCount int
+	if err := store.pool.QueryRow(ctx, `SELECT count(*) FROM shippin_deployment_events WHERE tenant_id=$1 AND idempotency_key=$2`, tenantID, key).Scan(&eventCount); err != nil || eventCount != 0 {
+		t.Fatalf("expired worker wrote an authorization event: count=%d err=%v", eventCount, err)
+	}
+	if _, err := store.pool.Exec(ctx, `UPDATE jobs SET lease_owner='worker-b',lease_until=now()+interval '1 minute' WHERE id=$1`, jobID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.RecordReviewDecisionWithLease(ctx, tenantID, deployment.ID, 1, "operator@example.test", uuid.NewString(),
+		jobID, owner, true, provenance, ""); !errors.Is(err, ErrLostJobLease) {
+		t.Fatalf("replaced lease must not persist authorization provenance: %v", err)
+	}
+	if _, err := store.pool.Exec(ctx, `UPDATE jobs SET lease_owner=$2,lease_until=now()+interval '1 minute' WHERE id=$1`, jobID, owner); err != nil {
+		t.Fatal(err)
+	}
+	event, err := store.RecordReviewDecisionWithLease(ctx, tenantID, deployment.ID, 1, "operator@example.test", key,
+		jobID, owner, true, provenance, "")
+	if err != nil || event.Type != EventReviewAllowed {
+		t.Fatalf("current lease should persist provenance: event=%+v err=%v", event, err)
+	}
+}
+
 func TestStoreRejectsProviderIncompatibleRuntimeTarget(t *testing.T) {
 	store, tenantID, _ := deploymentTestStore(t)
 	targetID := uuid.NewString()
