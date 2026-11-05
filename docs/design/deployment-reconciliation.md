@@ -238,3 +238,22 @@ Rejected. Policy/ticket/mapping can change between review and execution. Every a
 - Intent can be accepted while a provider/runtime capability is unavailable, but the UI must not suggest it is running. Any accepted work must remain pending with a clear blocked/unsupported reason.
 - AgentHub authorization provenance in `shippin_deployment_events` is historical evidence, not a transferable capability.
 - No production provider endpoint or production least-privilege AgentHub principal was verified by the current authorization slice. Do not enable provider mutation until that installation evidence exists.
+
+## Current implementation checkpoint (2026-11-05)
+
+The historical design notes above predate provider execution. On current `main`, the
+worker authorizes and dispatch-claims each Incus storage, stopped workload, and
+power step under the live job lease and reviewed generation. It reads back the
+volume, creates the digest-pinned workload stopped, then starts and reads back
+the same reviewed workload. Ambiguous writes are recovered through exact
+read-only provider inspection; they are never blindly retried. The power step
+uses the already validated immutable execution snapshot and does not resolve or
+reveal environment secrets.
+
+This is still not a successful service deployment: the worker records
+`runtime_unsupported` after the power step. The declared TCP health contract has
+no verified guest address/reachability path from the control plane, and there
+is no complete delete/upgrade/backup/restore lifecycle or Proxmox application
+executor. No live Incus operation has been verified. This change must pass the
+repository checks and PostgreSQL CI before this checkpoint is treated as
+verified.

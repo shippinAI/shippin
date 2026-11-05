@@ -87,18 +87,27 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 			return nil, err
 		}
 	}
-	mayCreateWorkload := recoveredStep == nil ||
-		recoveredStep["step_id"] == "storage" && recoveredStep["step_state"] == "succeeded"
+	mayProgressIncusRuntime := recoveredStep == nil || recoveredStep["step_state"] == "succeeded"
 	if runtimeStep != nil && runtimeStep["step_state"] != "succeeded" {
-		mayCreateWorkload = false
+		mayProgressIncusRuntime = false
 	}
-	if mayCreateWorkload {
+	if mayProgressIncusRuntime {
 		workloadStep, handled, mutated, stepErr := a.executeIncusWorkloadStep(ctx, job, deployment, step)
 		if stepErr != nil {
 			return nil, stepErr
 		}
 		if handled {
 			runtimeStep = workloadStep
+			providerMutated = providerMutated || mutated
+		}
+	}
+	if mayProgressIncusRuntime {
+		powerStep, handled, mutated, stepErr := a.executeIncusPowerStep(ctx, job, deployment, step)
+		if stepErr != nil {
+			return nil, stepErr
+		}
+		if handled {
+			runtimeStep = powerStep
 			providerMutated = providerMutated || mutated
 		}
 	}

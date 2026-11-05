@@ -31,6 +31,7 @@ func TestInspectOCIApplicationOnlyReadsAndConfirmsExactIdentity(t *testing.T) {
 					"user.shippin.image_reference_sha256": imageReferenceHash(testOCIReference),
 					"limits.cpu":                          "2",
 					"limits.memory":                       "1024MiB",
+					"environment.DB_PASSWORD":             "provider-visible-secret",
 				},
 				"devices": map[string]map[string]string{"eth0": {"type": "nic", "name": "eth0", "network": "private-apps"}},
 			}})
@@ -46,11 +47,15 @@ func TestInspectOCIApplicationOnlyReadsAndConfirmsExactIdentity(t *testing.T) {
 	spec := OCIApplicationSpec{Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
 		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2, Start: true}
 	guest, found, err := c.InspectOCIApplication(context.Background(), spec)
+	if err == nil || found {
+		t.Fatal("strict workload inspection accepted an environment value without its reviewed value")
+	}
+	guest, found, err = c.InspectOCIApplicationPowerState(context.Background(), spec)
 	if err != nil || !found || guest.Name != "app-1" || guest.Status != "Running" || guest.Kind != hv.KindCT {
 		t.Fatalf("inspection = %+v found=%t err=%v", guest, found, err)
 	}
 	exists = false
-	if _, found, err := c.InspectOCIApplication(context.Background(), spec); err != nil || found {
+	if _, found, err := c.InspectOCIApplicationPowerState(context.Background(), spec); err != nil || found {
 		t.Fatalf("missing instance inspection found=%t err=%v", found, err)
 	}
 	if mutations != 0 {

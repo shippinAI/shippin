@@ -324,7 +324,7 @@ func (c *Client) EnsureOCIApplicationRunning(ctx context.Context, spec OCIApplic
 	if err != nil {
 		return hv.Guest{}, err
 	}
-	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+	if err := validateOCIApplicationPowerIdentity(instance, spec); err != nil {
 		return hv.Guest{}, err
 	}
 	if spec.StoragePool != "" {
@@ -344,13 +344,46 @@ func (c *Client) EnsureOCIApplicationRunning(ctx context.Context, spec OCIApplic
 	if err != nil {
 		return hv.Guest{}, err
 	}
-	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+	if err := validateOCIApplicationPowerIdentity(instance, spec); err != nil {
 		return hv.Guest{}, err
 	}
 	if !strings.EqualFold(instance.Status, "Running") {
 		return hv.Guest{}, fmt.Errorf("incus: provider reports application state %q after start", instance.Status)
 	}
 	return instance.guest(), nil
+}
+
+// InspectOCIApplicationPowerState verifies the deployment-owned workload
+// identity without resolving or comparing environment values. Power changes
+// cannot alter environment config; create recovery uses the stricter full
+// identity inspection instead.
+func (c *Client) InspectOCIApplicationPowerState(ctx context.Context, spec OCIApplicationSpec) (hv.Guest, bool, error) {
+	if _, err := validateOCIApplicationSpec(spec); err != nil {
+		return hv.Guest{}, false, err
+	}
+	health, err := c.Health(ctx)
+	if err != nil {
+		return hv.Guest{}, false, fmt.Errorf("incus: application provider inspection failed: %w", err)
+	}
+	if !incusVersionAtLeast(health.Version, 7, 3, 0) {
+		return hv.Guest{}, false, fmt.Errorf("incus: OCI application inspection requires server version 7.3.0 or newer (server reports %q)", health.Version)
+	}
+	instance, err := c.instanceDetails(ctx, spec.Name)
+	if err != nil {
+		if errors.Is(err, hv.ErrGuestNotFound) {
+			return hv.Guest{}, false, nil
+		}
+		return hv.Guest{}, false, err
+	}
+	if err := validateOCIApplicationPowerIdentity(instance, spec); err != nil {
+		return hv.Guest{}, false, err
+	}
+	if spec.StoragePool != "" {
+		if err := c.checkOCIApplicationVolume(ctx, spec); err != nil {
+			return hv.Guest{}, false, err
+		}
+	}
+	return instance.guest(), true, nil
 }
 
 // validateOCIApplicationSpec applies the same identity and provider bounds to
@@ -427,6 +460,14 @@ func (c *Client) ensureOCIApplicationState(ctx context.Context, spec OCIApplicat
 }
 
 func validateOCIApplicationIdentity(instance instance, spec OCIApplicationSpec) error {
+	return validateOCIApplicationIdentityWithEnvironment(instance, spec, true)
+}
+
+func validateOCIApplicationPowerIdentity(instance instance, spec OCIApplicationSpec) error {
+	return validateOCIApplicationIdentityWithEnvironment(instance, spec, false)
+}
+
+func validateOCIApplicationIdentityWithEnvironment(instance instance, spec OCIApplicationSpec, checkEnvironment bool) error {
 	config := instance.Config
 	if instance.Type != "container" || config["volatile.container.oci"] != "true" {
 		return errors.New("provider read-back does not identify an Incus OCI application container")
@@ -439,16 +480,18 @@ func validateOCIApplicationIdentity(instance instance, spec OCIApplicationSpec) 
 	if config["limits.cpu"] != strconv.Itoa(spec.Cores) || config["limits.memory"] != strconv.Itoa(spec.MemoryMiB)+"MiB" {
 		return errors.New("Incus OCI application resource configuration does not match the requested generation")
 	}
-	for key, value := range config {
-		if strings.HasPrefix(key, "environment.") {
-			if expected, ok := spec.Environment[strings.TrimPrefix(key, "environment.")]; !ok || expected != value {
-				return errors.New("Incus OCI application environment does not match the requested generation")
+	if checkEnvironment {
+		for key, value := range config {
+			if strings.HasPrefix(key, "environment.") {
+				if expected, ok := spec.Environment[strings.TrimPrefix(key, "environment.")]; !ok || expected != value {
+					return errors.New("Incus OCI application environment does not match the requested generation")
+				}
 			}
 		}
-	}
-	for name, value := range spec.Environment {
-		if config["environment."+name] != value {
-			return errors.New("Incus OCI application environment does not match the requested generation")
+		for name, value := range spec.Environment {
+			if config["environment."+name] != value {
+				return errors.New("Incus OCI application environment does not match the requested generation")
+			}
 		}
 	}
 	if spec.StoragePool != "" {

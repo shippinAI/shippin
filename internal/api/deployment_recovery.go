@@ -15,6 +15,7 @@ import (
 type incusOCIRecoveryProvider interface {
 	InspectOCIApplicationVolume(context.Context, incus.OCIApplicationSpec) (bool, error)
 	InspectOCIApplication(context.Context, incus.OCIApplicationSpec) (hv.Guest, bool, error)
+	InspectOCIApplicationPowerState(context.Context, incus.OCIApplicationSpec) (hv.Guest, bool, error)
 }
 
 // recoverDeploymentIntent observes only exact Incus storage, workload-create,
@@ -80,6 +81,8 @@ func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deploy
 	var guest hv.Guest
 	if step.Operation == "ensure_persistent_volume" {
 		exists, err = provider.InspectOCIApplicationVolume(ctx, spec)
+	} else if step.Operation == "ensure_running" {
+		guest, exists, err = provider.InspectOCIApplicationPowerState(ctx, spec)
 	} else {
 		spec.Environment, err = a.deploymentRecoveryEnvironment(ctx, job, snapshot)
 		if err == nil {

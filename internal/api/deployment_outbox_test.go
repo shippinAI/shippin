@@ -44,6 +44,12 @@ func (f *deploymentRecoveryProviderFake) InspectOCIApplication(_ context.Context
 	return hv.Guest{ID: spec.Name, Status: f.appStatus}, f.appFound, nil
 }
 
+func (f *deploymentRecoveryProviderFake) InspectOCIApplicationPowerState(_ context.Context, spec incus.OCIApplicationSpec) (hv.Guest, bool, error) {
+	f.calls++
+	f.spec = spec
+	return hv.Guest{ID: spec.Name, Status: f.appStatus}, f.appFound, nil
+}
+
 func TestDeploymentOutboxRelayAndWorkerUseGenerationFencedJobs(t *testing.T) {
 	a, tenantID, targetID := deploymentRouteAPI(t)
 	a.jobs = jobs.NewStore(a.db.Pool)
