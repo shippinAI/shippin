@@ -6,6 +6,6 @@ export function supportsRuntimeTarget(runtime: RuntimeProviderDeclaration | unde
   return runtime?.providers.includes(provider) ?? false;
 }
 
-export function requiresIncusStorageSelection(runtime: CatalogRuntimeContract | undefined | null): boolean {
+export function requiresIncusTargetConfiguration(runtime: CatalogRuntimeContract | undefined | null): boolean {
   return runtime?.version === 2 || runtime?.version === 3;
 }

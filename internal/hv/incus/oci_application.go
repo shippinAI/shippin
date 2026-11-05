@@ -19,15 +19,16 @@ import (
 )
 
 // OCIApplicationSpec describes the deliberately small Incus OCI workload
-// primitive, with optional deployment-owned persistent storage. It does not
-// configure credentials, network exposure, health checks, upgrades, backups,
-// or removal; catalog deployments must not use it until those lifecycle
-// contracts and worker authorization are implemented as well.
+// primitive, with an explicitly selected managed private network and optional
+// deployment-owned persistent storage. It does not configure edge exposure,
+// health checks, upgrades, backups, or removal; catalog deployments must not
+// use it until those lifecycle contracts and worker authorization exist.
 type OCIApplicationSpec struct {
 	Name           string
 	DeploymentID   string
 	Generation     int64
 	ImageReference string
+	Network        string
 	MemoryMiB      int
 	Cores          int
 	// Environment values are stored in Incus instance configuration and can be
@@ -48,6 +49,7 @@ type ociImageReference struct {
 
 var ociDigestPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 var ociEnvironmentName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,127}$`)
+var ociNetworkName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$`)
 
 // parseOCIApplicationReference accepts a fully qualified registry/repository
 // reference with an immutable OCI manifest digest. Registry credentials are
@@ -139,9 +141,7 @@ func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSp
 	for name, value := range spec.Environment {
 		request.Config["environment."+name] = value
 	}
-	if spec.StoragePool != "" {
-		request.Devices = ociApplicationDevices(spec)
-	}
+	request.Devices = ociApplicationDevices(spec)
 	raw, err := json.Marshal(request)
 	if err != nil {
 		return hv.Guest{}, err
@@ -181,6 +181,9 @@ func validateOCIApplicationSpec(spec OCIApplicationSpec) (ociImageReference, err
 	image, err := parseOCIApplicationReference(spec.ImageReference)
 	if err != nil {
 		return ociImageReference{}, err
+	}
+	if !ociNetworkName.MatchString(spec.Network) || strings.TrimSpace(spec.Network) != spec.Network {
+		return ociImageReference{}, errors.New("incus: application requires an explicitly selected managed network")
 	}
 	if spec.Cores < 1 || spec.Cores > 32 || spec.MemoryMiB < 128 || spec.MemoryMiB > 65536 {
 		return ociImageReference{}, errors.New("incus: application resources must be 1-32 cores and 128-65536 MiB memory")
@@ -270,6 +273,10 @@ func validateOCIApplicationIdentity(instance instance, spec OCIApplicationSpec) 
 			return errors.New("Incus OCI application persistent storage does not match the requested deployment")
 		}
 	}
+	network, ok := instance.Devices["eth0"]
+	if !ok || network["type"] != "nic" || network["name"] != "eth0" || network["network"] != spec.Network {
+		return errors.New("Incus OCI application private network does not match the requested target network")
+	}
 	return nil
 }
 
@@ -289,12 +296,16 @@ func ociApplicationVolumeName(deploymentID string) string {
 }
 
 func ociApplicationDevices(spec OCIApplicationSpec) map[string]map[string]string {
-	return map[string]map[string]string{
-		"shippin-data": {
+	devices := map[string]map[string]string{
+		"eth0": {"type": "nic", "name": "eth0", "network": spec.Network},
+	}
+	if spec.StoragePool != "" {
+		devices["shippin-data"] = map[string]string{
 			"type": "disk", "pool": spec.StoragePool, "source": ociApplicationVolumeName(spec.DeploymentID),
 			"path": spec.MountPath,
-		},
+		}
 	}
+	return devices
 }
 
 func (c *Client) ensureOCIApplicationVolume(ctx context.Context, spec OCIApplicationSpec) error {

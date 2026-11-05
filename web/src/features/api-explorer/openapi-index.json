@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 163,
+  "operationCount": 164,
   "tags": [
     "agents-runtime",
     "audit",
@@ -456,6 +456,16 @@
       "path": "/tenants/{tenantId}/deployment-targets",
       "operationId": "listDeploymentTargets",
       "summary": "List assigned Incus and Proxmox targets",
+      "tags": [
+        "deployments"
+      ],
+      "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/deployment-targets/{systemId}/networks",
+      "operationId": "listDeploymentTargetNetworks",
+      "summary": "List live managed networks for an assigned Incus deployment target",
       "tags": [
         "deployments"
       ],

@@ -16,8 +16,9 @@ export type JsonSchemaProperty = {
 };
 export type DeploymentTarget = { id: string; label: string; site: string; provider: string; provider_label?: string; state: "planned" | "pending" | "active" | "stale" | "revoked" };
 export type DeploymentTargets = { items: DeploymentTarget[]; can_request: boolean };
-export type DeploymentTargetConfig = { storage?: { pool: string } };
+export type DeploymentTargetConfig = { storage?: { pool: string }; network?: { name: string } };
 export type DeploymentTargetStorage = { name: string; type: string; used_bytes?: number; total_bytes?: number };
+export type DeploymentTargetNetwork = { name: string; type: string };
 export type Deployment = {
   id: string; service_id: string; target_system_id: string; target_provider: string; target_provider_label?: string;
   generation: number; desired_state: "present" | "absent";
@@ -68,6 +69,15 @@ export const useDeploymentTargetStorage = (tenantId: string, systemId: string, e
   queryKey: ["deployment-target-storage", tenantId, systemId],
   queryFn: () => apiGet<Items<DeploymentTargetStorage>>(
     `/v1/tenants/${encodeURIComponent(tenantId)}/deployment-targets/${encodeURIComponent(systemId)}/storage`),
+  enabled: !!tenantId && !!systemId && enabled,
+  retry: false,
+  refetchInterval: 30_000,
+});
+
+export const useDeploymentTargetNetworks = (tenantId: string, systemId: string, enabled: boolean) => useQuery({
+  queryKey: ["deployment-target-networks", tenantId, systemId],
+  queryFn: () => apiGet<Items<DeploymentTargetNetwork>>(
+    `/v1/tenants/${encodeURIComponent(tenantId)}/deployment-targets/${encodeURIComponent(systemId)}/networks`),
   enabled: !!tenantId && !!systemId && enabled,
   retry: false,
   refetchInterval: 30_000,

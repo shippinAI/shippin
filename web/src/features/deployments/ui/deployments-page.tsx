@@ -13,13 +13,13 @@ import { useTenant } from "../../../lib/hooks/use-tenant";
 import {
   useCreateDeployment, useDeployableServices, useDeploymentEvents, useDeploymentTargets,
   useAuthorizeDeploymentReview, useDeploymentReview, useDeployments, usePrepareDeploymentReview, useRequestDeploymentRemoval, useUpdateDeployment,
-  useDeploymentTargetStorage, type Deployment, type DeploymentService, type DeploymentSource,
+  useDeploymentTargetStorage, useDeploymentTargetNetworks, type Deployment, type DeploymentService, type DeploymentSource, type DeploymentTargetConfig,
 } from "../../../lib/hooks/use-deployments";
 import { PageHeader } from "../../../template/page-header";
 import { QueryView } from "../../admin/ui/query-view";
 import { ServiceConfigForm } from "./service-config-form";
 import { currentGenerationFailure, deploymentFailureMessage } from "../deployment-status";
-import { requiresIncusStorageSelection, supportsRuntimeTarget } from "../runtime-targets";
+import { requiresIncusTargetConfiguration, supportsRuntimeTarget } from "../runtime-targets";
 
 const isObject = (value: unknown): value is Record<string, Json> => value !== null && typeof value === "object" && !Array.isArray(value);
 const serviceSource = (source: DeploymentSource) => source.kind === "oci"
@@ -125,10 +125,15 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
   const source = deployment?.source ?? service?.deployment_source;
   const [targetId, setTargetId] = useState(deployment?.target_system_id ?? compatibleTargets[0]?.id ?? "");
   const [storagePool, setStoragePool] = useState(deployment?.target_config.storage?.pool ?? "");
+  const [networkName, setNetworkName] = useState(deployment?.target_config.network?.name ?? "");
   const selectedTarget = compatibleTargets.find((target) => target.id === targetId);
-  const storageRequired = !deployment && requiresIncusStorageSelection(service?.runtime_contract);
+  const targetConfigRequired = !deployment && requiresIncusTargetConfiguration(service?.runtime_contract);
+  const storageRequired = targetConfigRequired;
+  const networkRequired = targetConfigRequired;
   const targetStorage = useDeploymentTargetStorage(tenantId, targetId,
-    storageRequired && selectedTarget?.provider === "incus" && selectedTarget.state === "active");
+    targetConfigRequired && selectedTarget?.provider === "incus" && selectedTarget.state === "active");
+  const targetNetworks = useDeploymentTargetNetworks(tenantId, targetId,
+    targetConfigRequired && selectedTarget?.provider === "incus" && selectedTarget.state === "active");
   const [configText, setConfigText] = useState(() => JSON.stringify(deployment?.config ?? service?.default_config ?? {}, null, 2));
   const [schemaValid, setSchemaValid] = useState(true);
   const setSchemaValidity = useCallback((value: boolean) => setSchemaValid(value), []);
@@ -139,17 +144,23 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
   const configObject = isObject(config) ? config : {};
   const busy = create.isPending || update.isPending;
   const storagePoolValid = !storageRequired || !!targetStorage.data?.items.some((item) => item.name === storagePool);
+  const networkValid = !networkRequired || !!targetNetworks.data?.items.some((item) => item.name === networkName && (item.type === "bridge" || item.type === "ovn"));
   return <Drawer isOpen onOpenChange={(open) => !open && onClose()} title={deployment ? `Edit ${service?.label ?? deployment.service_id}` : "Request deployment"}
     subtitle="This records desired configuration and a pinned catalog revision; provider execution is not connected yet."
     footer={<>
       <div className="flex-1" />
       <Button variant="ghost" tooltip="Close without saving" onPress={onClose}>Cancel</Button>
-      <Button variant="primary" tooltip={deployment ? "Append a generation using the current ETag" : "Record desired service configuration"} isDisabled={(!deployment && !service) || !valid || !schemaValid || busy || (!deployment && (!targetId || !compatibleTargets.some((target) => target.id === targetId) || !storagePoolValid || targetStorage.isPending))}
+      <Button variant="primary" tooltip={deployment ? "Append a generation using the current ETag" : "Record desired service configuration"} isDisabled={(!deployment && !service) || !valid || !schemaValid || busy || (!deployment && (!targetId || !compatibleTargets.some((target) => target.id === targetId) || !storagePoolValid || !networkValid || targetStorage.isPending || targetNetworks.isPending))}
         onPress={() => {
           if (!isObject(config) || !schemaValid) return;
           if (deployment) update.mutate({ deployment, config }, { onSuccess: onClose });
-          else if (service) create.mutate({ service_id: service.id, target_system_id: targetId, desired_state: "present", config,
-            target_config: storageRequired ? { storage: { pool: storagePool } } : {} }, { onSuccess: onClose });
+          else if (service) {
+            const target_config: DeploymentTargetConfig = {
+              ...(storageRequired ? { storage: { pool: storagePool } } : {}),
+              ...(networkRequired ? { network: { name: networkName } } : {}),
+            };
+            create.mutate({ service_id: service.id, target_system_id: targetId, desired_state: "present", config, target_config }, { onSuccess: onClose });
+          }
         }}>{deployment ? "Save generation" : "Record request"}</Button>
     </>}>
     <div className="grid gap-4 px-6 py-5">
@@ -162,9 +173,10 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
             const nextTarget = targets.find((target) => supportsRuntimeTarget(selected?.runtime_contract, target.provider));
             setTargetId(nextTarget?.id ?? "");
             setStoragePool("");
+            setNetworkName("");
           }} />
         <Select label="Target system" value={targetId} options={compatibleTargets.map((target) => ({ id: target.id,
-          label: `${target.provider_label ?? target.provider} Â· ${target.label} Â· ${target.site}${target.state === "planned" ? " Â· connection unverified" : ""}` }))} onChange={(id) => { setTargetId(id); setStoragePool(""); }} />
+          label: `${target.provider_label ?? target.provider} Â· ${target.label} Â· ${target.site}${target.state === "planned" ? " Â· connection unverified" : ""}` }))} onChange={(id) => { setTargetId(id); setStoragePool(""); setNetworkName(""); }} />
         {compatibleTargets.length === 0 && <p className="text-sm text-fg-muted">No assigned target supports this service runtime declaration.</p>}
         {storageRequired && <>
           {selectedTarget?.state !== "active" ? <p className="text-sm text-warning">Connect and verify this target to discover its live storage pools.</p>
@@ -175,6 +187,16 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
                     options={(targetStorage.data?.items ?? []).map((pool) => ({ id: pool.name, label: `${pool.name} · ${pool.type}` }))}
                     onChange={setStoragePool} />}
           <p className="text-xs text-fg-subtle">Pool choice is read from the selected target and saved with this deployment generation. It cannot be changed after creation until data migration is supported.</p>
+        </>}
+        {networkRequired && <>
+          {selectedTarget?.state !== "active" ? <p className="text-sm text-warning">Connect and verify this target to discover its managed networks.</p>
+            : targetNetworks.isPending ? <p className="text-sm text-fg-muted">Loading managed networks from the selected target…</p>
+              : targetNetworks.isError ? <p role="alert" className="text-sm text-danger">Managed networks could not be loaded: {targetNetworks.error.message}</p>
+                : (targetNetworks.data?.items.length ?? 0) === 0 ? <p className="text-sm text-warning">The target reports no selectable bridge or OVN networks.</p>
+                  : <Select label="Incus managed network" value={networkName}
+                    options={(targetNetworks.data?.items ?? []).map((network) => ({ id: network.name, label: `${network.name} · ${network.type}` }))}
+                    onChange={setNetworkName} />}
+          <p className="text-xs text-fg-subtle">The selected network is pinned into this generation and revalidated on save. This configures private NIC attachment; edge ingress and provider execution remain unavailable until their runtime contracts are implemented.</p>
         </>}
       </>}
       {source && <div className="rounded-lg border border-line p-3">

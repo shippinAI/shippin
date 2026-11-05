@@ -19,7 +19,7 @@ func TestDeploymentOutboxRelayAndWorkerUseGenerationFencedJobs(t *testing.T) {
 	item, _, err := a.deploymentStore().Create(ctx, tenantID, "outbox-test", deployments.CreateInput{
 		ServiceID: "postgres", TargetSystemID: targetID, DesiredState: deployments.DesiredPresent,
 		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"password":"vaultix://production/services/postgres/password"}`),
-		TargetConfig: json.RawMessage(`{"storage":{"pool":"tenant-data"}}`),
+		TargetConfig: json.RawMessage(`{"storage":{"pool":"tenant-data"},"network":{"name":"private-apps"}}`),
 	})
 	if err != nil {
 		t.Fatal(err)

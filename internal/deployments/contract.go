@@ -141,10 +141,15 @@ func (r DeploymentRequest) Validate() error {
 
 type TargetConfig struct {
 	Storage *TargetStorageConfig `json:"storage,omitempty"`
+	Network *TargetNetworkConfig `json:"network,omitempty"`
 }
 
 type TargetStorageConfig struct {
 	Pool string `json:"pool"`
+}
+
+type TargetNetworkConfig struct {
+	Name string `json:"name"`
 }
 
 var targetPoolPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$`)
@@ -172,12 +177,22 @@ func normalizeTargetConfig(raw json.RawMessage, provider Provider, runtime catal
 	if config.Storage != nil && (!targetPoolPattern.MatchString(config.Storage.Pool) || strings.TrimSpace(config.Storage.Pool) != config.Storage.Pool) {
 		return nil, errors.New("target storage pool is invalid")
 	}
+	if config.Network != nil && (!targetPoolPattern.MatchString(config.Network.Name) || strings.TrimSpace(config.Network.Name) != config.Network.Name) {
+		return nil, errors.New("target network name is invalid")
+	}
 	if runtime.Storage != nil {
 		if provider != ProviderIncus || config.Storage == nil || config.Storage.Pool == "" {
 			return nil, errors.New("this runtime requires an explicitly selected Incus storage pool")
 		}
 	} else if config.Storage != nil {
 		return nil, errors.New("target storage selection is not declared by this runtime")
+	}
+	if runtime.Network != nil {
+		if provider != ProviderIncus || config.Network == nil || config.Network.Name == "" {
+			return nil, errors.New("this runtime requires an explicitly selected Incus network")
+		}
+	} else if config.Network != nil {
+		return nil, errors.New("target network selection is not declared by this runtime")
 	}
 	return json.Marshal(config)
 }

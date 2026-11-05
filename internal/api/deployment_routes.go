@@ -27,6 +27,7 @@ func (a *API) deploymentRoutes(mux Router) {
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployable-services", a.flow.Require(a.listDeployableServices))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployment-targets", a.flow.Require(a.listDeploymentTargets))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployment-targets/{systemId}/storage", a.flow.Require(a.listDeploymentTargetStorage))
+	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployment-targets/{systemId}/networks", a.flow.Require(a.listDeploymentTargetNetworks))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployments", a.flow.Require(a.listDeployments))
 	mux.HandleFunc("POST /v1/tenants/{tenantId}/deployments", a.flow.Require(a.createDeployment))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/deployments/{deploymentId}", a.flow.Require(a.getDeployment))
@@ -112,6 +113,56 @@ func (a *API) listDeploymentTargetStorage(w http.ResponseWriter, r *http.Request
 	writeJSON(w, map[string]any{"items": items})
 }
 
+// listDeploymentTargetNetworks exposes managed Incus networks only after
+// confirming that the requested hypervisor is active and assigned to tenant.
+func (a *API) listDeploymentTargetNetworks(w http.ResponseWriter, r *http.Request) {
+	_, t, ok := a.deploymentTenantCtx(w, r)
+	if !ok {
+		return
+	}
+	targets, err := a.deploymentStore().Targets(r.Context(), t.ID)
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	var target *deployments.Target
+	for i := range targets {
+		if targets[i].ID == r.PathValue("systemId") {
+			target = &targets[i]
+			break
+		}
+	}
+	if target == nil {
+		auth.Problem(w, http.StatusNotFound, "Deployment target not found.")
+		return
+	}
+	if target.State != "active" {
+		auth.Problem(w, http.StatusConflict, "Network inventory requires an active, connected target.")
+		return
+	}
+	if target.Provider != deployments.ProviderIncus {
+		auth.Problem(w, http.StatusConflict, "Network selection is not supported for this target provider.")
+		return
+	}
+	driver, err := a.driver(r.Context(), target.ID)
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	items, err := driver.Networks(r.Context())
+	if err != nil {
+		deploymentUnavailable(w)
+		return
+	}
+	managed := make([]map[string]string, 0, len(items))
+	for _, item := range items {
+		if item.Type == "bridge" || item.Type == "ovn" {
+			managed = append(managed, map[string]string{"name": item.Name, "type": item.Type})
+		}
+	}
+	writeJSON(w, map[string]any{"items": managed})
+}
+
 func configuredProviderLabel(ui config.UI, provider deployments.Provider) string {
 	if presentation, ok := ui.Provider(string(provider)); ok && presentation.Label != "" {
 		return presentation.Label
@@ -184,12 +235,14 @@ func (a *API) createDeployment(w http.ResponseWriter, r *http.Request) {
 		if !decodeDeploymentBody(w, r, &input) {
 			return
 		}
-		if err := a.validateDeploymentStorageTarget(r.Context(), t.ID, input.TargetSystemID, input.TargetConfig); err != nil {
+		if err := a.validateDeploymentTargetConfig(r.Context(), t.ID, input.TargetSystemID, input.TargetConfig); err != nil {
 			switch {
 			case errors.Is(err, deployments.ErrTargetUnavailable):
 				writeDeploymentError(w, err)
 			case errors.Is(err, errDeploymentStoragePoolUnavailable):
 				auth.Problem(w, http.StatusConflict, "The selected storage pool is no longer available on this target. Refresh the pool list and retry.")
+			case errors.Is(err, errDeploymentNetworkUnavailable):
+				auth.Problem(w, http.StatusConflict, "The selected Incus network is no longer available. Refresh the network list and retry.")
 			default:
 				deploymentUnavailable(w)
 			}

@@ -79,6 +79,18 @@ DeploymentTargetStorageList:
           type: { type: string, description: Incus storage backend driver. }
           used_bytes: { type: integer, minimum: 0 }
           total_bytes: { type: integer, minimum: 0 }
+DeploymentTargetNetworkList:
+  type: object
+  required: [items]
+  properties:
+    items:
+      type: array
+      items:
+        type: object
+        required: [name, type]
+        properties:
+          name: { type: string }
+          type: { type: string, enum: [bridge, ovn] }
 DeploymentTargetConfig:
   type: object
   properties:
@@ -87,6 +99,12 @@ DeploymentTargetConfig:
       required: [pool]
       properties:
         pool: { type: string, minLength: 1, maxLength: 63, description: Target-specific live Incus pool selection, immutable after creation until storage migration is supported. }
+      additionalProperties: false
+    network:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 63, description: Target-specific live private Incus bridge or OVN network selection, immutable after creation until network migration is supported. }
       additionalProperties: false
   additionalProperties: false
 DeployableServiceList:
@@ -110,7 +128,7 @@ DeploymentUpdate:
   properties:
     desired_state: { type: string, enum: [present, absent] }
     config: { type: object, description: When omitted the prior generation configuration is retained. }
-    target_config: { $ref: '#/DeploymentTargetConfig', description: When supplied, it must match the existing target placement; storage pool migration is not supported. }
+    target_config: { $ref: '#/DeploymentTargetConfig', description: When supplied, it must match the existing target placement; storage pool and network migration are not supported. }
   additionalProperties: false
 DeploymentList:
   type: object

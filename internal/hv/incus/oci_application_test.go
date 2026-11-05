@@ -64,6 +64,7 @@ func TestCreateOCIApplicationPreflightsVersionWaitsAndReadsBack(t *testing.T) {
 					"limits.memory":                       "1024MiB",
 					"environment.POSTGRES_DB":             "app",
 				},
+				"devices": map[string]map[string]string{"eth0": {"type": "nic", "name": "eth0", "network": "private-apps"}},
 			}})
 		case r.Method == http.MethodPost && r.URL.Path == "/1.0/instances":
 			createCount++
@@ -87,7 +88,7 @@ func TestCreateOCIApplicationPreflightsVersionWaitsAndReadsBack(t *testing.T) {
 	c := clientFor(t, srv)
 	got, err := c.CreateOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2, Start: true,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2, Start: true,
 		Environment: map[string]string{"POSTGRES_DB": "app"},
 	})
 	if err != nil {
@@ -98,7 +99,7 @@ func TestCreateOCIApplicationPreflightsVersionWaitsAndReadsBack(t *testing.T) {
 	}
 	got, err = c.CreateOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2, Start: true,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2, Start: true,
 		Environment: map[string]string{"POSTGRES_DB": "app"},
 	})
 	if err != nil || got.Status != "Running" || createCount != 1 {
@@ -115,6 +116,34 @@ func TestCreateOCIApplicationPreflightsVersionWaitsAndReadsBack(t *testing.T) {
 		config["user.shippin.image_reference_sha256"] != imageReferenceHash(testOCIReference) ||
 		config["environment.POSTGRES_DB"] != "app" {
 		t.Fatalf("resource configuration = %#v", config)
+	}
+	devices := create["devices"].(map[string]any)
+	network := devices["eth0"].(map[string]any)
+	if network["type"] != "nic" || network["name"] != "eth0" || network["network"] != "private-apps" {
+		t.Fatalf("private network device = %#v", network)
+	}
+}
+
+func TestCreateOCIApplicationRequiresExplicitValidNetworkBeforeProviderCalls(t *testing.T) {
+	providerCalls := 0
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		providerCalls++
+		http.Error(w, "provider should not be called", http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+	for _, network := range []string{"", "../private", " private-apps", "private-apps\n"} {
+		t.Run(fmt.Sprintf("network=%q", network), func(t *testing.T) {
+			_, err := clientFor(t, srv).CreateOCIApplication(context.Background(), OCIApplicationSpec{
+				Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
+				ImageReference: testOCIReference, Network: network, MemoryMiB: 1024, Cores: 2,
+			})
+			if err == nil {
+				t.Fatal("invalid or missing network accepted")
+			}
+		})
+	}
+	if providerCalls != 0 {
+		t.Fatalf("invalid network reached provider %d times", providerCalls)
 	}
 }
 
@@ -147,7 +176,7 @@ func TestCreateOCIApplicationRejectsInvalidEnvironmentBeforeProviderCalls(t *tes
 		t.Run(name, func(t *testing.T) {
 			_, err := clientFor(t, srv).CreateOCIApplication(context.Background(), OCIApplicationSpec{
 				Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
-				ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2,
+				ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2,
 				Environment: environment,
 			})
 			if err == nil {
@@ -189,7 +218,7 @@ func TestCreateOCIApplicationDoesNotReturnProviderEnvironmentValuesInErrors(t *t
 
 			_, err := clientFor(t, srv).CreateOCIApplication(context.Background(), OCIApplicationSpec{
 				Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
-				ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2,
+				ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2,
 				Environment: map[string]string{"POSTGRES_PASSWORD": secret},
 			})
 			if err == nil || strings.Contains(err.Error(), secret) {
@@ -218,11 +247,36 @@ func TestCreateOCIApplicationRejectsEnvironmentReadbackMismatch(t *testing.T) {
 
 	_, err := clientFor(t, srv).CreateOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2,
 		Environment: map[string]string{"POSTGRES_DB": "expected"},
 	})
 	if err == nil || mutations != 0 {
 		t.Fatalf("mismatching environment must block state writes: mutations=%d err=%v", mutations, err)
+	}
+}
+
+func TestCreateOCIApplicationRejectsNetworkReadbackMismatchBeforeStateChange(t *testing.T) {
+	mutations := 0
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/1.0":
+			_, _ = w.Write([]byte(`{"metadata":{"environment":{"server_version":"7.3.0"}}}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/app-1":
+			_, _ = w.Write([]byte(`{"metadata":{"name":"app-1","status":"Stopped","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"3","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"1024MiB"},"devices":{"eth0":{"type":"nic","name":"eth0","network":"different-network"}}}}`))
+		case r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodDelete:
+			mutations++
+			http.Error(w, "mutation forbidden", http.StatusInternalServerError)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	_, err := clientFor(t, srv).CreateOCIApplication(context.Background(), OCIApplicationSpec{
+		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2, Start: true,
+	})
+	if err == nil || mutations != 0 {
+		t.Fatalf("mismatching network must block state writes: mutations=%d err=%v", mutations, err)
 	}
 }
 
@@ -234,7 +288,7 @@ func TestCreateOCIApplicationCreatesAndReusesOwnedPersistentVolume(t *testing.T)
 	var instanceRequest map[string]any
 	spec := OCIApplicationSpec{
 		Name: "app-data", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 2048, Cores: 2,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 2048, Cores: 2,
 		StoragePool: "tenant-pool", StorageSizeGiB: 25, MountPath: "/var/lib/app/data",
 	}
 	volumePath := "/1.0/storage-pools/tenant-pool/volumes/custom/" + ociApplicationVolumeName(testDeploymentID)
@@ -256,10 +310,12 @@ func TestCreateOCIApplicationCreatesAndReusesOwnedPersistentVolume(t *testing.T)
 					"user.shippin.image_reference_sha256": imageReferenceHash(testOCIReference),
 					"limits.cpu":                          "2", "limits.memory": "2048MiB",
 				},
-				"devices": map[string]map[string]string{"shippin-data": {
-					"type": "disk", "pool": "tenant-pool", "source": ociApplicationVolumeName(testDeploymentID),
-					"path": "/var/lib/app/data",
-				}},
+				"devices": map[string]map[string]string{
+					"eth0": {"type": "nic", "name": "eth0", "network": "private-apps"},
+					"shippin-data": {
+						"type": "disk", "pool": "tenant-pool", "source": ociApplicationVolumeName(testDeploymentID),
+						"path": "/var/lib/app/data",
+					}},
 			}})
 		case r.Method == http.MethodGet && r.URL.Path == volumePath:
 			if !volumeCreated {
@@ -309,8 +365,12 @@ func TestCreateOCIApplicationCreatesAndReusesOwnedPersistentVolume(t *testing.T)
 		t.Fatalf("first create/read-back = %+v, err=%v", got, err)
 	}
 	devices, ok := instanceRequest["devices"].(map[string]any)
-	if !ok || devices["shippin-data"] == nil {
+	if !ok || devices["shippin-data"] == nil || devices["eth0"] == nil {
 		t.Fatalf("application create did not attach persistent storage: %#v", instanceRequest)
+	}
+	network := devices["eth0"].(map[string]any)
+	if network["type"] != "nic" || network["name"] != "eth0" || network["network"] != spec.Network {
+		t.Fatalf("private network device configuration = %#v", network)
 	}
 	device := devices["shippin-data"].(map[string]any)
 	if device["pool"] != spec.StoragePool || device["source"] != ociApplicationVolumeName(testDeploymentID) || device["path"] != spec.MountPath {
@@ -330,7 +390,7 @@ func TestCreateOCIApplicationRejectsMissingPersistentVolumeForExistingInstance(t
 		case r.Method == http.MethodGet && r.URL.Path == "/1.0":
 			_, _ = w.Write([]byte(`{"metadata":{"auth":"trusted","environment":{"server_version":"7.3.0"}}}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/app-data":
-			_, _ = w.Write([]byte(`{"metadata":{"name":"app-data","status":"Stopped","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"3","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"2048MiB"},"devices":{"shippin-data":{"type":"disk","pool":"tenant-pool","source":"` + ociApplicationVolumeName(testDeploymentID) + `","path":"/var/lib/app/data"}}}}`))
+			_, _ = w.Write([]byte(`{"metadata":{"name":"app-data","status":"Stopped","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"3","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"2048MiB"},"devices":{"eth0":{"type":"nic","name":"eth0","network":"private-apps"},"shippin-data":{"type":"disk","pool":"tenant-pool","source":"` + ociApplicationVolumeName(testDeploymentID) + `","path":"/var/lib/app/data"}}}}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/1.0/storage-pools/tenant-pool/volumes/custom/"+ociApplicationVolumeName(testDeploymentID):
 			volumeLookups++
 			http.NotFound(w, r)
@@ -344,7 +404,7 @@ func TestCreateOCIApplicationRejectsMissingPersistentVolumeForExistingInstance(t
 	defer srv.Close()
 	_, err := clientFor(t, srv).CreateOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-data", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 2048, Cores: 2,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 2048, Cores: 2,
 		StoragePool: "tenant-pool", StorageSizeGiB: 25, MountPath: "/var/lib/app/data",
 	})
 	if err == nil || volumeLookups != 1 || mutations != 0 {
@@ -368,7 +428,7 @@ func TestCreateOCIApplicationRejectsOldIncusBeforeMutation(t *testing.T) {
 	c := clientFor(t, srv)
 	_, err := c.CreateOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2,
 	})
 	if err == nil || !strings.Contains(err.Error(), "7.3.0 or newer") {
 		t.Fatalf("old server error = %v", err)
@@ -388,7 +448,7 @@ func TestCreateOCIApplicationRejectsInvalidResourcesBeforeProviderCall(t *testin
 	c := clientFor(t, srv)
 	_, err := c.CreateOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 64, Cores: 2,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 64, Cores: 2,
 	})
 	if err == nil || requests != 0 {
 		t.Fatalf("validation error=%v provider requests=%d", err, requests)
@@ -420,7 +480,7 @@ func TestCreateOCIApplicationRejectsInvalidStorageBeforeProviderCall(t *testing.
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := clientFor(t, srv).CreateOCIApplication(context.Background(), OCIApplicationSpec{
 				Name: "app-data", DeploymentID: testDeploymentID, Generation: 3,
-				ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2,
+				ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2,
 				StoragePool: tc.pool, StorageSizeGiB: tc.size, MountPath: tc.path,
 			})
 			if err == nil || requests != 0 {
@@ -462,7 +522,7 @@ func TestCreateOCIApplicationRejectsForeignOrMismatchedPersistentVolume(t *testi
 			defer srv.Close()
 			_, err := clientFor(t, srv).CreateOCIApplication(context.Background(), OCIApplicationSpec{
 				Name: "app-data", DeploymentID: testDeploymentID, Generation: 3,
-				ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2,
+				ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2,
 				StoragePool: "tenant-pool", StorageSizeGiB: 25, MountPath: "/var/lib/app/data",
 			})
 			if err == nil || mutations != 0 {
@@ -491,7 +551,7 @@ func TestCreateOCIApplicationRejectsExistingDifferentGenerationWithoutMutation(t
 	c := clientFor(t, srv)
 	_, err := c.CreateOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2, Start: true,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2, Start: true,
 	})
 	if err == nil || mutations != 0 {
 		t.Fatalf("generation conflict error=%v mutations=%d", err, mutations)
@@ -507,7 +567,7 @@ func TestOCIApplicationReadbackRequiresOCIContainerAndRequestedState(t *testing.
 	}{
 		{name: "non oci", metadata: `{"name":"app-1","status":"Running","type":"container","config":{"volatile.container.oci":"false"}}`, started: true, wantErr: true},
 		{name: "unowned", metadata: `{"name":"app-1","status":"Stopped","type":"container","config":{"volatile.container.oci":"true"}}`, wantErr: true},
-		{name: "valid stopped", metadata: `{"name":"app-1","status":"Stopped","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"11111111-1111-4111-8111-111111111111","user.shippin.generation":"3","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"1024MiB"}}`, wantErr: false},
+		{name: "valid stopped", metadata: `{"name":"app-1","status":"Stopped","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"11111111-1111-4111-8111-111111111111","user.shippin.generation":"3","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"1024MiB"},"devices":{"eth0":{"type":"nic","name":"eth0","network":"private-apps"}}}`, wantErr: false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -521,7 +581,7 @@ func TestOCIApplicationReadbackRequiresOCIContainerAndRequestedState(t *testing.
 			c := clientFor(t, srv)
 			_, err := c.ensureOCIApplicationState(context.Background(), OCIApplicationSpec{
 				Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
-				ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2, Start: test.started,
+				ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2, Start: test.started,
 			})
 			if (err != nil) != test.wantErr {
 				t.Fatalf("read-back error = %v", err)

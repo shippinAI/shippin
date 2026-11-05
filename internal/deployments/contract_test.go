@@ -64,7 +64,7 @@ func TestDeploymentRequestSnapshotsValidatedRuntimeRecipeV2(t *testing.T) {
 		Network:   &catalog.RuntimeNetwork{Exposure: "private", Ports: []catalog.RuntimePort{{Name: "postgres", Protocol: "tcp", ContainerPort: 5432}}},
 		Health:    &catalog.RuntimeHealthCheck{Kind: "tcp", Port: 5432, IntervalSeconds: 30, TimeoutSeconds: 5, FailureThreshold: 3},
 	}
-	request.TargetConfig = json.RawMessage(`{"storage":{"pool":"tenant-data"}}`)
+	request.TargetConfig = json.RawMessage(`{"storage":{"pool":"tenant-data"},"network":{"name":"private-apps"}}`)
 	if err := request.Validate(); err != nil {
 		t.Fatalf("valid recipe generation rejected: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestDeploymentRequestV3BindsOnlySchemaDeclaredRuntimeStrings(t *testing.T) 
 	if err := request.Validate(); err == nil {
 		t.Fatal("v3 deployment accepted without the required Incus storage pool")
 	}
-	request.TargetConfig = json.RawMessage(`{"storage":{"pool":"tenant-data"}}`)
+	request.TargetConfig = json.RawMessage(`{"storage":{"pool":"tenant-data"},"network":{"name":"private-apps"}}`)
 	if err := request.Validate(); err != nil {
 		t.Fatalf("valid v3 deployment rejected: %v", err)
 	}
@@ -121,7 +121,11 @@ func TestDeploymentTargetConfigRequiresExplicitCompatiblePool(t *testing.T) {
 		Network:   &catalog.RuntimeNetwork{Exposure: "private", Ports: []catalog.RuntimePort{{Name: "db", Protocol: "tcp", ContainerPort: 5432}}},
 		Health:    &catalog.RuntimeHealthCheck{Kind: "tcp", Port: 5432, IntervalSeconds: 30, TimeoutSeconds: 5, FailureThreshold: 3},
 	}
-	for _, raw := range []string{"{}", `{"storage":{"pool":""}}`, `{"storage":{"pool":"../other"}}`, `{"storage":{"pool":"ok","host":"unexpected"}}`, `null`, `[]`} {
+	for _, raw := range []string{"{}", `{"storage":{"pool":"tenant-data"}}`, `{"network":{"name":"private-apps"}}`,
+		`{"storage":{"pool":""},"network":{"name":"private-apps"}}`,
+		`{"storage":{"pool":"../other"},"network":{"name":"private-apps"}}`,
+		`{"storage":{"pool":"tenant-data"},"network":{"name":"../other"}}`,
+		`{"storage":{"pool":"tenant-data"},"network":{"name":"private-apps","host":"unexpected"}}`, `null`, `[]`} {
 		t.Run(raw, func(t *testing.T) {
 			request.TargetConfig = json.RawMessage(raw)
 			if err := request.Validate(); err == nil {
@@ -129,11 +133,11 @@ func TestDeploymentTargetConfigRequiresExplicitCompatiblePool(t *testing.T) {
 			}
 		})
 	}
-	request.TargetConfig = json.RawMessage(`{"storage":{"pool":"tenant-data"}}`)
+	request.TargetConfig = json.RawMessage(`{"storage":{"pool":"tenant-data"},"network":{"name":"private-apps"}}`)
 	if err := request.Validate(); err != nil {
 		t.Fatalf("valid target-specific pool rejected: %v", err)
 	}
-	request.TargetConfig = json.RawMessage(`{"storage":{"pool":"tenant-data"}}`)
+	request.TargetConfig = json.RawMessage(`{"storage":{"pool":"tenant-data"},"network":{"name":"private-apps"}}`)
 	request.TargetProvider = ProviderProxmox
 	if err := request.Validate(); err == nil {
 		t.Fatal("Incus pool accepted for an incompatible provider")

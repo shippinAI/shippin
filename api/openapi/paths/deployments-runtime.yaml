@@ -42,6 +42,25 @@ deploymentTargetStorage:
       "404": { $ref: ../components/responses.yaml#/Problem404 }
       "409": { $ref: ../components/responses.yaml#/Problem409 }
       default: { $ref: ../components/responses.yaml#/ProblemDefault }
+deploymentTargetNetworks:
+  x-implementation-status: registered
+  parameters:
+    - { $ref: ../components/parameters.yaml#/TenantId }
+    - name: systemId
+      in: path
+      required: true
+      schema: { $ref: ../schemas/common.yaml#/Uuid }
+  get:
+    tags: [deployments]
+    operationId: listDeploymentTargetNetworks
+    summary: List live managed networks for an assigned Incus deployment target
+    description: Read-only inventory is returned only for an active Incus server assigned to the tenant and contains bridge or OVN networks. The selected network is stored in immutable deployment target configuration; this endpoint does not create a network, enable edge ingress, or execute workloads.
+    responses:
+      "200": { description: Live managed provider network inventory., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeploymentTargetNetworkList } } } }
+      "401": { $ref: ../components/responses.yaml#/Problem401 }
+      "404": { $ref: ../components/responses.yaml#/Problem404 }
+      "409": { $ref: ../components/responses.yaml#/Problem409 }
+      default: { $ref: ../components/responses.yaml#/ProblemDefault }
 deployments:
   x-implementation-status: registered
   parameters: [{ $ref: ../components/parameters.yaml#/TenantId }]
@@ -59,7 +78,7 @@ deployments:
     tags: [deployments]
     operationId: createDeployment
     summary: Record an initial deployment request
-    description: Stores desired state and a pinned catalog snapshot. Any selected Incus storage pool is revalidated against the active tenant-assigned target's live inventory before the generation is accepted. This does not execute a provider operation; configured AgentHub review and a reconciler remain required.
+    description: Stores desired state and a pinned catalog snapshot. Any selected Incus storage pool and private managed network are revalidated against the active tenant-assigned target's live inventory before the generation is accepted. This does not execute a provider operation; configured AgentHub review and a reconciler remain required.
     parameters: [{ $ref: ../components/parameters.yaml#/IdempotencyKey }]
     requestBody:
       required: true

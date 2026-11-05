@@ -121,20 +121,27 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 	a.resolveCaller = managerResolver
 	missingPool := httptest.NewRecorder()
 	a.createDeployment(missingPool, deploymentRequest(http.MethodPost, tenantID, "",
-		`{"service_id":"postgres","target_system_id":"`+targetID+`","desired_state":"present","config":{"password":"vaultix://production/services/postgres/password"},"target_config":{"storage":{"pool":"not-on-target"}}}`,
+		`{"service_id":"postgres","target_system_id":"`+targetID+`","desired_state":"present","config":{"password":"vaultix://production/services/postgres/password"},"target_config":{"storage":{"pool":"not-on-target"},"network":{"name":"private-apps"}}}`,
 		uuid.NewString(), ""))
 	if missingPool.Code != http.StatusConflict || openedDrivers != 1 {
 		t.Fatalf("a pool absent from live inventory must be rejected after one provider read: status=%d opened=%d body=%s", missingPool.Code, openedDrivers, missingPool.Body)
 	}
+	missingNetwork := httptest.NewRecorder()
+	a.createDeployment(missingNetwork, deploymentRequest(http.MethodPost, tenantID, "",
+		`{"service_id":"postgres","target_system_id":"`+targetID+`","desired_state":"present","config":{"password":"vaultix://production/services/postgres/password"},"target_config":{"storage":{"pool":"tenant-data"},"network":{"name":"not-on-target"}}}`,
+		uuid.NewString(), ""))
+	if missingNetwork.Code != http.StatusConflict || openedDrivers != 2 {
+		t.Fatalf("a network absent from live inventory must be rejected: status=%d opened=%d body=%s", missingNetwork.Code, openedDrivers, missingNetwork.Body)
+	}
 	createKey := uuid.NewString()
-	body := `{"service_id":"postgres","target_system_id":"` + targetID + `","desired_state":"present","config":{"password":"vaultix://production/services/postgres/password"},"target_config":{"storage":{"pool":"tenant-data"}}}`
+	body := `{"service_id":"postgres","target_system_id":"` + targetID + `","desired_state":"present","config":{"password":"vaultix://production/services/postgres/password"},"target_config":{"storage":{"pool":"tenant-data"},"network":{"name":"private-apps"}}}`
 	rec := httptest.NewRecorder()
 	a.createDeployment(rec, deploymentRequest(http.MethodPost, tenantID, "", body, createKey, ""))
-	if rec.Code != http.StatusCreated || rec.Header().Get("ETag") != `"1"` {
+	if rec.Code != http.StatusCreated || rec.Header().Get("ETag") != `"1"` || openedDrivers != 3 {
 		t.Fatalf("create response: %d %v %s", rec.Code, rec.Header(), rec.Body)
 	}
 	var created deployments.Deployment
-	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil || created.Generation != 1 || created.TargetProvider != deployments.ProviderIncus || created.ObservedState != deployments.ObservedUnknown || len(created.ConfigSchema) == 0 || created.TargetConfig.Storage == nil || created.TargetConfig.Storage.Pool != "tenant-data" {
+	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil || created.Generation != 1 || created.TargetProvider != deployments.ProviderIncus || created.ObservedState != deployments.ObservedUnknown || len(created.ConfigSchema) == 0 || created.TargetConfig.Storage == nil || created.TargetConfig.Storage.Pool != "tenant-data" || created.TargetConfig.Network == nil || created.TargetConfig.Network.Name != "private-apps" {
 		t.Fatalf("created intent: %+v err=%v", created, err)
 	}
 	if strings.Contains(string(created.ConfigSchema), "vaultix://") || strings.Contains(string(created.ConfigSchema), "sops://") {
@@ -158,7 +165,7 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 	}
 	movePool := httptest.NewRecorder()
 	a.updateDeployment(movePool, deploymentRequest(http.MethodPatch, tenantID, created.ID,
-		`{"desired_state":"present","target_config":{"storage":{"pool":"other-pool"}}}`, uuid.NewString(), `"2"`))
+		`{"desired_state":"present","target_config":{"storage":{"pool":"other-pool"},"network":{"name":"private-apps"}}}`, uuid.NewString(), `"2"`))
 	if movePool.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("in-place storage pool change must be rejected: %d %s", movePool.Code, movePool.Body)
 	}
@@ -186,6 +193,9 @@ func (deploymentStorageInventoryDriver) Kind() string { return "incus" }
 func (deploymentStorageInventoryDriver) Storage(context.Context) ([]hv.Volume, error) {
 	return []hv.Volume{{Name: "tenant-data", Type: "zfs"}, {Name: "fast", Type: "btrfs"}}, nil
 }
+func (deploymentStorageInventoryDriver) Networks(context.Context) ([]hv.Network, error) {
+	return []hv.Network{{Name: "private-apps", Type: "bridge"}, {Name: "tenant-ovn", Type: "ovn"}, {Name: "uplink0", Type: "physical"}}, nil
+}
 
 func TestDeploymentTargetStorageIsTenantAssignmentScoped(t *testing.T) {
 	a, tenantID, targetID := deploymentRouteAPI(t)
@@ -210,5 +220,21 @@ func TestDeploymentTargetStorageIsTenantAssignmentScoped(t *testing.T) {
 	a.listDeploymentTargetStorage(rec, request)
 	if rec.Code != http.StatusNotFound || opened != 1 {
 		t.Fatalf("unassigned target storage must not reach a provider: status=%d opened=%d body=%s", rec.Code, opened, rec.Body)
+	}
+	request = httptest.NewRequest(http.MethodGet, "/", nil)
+	request.SetPathValue("tenantId", tenantID)
+	request.SetPathValue("systemId", targetID)
+	rec = httptest.NewRecorder()
+	a.listDeploymentTargetNetworks(rec, request)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"name":"private-apps"`) || !strings.Contains(rec.Body.String(), `"name":"tenant-ovn"`) || strings.Contains(rec.Body.String(), `"name":"uplink0"`) || opened != 2 {
+		t.Fatalf("assigned managed target networks: status=%d opened=%d body=%s", rec.Code, opened, rec.Body)
+	}
+	request = httptest.NewRequest(http.MethodGet, "/", nil)
+	request.SetPathValue("tenantId", tenantID)
+	request.SetPathValue("systemId", uuid.NewString())
+	rec = httptest.NewRecorder()
+	a.listDeploymentTargetNetworks(rec, request)
+	if rec.Code != http.StatusNotFound || opened != 2 {
+		t.Fatalf("unassigned target networks must not reach a provider: status=%d opened=%d body=%s", rec.Code, opened, rec.Body)
 	}
 }

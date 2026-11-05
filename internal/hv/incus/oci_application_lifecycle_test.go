@@ -29,10 +29,13 @@ func TestDeleteOCIApplicationStopsOwnedInstanceAndRetainsDataVolume(t *testing.T
 					"user.shippin.image_reference_sha256": imageReferenceHash(testOCIReference),
 					"limits.cpu":                          "2", "limits.memory": "2048MiB",
 				},
-				"devices": map[string]map[string]string{"shippin-data": {
-					"type": "disk", "pool": "tenant-pool", "source": ociApplicationVolumeName(testDeploymentID),
-					"path": "/var/lib/postgresql/data",
-				}},
+				"devices": map[string]map[string]string{
+					"eth0": {"type": "nic", "name": "eth0", "network": "private-apps"},
+					"shippin-data": {
+						"type": "disk", "pool": "tenant-pool", "source": ociApplicationVolumeName(testDeploymentID),
+						"path": "/var/lib/postgresql/data",
+					},
+				},
 			}})
 		case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/app-db/snapshots":
 			_, _ = w.Write([]byte(`{"metadata":[]}`))
@@ -61,7 +64,7 @@ func TestDeleteOCIApplicationStopsOwnedInstanceAndRetainsDataVolume(t *testing.T
 
 	err := clientFor(t, srv).DeleteOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-db", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 2048, Cores: 2,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 2048, Cores: 2,
 		StoragePool: "tenant-pool", StorageSizeGiB: 32, MountPath: "/var/lib/postgresql/data",
 	})
 	if err != nil || stateChanges != 1 || deletions != 1 || volumeDeletes != 0 {
@@ -85,7 +88,7 @@ func TestDeleteOCIApplicationIsIdempotentWhenAlreadyAbsent(t *testing.T) {
 
 	err := clientFor(t, srv).DeleteOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-db", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 2048, Cores: 2,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 2048, Cores: 2,
 	})
 	if err != nil || mutations != 0 {
 		t.Fatalf("absent delete: mutations=%d err=%v", mutations, err)
@@ -97,7 +100,7 @@ func TestDeleteOCIApplicationRejectsForeignGenerationBeforeMutation(t *testing.T
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/app-db":
-			_, _ = w.Write([]byte(`{"metadata":{"name":"app-db","status":"Running","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"2","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"2048MiB"}}}`))
+			_, _ = w.Write([]byte(`{"metadata":{"name":"app-db","status":"Running","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"2","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"2048MiB"},"devices":{"eth0":{"type":"nic","name":"eth0","network":"private-apps"}}}}`))
 		case r.Method == http.MethodPut || r.Method == http.MethodDelete:
 			mutations++
 			http.Error(w, "mutation forbidden in test", http.StatusInternalServerError)
@@ -109,7 +112,7 @@ func TestDeleteOCIApplicationRejectsForeignGenerationBeforeMutation(t *testing.T
 
 	err := clientFor(t, srv).DeleteOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-db", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 2048, Cores: 2,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 2048, Cores: 2,
 	})
 	if err == nil || mutations != 0 {
 		t.Fatalf("foreign generation delete: mutations=%d err=%v", mutations, err)
@@ -131,7 +134,7 @@ func TestDeleteOCIApplicationRejectsReplacementAfterStop(t *testing.T) {
 			if reads >= 3 {
 				status = "Stopped"
 			}
-			_, _ = w.Write([]byte(`{"metadata":{"name":"app-db","status":"` + status + `","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"` + generation + `","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"2048MiB"}}}`))
+			_, _ = w.Write([]byte(`{"metadata":{"name":"app-db","status":"` + status + `","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"` + generation + `","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"2048MiB"},"devices":{"eth0":{"type":"nic","name":"eth0","network":"private-apps"}}}}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/app-db/snapshots":
 			_, _ = w.Write([]byte(`{"metadata":[]}`))
 		case r.Method == http.MethodPut && r.URL.Path == "/1.0/instances/app-db/state":
@@ -148,7 +151,7 @@ func TestDeleteOCIApplicationRejectsReplacementAfterStop(t *testing.T) {
 
 	err := clientFor(t, srv).DeleteOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-db", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 2048, Cores: 2,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 2048, Cores: 2,
 	})
 	if err == nil || mutations != 1 {
 		t.Fatalf("replacement delete: reads=%d mutations=%d err=%v", reads, mutations, err)
@@ -160,7 +163,7 @@ func TestDeleteOCIApplicationRequiresProviderAbsenceReadback(t *testing.T) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/app-db":
-			_, _ = w.Write([]byte(`{"metadata":{"name":"app-db","status":"Stopped","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"3","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"2048MiB"}}}`))
+			_, _ = w.Write([]byte(`{"metadata":{"name":"app-db","status":"Stopped","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"3","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"2048MiB"},"devices":{"eth0":{"type":"nic","name":"eth0","network":"private-apps"}}}}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/app-db/snapshots":
 			_, _ = w.Write([]byte(`{"metadata":[]}`))
 		case r.Method == http.MethodDelete && r.URL.Path == "/1.0/instances/app-db":
@@ -175,7 +178,7 @@ func TestDeleteOCIApplicationRequiresProviderAbsenceReadback(t *testing.T) {
 
 	err := clientFor(t, srv).DeleteOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-db", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 2048, Cores: 2,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 2048, Cores: 2,
 	})
 	if err == nil || deletions != 1 || !strings.Contains(err.Error(), "still present") {
 		t.Fatalf("missing absence read-back: deletions=%d err=%v", deletions, err)
@@ -187,7 +190,7 @@ func TestDeleteOCIApplicationPreservesInstancesWithSnapshots(t *testing.T) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/app-db":
-			_, _ = w.Write([]byte(`{"metadata":{"name":"app-db","status":"Running","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"3","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"2048MiB"}}}`))
+			_, _ = w.Write([]byte(`{"metadata":{"name":"app-db","status":"Running","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"3","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"2048MiB"},"devices":{"eth0":{"type":"nic","name":"eth0","network":"private-apps"}}}}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/app-db/snapshots":
 			_, _ = w.Write([]byte(`{"metadata":["/1.0/instances/app-db/snapshots/before-upgrade"]}`))
 		case r.Method == http.MethodPut || r.Method == http.MethodDelete:
@@ -201,7 +204,7 @@ func TestDeleteOCIApplicationPreservesInstancesWithSnapshots(t *testing.T) {
 
 	err := clientFor(t, srv).DeleteOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-db", DeploymentID: testDeploymentID, Generation: 3,
-		ImageReference: testOCIReference, MemoryMiB: 2048, Cores: 2,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 2048, Cores: 2,
 	})
 	if err == nil || mutations != 0 || !strings.Contains(err.Error(), "snapshots") {
 		t.Fatalf("snapshot-preserving delete: mutations=%d err=%v", mutations, err)
