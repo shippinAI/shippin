@@ -3,6 +3,10 @@
 set -uo pipefail
 root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 failed=()
+go_bin=$(command -v go || command -v go.exe || printf go)
+if ! command -v "$go_bin" >/dev/null 2>&1; then
+  echo "Go is unavailable (looked for go and go.exe); Go checks will fail and the remaining checks will continue." >&2
+fi
 step() {
   local name=$1 dir=$2
   shift 2
@@ -10,14 +14,14 @@ step() {
   if ! (cd "$root/$dir" && "$@"); then failed+=("$name"); fi
 }
 
-if [ "$(go env GOOS)" = windows ]; then
+if [ "$("$go_bin" env GOOS)" = windows ]; then
   # hostd and the launcher are Unix-only; CI tests them on Linux.
-  step "console (build)" . go build ./cmd/console ./cmd/shippin-hostd
+  step "console (build)" . "$go_bin" build ./cmd/console ./cmd/shippin-hostd
 else
-  step "console (test)" . go test ./...
+  step "console (test)" . "$go_bin" test ./...
 fi
-step "console (vet)" . go vet ./cmd/console ./internal/api ./internal/config ./internal/hv/...
-step "agent" agent go test ./...
+step "console (vet)" . "$go_bin" vet ./cmd/console ./internal/api ./internal/config ./internal/hv/...
+step "agent" agent "$go_bin" test ./...
 step "panel (install)" web npm ci --no-audit --no-fund
 step "panel (test)" web npm test
 step "panel (build)" web npm run build

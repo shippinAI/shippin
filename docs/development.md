@@ -32,7 +32,9 @@ Use it with `cd web && npm run dev` to change both sides at once. It runs in Git
 
 ## Check your work
 
-`scripts/check.sh` runs what CI runs that does not need a dedicated machine:
+`scripts/check.sh` runs what CI runs that does not need a dedicated machine. It
+resolves either `go` or `go.exe`, so the same command works from Unix shells and
+Git Bash on Windows:
 
 ```sh
 scripts/check.sh

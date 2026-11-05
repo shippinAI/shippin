@@ -15,10 +15,10 @@ branch remains to merge. Windows standalone builds of `cmd/console` and
 `cmd/shippin-hostd` succeeded; the React tests, build and bundle budget passed;
 `go vet` passed. The full Windows Go suite still fails in unrelated app,
 enrollment and hostd tests that assume POSIX shell/path/permission behavior or
-fetch a live third-party URL. `scripts/check.sh` also cannot locate Go from the
-current Bash PATH, although direct PowerShell builds and Go commands work.
-Those Windows test failures are recorded as open developer-build work; they are
-not described as provider/runtime failures. No live Incus, Proxmox, AgentHub,
+fetch a live third-party URL. `scripts/check.sh` now discovers either `go` or
+`go.exe`; its complete local check passed from Git Bash after that fix. Windows
+console test selection remains build-only by design, and no claim is made about
+the unrelated full-suite failures from earlier direct runs. No live Incus, Proxmox, AgentHub,
 Vaultix, Cloudflare or Tailscale operation was run. The deployment worker still
 makes no provider call, and archive readiness remains open.
 
