@@ -30,6 +30,11 @@ type OCIApplicationSpec struct {
 	ImageReference string
 	MemoryMiB      int
 	Cores          int
+	// Environment values are stored in Incus instance configuration and can be
+	// read by authorized Incus administrators. Do not populate this from a
+	// secret resolver until the installation's provider trust boundary has been
+	// explicitly accepted.
+	Environment    map[string]string
 	StoragePool    string
 	StorageSizeGiB int
 	MountPath      string
@@ -42,6 +47,7 @@ type ociImageReference struct {
 }
 
 var ociDigestPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+var ociEnvironmentName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,127}$`)
 
 // parseOCIApplicationReference accepts a fully qualified registry/repository
 // reference with an immutable OCI manifest digest. Registry credentials are
@@ -130,6 +136,9 @@ func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSp
 			"user.shippin.image_reference_sha256": imageReferenceHash(spec.ImageReference),
 		},
 	}
+	for name, value := range spec.Environment {
+		request.Config["environment."+name] = value
+	}
 	if spec.StoragePool != "" {
 		request.Devices = ociApplicationDevices(spec)
 	}
@@ -142,9 +151,18 @@ func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSp
 		return hv.Guest{}, err
 	}
 	if code != 200 && code != 201 && code != 202 {
+		if len(spec.Environment) > 0 {
+			return hv.Guest{}, fmt.Errorf("incus: OCI application create HTTP %d", code)
+		}
 		return hv.Guest{}, fmt.Errorf("incus: OCI application create HTTP %d: %s", code, clip(body))
 	}
 	if err := c.wait(ctx, body); err != nil {
+		if len(spec.Environment) > 0 {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return hv.Guest{}, err
+			}
+			return hv.Guest{}, errors.New("incus: OCI application create operation failed")
+		}
 		return hv.Guest{}, fmt.Errorf("incus: OCI application create operation failed: %w", err)
 	}
 	return c.ensureOCIApplicationState(ctx, spec)
@@ -169,6 +187,19 @@ func validateOCIApplicationSpec(spec OCIApplicationSpec) (ociImageReference, err
 	}
 	if err := validateOCIApplicationStorage(spec); err != nil {
 		return ociImageReference{}, err
+	}
+	if len(spec.Environment) > 16 {
+		return ociImageReference{}, errors.New("incus: OCI application supports at most 16 environment values")
+	}
+	totalEnvironmentBytes := 0
+	for name, value := range spec.Environment {
+		if !ociEnvironmentName.MatchString(name) || strings.ContainsRune(value, '\x00') || len(value) > 8192 {
+			return ociImageReference{}, errors.New("incus: OCI application environment name or value is invalid")
+		}
+		totalEnvironmentBytes += len(name) + len(value)
+		if totalEnvironmentBytes > 65536 {
+			return ociImageReference{}, errors.New("incus: OCI application environment exceeds 64 KiB")
+		}
 	}
 	return image, nil
 }
@@ -219,6 +250,18 @@ func validateOCIApplicationIdentity(instance instance, spec OCIApplicationSpec) 
 	}
 	if config["limits.cpu"] != strconv.Itoa(spec.Cores) || config["limits.memory"] != strconv.Itoa(spec.MemoryMiB)+"MiB" {
 		return errors.New("Incus OCI application resource configuration does not match the requested generation")
+	}
+	for key, value := range config {
+		if strings.HasPrefix(key, "environment.") {
+			if expected, ok := spec.Environment[strings.TrimPrefix(key, "environment.")]; !ok || expected != value {
+				return errors.New("Incus OCI application environment does not match the requested generation")
+			}
+		}
+	}
+	for name, value := range spec.Environment {
+		if config["environment."+name] != value {
+			return errors.New("Incus OCI application environment does not match the requested generation")
+		}
 	}
 	if spec.StoragePool != "" {
 		device, ok := instance.Devices["shippin-data"]

@@ -3,6 +3,7 @@ package incus
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -61,6 +62,7 @@ func TestCreateOCIApplicationPreflightsVersionWaitsAndReadsBack(t *testing.T) {
 					"user.shippin.image_reference_sha256": imageReferenceHash(testOCIReference),
 					"limits.cpu":                          "2",
 					"limits.memory":                       "1024MiB",
+					"environment.POSTGRES_DB":             "app",
 				},
 			}})
 		case r.Method == http.MethodPost && r.URL.Path == "/1.0/instances":
@@ -86,6 +88,7 @@ func TestCreateOCIApplicationPreflightsVersionWaitsAndReadsBack(t *testing.T) {
 	got, err := c.CreateOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
 		ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2, Start: true,
+		Environment: map[string]string{"POSTGRES_DB": "app"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -96,6 +99,7 @@ func TestCreateOCIApplicationPreflightsVersionWaitsAndReadsBack(t *testing.T) {
 	got, err = c.CreateOCIApplication(context.Background(), OCIApplicationSpec{
 		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
 		ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2, Start: true,
+		Environment: map[string]string{"POSTGRES_DB": "app"},
 	})
 	if err != nil || got.Status != "Running" || createCount != 1 {
 		t.Fatalf("idempotent retry = %+v, creates=%d, err=%v", got, createCount, err)
@@ -108,8 +112,117 @@ func TestCreateOCIApplicationPreflightsVersionWaitsAndReadsBack(t *testing.T) {
 	config := create["config"].(map[string]any)
 	if config["limits.cpu"] != "2" || config["limits.memory"] != "1024MiB" ||
 		config["user.shippin.deployment_id"] != testDeploymentID || config["user.shippin.generation"] != "3" ||
-		config["user.shippin.image_reference_sha256"] != imageReferenceHash(testOCIReference) {
+		config["user.shippin.image_reference_sha256"] != imageReferenceHash(testOCIReference) ||
+		config["environment.POSTGRES_DB"] != "app" {
 		t.Fatalf("resource configuration = %#v", config)
+	}
+}
+
+func TestCreateOCIApplicationRejectsInvalidEnvironmentBeforeProviderCalls(t *testing.T) {
+	providerCalls := 0
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		providerCalls++
+		http.Error(w, "provider should not be called", http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	for name, environment := range map[string]map[string]string{
+		"invalid name": {"9BAD": "value"},
+		"nul value":    {"PASSWORD": "bad\x00value"},
+		"too many": func() map[string]string {
+			values := make(map[string]string, 17)
+			for i := 0; i < 17; i++ {
+				values[fmt.Sprintf("VAR_%d", i)] = "value"
+			}
+			return values
+		}(),
+		"aggregate limit": func() map[string]string {
+			values := make(map[string]string, 8)
+			for i := 0; i < 8; i++ {
+				values[fmt.Sprintf("VAR_%d", i)] = strings.Repeat("a", 8192)
+			}
+			return values
+		}(),
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := clientFor(t, srv).CreateOCIApplication(context.Background(), OCIApplicationSpec{
+				Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
+				ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2,
+				Environment: environment,
+			})
+			if err == nil {
+				t.Fatal("invalid environment accepted")
+			}
+		})
+	}
+	if providerCalls != 0 {
+		t.Fatalf("invalid environment reached provider %d times", providerCalls)
+	}
+}
+
+func TestCreateOCIApplicationDoesNotReturnProviderEnvironmentValuesInErrors(t *testing.T) {
+	for _, mode := range []string{"http", "operation"} {
+		t.Run(mode, func(t *testing.T) {
+			secret := "database-password-value"
+			srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.Method == http.MethodGet && r.URL.Path == "/1.0":
+					_, _ = w.Write([]byte(`{"metadata":{"environment":{"server_version":"7.3.0"}}}`))
+				case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/app-1":
+					http.NotFound(w, r)
+				case r.Method == http.MethodPost && r.URL.Path == "/1.0/instances":
+					if mode == "http" {
+						http.Error(w, "rejected value "+secret, http.StatusBadRequest)
+						return
+					}
+					w.WriteHeader(http.StatusAccepted)
+					_, _ = w.Write([]byte(`{"type":"async","metadata":{"id":"create-operation"}}`))
+				case r.Method == http.MethodGet && r.URL.Path == "/1.0/operations/create-operation/wait":
+					_, _ = w.Write([]byte(`{"type":"error","error":"operation failed with ` + secret + `"}`))
+				case r.Method == http.MethodGet && r.URL.Path == "/1.0/operations/create-operation":
+					_, _ = w.Write([]byte(`{"type":"sync","metadata":{"status_code":400,"err":"invalid ` + secret + `"}}`))
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer srv.Close()
+
+			_, err := clientFor(t, srv).CreateOCIApplication(context.Background(), OCIApplicationSpec{
+				Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
+				ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2,
+				Environment: map[string]string{"POSTGRES_PASSWORD": secret},
+			})
+			if err == nil || strings.Contains(err.Error(), secret) {
+				t.Fatalf("provider error leaked environment value: %v", err)
+			}
+		})
+	}
+}
+
+func TestCreateOCIApplicationRejectsEnvironmentReadbackMismatch(t *testing.T) {
+	mutations := 0
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/1.0":
+			_, _ = w.Write([]byte(`{"metadata":{"environment":{"server_version":"7.3.0"}}}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/app-1":
+			_, _ = w.Write([]byte(`{"metadata":{"name":"app-1","status":"Stopped","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"3","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"1024MiB","environment.POSTGRES_DB":"different"}}}`))
+		case r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodDelete:
+			mutations++
+			http.Error(w, "mutation forbidden", http.StatusInternalServerError)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	_, err := clientFor(t, srv).CreateOCIApplication(context.Background(), OCIApplicationSpec{
+		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
+		ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2,
+		Environment: map[string]string{"POSTGRES_DB": "expected"},
+	})
+	if err == nil || mutations != 0 {
+		t.Fatalf("mismatching environment must block state writes: mutations=%d err=%v", mutations, err)
 	}
 }
 

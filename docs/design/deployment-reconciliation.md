@@ -176,6 +176,18 @@ environment behavior, persistent data-volume attachment, tenant-safe network
 exposure, configured health checks, secret delivery/rotation, restart, backup and
 restore semantics. These are not provided by the current guest CRUD API.
 
+The Incus create primitive now projects the catalog's bounded environment names
+as Incus `environment.*` instance configuration and verifies declared values on
+read-back. Provider error details are suppressed when environment values are
+present because the provider may echo them. Incus stores these values in
+instance configuration readable by authorized Incus administrators; this is
+not a secret-isolation boundary. The official [instance options](https://linuxcontainers.org/incus/docs/main/reference/instance_options/)
+document `environment.*` as free-form values applied on boot and during exec,
+but no disposable live Incus test has verified their behavior inside an OCI
+application process. The primitive remains unwired and the worker remains
+`runtime_unsupported` until secret handling, health, networking and lifecycle
+semantics are complete.
+
 ## Options considered
 
 ### Reuse `jobs` as the only durable deployment record
