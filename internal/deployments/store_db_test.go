@@ -453,6 +453,96 @@ func TestWorkerReviewDecisionRequiresCurrentLease(t *testing.T) {
 	}
 }
 
+func TestWorkerOperationEventIsLeaseFencedIdempotentAndAtomic(t *testing.T) {
+	store, tenantID, serverID := deploymentTestStore(t)
+	ctx := context.Background()
+	deployment, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
+		ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://production/services/postgres/password"}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	jobID, owner := uuid.NewString(), "worker-a"
+	if _, err := store.pool.Exec(ctx, `INSERT INTO jobs(id,tenant_id,kind,target_type,target_id,status,attempts,max_attempts,
+		created_by,lease_owner,lease_until) VALUES($1,$2,'deployment.reconcile','deployment_generation',$3,'running',1,3,
+		'test',$4,now()+interval '1 minute')`, jobID, tenantID, deployment.ID+":1", owner); err != nil {
+		t.Fatal(err)
+	}
+	key := uuid.NewString()
+	event := DeploymentEvent{TenantID: tenantID, DeploymentID: deployment.ID, Generation: 1,
+		Type: EventOperationStarted, ObservedState: ObservedProvisioning, Actor: "worker-a", IdempotencyKey: key}
+	recorded, err := store.RecordOperationEventWithLease(ctx, tenantID, deployment.ID, jobID, owner, event)
+	if err != nil || recorded.ID == "" || recorded.RecordedAt.IsZero() {
+		t.Fatalf("record operation start: event=%+v err=%v", recorded, err)
+	}
+	current, err := store.Get(ctx, tenantID, deployment.ID)
+	if err != nil || current.ObservedState != ObservedProvisioning {
+		t.Fatalf("event did not atomically update state: deployment=%+v err=%v", current, err)
+	}
+	replayed, err := store.RecordOperationEventWithLease(ctx, tenantID, deployment.ID, jobID, owner, event)
+	if err != nil || replayed.ID != recorded.ID {
+		t.Fatalf("identical event replay: event=%+v err=%v", replayed, err)
+	}
+	changed := event
+	changed.ObservedState = ObservedReady
+	if _, err := store.RecordOperationEventWithLease(ctx, tenantID, deployment.ID, jobID, owner, changed); !errors.Is(err, ErrIdempotencyConflict) {
+		t.Fatalf("conflicting key reuse: %v", err)
+	}
+	if _, err := store.pool.Exec(ctx, `UPDATE jobs SET target_id=$2 WHERE id=$1`, jobID, deployment.ID+":2"); err != nil {
+		t.Fatal(err)
+	}
+	changed.IdempotencyKey = uuid.NewString()
+	if _, err := store.RecordOperationEventWithLease(ctx, tenantID, deployment.ID, jobID, owner, changed); !errors.Is(err, ErrLostJobLease) {
+		t.Fatalf("wrong generation target was accepted: %v", err)
+	}
+	if _, err := store.pool.Exec(ctx, `UPDATE jobs SET target_id=$2,lease_until=now()-interval '1 second' WHERE id=$1`, jobID, deployment.ID+":1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.RecordOperationEventWithLease(ctx, tenantID, deployment.ID, jobID, owner, changed); !errors.Is(err, ErrLostJobLease) {
+		t.Fatalf("expired lease was accepted: %v", err)
+	}
+	if _, err := store.pool.Exec(ctx, `UPDATE jobs SET lease_until=now()+interval '1 minute' WHERE id=$1`, jobID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.RecordOperationEventWithLease(ctx, tenantID, deployment.ID, jobID, "worker-b", changed); !errors.Is(err, ErrLostJobLease) {
+		t.Fatalf("replaced lease owner was accepted: %v", err)
+	}
+	if _, err := store.RecordOperationEventWithLease(ctx, tenantID, deployment.ID, jobID, owner,
+		DeploymentEvent{TenantID: tenantID, DeploymentID: deployment.ID, Generation: 1, Type: EventRequested,
+			Actor: owner, IdempotencyKey: uuid.NewString()}); !errors.Is(err, ErrInvalidRequest) {
+		t.Fatalf("non-worker event type was accepted: %v", err)
+	}
+	crossTenantEvent := changed
+	crossTenantEvent.TenantID = uuid.NewString()
+	if _, err := store.RecordOperationEventWithLease(ctx, crossTenantEvent.TenantID, deployment.ID, jobID, owner, crossTenantEvent); !errors.Is(err, ErrLostJobLease) {
+		t.Fatalf("cross-tenant job was accepted: %v", err)
+	}
+	if _, _, err := store.Update(ctx, tenantID, deployment.ID, "operator@example.test", 1, UpdateInput{
+		DesiredState: DesiredPresent, IdempotencyKey: uuid.NewString(),
+		Config: json.RawMessage(`{"port":5433,"password":"vaultix://production/services/postgres/password"}`),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	current, err = store.Get(ctx, tenantID, deployment.ID)
+	if err != nil || current.ObservedState != ObservedPending {
+		t.Fatalf("desired generation update did not reset observed state: deployment=%+v err=%v", current, err)
+	}
+	if _, err := store.pool.Exec(ctx, `UPDATE jobs SET target_id=$2 WHERE id=$1`, jobID, deployment.ID+":1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.RecordOperationEventWithLease(ctx, tenantID, deployment.ID, jobID, owner, changed); !errors.Is(err, ErrGenerationConflict) {
+		t.Fatalf("stale desired generation was accepted: %v", err)
+	}
+	var count int
+	if err := store.pool.QueryRow(ctx, `SELECT count(*) FROM shippin_deployment_events WHERE tenant_id=$1 AND deployment_id=$2`, tenantID, deployment.ID).Scan(&count); err != nil || count != 3 {
+		t.Fatalf("denied operation event changed history: count=%d err=%v", count, err)
+	}
+	if _, err := store.pool.Exec(ctx, `UPDATE shippin_deployment_events SET actor='changed' WHERE id=$1`, recorded.ID); err == nil {
+		t.Fatal("append-only operation event update succeeded")
+	}
+}
+
 func TestStoreRejectsProviderIncompatibleRuntimeTarget(t *testing.T) {
 	store, tenantID, _ := deploymentTestStore(t)
 	targetID := uuid.NewString()

@@ -209,6 +209,7 @@ type DeploymentEvent struct {
 	HealthDurationMS    *int64                    `json:"health_duration_ms,omitempty"`
 	FailureCode         string                    `json:"failure_code,omitempty"`
 	ReviewProvenance    *ReviewDecisionProvenance `json:"review_provenance,omitempty"`
+	IdempotencyKey      string                    `json:"-"`
 	Actor               string                    `json:"actor"`
 	RecordedAt          time.Time                 `json:"recorded_at"`
 }
