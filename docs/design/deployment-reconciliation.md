@@ -293,3 +293,68 @@ unverified. The next implementation step is the authenticated per-server probe
 service; it must validate target ownership and perform the declared TCP/HTTP
 check from a namespace with a proven route. Keep deployment health unsupported
 until that contract and persisted fresh observations are implemented.
+
+## Immediate execution order after the 2026-11-05 baseline
+
+This is the active dependency order for the remaining consolidation. A packet is
+not complete because its UI, schema, or design exists; it closes only with the
+listed behavior and failure evidence. Each implementation stays in the canonical
+owner in `platform-consolidation-plan.md`, is committed directly to `main` after
+local checks, and must pass CI before starting its dependent packet.
+
+1. **Close the health-probe security boundary** (`internal/api`, health tests):
+   bound configured probes, prevent redirects from changing their network
+   destination, keep endpoint health separate from provider state, and test
+   cancellation, unreachable targets and redaction. Then implement the
+   authenticated per-server probe protocol described above; include target
+   generation, owner revalidation, bounded protocol/port/timeout, probe
+   namespace routing, replay protection and timestamped results. Do not infer a
+   route from provider-reported guest addresses.
+2. **Finish deployment runtime** (`internal/deployments`, `internal/jobs`,
+   `internal/hv`, `internal/hostd`, existing deployment UI): finish the
+   generation-bound health contract, safe update and rollback, delete with
+   provider read-back, restart recovery and unsupported-state reporting. Keep
+   Incus OCI and Proxmox guest execution as separate capability matrices. Prove
+   one complete Incus service path on a disposable host before widening the
+   catalog; implement and prove a separate Proxmox bootstrap/runtime before
+   advertising Proxmox application deployment.
+3. **Make catalog sources executable** (`internal/catalog`, isolated builder,
+   existing catalog UI): review source-family rights and dependencies first;
+   support pinned Git/custom source, bounded isolated fetch/build, digest and
+   provenance, secret mounts, cancellation, cleanup and failure recovery. Adding
+   a repository must remain configuration-only. Metadata acceptance is not a
+   deployment.
+4. **Deliver managed data engines on the verified runtime**: PostgreSQL first,
+   then Dragonfly and Redis as distinct engines, then ClickHouse. For each, ship
+   a validated configuration form, resource/storage/network limits, secret
+   rotation, health, upgrade policy, backup and restore proof, removal and
+   restart recovery. Document capabilities and unsupported HA modes per engine.
+5. **Complete connectivity** (`internal/networking`, existing Infrastructure
+   UI): add/edit/test/refresh/remove Cloudflare Tunnel, Tailscale and custom
+   connections with scoped sealed credentials, safe provider-write review,
+   observed inventory, explicit stable-system association and audit. Define
+   minimum custom protocol fields and `shippin_`-prefixed tables; an imported
+   resource must not be presented as an active route.
+6. **Finish platform operations and dashboards** (Nomen, Vaultix, Operator,
+   edge, Postgres/Dragonfly and deployments): replace placeholder metrics with
+   timestamped, attributed observations; expose unknown/stale/down separately;
+   make safe service fields add/edit/disable/test UI-managed; show service,
+   provider, deployment, operation and event relationships within the four-step
+   navigation target. Keep write-only secrets and AgentHub as the only human
+   approval authority.
+7. **Complete source-by-source absorption and release evidence**: reconcile
+   every useful capability and dirty path in `shippin-mesh`, `shippin-cloud`,
+   `shippin-console` and the Warden-named source against the canonical owner;
+   capture provenance, license, dependencies, threat boundary, tests and
+   disposition. Build the standalone console and host agent from a clean clone,
+   run fresh/upgrade/restore checks, validate independent Incus and Proxmox
+   targets and produce a file-level archive readiness ledger. Do not delete the
+   source checkouts or claim archive readiness while rights, dirty user work,
+   unique capabilities or live-install limits remain unresolved.
+
+**Just completed:** health probes no longer follow HTTP redirects. The
+operator-configured origin is the only destination contacted, preventing a
+service response from redirecting the console probe into another network
+destination. A regression test confirms the redirect target receives no request.
+This hardens the current console-side probe; it does not close the per-server
+reachability gate or make deployment health supported.

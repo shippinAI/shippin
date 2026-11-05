@@ -63,6 +63,24 @@ func TestProbeHonorsConfiguredTimeout(t *testing.T) {
 	}
 }
 
+func TestProbeDoesNotFollowRedirectsToOtherDestinations(t *testing.T) {
+	var redirected atomic.Bool
+	target := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		redirected.Store(true)
+	}))
+	defer target.Close()
+
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Redirect(w, &http.Request{}, target.URL, http.StatusFound)
+	}))
+	defer origin.Close()
+
+	got := probe(context.Background(), config.Probe{URL: origin.URL})
+	if !got.Healthy || !got.Configured || redirected.Load() {
+		t.Fatalf("probe followed redirect or misreported configured origin: result=%+v redirected=%v", got, redirected.Load())
+	}
+}
+
 type serviceGuestDriver struct {
 	hv.Driver
 	guest      hv.Guest

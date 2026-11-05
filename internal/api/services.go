@@ -212,7 +212,14 @@ func probeClient(serverName string, timeout time.Duration) *http.Client {
 	if serverName != "" {
 		cfg.ServerName = serverName
 	}
-	return &http.Client{Timeout: timeout, Transport: &http.Transport{TLSClientConfig: cfg}}
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: &http.Transport{TLSClientConfig: cfg},
+		// Health checks are operator-configured network requests. Do not follow
+		// redirects: a configured service must not be able to redirect a probe
+		// into a different network destination (for example, a metadata endpoint).
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse },
+	}
 }
 
 func probe(ctx context.Context, p config.Probe) (res probeResult) {
