@@ -1,22 +1,27 @@
 # Shippin platform absorption plan
 
-Status: active execution plan, refreshed 2026-11-05 against `main` at `85f038c`.
+Status: active execution plan, refreshed 2026-11-05 against `main` at `d9f1c24`.
 This describes the target and acceptance gates; it does not claim unimplemented
 workflows are live. The [capability ledger](capability-absorption.md) holds
-source-by-source evidence and dispositions. The last complete CI run for this
-baseline is `41951288412` (13 of 13 jobs passed).
+source-by-source evidence and dispositions. Checks run `41953590058` passed all
+13 jobs for this baseline; the preceding lease-fencing commit's run
+`41952422775` also passed all 13 jobs.
 
 ## Ordered delivery queue
 
 The order below is a dependency order. Each row closes only when its observable
 acceptance checks pass; a panel or catalog screen alone does not close a runtime
-capability. Commits through `85f038c` are on `main`; CI run `41951288412` passed
+capability. Commits through `d9f1c24` are on `main`; CI run `41953590058` passed
 all 13 jobs. AgentHub ticket preparation, exact action authorization and safe
 decision provenance are implemented, but production least-privilege identity
 verification and worker-side authorization immediately before a provider write
 remain gates. The deployment outbox and generation-keyed worker are implemented;
 without a typed executor, the worker records `runtime_unsupported` and makes no
-provider call.
+provider call. Commit `f076cbd` adds a lease-fenced durable unsupported
+outcome. Commit `d9f1c24` adds tenant-scoped Vaultix reference parsing and a
+one-key audited resolver boundary. Typed runtime execution, worker-side
+just-in-time authorization, provider I/O, read-back and deployment health are
+still absent.
 
 | Order | Work package | Canonical owners | Exit evidence | Current state / gate |
 |---|---|---|---|---|
@@ -35,11 +40,11 @@ provider call.
 
 1. Keep historical source trees read-only and update provenance/disposition rows
    before adopting any candidate capability. Do not archive any source.
-2. Close the dispatch safety layer: every worker-written deployment state must
-   be fenced by its current unexpired job lease and desired generation in the
-   same database transaction. Prove an expired/replaced worker cannot append an
-   event or change observed state; prove a current lease can persist the explicit
-   unsupported result. This slice still performs no provider I/O.
+2. **Completed safety boundary:** every worker-written unsupported deployment
+   outcome is fenced by its current unexpired job lease and desired generation in the
+   same database transaction. API/store tests prove an expired or replaced
+   worker cannot append an event or change observed state and a current lease
+   can persist `runtime_unsupported`. This slice performs no provider I/O.
 3. Define a complete versioned runtime recipe before writing an executor: source
    digest and provider compatibility; process/config contract; resource bounds;
    persistent volume layout; exposure; health/read-back; secret references and
@@ -49,7 +54,8 @@ provider call.
    authorization principal are verifiable. Keep Incus OCI application containers
    and Proxmox guest bootstrap as separate adapters. Add a provider simulator and
    disposable-host acceptance before exposing any apply action.
-5. A bounded Vaultix resolver now accepts only tenant-scoped
+5. **Completed secret-reference boundary, not runtime delivery:** a bounded
+   Vaultix resolver accepts only tenant-scoped
    `vaultix://<environment>/<folder...>/<key>` references, derives the project
    from the tenant ID and installation prefix, allowlists configured
    environments, audits the deployment/generation before one-key `Reveal`, and
