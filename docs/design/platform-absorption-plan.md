@@ -1,17 +1,32 @@
 # Shippin platform absorption plan
 
-Status: active execution plan, refreshed 2026-11-05 against `main` at `d9f1c24`.
+Status: active execution plan, refreshed 2026-11-05 against `main` at `0241230`.
 This describes the target and acceptance gates; it does not claim unimplemented
 workflows are live. The [capability ledger](capability-absorption.md) holds
 source-by-source evidence and dispositions. Checks run `41953590058` passed all
 13 jobs for this baseline; the preceding lease-fencing commit's run
 `41952422775` also passed all 13 jobs.
 
+## Current execution checkpoint (2026-11-05)
+
+`main` is at `0241230` and GitHub Checks run `41954322691` passed all 13
+jobs. No PRs are open. PR 17 is closed without merge, but its reserved
+`198.51.100.1` fixture correction is already present in `main`, so no repair
+branch remains to merge. Windows standalone builds of `cmd/console` and
+`cmd/shippin-hostd` succeeded; the React tests, build and bundle budget passed;
+`go vet` passed. The full Windows Go suite still fails in unrelated app,
+enrollment and hostd tests that assume POSIX shell/path/permission behavior or
+fetch a live third-party URL. `scripts/check.sh` also cannot locate Go from the
+current Bash PATH, although direct PowerShell builds and Go commands work.
+Those Windows test failures are recorded as open developer-build work; they are
+not described as provider/runtime failures. No live Incus, Proxmox, AgentHub,
+Vaultix, Cloudflare or Tailscale operation was run. The deployment worker still
+makes no provider call, and archive readiness remains open.
 ## Ordered delivery queue
 
 The order below is a dependency order. Each row closes only when its observable
 acceptance checks pass; a panel or catalog screen alone does not close a runtime
-capability. Commits through `d9f1c24` are on `main`; CI run `41953590058` passed
+capability. Commits through `0241230` are on `main`; CI run `41954322691` passed
 all 13 jobs. AgentHub ticket preparation, exact action authorization and safe
 decision provenance are implemented, but production least-privilege identity
 verification and worker-side authorization immediately before a provider write
