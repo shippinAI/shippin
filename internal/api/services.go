@@ -283,6 +283,7 @@ func (a *API) servicesFor(w http.ResponseWriter, r *http.Request, c *caller) {
 		}
 		result := probeResult{ID: s.ID, Name: s.Name, Alias: s.Alias, Kind: s.Kind, Instance: s.Instance, TimeoutSeconds: s.TimeoutSeconds, State: "unknown", Detail: "awaiting first observation"}
 		var observation struct {
+			Revision   int64           `json:"config_revision"`
 			ObservedAt time.Time       `json:"observed_at"`
 			Configured bool            `json:"configured"`
 			Healthy    bool            `json:"healthy"`
@@ -290,7 +291,7 @@ func (a *API) servicesFor(w http.ResponseWriter, r *http.Request, c *caller) {
 			Detail     string          `json:"detail"`
 			Resource   json.RawMessage `json:"resource"`
 		}
-		if raw := observations[s.ID]; len(raw) > 0 && json.Unmarshal(raw, &observation) == nil {
+		if raw := observations[s.ID]; len(raw) > 0 && json.Unmarshal(raw, &observation) == nil && observation.Revision == s.Revision {
 			result.Configured, result.Healthy, result.LatencyMs, result.Detail = observation.Configured, observation.Healthy, observation.LatencyMs, observation.Detail
 			result.ObservedAt = &observation.ObservedAt
 			if time.Since(observation.ObservedAt) > time.Duration(s.IntervalSeconds*2)*time.Second {

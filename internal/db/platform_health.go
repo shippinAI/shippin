@@ -10,6 +10,7 @@ import (
 )
 
 var ErrPlatformServiceLimit = errors.New("platform service registry is full")
+var ErrPlatformServiceChanged = errors.New("platform service configuration changed during probe")
 
 // PlatformService is an installation-owned health target. Credentials are deliberately absent.
 type PlatformService struct {
@@ -88,7 +89,8 @@ func (d *DB) SavePlatformService(ctx context.Context, s PlatformService, create 
 		}
 		tag, err := tx.Exec(ctx, `UPDATE shippin_platform_services SET name=$2,kind=$3,alias=nullif($4,''),url=nullif($5,''),
 			host_header=nullif($6,''),tcp_address=nullif($7,''),instance=$8,server_id=nullif($9,'')::uuid,
-			guest_id=nullif($10,''),timeout_seconds=$11,interval_seconds=$12,enabled=true,revision=revision+1,next_probe_at=now(),updated_by=$13,updated_at=now()
+			guest_id=nullif($10,''),timeout_seconds=$11,interval_seconds=$12,enabled=true,revision=revision+1,next_probe_at=now(),
+			lease_until=NULL,updated_by=$13,updated_at=now()
 			WHERE id=$1::uuid AND revision=$14`, s.ID, s.Name, s.Kind, s.Alias, s.URL, s.Host, s.TCP, s.Instance, s.ServerID, s.GuestID,
 			s.TimeoutSeconds, s.IntervalSeconds, esActor(es), s.Revision)
 		if err != nil {
@@ -107,7 +109,7 @@ func esActor(es []AuditEntry) string {
 
 func (d *DB) DisablePlatformService(ctx context.Context, id string, revision int64, es ...AuditEntry) error {
 	return d.inTx(ctx, es, func(tx pgx.Tx) (int64, error) {
-		tag, err := tx.Exec(ctx, `UPDATE shippin_platform_services SET enabled=false,revision=revision+1,updated_by=$3,updated_at=now()
+		tag, err := tx.Exec(ctx, `UPDATE shippin_platform_services SET enabled=false,revision=revision+1,lease_until=NULL,updated_by=$3,updated_at=now()
 			WHERE id=$1::uuid AND revision=$2 AND enabled`, id, revision, esActor(es))
 		if err != nil {
 			return 0, err
@@ -153,7 +155,7 @@ func (d *DB) ImportPlatformHealthConfig(ctx context.Context, rows []PlatformServ
 // LatestPlatformServiceObservations returns only each service's latest durable result.
 func (d *DB) LatestPlatformServiceObservations(ctx context.Context) (map[string]json.RawMessage, error) {
 	rows, err := d.Pool.Query(ctx, `SELECT DISTINCT ON(service_id) service_id::text,
-		jsonb_build_object('observed_at',observed_at,'configured',configured,'healthy',healthy,'latency_ms',latency_ms,'detail',detail,'resource',resource)
+		jsonb_build_object('config_revision',config_revision,'observed_at',observed_at,'configured',configured,'healthy',healthy,'latency_ms',latency_ms,'detail',detail,'resource',resource)
 		FROM shippin_platform_service_observations ORDER BY service_id,observed_at DESC,id DESC`)
 	if err != nil {
 		return nil, err
@@ -254,14 +256,29 @@ func (d *DB) RecordPlatformServiceObservation(ctx context.Context, o PlatformSer
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	var revision int64
+	var enabled bool
+	if err := tx.QueryRow(ctx, `SELECT revision,enabled FROM shippin_platform_services WHERE id=$1::uuid FOR UPDATE`, o.ServiceID).Scan(&revision, &enabled); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if !enabled || revision != o.Revision {
+		return ErrPlatformServiceChanged
+	}
 	if _, err = tx.Exec(ctx, `INSERT INTO shippin_platform_service_observations
 		(id,service_id,config_revision,observed_at,configured,healthy,latency_ms,detail,resource)
 		VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,left($8,500),nullif($9,'')::jsonb)`, o.ID, o.ServiceID, o.Revision, o.ObservedAt, o.Configured, o.Healthy, o.LatencyMs, o.Detail, string(o.Resource)); err != nil {
 		return err
 	}
-	if _, err = tx.Exec(ctx, `UPDATE shippin_platform_services SET lease_until=NULL,next_probe_at=$2::timestamptz + make_interval(secs => $3::double precision)
-		WHERE id=$1::uuid`, o.ServiceID, o.ObservedAt, intervalSeconds); err != nil {
+	tag, err := tx.Exec(ctx, `UPDATE shippin_platform_services SET lease_until=NULL,next_probe_at=$2::timestamptz + make_interval(secs => $3::double precision)
+		WHERE id=$1::uuid AND revision=$4 AND enabled`, o.ServiceID, o.ObservedAt, intervalSeconds, o.Revision)
+	if err != nil {
 		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return ErrPlatformServiceChanged
 	}
 	if err = addAuditTx(ctx, tx, es...); err != nil {
 		return err

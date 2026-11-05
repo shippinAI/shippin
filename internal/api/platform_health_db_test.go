@@ -113,6 +113,14 @@ func TestPlatformHealthServiceLifecycleAndReadOnlyList(t *testing.T) {
 	if update.Code != 200 {
 		t.Fatalf("update status=%d body=%s", update.Code, update.Body.String())
 	}
+	list = httptest.NewRecorder()
+	a.opPlatformServices(list, httptest.NewRequest("GET", "/v1/operator/platform-services", nil), c)
+	if list.Code != 200 {
+		t.Fatalf("list after service update status=%d body=%s", list.Code, list.Body.String())
+	}
+	if state := readState(); state != "unknown" {
+		t.Fatalf("old revision observation was shown as current after edit: state=%q response=%s", state, list.Body.String())
+	}
 	stale := httptest.NewRecorder()
 	request = httptest.NewRequest("PUT", "/v1/operator/platform-services/"+created.ID, strings.NewReader(body(1)))
 	request.SetPathValue("serviceId", created.ID)

@@ -126,6 +126,56 @@ func TestPlatformHealthRegistryLeaseAndObservation(t *testing.T) {
 	}
 }
 
+func TestPlatformHealthRejectsProbeResultsFromEditedOrDisabledRevision(t *testing.T) {
+	d, ctx := testDB(t)
+	definition := PlatformService{ID: newID(), Name: "revision-fence-test", Kind: "custom", URL: "https://health.example.test/ready", TimeoutSeconds: 3, IntervalSeconds: 30, Enabled: true}
+	if err := d.ImportPlatformHealthConfig(ctx, []PlatformService{definition}); err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := d.ClaimDuePlatformServices(ctx, time.Now().UTC(), 50)
+	if err != nil || len(claimed) != 1 {
+		t.Fatalf("initial claim: services=%+v err=%v", claimed, err)
+	}
+	edit := claimed[0]
+	edit.Alias = "updated"
+	if err := d.SavePlatformService(ctx, edit, false, AuditEntry{Actor: "operator", Action: "platform.service", Detail: "edit while probe runs"}); err != nil {
+		t.Fatal(err)
+	}
+	oldResult := PlatformServiceObservation{ID: newID(), ServiceID: definition.ID, Revision: claimed[0].Revision,
+		Configured: true, Healthy: true, Detail: "old result", ObservedAt: time.Now().UTC()}
+	if err := d.RecordPlatformServiceObservation(ctx, oldResult, 30); !errors.Is(err, ErrPlatformServiceChanged) {
+		t.Fatalf("old revision result was accepted after edit: %v", err)
+	}
+	var count int
+	if err := d.Pool.QueryRow(ctx, `SELECT count(*) FROM shippin_platform_service_observations WHERE service_id=$1::uuid`, definition.ID).Scan(&count); err != nil || count != 0 {
+		t.Fatalf("stale probe persisted after edit: count=%d err=%v", count, err)
+	}
+	current, err := d.ClaimDuePlatformServices(ctx, time.Now().UTC(), 50)
+	if err != nil || len(current) != 1 || current[0].Revision != claimed[0].Revision+1 {
+		t.Fatalf("edited definition did not become immediately probeable: services=%+v err=%v", current, err)
+	}
+	currentResult := PlatformServiceObservation{ID: newID(), ServiceID: definition.ID, Revision: current[0].Revision,
+		Configured: true, Healthy: true, Detail: "current result", ObservedAt: time.Now().UTC()}
+	if err := d.RecordPlatformServiceObservation(ctx, currentResult, 30); err != nil {
+		t.Fatalf("current revision result was rejected: %v", err)
+	}
+	claimedAgain, err := d.ClaimDuePlatformServices(ctx, time.Now().Add(31*time.Second), 50)
+	if err != nil || len(claimedAgain) != 1 {
+		t.Fatalf("claim before disable: services=%+v err=%v", claimedAgain, err)
+	}
+	if err := d.DisablePlatformService(ctx, definition.ID, current[0].Revision, AuditEntry{Actor: "operator", Action: "platform.service", Detail: "disable while probe runs"}); err != nil {
+		t.Fatal(err)
+	}
+	lateResult := PlatformServiceObservation{ID: newID(), ServiceID: definition.ID, Revision: current[0].Revision,
+		Configured: true, Healthy: true, Detail: "late result", ObservedAt: time.Now().UTC()}
+	if err := d.RecordPlatformServiceObservation(ctx, lateResult, 30); !errors.Is(err, ErrPlatformServiceChanged) {
+		t.Fatalf("probe result was accepted after service disable: %v", err)
+	}
+	if err := d.Pool.QueryRow(ctx, `SELECT count(*) FROM shippin_platform_service_observations WHERE service_id=$1::uuid`, definition.ID).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("disabled-service probe changed history: count=%d err=%v", count, err)
+	}
+}
+
 func TestPlatformHealthLeasesAreExclusiveAcrossPools(t *testing.T) {
 	d1, ctx := testDB(t)
 	d2, err := Open(ctx, os.Getenv("SHIPPIN_TEST_DATABASE_URL"))

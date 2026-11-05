@@ -133,6 +133,12 @@ func (a *API) opPlatformServices(w http.ResponseWriter, r *http.Request, _ *call
 		if raw := observations[s.ID]; len(raw) > 0 {
 			_ = json.Unmarshal(raw, &latest)
 		}
+		if latest != nil {
+			revision, ok := latest["config_revision"].(float64)
+			if !ok || int64(revision) != s.Revision {
+				latest = nil
+			}
+		}
 		state := "unknown"
 		if !s.Enabled {
 			state = "disabled"
