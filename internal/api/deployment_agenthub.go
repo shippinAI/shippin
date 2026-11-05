@@ -203,74 +203,23 @@ func (a *API) authorizeDeploymentReview(w http.ResponseWriter, r *http.Request) 
 		writeDeploymentError(w, deployments.ErrGenerationConflict)
 		return
 	}
-	review, err := a.deploymentStore().GetReview(r.Context(), tenant.ID, deployment.ID, deployment.Generation)
-	if err != nil {
-		writeDeploymentError(w, err)
-		return
-	}
-	if review.State != "pending_review" || review.TicketSHA256 == "" {
-		writeHVProblem(w, http.StatusConflict, "agenthub_review_not_ready", "The current generation does not have a submitted AgentHub review ticket.", "", "")
-		return
-	}
-	_, actionSHA, err := deploymentReviewSnapshot(tenant.ID, deployment)
-	if err != nil {
-		deploymentUnavailable(w)
-		return
-	}
-	if actionSHA != review.ActionSHA256 {
-		a.recordDeploymentReviewDenial(w, r, tenant.ID, deployment, c.id.Sub, key, "agenthub_review_stale", http.StatusConflict)
-		return
-	}
-	client, identity, err := a.deploymentReviewClient(r.Context(), deployment.TargetSystemID)
-	if err != nil {
-		a.recordDeploymentReviewDenial(w, r, tenant.ID, deployment, c.id.Sub, key, "agenthub_review_unavailable", http.StatusBadGateway)
-		return
-	}
-	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
-	defer cancel()
-	command := deploymentReviewCommand(deployment.ID, deployment.Generation, actionSHA, deployment.DesiredState)
-	tool := "shippin:deployment.apply"
-	if deployment.DesiredState == deployments.DesiredAbsent {
-		tool = "shippin:deployment.remove"
-	}
-	decision, err := client.Authorize(ctx, agenthub.Request{
-		TenantID: identity.AgentHubTenantID, MachineID: identity.AgentHubMachineID,
-		TicketID: review.AgentHubTicket, Tool: tool, Command: command, ActionSHA256: actionSHA,
-	})
-	if err != nil {
-		code, status := "agenthub_review_unavailable", http.StatusBadGateway
-		if errors.Is(err, agenthub.ErrDenied) {
-			code, status = "agenthub_review_denied", http.StatusConflict
-		}
-		a.recordDeploymentReviewDenial(w, r, tenant.ID, deployment, c.id.Sub, key, code, status)
-		return
-	}
-	provenance := deployments.ReviewDecisionProvenance{
-		DecisionID: decision.DecisionID, TenantID: decision.TenantID, MachineID: decision.MachineID,
-		TicketID: decision.TicketID, TicketSHA256: decision.TicketSHA256, PolicySHA256: decision.PolicySHA256,
-		PolicyVersion: decision.PolicyVersion, MatchedRules: decision.MatchedRules, ActionSHA256: actionSHA,
-	}
-	event, err := a.deploymentStore().RecordReviewDecision(r.Context(), tenant.ID, deployment.ID, deployment.Generation,
-		c.id.Sub, key, true, provenance, "")
+	result, err := a.authorizeDeploymentAction(r.Context(), tenant.ID, deployment, c.id.Sub, key)
 	if err != nil {
 		a.writeReviewDecisionError(w, err)
+		return
+	}
+	if result.Status != http.StatusOK {
+		if result.Event.ID == "" {
+			writeHVProblem(w, result.Status, result.FailureCode, "The current generation does not have a submitted AgentHub review ticket.", "", "")
+			return
+		}
+		writeStatus(w, result.Status, map[string]any{"event": result.Event, "message": "AgentHub did not authorize this deployment action."})
 		return
 	}
 	writeStatus(w, http.StatusOK, map[string]any{
-		"event": event, "authorization": event.ReviewProvenance,
+		"event": result.Event, "authorization": result.Event.ReviewProvenance,
 		"message": "AgentHub authorization was recorded for audit. No provider operation was executed.",
 	})
-}
-
-func (a *API) recordDeploymentReviewDenial(w http.ResponseWriter, r *http.Request, tenantID string, deployment *deployments.Deployment,
-	actor, key, code string, status int) {
-	event, err := a.deploymentStore().RecordReviewDecision(r.Context(), tenantID, deployment.ID, deployment.Generation,
-		actor, key, false, deployments.ReviewDecisionProvenance{}, code)
-	if err != nil {
-		a.writeReviewDecisionError(w, err)
-		return
-	}
-	writeStatus(w, status, map[string]any{"event": event, "message": "AgentHub did not authorize this deployment action."})
 }
 
 func (a *API) writeReviewDecisionError(w http.ResponseWriter, err error) {
