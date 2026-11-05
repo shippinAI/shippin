@@ -1,16 +1,20 @@
 # Shippin platform absorption plan
 
-Status: active execution plan, refreshed 2026-11-05 against `main` at `69d633a`.
+Status: active execution plan, refreshed 2026-11-05 against `main` at `84746c5`.
 This describes the target and acceptance gates; it does not claim unimplemented
 workflows are live. The [capability ledger](capability-absorption.md) holds
-source-by-source evidence and dispositions. Checks run `41970721148` passed all
-13 jobs for `69d633a`; run `41970045619` passed all 13 jobs for the database-backed
+source-by-source evidence and dispositions. Checks run `41972179448` passed all
+13 jobs for `84746c5`, including the full Linux, database-backed, installer,
+panel, public-tree and compose jobs. Run `41970045619` passed all 13 jobs for
 Incus storage-pool revalidation.
 
 ## Current execution checkpoint (2026-11-05)
 
-`main` is at `69d633a`. GitHub Checks run `41970721148` passed all 13 jobs,
-including database-backed, installer, panel and governance jobs. The Incus OCI
+`main` is at `84746c5`. GitHub Checks run `41972179448` passed all 13 jobs,
+including Linux `go test ./...`, database-backed API/catalog/deployment tests,
+standalone console and hostd builds, fresh/upgrade installs, panel, public-tree
+and compose workflows. Local `bash scripts/check.sh` and focused
+`go test ./internal/hv/incus` also passed. The Incus OCI
 runtime editor and storage-pool selector preserve the one-panel boundary and
 leave the worker gated. No PRs are open. PR 17 is closed without merge; its
 reserved `198.51.100.1` fixture correction is present on `main` as independently
