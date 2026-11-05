@@ -81,6 +81,9 @@ func (s DefinitionSnapshot) Validate(config json.RawMessage) error {
 	if err := catalog.ValidateDeploymentConfigValues(s.ConfigSchema, config); err != nil {
 		return fmt.Errorf("deployment configuration is invalid: %w", err)
 	}
+	if err := catalog.ValidateRuntimeConfigBindings(s.Runtime, s.ConfigSchema, config); err != nil {
+		return fmt.Errorf("deployment runtime configuration is invalid: %w", err)
+	}
 	return nil
 }
 

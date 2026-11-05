@@ -78,6 +78,120 @@ func ValidateDeploymentConfigValues(schemaRaw, valuesRaw json.RawMessage) error 
 	return nil
 }
 
+// ValidateRuntimeConfigBindings ties OCI environment mappings to actual
+// scalar config fields. Secret fields may only carry supported Vaultix
+// references; secret bytes are resolved later by the worker after its lease
+// and AgentHub checks.
+func ValidateRuntimeConfigBindings(runtime RuntimeContract, schemaRaw, valuesRaw json.RawMessage) error {
+	if runtime.Version != 3 {
+		return nil
+	}
+	if err := runtime.validateEnvironment(); err != nil {
+		return err
+	}
+	var schema map[string]any
+	if err := json.Unmarshal(schemaRaw, &schema); err != nil || schema == nil {
+		return errors.New("runtime config schema is invalid")
+	}
+	values, err := decodeJSONValue(valuesRaw)
+	if err != nil {
+		return errors.New("runtime config values are invalid")
+	}
+	for _, binding := range *runtime.Environment {
+		segments, ok := parseConfigJSONPointer(binding.ConfigPath)
+		if !ok {
+			return errors.New("runtime environment config path is invalid")
+		}
+		schemaField, err := schemaFieldAtPath(schema, segments)
+		if err != nil {
+			return fmt.Errorf("runtime environment %q: %w", binding.Name, err)
+		}
+		value, present := configValueAtPath(values, segments)
+		if !present {
+			continue // The mapped field may be optional in the service schema.
+		}
+		text, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("runtime environment %q must map to a string config value", binding.Name)
+		}
+		secret := schemaField["format"] == secretReferenceFormat
+		if secret {
+			if _, err := ParseVaultixReference(text); err != nil {
+				return fmt.Errorf("runtime environment %q requires a supported Vaultix secret reference", binding.Name)
+			}
+		} else if strings.HasPrefix(text, "vaultix://") || strings.HasPrefix(text, "sops://") {
+			return fmt.Errorf("runtime environment %q maps a secret reference from a non-secret config field", binding.Name)
+		}
+	}
+	return nil
+}
+
+func parseConfigJSONPointer(pointer string) ([]string, bool) {
+	if !validConfigJSONPointer(pointer) {
+		return nil, false
+	}
+	parts := strings.Split(pointer[1:], "/")
+	for i, part := range parts {
+		part = strings.ReplaceAll(part, "~1", "/")
+		part = strings.ReplaceAll(part, "~0", "~")
+		parts[i] = part
+	}
+	return parts, true
+}
+
+func schemaFieldAtPath(schema map[string]any, path []string) (map[string]any, error) {
+	current := schema
+	for i, segment := range path {
+		if _, ref := current["$ref"]; ref {
+			return nil, errors.New("config paths through schema references are unsupported")
+		}
+		if _, choice := current["oneOf"]; choice {
+			return nil, errors.New("config paths through schema alternatives are unsupported")
+		}
+		if _, choice := current["anyOf"]; choice {
+			return nil, errors.New("config paths through schema alternatives are unsupported")
+		}
+		properties, ok := current["properties"].(map[string]any)
+		if !ok {
+			return nil, errors.New("config path does not identify a declared property")
+		}
+		raw, ok := properties[segment]
+		if !ok {
+			return nil, errors.New("config path does not identify a declared property")
+		}
+		field, ok := raw.(map[string]any)
+		if !ok {
+			return nil, errors.New("config path schema is invalid")
+		}
+		if i == len(path)-1 {
+			if field["type"] != "string" {
+				return nil, errors.New("config path must identify a string field")
+			}
+			return field, nil
+		}
+		if field["type"] != "object" {
+			return nil, errors.New("intermediate config path must identify an object")
+		}
+		current = field
+	}
+	return nil, errors.New("config path is empty")
+}
+
+func configValueAtPath(value any, path []string) (any, bool) {
+	current := value
+	for _, segment := range path {
+		object, ok := current.(map[string]any)
+		if !ok {
+			return nil, false
+		}
+		current, ok = object[segment]
+		if !ok {
+			return nil, false
+		}
+	}
+	return current, true
+}
+
 func compileDeploymentSchema(doc map[string]any) (*jsonschema.Schema, error) {
 	compiler := jsonschema.NewCompiler()
 	compiler.DefaultDraft(jsonschema.Draft2020)

@@ -23,7 +23,11 @@ export type CatalogRuntimeContractV2 = {
   network: { exposure: "private" | "edge"; ports: CatalogRuntimePort[] };
   health: { kind: "tcp" | "http"; port: number; path?: string; interval_seconds: number; timeout_seconds: number; failure_threshold: number };
 };
-export type CatalogRuntimeContract = CatalogRuntimeContractV1 | CatalogRuntimeContractV2;
+export type CatalogRuntimeEnvironmentBinding = { name: string; config_path: string };
+export type CatalogRuntimeContractV3 = Omit<CatalogRuntimeContractV2, "version"> & {
+  version: 3; environment: CatalogRuntimeEnvironmentBinding[];
+};
+export type CatalogRuntimeContract = CatalogRuntimeContractV1 | CatalogRuntimeContractV2 | CatalogRuntimeContractV3;
 
 export type CatalogService = {
   id: string; label: string; description: string; kind: string; docs_url: string;

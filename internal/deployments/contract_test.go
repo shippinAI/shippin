@@ -82,6 +82,32 @@ func TestDeploymentRequestSnapshotsValidatedRuntimeRecipeV2(t *testing.T) {
 	}
 }
 
+func TestDeploymentRequestV3BindsOnlySchemaDeclaredRuntimeStrings(t *testing.T) {
+	request := postgresRequest()
+	environment := []catalog.RuntimeEnvironmentBinding{{Name: "POSTGRES_PASSWORD", ConfigPath: "/password"}}
+	request.Definition.Runtime = catalog.RuntimeContract{
+		Version: 3, Kind: "incus_oci_container", Providers: []string{"incus"},
+		Resources:   &catalog.RuntimeResources{CPUCores: 2, MemoryMiB: 2048},
+		Storage:     &catalog.RuntimeStorage{SizeGiB: 20, MountPath: "/var/lib/postgresql/data"},
+		Network:     &catalog.RuntimeNetwork{Exposure: "private", Ports: []catalog.RuntimePort{{Name: "postgres", Protocol: "tcp", ContainerPort: 5432}}},
+		Health:      &catalog.RuntimeHealthCheck{Kind: "tcp", Port: 5432, IntervalSeconds: 30, TimeoutSeconds: 5, FailureThreshold: 3},
+		Environment: &environment,
+	}
+	request.TargetConfig = json.RawMessage(`{"storage":{"pool":"tenant-data"}}`)
+	if err := request.Validate(); err != nil {
+		t.Fatalf("valid v3 deployment rejected: %v", err)
+	}
+	request.Config = json.RawMessage(`{"port":5432,"password":"sops://runtime/secrets.yaml#/postgres/password"}`)
+	if err := request.Validate(); err == nil {
+		t.Fatal("runtime binding accepted a secret provider without a deployment resolver")
+	}
+	request.Config = json.RawMessage(`{"port":5432,"password":"vaultix://production/postgres/password"}`)
+	(*request.Definition.Runtime.Environment)[0].ConfigPath = "/port"
+	if err := request.Validate(); err == nil {
+		t.Fatal("runtime binding accepted a non-string schema field")
+	}
+}
+
 func TestDeploymentTargetConfigRequiresExplicitCompatiblePool(t *testing.T) {
 	request := postgresRequest()
 	request.Definition.Runtime = catalog.RuntimeContract{

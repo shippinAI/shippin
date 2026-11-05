@@ -112,6 +112,17 @@ does not yet make PostgreSQL, Dragonfly, Redis, or ClickHouse turnkey. Git
 sources and Proxmox are not accepted by this Incus OCI runtime contract and
 must not be shown as supported service runtimes.
 
+Migration `055_catalog_runtime_environment.sql` adds runtime version 3 without
+changing versions 1 or 2. Version 3 adds up to 16 OCI environment bindings,
+each naming an environment variable and a JSON Pointer into service config.
+The single existing catalog editor authors these bindings. Go checks unique
+POSIX-style variable names, pointer syntax, declared string fields, nested
+object paths and actual deployment values. A schema-marked secret field must
+carry a supported `vaultix://` reference; unmarked secret references, SOPS
+references and non-string mappings are rejected. This records a safe mapping
+contract only: the executor still does not inject values, and secret resolution
+remains unwired to runtime execution.
+
 `internal/deployments` owns the typed reconcile request, operation identity, desired/observed transition, event persistence and authorization orchestration. Provider adapters own Incus versus Proxmox API requests, task polling, guest identity tags and provider read-back. A dedicated runtime adapter inside the provider guest owns application installation/configuration. Incus and Proxmox retain separate lifecycle code; common service semantics do not erase provider-specific failure handling.
 
 Initial execution should be limited to an explicitly documented runtime/provider pair whose image, resource, storage, network, credential, upgrade and recovery behavior is implemented and tested end to end. A catalog entry that lacks that executor is not deployable and must not be presented with an enabled action. PostgreSQL, Dragonfly, Redis and ClickHouse each require an engine-specific supported recipe and persistent-volume/recovery contract; a generic image pull is not turnkey deployment.

@@ -1,16 +1,18 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { CatalogRuntimeContractV2, CatalogRuntimePort } from "../../../../lib/api/catalog-types";
+import type { CatalogRuntimeContractV3, CatalogRuntimePort } from "../../../../lib/api/catalog-types";
 import { Button } from "../../../../lib/design/components/button/button";
 import { Select } from "../../../../lib/design/components/select/select";
 import { TextField } from "../../../../lib/design/components/field/text-field";
+import type { RuntimeEnvironmentDraft } from "./service-runtime";
 
 type Props = {
-  value: CatalogRuntimeContractV2;
-  onChange: Dispatch<SetStateAction<CatalogRuntimeContractV2>>;
+  value: CatalogRuntimeContractV3;
+  onChange: Dispatch<SetStateAction<CatalogRuntimeContractV3>>;
+  showEnvironment: boolean;
 };
 
 /** Structured editor for the versioned Incus OCI runtime declaration. */
-export function RuntimeRecipeForm({ value, onChange }: Props) {
+export function RuntimeRecipeForm({ value, onChange, showEnvironment }: Props) {
   const updatePort = (index: number, change: (port: CatalogRuntimePort) => CatalogRuntimePort) => {
     onChange((current) => ({
       ...current,
@@ -30,9 +32,13 @@ export function RuntimeRecipeForm({ value, onChange }: Props) {
     };
   });
 
+  const updateEnvironment = (index: number, change: (binding: RuntimeEnvironmentDraft) => RuntimeEnvironmentDraft) => {
+    onChange((current) => ({ ...current, environment: current.environment.map((binding, i) => i === index ? change(binding) : binding) }));
+  };
+
   return (
     <div className="grid gap-4">
-      <p className="text-xs text-fg-muted">Set the resource, storage, network, and health contract. Saving records desired configuration; it does not enable deployment.</p>
+      <p className="text-xs text-fg-muted">Set resource, storage, network, health and optional config-to-environment bindings. Saving records desired configuration; it does not enable deployment.</p>
       <div className="grid grid-cols-2 gap-3">
         <TextField label="CPU cores" type="number" min={1} max={64} step={1} value={String(value.resources.cpu_cores)} onChange={(v) => onChange((r) => ({ ...r, resources: { ...r.resources, cpu_cores: Number(v) } }))} />
         <TextField label="Memory (MiB)" type="number" min={128} max={1_048_576} step={128} value={String(value.resources.memory_mib)} onChange={(v) => onChange((r) => ({ ...r, resources: { ...r.resources, memory_mib: Number(v) } }))} />
@@ -45,7 +51,7 @@ export function RuntimeRecipeForm({ value, onChange }: Props) {
           <h4 className="text-sm font-medium text-fg">Network ports</h4>
           <Button tooltip="Add port" variant="secondary" isDisabled={value.network.ports.length >= 32} onPress={addPort}>Add port</Button>
         </div>
-        <Select label="Exposure" options={[{ id: "private", label: "Private" }, { id: "edge", label: "Edge" }]} value={value.network.exposure} onChange={(v) => onChange((r) => ({ ...r, network: { ...r.network, exposure: v as CatalogRuntimeContractV2["network"]["exposure"] } }))} />
+        <Select label="Exposure" options={[{ id: "private", label: "Private" }, { id: "edge", label: "Edge" }]} value={value.network.exposure} onChange={(v) => onChange((r) => ({ ...r, network: { ...r.network, exposure: v as CatalogRuntimeContractV3["network"]["exposure"] } }))} />
         {value.network.ports.map((port, index) => <div key={`${index}-${port.name}`} className="grid grid-cols-[1fr_110px_120px_auto] items-end gap-2">
           <TextField label="Port name" value={port.name} onChange={(v) => updatePort(index, (current) => ({ ...current, name: v }))} />
           <Select label="Protocol" options={[{ id: "tcp", label: "TCP" }, { id: "udp", label: "UDP" }]} value={port.protocol} onChange={(v) => updatePort(index, (current) => ({ ...current, protocol: v as CatalogRuntimePort["protocol"] }))} />
@@ -53,6 +59,22 @@ export function RuntimeRecipeForm({ value, onChange }: Props) {
           <Button tooltip="Remove port" variant="danger" isDisabled={value.network.ports.length <= 1} onPress={() => onChange((r) => ({ ...r, network: { ...r.network, ports: r.network.ports.filter((_, i) => i !== index) } }))}>Remove</Button>
         </div>)}
       </section>
+
+      {showEnvironment && <section className="grid gap-3 rounded-md bg-canvas-subtle p-3" aria-label="Environment bindings">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-medium text-fg">Container environment</h4>
+            <p className="text-xs text-fg-muted">Map config fields to OCI environment variable names. Secret fields must use tenant Vaultix references; values are never stored in this recipe.</p>
+          </div>
+          <Button tooltip="Add environment binding" variant="secondary" isDisabled={value.environment.length >= 16}
+            onPress={() => onChange((current) => ({ ...current, environment: [...current.environment, { name: "", config_path: "" }] }))}>Add binding</Button>
+        </div>
+        {value.environment.map((binding, index) => <div key={index} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+          <TextField label="OCI variable name" mono value={binding.name} onChange={(v) => updateEnvironment(index, (current) => ({ ...current, name: v }))} />
+          <TextField label="Config JSON Pointer" mono value={binding.config_path} onChange={(v) => updateEnvironment(index, (current) => ({ ...current, config_path: v }))} description="For example, /credentials/password" />
+          <Button tooltip="Remove environment binding" variant="danger" onPress={() => onChange((current) => ({ ...current, environment: current.environment.filter((_, i) => i !== index) }))}>Remove</Button>
+        </div>)}
+      </section>}
 
       <section className="grid gap-3 rounded-md bg-canvas-subtle p-3" aria-label="Health check configuration">
         <h4 className="text-sm font-medium text-fg">Health check</h4>

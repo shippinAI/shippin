@@ -104,12 +104,27 @@ func TestCatalogAPIFlow(t *testing.T) {
 	if got := recipeService["runtime_contract"].(map[string]any)["version"]; got != float64(2) {
 		t.Fatalf("version 2 runtime recipe not returned: %v", recipeService["runtime_contract"])
 	}
+	recipeV3 := strings.Replace(recipe, `"version":2`, `"version":3`, 1)
+	recipeV3 = strings.TrimSuffix(recipeV3, "}") + `,"environment":[{"name":"POSTGRES_PASSWORD","config_path":"/password"}]}`
+	recipeServiceV3 := do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"runtime-recipe-v3","label":"Runtime recipe v3","kind":"database",`+configSchema+`,`+source+`,`+recipeV3+`}`, 201)
+	v3Contract := recipeServiceV3["runtime_contract"].(map[string]any)
+	if got := v3Contract["version"]; got != float64(3) || len(v3Contract["environment"].([]any)) != 1 {
+		t.Fatalf("version 3 runtime binding did not persist: %v", v3Contract)
+	}
+	badBinding := strings.Replace(recipeV3, `"config_path":"/password"`, `"config_path":"/missing"`, 1)
+	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"bad-binding","label":"Bad binding","kind":"database",`+configSchema+`,`+source+`,`+badBinding+`}`, 400)
 	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"bad-recipe","label":"Bad recipe","kind":"database",`+configSchema+`,`+source+`,"runtime_contract":{"version":2,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":0,"memory_mib":2048}}}`, 400)
 	if _, err := lastStore.Pool.Exec(t.Context(), `INSERT INTO catalog_services(id,label,kind,deployment_source,runtime_contract)
 		VALUES('invalid-v2','Invalid v2','app',$1::jsonb,$2::jsonb)`,
 		`{"kind":"oci","reference":"registry.example.net/team/app@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}`,
 		`{"version":2,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":2,"memory_mib":2048}}`); err == nil {
 		t.Fatal("database accepted an incomplete version 2 runtime recipe")
+	}
+	if _, err := lastStore.Pool.Exec(t.Context(), `INSERT INTO catalog_services(id,label,kind,deployment_source,runtime_contract)
+		VALUES('invalid-v3','Invalid v3','app',$1::jsonb,$2::jsonb)`,
+		`{"kind":"oci","reference":"registry.example.net/team/app@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}`,
+		`{"version":3,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":2,"memory_mib":2048},"storage":{"size_gib":10,"mount_path":"/data"},"network":{"exposure":"private","ports":[]},"health":{"kind":"tcp","port":80,"interval_seconds":10,"timeout_seconds":2,"failure_threshold":2}}`); err == nil {
+		t.Fatal("database accepted a v3 runtime without its environment list")
 	}
 	loaded := do(t, mux, "GET", "/v1/operator/catalog/services/postgres", "", 200)
 	if loaded["deployment_source"].(map[string]any)["credential_ref"] != "vaultix://production/runtime/registry-token" {

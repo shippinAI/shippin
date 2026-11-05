@@ -12,13 +12,22 @@ import (
 // service. It contains no shell, Compose, or provider payload; declaring it does
 // not mean a matching executor is installed.
 type RuntimeContract struct {
-	Version   int                 `json:"version"`
-	Kind      string              `json:"kind"`
-	Providers []string            `json:"providers"`
-	Resources *RuntimeResources   `json:"resources,omitempty"`
-	Storage   *RuntimeStorage     `json:"storage,omitempty"`
-	Network   *RuntimeNetwork     `json:"network,omitempty"`
-	Health    *RuntimeHealthCheck `json:"health,omitempty"`
+	Version     int                          `json:"version"`
+	Kind        string                       `json:"kind"`
+	Providers   []string                     `json:"providers"`
+	Resources   *RuntimeResources            `json:"resources,omitempty"`
+	Storage     *RuntimeStorage              `json:"storage,omitempty"`
+	Network     *RuntimeNetwork              `json:"network,omitempty"`
+	Health      *RuntimeHealthCheck          `json:"health,omitempty"`
+	Environment *[]RuntimeEnvironmentBinding `json:"environment,omitempty"`
+}
+
+// RuntimeEnvironmentBinding maps a deployment config string to one OCI
+// environment variable. ConfigPath is a JSON Pointer; values are never
+// embedded in the runtime contract or catalog defaults by this mapping.
+type RuntimeEnvironmentBinding struct {
+	Name       string `json:"name"`
+	ConfigPath string `json:"config_path"`
 }
 
 // Version 2 describes the minimum resources and runtime behavior a provider adapter
@@ -54,6 +63,7 @@ type RuntimeHealthCheck struct {
 }
 
 var runtimePortName = regexp.MustCompile(`^[a-z][a-z0-9-]{0,31}$`)
+var runtimeEnvironmentName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,127}$`)
 
 func (r RuntimeContract) Validate(source DeploymentSource) error {
 	if r.Kind != "incus_oci_container" {
@@ -67,15 +77,43 @@ func (r RuntimeContract) Validate(source DeploymentSource) error {
 	}
 	switch r.Version {
 	case 1:
-		if r.Resources != nil || r.Storage != nil || r.Network != nil || r.Health != nil {
+		if r.Resources != nil || r.Storage != nil || r.Network != nil || r.Health != nil || r.Environment != nil {
 			return errors.New("version 1 runtime contracts cannot contain a runtime recipe")
 		}
 		return nil
 	case 2:
+		if r.Environment != nil {
+			return errors.New("version 2 runtime contracts cannot contain environment bindings")
+		}
+		return r.validateRecipe()
+	case 3:
+		if r.Environment == nil {
+			return errors.New("version 3 runtime contracts require an environment binding list")
+		}
+		if err := r.validateEnvironment(); err != nil {
+			return err
+		}
 		return r.validateRecipe()
 	default:
-		return errors.New("runtime contract version must be 1 or 2")
+		return errors.New("runtime contract version must be 1, 2, or 3")
 	}
+}
+
+func (r RuntimeContract) validateEnvironment() error {
+	if r.Environment == nil || len(*r.Environment) > 16 {
+		return errors.New("runtime environment supports at most 16 bindings")
+	}
+	seen := make(map[string]struct{}, len(*r.Environment))
+	for _, binding := range *r.Environment {
+		if !runtimeEnvironmentName.MatchString(binding.Name) || len(binding.ConfigPath) > 512 || !validConfigJSONPointer(binding.ConfigPath) {
+			return errors.New("runtime environment binding name or config path is invalid")
+		}
+		if _, exists := seen[binding.Name]; exists {
+			return errors.New("runtime environment variable names must be unique")
+		}
+		seen[binding.Name] = struct{}{}
+	}
+	return nil
 }
 
 func (r RuntimeContract) validateRecipe() error {
@@ -139,6 +177,23 @@ func (r RuntimeContract) validateRecipe() error {
 func validRuntimeMountPath(value string) bool {
 	return strings.HasPrefix(value, "/") && value != "/" && !strings.ContainsAny(value, "\\\r\n\x00") &&
 		path.Clean(value) == value
+}
+
+func validConfigJSONPointer(value string) bool {
+	if value == "" || !strings.HasPrefix(value, "/") {
+		return false
+	}
+	for _, segment := range strings.Split(value[1:], "/") {
+		for i := 0; i < len(segment); i++ {
+			if segment[i] == '~' {
+				if i+1 >= len(segment) || (segment[i+1] != '0' && segment[i+1] != '1') {
+					return false
+				}
+				i++
+			}
+		}
+	}
+	return true
 }
 
 func (r RuntimeContract) SupportsProvider(provider string) bool {

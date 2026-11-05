@@ -7,7 +7,7 @@ import { Switch } from "../../../../lib/design/components/switch/switch";
 import { Select } from "../../../../lib/design/components/select/select";
 import { catalogPaths, useCatalogWrite } from "../../../../lib/hooks/use-catalog";
 import { deploymentSourceFromDraft, sourceDraft, validDeploymentSource } from "./service-source";
-import type { CatalogRuntimeContractV2 } from "../../../../lib/api/catalog-types";
+import type { CatalogRuntimeContractV3 } from "../../../../lib/api/catalog-types";
 import { emptyRuntimeContractDraft, runtimeContractFromDraft, runtimeKindDraft, validRuntimeDraft } from "./service-runtime";
 import { RuntimeRecipeForm } from "./service-runtime-form";
 
@@ -22,12 +22,18 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
   const [defaults, setDefaults] = useState(JSON.stringify(initial?.default_config ?? {}, null, 2));
   const [source, setSource] = useState(() => sourceDraft(initial?.deployment_source));
   const [runtimeKind, setRuntimeKind] = useState(() => runtimeKindDraft(initial?.runtime_contract));
-  const [runtimeRecipe, setRuntimeRecipe] = useState<CatalogRuntimeContractV2>(() =>
-    initial?.runtime_contract?.version === 2 ? initial.runtime_contract : emptyRuntimeContractDraft());
-  const [runtimeVersion, setRuntimeVersion] = useState<1 | 2>(() => initial?.runtime_contract?.version === 1 ? 1 : 2);
+  const [runtimeRecipe, setRuntimeRecipe] = useState<CatalogRuntimeContractV3>(() => {
+    const saved = initial?.runtime_contract;
+    if (saved?.version === 3) return saved;
+    if (saved?.version === 2) return { ...saved, version: 3, environment: [] };
+    return emptyRuntimeContractDraft();
+  });
+  const [runtimeVersion, setRuntimeVersion] = useState<1 | 2 | 3>(() => initial?.runtime_contract?.version === 1 ? 1 : initial?.runtime_contract?.version === 3 ? 3 : initial?.runtime_contract?.version === 2 ? 2 : 3);
   const runtimeJSON = JSON.stringify(runtimeVersion === 1
     ? { version: 1, kind: "incus_oci_container", providers: ["incus"] }
-    : runtimeRecipe);
+    : runtimeVersion === 2
+      ? (({ environment: _environment, ...runtimeV2 }) => ({ ...runtimeV2, version: 2 }))(runtimeRecipe)
+      : runtimeRecipe);
   const save = useCatalogWrite(editing ? "Service updated" : "Service added");
   const del = useCatalogWrite("Service removed");
   const deploymentSource = deploymentSourceFromDraft(source);
@@ -98,13 +104,13 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
             setRuntimeKind(next);
           }} />
           {runtimeKind !== "none" && <>
-            <Select label="Recipe version" options={[{ id: "1", label: "Compatibility metadata only" }, { id: "2", label: "Configurable runtime recipe" }]} value={String(runtimeVersion)} onChange={(v) => setRuntimeVersion(v === "1" ? 1 : 2)} />
+            <Select label="Recipe version" options={[{ id: "1", label: "Compatibility metadata only" }, { id: "2", label: "Resources, storage, network and health" }, { id: "3", label: "Recipe with config-to-environment bindings" }]} value={String(runtimeVersion)} onChange={(v) => setRuntimeVersion(v === "1" ? 1 : v === "2" ? 2 : 3)} />
             {runtimeVersion === 1 && <p className="text-xs text-fg-muted">Version 1 preserves provider compatibility metadata without resource, storage, network, or health requirements. It does not enable deployment.</p>}
-            {runtimeVersion === 2 && <>
-              <RuntimeRecipeForm value={runtimeRecipe} onChange={setRuntimeRecipe} />
+            {(runtimeVersion === 2 || runtimeVersion === 3) && <>
+              <RuntimeRecipeForm value={runtimeRecipe} onChange={setRuntimeRecipe} showEnvironment={runtimeVersion === 3} />
             </>}
           </>}
-          {!runtimeValid && <p role="alert" className="text-sm text-danger">Enter a valid runtime recipe for the selected OCI source. Version 2 requires bounded resources, storage, network ports, and a matching health check.</p>}
+          {!runtimeValid && <p role="alert" className="text-sm text-danger">Enter a valid runtime recipe for the selected OCI source. Version 2 requires bounded resources, storage, network ports, and a matching health check; version 3 also validates its config bindings.</p>}
         </section>}
         <div className="flex gap-6">
           <Switch isSelected={s.required} onChange={set("required")} tooltip="Required services are locked on for every plan">Required</Switch>

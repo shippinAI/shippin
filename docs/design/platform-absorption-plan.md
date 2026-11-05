@@ -84,7 +84,7 @@ worker authorization decisions, but is not wired into the unsupported worker.
 | 0 | Source inventory, one-panel ownership, migration rules and capability ledger | `docs/design/`, `third_party/warden-ct102` reference matrix | Every candidate row has source revision, observed behavior, destination, disposition, rights/security status and acceptance evidence | In progress. Sibling trees remain read-only; Warden matrix still has open rows; archive is prohibited until these close. |
 | 1 | Provider declarations, credential-safe edits/tests, Incus and Proxmox guest lifecycle, resources and operation read-back | `internal/servers`, `internal/hv/{incus,proxmox}`, `internal/api`, `web/` | Disposable Incus and Proxmox lifecycle workflows, edit/test denial, read-back, task failure, auth denial and secret redaction | Core lifecycle and shared storage inventory exist. Proxmox physical disk listing and capacity are read-only. Full provider coverage and disposable-host evidence remain open. |
 | 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | Shippin identity mapping, generation-bound ticket preparation, exact action authorization and append-only decision provenance are implemented and covered by API/store tests. Disposable AgentHub coverage used synthetic principals. Production least-privilege principal permissions, target-installation timeout/restart behavior, and worker-side just-in-time reauthorization before a future provider write remain open; provider mutation remains unavailable. |
-| 3 | Deployment reconciliation and provider execution | `internal/deployments`, migrations, hostd, provider drivers, jobs, API/OpenAPI, `web/` | Transactional dispatch, fenced lease, immutable generation, provider-specific executor, restart/retry, read-back, health, idempotent removal and negative-path evidence | Outbox relay, generation-keyed jobs, stale-generation handling and lease-fenced unsupported outcomes are implemented. Incus OCI v2 recipe is committed and declarative. Commit `537f304` adds a lease-fenced review-decision persistence method, but the worker does not call it. Execution, JIT authorization, provider I/O, read-back and deployment health remain absent. |
+| 3 | Deployment reconciliation and provider execution | `internal/deployments`, migrations, hostd, provider drivers, jobs, API/OpenAPI, `web/` | Transactional dispatch, fenced lease, immutable generation, provider-specific executor, restart/retry, read-back, health, idempotent removal and negative-path evidence | Outbox relay, generation-keyed jobs, stale-generation handling and lease-fenced unsupported outcomes are implemented. Incus OCI v2/v3 recipes are declarative; v3 adds bounded config-to-environment mappings. Worker JIT AgentHub authorization has pre-decision and persistence lease fences and PostgreSQL negative-path tests, but is not invoked by the reconciler. Provider I/O, read-back and deployment health remain absent. |
 | 4 | Pinned source resolution and bounded builds | catalog/builder owner, isolated worker, secret resolver | Immutable input commit/digest, build provenance, bounded CPU/memory/time/storage/concurrency/egress, secret mounts, cancellation and cleanup | Not implemented. Must precede GitHub/custom Git deployment; OCI digest path still needs provider compatibility. |
 | 5 | Managed PostgreSQL, Dragonfly, Redis and ClickHouse | managed-service owner, hostd/provider adapters, catalog, `web/` | Engine-specific configure/provision/upgrade/backup/restore/health/delete on supported providers; tenant isolation; restore verification | Design only; `internal/managed` is rrflow state, not an engine runtime. No turnkey engine may be advertised. |
 | 6 | Cloudflare Tunnel, Tailscale and custom connectivity management | `internal/networking`, API, migration, `web/` | Per-provider add/edit/test/rotate/revoke and supported mutations, stable system attachment, permission denials, redaction and observed-vs-managed state | Configured inventory/refresh exists. Provider mutation/attachment lifecycle remains open. |
@@ -179,19 +179,20 @@ current lease owners. It is not wired into `authorizeDeploymentAction` or the
 worker; AgentHub calls still happen only in the operator review endpoint while
 the executor is unavailable.
 
-The catalog runtime declaration now has two versions. Version 1 preserves the
+The catalog runtime declaration now has three versions. Version 1 preserves the
 existing compatibility-only Incus/OCI marker. Version 2 requires CPU/memory,
 persistent storage size and normalized mount path, private/Edge exposure with
-declared ports, and a bounded TCP/HTTP health check. The catalog UI edits the
-recipe through structured controls in the existing service form; new recipes
-start incomplete instead of assuming service-specific values, and API
-validation remains authoritative. Version 1 edits remain version 1. PostgreSQL
-rejects incomplete version 2 shapes. Tenant discovery and immutable deployment
-generations carry the validated version. This UI and contract work does not
-implement provider storage/network attachment, secret delivery, an executor,
-health polling, upgrade, backup/restore or removal semantics; the worker must
-continue to fail closed with `runtime_unsupported` until the corresponding
-executor is proven.
+declared ports, and a bounded TCP/HTTP health check. Version 3 retains that
+recipe and adds up to 16 environment variable bindings to declared scalar
+string config paths. The catalog UI edits the recipe through structured
+controls in the existing service form; new recipes start incomplete instead of
+assuming service-specific values, and API validation remains authoritative.
+Version 1 and 2 edits remain compatible. PostgreSQL rejects incomplete v2/v3
+shapes. Tenant discovery and immutable deployment generations carry the
+validated version. This contract does not implement provider storage/network
+attachment, secret delivery, an executor, health polling, upgrade,
+backup/restore or removal semantics; the worker must continue to fail closed
+with `runtime_unsupported` until the corresponding executor is proven.
 
 The current local storage-configuration slice is authored in the existing deployment
 context. It adds tenant-assignment-scoped, read-only Incus pool discovery;

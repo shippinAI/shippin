@@ -29,6 +29,35 @@ func TestDeployableConfigSchemaValidatesClosedValuesAndSecretReferences(t *testi
 	}
 }
 
+func TestRuntimeV3EnvironmentBindingsMatchConfigSchemaAndSecretPolicy(t *testing.T) {
+	schema := json.RawMessage(`{"type":"object","properties":{"credentials":{"type":"object","properties":{"password":{"type":"string","format":"shippin-secret-ref"}},"required":["password"],"additionalProperties":false},"database":{"type":"string"},"port":{"type":"integer"}},"required":["credentials","database","port"],"additionalProperties":false}`)
+	environment := func(bindings ...RuntimeEnvironmentBinding) *[]RuntimeEnvironmentBinding { return &bindings }
+	runtime := RuntimeContract{Version: 3, Environment: environment(
+		RuntimeEnvironmentBinding{Name: "DB_PASSWORD", ConfigPath: "/credentials/password"},
+		RuntimeEnvironmentBinding{Name: "POSTGRES_DB", ConfigPath: "/database"},
+	)}
+	values := json.RawMessage(`{"credentials":{"password":"vaultix://production/postgres/password"},"database":"app","port":5432}`)
+	if err := ValidateRuntimeConfigBindings(runtime, schema, values); err != nil {
+		t.Fatalf("valid nested bindings rejected: %v", err)
+	}
+	for name, candidate := range map[string]struct {
+		runtime RuntimeContract
+		values  json.RawMessage
+	}{
+		"missing schema path":       {runtime: RuntimeContract{Version: 3, Environment: environment(RuntimeEnvironmentBinding{Name: "MISSING", ConfigPath: "/not-declared"})}, values: values},
+		"non string config field":   {runtime: RuntimeContract{Version: 3, Environment: environment(RuntimeEnvironmentBinding{Name: "PORT", ConfigPath: "/port"})}, values: values},
+		"wrong value type":          {runtime: RuntimeContract{Version: 3, Environment: environment(RuntimeEnvironmentBinding{Name: "DB", ConfigPath: "/database"})}, values: json.RawMessage(`{"credentials":{"password":"vaultix://production/postgres/password"},"database":4,"port":5432}`)},
+		"unmarked secret reference": {runtime: RuntimeContract{Version: 3, Environment: environment(RuntimeEnvironmentBinding{Name: "DB", ConfigPath: "/database"})}, values: json.RawMessage(`{"credentials":{"password":"vaultix://production/postgres/password"},"database":"vaultix://production/db/name","port":5432}`)},
+		"unsupported SOPS secret":   {runtime: RuntimeContract{Version: 3, Environment: environment(RuntimeEnvironmentBinding{Name: "DB_PASSWORD", ConfigPath: "/credentials/password"})}, values: json.RawMessage(`{"credentials":{"password":"sops://runtime/secrets.yaml#/password"},"database":"app","port":5432}`)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := ValidateRuntimeConfigBindings(candidate.runtime, schema, candidate.values); err == nil {
+				t.Fatal("invalid runtime configuration binding accepted")
+			}
+		})
+	}
+}
+
 func TestDeployableConfigSchemaRejectsUnsafeOrUnboundedDefinitions(t *testing.T) {
 	defaults := json.RawMessage(`{"password":"vaultix://production/postgres/password"}`)
 	for name, schema := range map[string]string{

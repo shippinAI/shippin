@@ -1,4 +1,4 @@
-import type { CatalogDeploymentSource, CatalogRuntimeContract, CatalogRuntimeContractV2 } from "../../../../lib/api/catalog-types";
+import type { CatalogDeploymentSource, CatalogRuntimeContract, CatalogRuntimeContractV3, CatalogRuntimeEnvironmentBinding } from "../../../../lib/api/catalog-types";
 
 export type RuntimeKindDraft = "none" | "incus_oci_container";
 
@@ -20,28 +20,30 @@ export function validRuntimeDraft(kind: RuntimeKindDraft, source: CatalogDeploym
   return kind === "none" || (kind === "incus_oci_container" && source?.kind === "oci" && runtimeContractFromDraft(kind, source, raw) !== null);
 }
 
-export function exampleRuntimeContract(): CatalogRuntimeContractV2 {
+export function exampleRuntimeContract(): CatalogRuntimeContractV3 {
   return {
-    version: 2,
+    version: 3,
     kind: "incus_oci_container",
     providers: ["incus"],
     resources: { cpu_cores: 2, memory_mib: 2048 },
     storage: { size_gib: 10, mount_path: "/var/lib/shippin/data" },
     network: { exposure: "private", ports: [{ name: "service", protocol: "tcp", container_port: 8080 }] },
     health: { kind: "tcp", port: 8080, interval_seconds: 30, timeout_seconds: 5, failure_threshold: 3 },
+    environment: [],
   };
 }
 
 /** Starts a user-authored recipe without implying app-specific defaults. */
-export function emptyRuntimeContractDraft(): CatalogRuntimeContractV2 {
+export function emptyRuntimeContractDraft(): CatalogRuntimeContractV3 {
   return {
-    version: 2,
+    version: 3,
     kind: "incus_oci_container",
     providers: ["incus"],
     resources: { cpu_cores: 0, memory_mib: 0 },
     storage: { size_gib: 0, mount_path: "" },
     network: { exposure: "private", ports: [{ name: "", protocol: "tcp", container_port: 0 }] },
     health: { kind: "tcp", port: 0, interval_seconds: 0, timeout_seconds: 0, failure_threshold: 0 },
+    environment: [],
   };
 }
 
@@ -50,7 +52,18 @@ export function validRuntimeContract(value: unknown): value is CatalogRuntimeCon
   const contract = value as CatalogRuntimeContract;
   if (contract.kind !== "incus_oci_container" || !Array.isArray(contract.providers) || contract.providers.length !== 1 || contract.providers[0] !== "incus") return false;
   if (contract.version === 1) return hasOnlyKeys(contract, ["version", "kind", "providers"]);
-  if (contract.version !== 2 || !hasOnlyKeys(contract, ["version", "kind", "providers", "resources", "storage", "network", "health"])) return false;
+  if (contract.version === 2 && !hasOnlyKeys(contract, ["version", "kind", "providers", "resources", "storage", "network", "health"])) return false;
+  if (contract.version === 3) {
+    if (!hasOnlyKeys(contract, ["version", "kind", "providers", "resources", "storage", "network", "health", "environment"]) ||
+        !Array.isArray((contract as CatalogRuntimeContractV3).environment) || (contract as CatalogRuntimeContractV3).environment.length > 16) return false;
+    const names = new Set<string>();
+    for (const binding of (contract as CatalogRuntimeContractV3).environment) {
+      if (!isRecord(binding) || !hasOnlyKeys(binding, ["name", "config_path"]) || typeof binding.name !== "string" ||
+          !/^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(binding.name) || typeof binding.config_path !== "string" ||
+          !validConfigPath(binding.config_path) || names.has(binding.name)) return false;
+      names.add(binding.name);
+    }
+  } else if (contract.version !== 2) return false;
   const { resources, storage, network, health } = contract;
   if (!isRecord(resources) || !hasOnlyKeys(resources, ["cpu_cores", "memory_mib"]) ||
       !Number.isInteger(resources.cpu_cores) || resources.cpu_cores < 1 || resources.cpu_cores > 64 ||
@@ -78,6 +91,9 @@ export function validRuntimeContract(value: unknown): value is CatalogRuntimeCon
   return health.path === undefined || health.path === "";
 }
 
+export type RuntimeContractDraft = CatalogRuntimeContractV3;
+export type RuntimeEnvironmentDraft = CatalogRuntimeEnvironmentBinding;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -89,4 +105,17 @@ function hasOnlyKeys(value: Record<string, unknown>, keys: string[]): boolean {
 function validAbsolutePath(value: string): boolean {
   return value.startsWith("/") && value !== "/" && !/[\\?#\r\n\0]/.test(value) &&
     value.split("/").slice(1).every((segment) => segment !== "" && segment !== "." && segment !== "..");
+}
+
+function validConfigPath(value: string): boolean {
+  if (!value.startsWith("/") || value.length > 512) return false;
+  return value.slice(1).split("/").every((segment) => {
+    for (let i = 0; i < segment.length; i++) {
+      if (segment[i] === "~") {
+        if (segment[i + 1] !== "0" && segment[i + 1] !== "1") return false;
+        i++;
+      }
+    }
+    return true;
+  });
 }
