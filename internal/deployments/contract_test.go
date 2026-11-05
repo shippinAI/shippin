@@ -55,6 +55,32 @@ func TestDeploymentRequestBindsTenantTargetPinnedDefinitionAndSecretSafeConfig(t
 	}
 }
 
+func TestDeploymentRequestSnapshotsValidatedRuntimeRecipeV2(t *testing.T) {
+	request := postgresRequest()
+	request.Definition.Runtime = catalog.RuntimeContract{
+		Version: 2, Kind: "incus_oci_container", Providers: []string{"incus"},
+		Resources: &catalog.RuntimeResources{CPUCores: 4, MemoryMiB: 8192},
+		Storage:   &catalog.RuntimeStorage{SizeGiB: 100, MountPath: "/var/lib/postgresql/data"},
+		Network:   &catalog.RuntimeNetwork{Exposure: "private", Ports: []catalog.RuntimePort{{Name: "postgres", Protocol: "tcp", ContainerPort: 5432}}},
+		Health:    &catalog.RuntimeHealthCheck{Kind: "tcp", Port: 5432, IntervalSeconds: 30, TimeoutSeconds: 5, FailureThreshold: 3},
+	}
+	if err := request.Validate(); err != nil {
+		t.Fatalf("valid recipe generation rejected: %v", err)
+	}
+	fingerprint, err := request.Definition.Fingerprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Definition.Runtime.Resources.CPUCores++
+	changed, err := request.Definition.Fingerprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fingerprint == changed {
+		t.Fatal("runtime resource changes must be bound by the immutable definition fingerprint")
+	}
+}
+
 func TestDeploymentRequestRejectsInvalidScopeProviderAndSecretValues(t *testing.T) {
 	mutations := map[string]func(*DeploymentRequest){
 		"invalid tenant":              func(r *DeploymentRequest) { r.TenantID = "tenant-a" },

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiSend } from "../api/client";
-import type { Json } from "../api/catalog-types";
+import type { CatalogRuntimeContract, Json } from "../api/catalog-types";
 import { toast } from "../design/components/toast/toast-queue";
 
 export type DeploymentSource = { kind: "github" | "git" | "oci"; reference: string; commit?: string; context_path?: string };
@@ -8,7 +8,7 @@ export type DeploymentService = {
   id: string; label: string; description: string; kind: string; docs_url: string;
   config_schema: { type?: string; title?: string; description?: string; properties?: Record<string, JsonSchemaProperty>; required?: string[] };
   default_config: Record<string, Json>; deployment_source: DeploymentSource;
-  runtime_contract: { version: 1; kind: "incus_oci_container"; providers: ["incus"] };
+  runtime_contract: CatalogRuntimeContract;
 };
 export type JsonSchemaProperty = {
   type?: string; title?: string; description?: string; format?: string; enum?: Json[];

@@ -78,18 +78,26 @@ API responses. SOPS references remain validated metadata; no deployment SOPS
 resolver exists. The resolver is not yet called by the reconciler because no
 application executor exists.
 
-Migration `052_catalog_runtime_contract.sql` adds a validated nullable catalog
-runtime declaration. The first declared tuple is version `1`, kind
-`incus_oci_container`, and provider `incus`, paired with a digest-pinned OCI
-source. Catalog writes validate any declaration present for a pinned source;
-tenant deployment discovery and generation snapshots require and include the
-declaration. A source pin without a runtime remains metadata only. This
-declaration states provider compatibility only; it does not specify engine
-environment, persistent-volume layout, network exposure,
-health, upgrade, backup, restore, or removal behavior. The reconciler remains
-disabled and records `runtime_unsupported` until those semantics and a matching
-executor are implemented. Git sources and Proxmox are not accepted by this
-declaration, and must not be shown as supported service runtimes.
+Migration `052_catalog_runtime_contract.sql` introduced the nullable catalog
+runtime declaration. Version `1`, kind `incus_oci_container`, provider `incus`,
+and a digest-pinned OCI source remain readable as compatibility-only metadata.
+Migration `053_catalog_runtime_recipe.sql` adds version `2` while preserving
+version `1`. Version 2 requires bounded CPU and memory, persistent storage size
+and normalized mount path, private or Edge network exposure with declared
+container ports, and a bounded TCP or HTTP health check tied to a declared TCP
+port. Go validates the detailed limits and path/port relationships; PostgreSQL
+rejects incomplete recipe shapes. The existing catalog UI can author and edit
+the versioned JSON recipe, and deployment discovery and immutable generation
+snapshots carry that exact validated contract.
+
+Version 2 still does not define engine-specific environment configuration,
+secret injection into a runtime, network attachment implementation, upgrade,
+backup, restore, or removal behavior. The control plane therefore continues to
+record `runtime_unsupported` and performs no provider mutation until a matching
+provider executor implements and proves those behaviors. In particular, this
+does not yet make PostgreSQL, Dragonfly, Redis, or ClickHouse turnkey. Git
+sources and Proxmox are not accepted by this Incus OCI runtime contract and
+must not be shown as supported service runtimes.
 
 `internal/deployments` owns the typed reconcile request, operation identity, desired/observed transition, event persistence and authorization orchestration. Provider adapters own Incus versus Proxmox API requests, task polling, guest identity tags and provider read-back. A dedicated runtime adapter inside the provider guest owns application installation/configuration. Incus and Proxmox retain separate lifecycle code; common service semantics do not erase provider-specific failure handling.
 

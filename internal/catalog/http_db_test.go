@@ -99,6 +99,18 @@ func TestCatalogAPIFlow(t *testing.T) {
 	if configured["runtime_contract"].(map[string]any)["kind"] != "incus_oci_container" {
 		t.Fatalf("runtime contract not returned after create: %v", configured["runtime_contract"])
 	}
+	recipe := `"runtime_contract":{"version":2,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":2,"memory_mib":2048},"storage":{"size_gib":20,"mount_path":"/var/lib/postgresql/data"},"network":{"exposure":"private","ports":[{"name":"postgres","protocol":"tcp","container_port":5432}]},"health":{"kind":"tcp","port":5432,"interval_seconds":30,"timeout_seconds":5,"failure_threshold":3}}`
+	recipeService := do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"runtime-recipe-v2","label":"Runtime recipe v2","kind":"database",`+configSchema+`,`+source+`,`+recipe+`}`, 201)
+	if got := recipeService["runtime_contract"].(map[string]any)["version"]; got != float64(2) {
+		t.Fatalf("version 2 runtime recipe not returned: %v", recipeService["runtime_contract"])
+	}
+	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"bad-recipe","label":"Bad recipe","kind":"database",`+configSchema+`,`+source+`,"runtime_contract":{"version":2,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":0,"memory_mib":2048}}}`, 400)
+	if _, err := lastStore.Pool.Exec(t.Context(), `INSERT INTO catalog_services(id,label,kind,deployment_source,runtime_contract)
+		VALUES('invalid-v2','Invalid v2','app',$1::jsonb,$2::jsonb)`,
+		`{"kind":"oci","reference":"registry.example.net/team/app@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}`,
+		`{"version":2,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":2,"memory_mib":2048}}`); err == nil {
+		t.Fatal("database accepted an incomplete version 2 runtime recipe")
+	}
 	loaded := do(t, mux, "GET", "/v1/operator/catalog/services/postgres", "", 200)
 	if loaded["deployment_source"].(map[string]any)["credential_ref"] != "vaultix://production/runtime/registry-token" {
 		t.Fatalf("source not persisted: %v", loaded["deployment_source"])

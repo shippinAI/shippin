@@ -47,17 +47,7 @@ DeployableService:
         context_path: { type: string }
       additionalProperties: false
     runtime_contract:
-      type: object
-      required: [version, kind, providers]
-      properties:
-        version: { type: integer, const: 1 }
-        kind: { type: string, const: incus_oci_container }
-        providers:
-          type: array
-          minItems: 1
-          maxItems: 1
-          prefixItems: [{ type: string, const: incus }]
-      additionalProperties: false
+      $ref: catalog.yaml#/RuntimeContract
 DeploymentTarget:
   type: object
   required: [id, label, site, provider, state]

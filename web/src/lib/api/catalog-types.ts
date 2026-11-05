@@ -12,11 +12,18 @@ export type CatalogDeploymentSource = {
   credential_ref?: string;
 };
 
-export type CatalogRuntimeContract = {
-  version: 1;
-  kind: "incus_oci_container";
-  providers: ["incus"];
+export type CatalogRuntimePort = { name: string; protocol: "tcp" | "udp"; container_port: number };
+export type CatalogRuntimeContractV1 = {
+  version: 1; kind: "incus_oci_container"; providers: ["incus"];
 };
+export type CatalogRuntimeContractV2 = {
+  version: 2; kind: "incus_oci_container"; providers: ["incus"];
+  resources: { cpu_cores: number; memory_mib: number };
+  storage: { size_gib: number; mount_path: string };
+  network: { exposure: "private" | "edge"; ports: CatalogRuntimePort[] };
+  health: { kind: "tcp" | "http"; port: number; path?: string; interval_seconds: number; timeout_seconds: number; failure_threshold: number };
+};
+export type CatalogRuntimeContract = CatalogRuntimeContractV1 | CatalogRuntimeContractV2;
 
 export type CatalogService = {
   id: string; label: string; description: string; kind: string; docs_url: string;

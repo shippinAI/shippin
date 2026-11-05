@@ -38,7 +38,7 @@ export function ServicesPage() {
                   {s.required && <Badge tone="danger">required on every plan</Badge>}
                   {!s.active && <Badge tone="warning">inactive</Badge>}
                   {s.deployment_source && <Badge tone="info">{s.deployment_source.kind} source pinned</Badge>}
-                  {s.runtime_contract && <Badge tone="info">Incus OCI compatibility declared</Badge>}
+                  {s.runtime_contract && <Badge tone="info">Incus OCI recipe v{s.runtime_contract.version} · execution gated</Badge>}
                   {Object.entries(s.config_schema.properties ?? {}).map(([k, v]) => (
                     <Badge key={k}>{v.title ?? k}: {JSON.stringify(s.default_config[k] ?? "—")}</Badge>
                   ))}

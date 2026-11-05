@@ -50,7 +50,7 @@ func deploymentRouteAPI(t *testing.T) (*API, string, string) {
 	schema := `{"type":"object","properties":{"password":{"type":"string","format":"shippin-secret-ref","description":"sops://runtime/schema-secret"}},"required":["password"],"additionalProperties":false}`
 	defaults := `{"password":"vaultix://production/services/postgres/password"}`
 	source := `{"kind":"oci","reference":"registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","credential_ref":"sops://runtime/secrets.yaml#/registry/token"}`
-	runtime := `{"version":1,"kind":"incus_oci_container","providers":["incus"]}`
+	runtime := `{"version":2,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":2,"memory_mib":2048},"storage":{"size_gib":20,"mount_path":"/var/lib/postgresql/data"},"network":{"exposure":"private","ports":[{"name":"postgres","protocol":"tcp","container_port":5432}]},"health":{"kind":"tcp","port":5432,"interval_seconds":30,"timeout_seconds":5,"failure_threshold":3}}`
 	if _, err := database.Pool.Exec(t.Context(), `INSERT INTO catalog_services(id,label,kind,config_schema,default_config,deployment_source,runtime_contract)
 		VALUES('postgres','Postgres','database',$1::jsonb,$2::jsonb,$3::jsonb,$4::jsonb)`, schema, defaults, source, runtime); err != nil {
 		t.Fatal(err)
@@ -92,7 +92,7 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 	a, tenantID, targetID := deploymentRouteAPI(t)
 	services := httptest.NewRecorder()
 	a.listDeployableServices(services, deploymentRequest(http.MethodGet, tenantID, "", "", "", ""))
-	if services.Code != http.StatusOK || strings.Contains(services.Body.String(), "credential_ref") || strings.Contains(services.Body.String(), "vaultix://") || strings.Contains(services.Body.String(), "sops://") || strings.Contains(services.Body.String(), "metadata-only") || !strings.Contains(services.Body.String(), `"kind":"incus_oci_container"`) {
+	if services.Code != http.StatusOK || strings.Contains(services.Body.String(), "credential_ref") || strings.Contains(services.Body.String(), "vaultix://") || strings.Contains(services.Body.String(), "sops://") || strings.Contains(services.Body.String(), "metadata-only") || !strings.Contains(services.Body.String(), `"kind":"incus_oci_container"`) || !strings.Contains(services.Body.String(), `"version":2`) || !strings.Contains(services.Body.String(), `"mount_path":"/var/lib/postgresql/data"`) {
 		t.Fatalf("tenant catalog options leaked references or failed: %d %s", services.Code, services.Body)
 	}
 	targets := httptest.NewRecorder()
