@@ -72,6 +72,12 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 		return map[string]any{"deployment_id": deployment.ID, "generation": wakeup.Generation,
 			"outcome": "superseded", "provider_mutated": false}, nil
 	}
+	var recoveredStep map[string]any
+	step("recover_ambiguous_provider_step")
+	recoveredStep, _, err = a.recoverDeploymentIntent(ctx, job, deployment)
+	if err != nil {
+		return nil, err
+	}
 	step("application_runtime_unavailable")
 	created, err := a.deploymentStore().RecordRuntimeUnavailableWithLease(ctx, job.TenantID, deployment.ID,
 		job.CreatedBy, wakeup.Generation, job.ID, job.LeaseOwner)
@@ -88,6 +94,10 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 			outcome = "superseded"
 		}
 	}
-	return map[string]any{"deployment_id": deployment.ID, "generation": wakeup.Generation,
-		"outcome": outcome, "event_recorded": created, "provider_mutated": false}, nil
+	result := map[string]any{"deployment_id": deployment.ID, "generation": wakeup.Generation,
+		"outcome": outcome, "event_recorded": created, "provider_mutated": false}
+	if recoveredStep != nil {
+		result["recovery"] = recoveredStep
+	}
+	return result, nil
 }
