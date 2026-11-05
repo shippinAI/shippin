@@ -16,6 +16,8 @@ The outbox producer and leader relay are implemented. Migration `051` adds the p
 
 The API now uses one `authorizeDeploymentAction` path to reload the submitted generation review, recompute and bind the action hash, resolve the configured AgentHub client and stable Shippin system mapping, request the current policy decision and append safe provenance or a normalized denial. The generation-scoped operation is reusable by a worker. The current worker does not invoke it yet because there is no provider executor to dispatch after authorization.
 
+Migration `054_shippin_deployment_target_config.sql` stores the selected Incus pool in immutable generation state. The existing panel reads live pools only for active tenant-assigned Incus systems, and create-time API validation rechecks the selected pool against provider inventory before accepting a new generation. Missing pools return conflict without writing intent; an idempotent replay uses the stored response without another provider read. These changes are verified by database-backed CI run `41970045619`. They do not enable provider execution.
+
 Provider execution is still absent. The worker currently reports the capability gap honestly; it does not authorize, install, configure or observe an application. A real executor must replace this explicit no-op boundary before any deployment can be called successful.
 
 The next capability must connect these components without making the jobs table deployment truth, calling providers in HTTP handlers, or claiming that generic guest CRUD installs PostgreSQL, Dragonfly, Redis or ClickHouse.

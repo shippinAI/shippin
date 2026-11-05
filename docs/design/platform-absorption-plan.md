@@ -479,19 +479,19 @@ then execute only if the policy says so. Record policy version and decision
 provenance. Fail closed on missing mapping, stale hash, timeout, denial or
 provider failure.
 
-**Current gap:** Shippin now persists an explicit server UUID to AgentHub
-tenant/machine mapping with operator provenance; the mapping is not validated
-against AgentHub and there is no adapter. AgentHub exposes authenticated
-tenant-scoped policy and ticket routes. The reviewed decision
-response does not expose a structured `review_required` outcome; parsing its
-human-readable failure text would be brittle. Source inspection further confirms
-the engine defaults to `allow=true` if no rule matches, and its response does not
-bind the exact Shippin action payload or report matched rule effects. Thus the
-boolean is not sufficient authorization. Define or verify a typed decision
-contract bound to the exact action, system, ticket and policy hashes, and establish
-service-principal permissions before connecting writes. Local Shippin approver
-defaults and the `HUB_OWNER_*` bypass are removed; the example installation denies
-gated actions.
+**Current gap:** Shippin persists an explicit system-to-AgentHub tenant/machine
+mapping and has a typed adapter in `internal/agenthub/review.go`. Read-only
+inspection of AgentHub `internal/changepolicy/decide.go` and
+`internal/devapi/policy_routes.go` confirms the decision response carries a
+decision ID, tenant, policy hash, allow result, policy version, matched rules and
+failures. The Shippin client binds the ticket to the exact machine, command and
+action hash; re-reads ticket and policy after the decision; rejects no-match,
+permissive rules and any matched rule lacking approval plus reviewer quorum. The
+operator review endpoint uses this client and persists action-bound provenance.
+The worker still does not call it: there is no provider executor to dispatch after
+JIT authorization. Production service-principal permissions and deployment-time
+credential scope remain unverified. The example installation denies gated
+actions; local approver defaults and the `HUB_OWNER_*` bypass remain removed.
 
 **Exit gate:** identity collision/change tests pass; AgentHub decision, review,
 replay, denial, unavailable service and restart cases pass; no local reviewer
