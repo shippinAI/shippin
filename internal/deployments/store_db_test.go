@@ -50,9 +50,10 @@ func deploymentTestStore(t *testing.T) (*Store, string, string) {
 	}
 	configSchema := `{"type":"object","properties":{"port":{"type":"integer","minimum":1,"maximum":65535},"password":{"type":"string","format":"shippin-secret-ref"}},"required":["password"],"additionalProperties":false}`
 	defaults := `{"port":5432,"password":"vaultix://org/project/env/postgres"}`
-	source := `{"kind":"github","reference":"https://github.com/acme/postgres","commit":"0123456789abcdef0123456789abcdef01234567","credential_ref":"sops://runtime/secrets.yaml#/registry/token"}`
-	if _, err := database.Pool.Exec(ctx, `INSERT INTO catalog_services(id,label,kind,config_schema,default_config,deployment_source)
-		VALUES('postgres','Postgres','database',$1::jsonb,$2::jsonb,$3::jsonb)`, configSchema, defaults, source); err != nil {
+	source := `{"kind":"oci","reference":"registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","credential_ref":"sops://runtime/secrets.yaml#/registry/token"}`
+	runtime := `{"version":1,"kind":"incus_oci_container","providers":["incus"]}`
+	if _, err := database.Pool.Exec(ctx, `INSERT INTO catalog_services(id,label,kind,config_schema,default_config,deployment_source,runtime_contract)
+		VALUES('postgres','Postgres','database',$1::jsonb,$2::jsonb,$3::jsonb,$4::jsonb)`, configSchema, defaults, source, runtime); err != nil {
 		t.Fatal(err)
 	}
 	return NewStore(database.Pool), tenantID, serverID
@@ -71,7 +72,7 @@ func TestStoreCreateReplayTenantScopeEventsAndAppendOnlyHistory(t *testing.T) {
 	if !isNew || created.Generation != 1 || created.ObservedState != ObservedUnknown || created.TargetProvider != ProviderIncus {
 		t.Fatalf("unexpected created deployment: new=%t deployment=%+v", isNew, created)
 	}
-	if created.Source.Kind != "github" || created.Source.Commit != "0123456789abcdef0123456789abcdef01234567" {
+	if created.Source.Kind != "oci" || created.Source.Reference != "registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" {
 		t.Fatalf("pinned source snapshot missing: %+v", created.Source)
 	}
 	outbox, err := store.PendingOutbox(ctx, 100)
@@ -398,7 +399,7 @@ func TestReviewAuthorizationProvenanceIsFencedAppendOnlyAndIdempotent(t *testing
 	}
 }
 
-func TestStoreAcceptsAssignedPlannedProxmoxTargetAsDesiredIntent(t *testing.T) {
+func TestStoreRejectsProviderIncompatibleRuntimeTarget(t *testing.T) {
 	store, tenantID, _ := deploymentTestStore(t)
 	targetID := uuid.NewString()
 	ctx := context.Background()
@@ -413,7 +414,11 @@ func TestStoreAcceptsAssignedPlannedProxmoxTargetAsDesiredIntent(t *testing.T) {
 	input := CreateInput{ServiceID: "postgres", TargetSystemID: targetID, DesiredState: DesiredPresent,
 		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`)}
 	item, created, err := store.Create(ctx, tenantID, "operator@example.test", input)
-	if err != nil || !created || item.TargetProvider != ProviderProxmox || item.ObservedState != ObservedUnknown {
-		t.Fatalf("planned Proxmox request should record intent only: created=%t item=%+v err=%v", created, item, err)
+	if !errors.Is(err, ErrInvalidConfig) || created || item != nil {
+		t.Fatalf("Incus-only service must reject Proxmox target: created=%t item=%+v err=%v", created, item, err)
+	}
+	outbox, err := store.PendingOutbox(ctx, 100)
+	if err != nil || len(outbox) != 0 {
+		t.Fatalf("incompatible target must not create deployment work: outbox=%+v err=%v", outbox, err)
 	}
 }

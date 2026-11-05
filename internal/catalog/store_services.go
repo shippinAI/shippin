@@ -16,11 +16,12 @@ type Service struct {
 	ConfigSchema     json.RawMessage   `json:"config_schema"`
 	DefaultConfig    json.RawMessage   `json:"default_config"`
 	DeploymentSource *DeploymentSource `json:"deployment_source"`
+	RuntimeContract  *RuntimeContract  `json:"runtime_contract"`
 	Required         bool              `json:"required"`
 	Active           bool              `json:"active"`
 }
 
-const serviceCols = `id, label, description, kind, docs_url, config_schema, default_config, deployment_source, required, active, updated_at`
+const serviceCols = `id, label, description, kind, docs_url, config_schema, default_config, deployment_source, runtime_contract, required, active, updated_at`
 
 func (s *Store) Services(ctx context.Context) (json.RawMessage, error) {
 	return s.listJSON(ctx, `SELECT `+serviceCols+` FROM catalog_services ORDER BY required DESC, id`)
@@ -37,6 +38,7 @@ type DeployableService struct {
 	ConfigSchema     json.RawMessage         `json:"config_schema"`
 	DefaultConfig    json.RawMessage         `json:"default_config"`
 	DeploymentSource *PublicDeploymentSource `json:"deployment_source"`
+	RuntimeContract  *RuntimeContract        `json:"runtime_contract"`
 }
 
 type PublicDeploymentSource struct {
@@ -47,8 +49,8 @@ type PublicDeploymentSource struct {
 }
 
 func (s *Store) DeployableServices(ctx context.Context) ([]DeployableService, error) {
-	rows, err := s.Pool.Query(ctx, `SELECT id,label,description,kind,docs_url,config_schema::text,default_config::text,deployment_source::text
-		FROM catalog_services WHERE active=true AND deployment_source IS NOT NULL ORDER BY kind,id`)
+	rows, err := s.Pool.Query(ctx, `SELECT id,label,description,kind,docs_url,config_schema::text,default_config::text,deployment_source::text,runtime_contract::text
+		FROM catalog_services WHERE active=true AND deployment_source IS NOT NULL AND runtime_contract IS NOT NULL ORDER BY kind,id`)
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +58,8 @@ func (s *Store) DeployableServices(ctx context.Context) ([]DeployableService, er
 	items := make([]DeployableService, 0)
 	for rows.Next() {
 		var item DeployableService
-		var schema, defaults, source []byte
-		if err := rows.Scan(&item.ID, &item.Label, &item.Description, &item.Kind, &item.DocsURL, &schema, &defaults, &source); err != nil {
+		var schema, defaults, source, runtime []byte
+		if err := rows.Scan(&item.ID, &item.Label, &item.Description, &item.Kind, &item.DocsURL, &schema, &defaults, &source, &runtime); err != nil {
 			return nil, err
 		}
 		item.ConfigSchema = RedactSecretReferences(schema)
@@ -68,6 +70,11 @@ func (s *Store) DeployableServices(ctx context.Context) ([]DeployableService, er
 		}
 		item.DeploymentSource = &PublicDeploymentSource{Kind: pinned.Kind, Reference: pinned.Reference,
 			Commit: pinned.Commit, ContextPath: pinned.ContextPath}
+		var contract RuntimeContract
+		if err := json.Unmarshal(runtime, &contract); err != nil {
+			return nil, err
+		}
+		item.RuntimeContract = &contract
 		items = append(items, item)
 	}
 	return items, rows.Err()
@@ -117,15 +124,23 @@ func (s *Store) Service(ctx context.Context, id string) (json.RawMessage, error)
 }
 
 func (s *Store) CreateService(ctx context.Context, v Service) error {
-	_, err := s.Pool.Exec(ctx, `INSERT INTO catalog_services(id,label,description,kind,docs_url,config_schema,default_config,deployment_source,required,active)
-		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, v.ID, v.Label, v.Description, v.Kind, v.DocsURL, v.ConfigSchema, v.DefaultConfig, deploymentSourceJSON(v.DeploymentSource), v.Required, v.Active)
+	_, err := s.Pool.Exec(ctx, `INSERT INTO catalog_services(id,label,description,kind,docs_url,config_schema,default_config,deployment_source,runtime_contract,required,active)
+		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, v.ID, v.Label, v.Description, v.Kind, v.DocsURL, v.ConfigSchema, v.DefaultConfig, deploymentSourceJSON(v.DeploymentSource), runtimeContractJSON(v.RuntimeContract), v.Required, v.Active)
 	return err
 }
 
 func (s *Store) UpdateService(ctx context.Context, v Service) error {
 	return s.exec(ctx, `UPDATE catalog_services SET label=$2, description=$3, kind=$4, docs_url=$5, config_schema=$6,
-		default_config=$7, deployment_source=$8, required=$9, active=$10, updated_at=now() WHERE id=$1`,
-		v.ID, v.Label, v.Description, v.Kind, v.DocsURL, v.ConfigSchema, v.DefaultConfig, deploymentSourceJSON(v.DeploymentSource), v.Required, v.Active)
+		default_config=$7, deployment_source=$8, runtime_contract=$9, required=$10, active=$11, updated_at=now() WHERE id=$1`,
+		v.ID, v.Label, v.Description, v.Kind, v.DocsURL, v.ConfigSchema, v.DefaultConfig, deploymentSourceJSON(v.DeploymentSource), runtimeContractJSON(v.RuntimeContract), v.Required, v.Active)
+}
+
+func runtimeContractJSON(contract *RuntimeContract) json.RawMessage {
+	if contract == nil {
+		return nil
+	}
+	b, _ := json.Marshal(contract)
+	return json.RawMessage(b)
 }
 
 func deploymentSourceJSON(source *DeploymentSource) json.RawMessage {

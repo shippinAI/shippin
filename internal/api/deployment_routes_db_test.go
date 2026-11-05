@@ -40,7 +40,7 @@ func deploymentRouteAPI(t *testing.T) (*API, string, string) {
 		t.Fatal(err)
 	}
 	if _, err := database.Pool.Exec(t.Context(), `INSERT INTO servers(id,tenant_id,slug,label,site,state,created_by,hv_kind)
-		VALUES($1,$2,'deployment-api-test','Deployment API target','test','active','test','proxmox')`, targetID, tenantID); err != nil {
+		VALUES($1,$2,'deployment-api-test','Deployment API target','test','active','test','incus')`, targetID, tenantID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := database.Pool.Exec(t.Context(), `INSERT INTO server_assignments(server_id,tenant_id,role,created_by)
@@ -49,9 +49,15 @@ func deploymentRouteAPI(t *testing.T) (*API, string, string) {
 	}
 	schema := `{"type":"object","properties":{"password":{"type":"string","format":"shippin-secret-ref","description":"sops://runtime/schema-secret"}},"required":["password"],"additionalProperties":false}`
 	defaults := `{"password":"vaultix://org/project/env/postgres"}`
-	source := `{"kind":"github","reference":"https://github.com/acme/postgres","commit":"0123456789abcdef0123456789abcdef01234567","credential_ref":"sops://runtime/secrets.yaml#/registry/token"}`
+	source := `{"kind":"oci","reference":"registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","credential_ref":"sops://runtime/secrets.yaml#/registry/token"}`
+	runtime := `{"version":1,"kind":"incus_oci_container","providers":["incus"]}`
+	if _, err := database.Pool.Exec(t.Context(), `INSERT INTO catalog_services(id,label,kind,config_schema,default_config,deployment_source,runtime_contract)
+		VALUES('postgres','Postgres','database',$1::jsonb,$2::jsonb,$3::jsonb,$4::jsonb)`, schema, defaults, source, runtime); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := database.Pool.Exec(t.Context(), `INSERT INTO catalog_services(id,label,kind,config_schema,default_config,deployment_source)
-		VALUES('postgres','Postgres','database',$1::jsonb,$2::jsonb,$3::jsonb)`, schema, defaults, source); err != nil {
+		VALUES('metadata-only','Metadata only','database',$1::jsonb,$2::jsonb,$3::jsonb)`, schema, defaults,
+		`{"kind":"github","reference":"https://github.com/acme/metadata-only","commit":"0123456789abcdef0123456789abcdef01234567"}`); err != nil {
 		t.Fatal(err)
 	}
 	a := &API{cfg: testCfg(), db: database, deployments: deployments.NewStore(database.Pool)}
@@ -86,12 +92,12 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 	a, tenantID, targetID := deploymentRouteAPI(t)
 	services := httptest.NewRecorder()
 	a.listDeployableServices(services, deploymentRequest(http.MethodGet, tenantID, "", "", "", ""))
-	if services.Code != http.StatusOK || strings.Contains(services.Body.String(), "credential_ref") || strings.Contains(services.Body.String(), "vaultix://") || strings.Contains(services.Body.String(), "sops://") {
+	if services.Code != http.StatusOK || strings.Contains(services.Body.String(), "credential_ref") || strings.Contains(services.Body.String(), "vaultix://") || strings.Contains(services.Body.String(), "sops://") || strings.Contains(services.Body.String(), "metadata-only") || !strings.Contains(services.Body.String(), `"kind":"incus_oci_container"`) {
 		t.Fatalf("tenant catalog options leaked references or failed: %d %s", services.Code, services.Body)
 	}
 	targets := httptest.NewRecorder()
 	a.listDeploymentTargets(targets, deploymentRequest(http.MethodGet, tenantID, "", "", "", ""))
-	if targets.Code != http.StatusOK || !strings.Contains(targets.Body.String(), `"provider":"proxmox"`) || !strings.Contains(targets.Body.String(), `"can_request":true`) {
+	if targets.Code != http.StatusOK || !strings.Contains(targets.Body.String(), `"provider":"incus"`) || !strings.Contains(targets.Body.String(), `"can_request":true`) {
 		t.Fatalf("assigned deployment target not exposed: %d %s", targets.Code, targets.Body)
 	}
 	managerResolver := a.resolveCaller
@@ -112,7 +118,7 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 		t.Fatalf("create response: %d %v %s", rec.Code, rec.Header(), rec.Body)
 	}
 	var created deployments.Deployment
-	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil || created.Generation != 1 || created.TargetProvider != deployments.ProviderProxmox || created.ObservedState != deployments.ObservedUnknown || len(created.ConfigSchema) == 0 {
+	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil || created.Generation != 1 || created.TargetProvider != deployments.ProviderIncus || created.ObservedState != deployments.ObservedUnknown || len(created.ConfigSchema) == 0 {
 		t.Fatalf("created intent: %+v err=%v", created, err)
 	}
 	if strings.Contains(string(created.ConfigSchema), "vaultix://") || strings.Contains(string(created.ConfigSchema), "sops://") {

@@ -8,6 +8,7 @@ export type DeploymentService = {
   id: string; label: string; description: string; kind: string; docs_url: string;
   config_schema: { type?: string; title?: string; description?: string; properties?: Record<string, JsonSchemaProperty>; required?: string[] };
   default_config: Record<string, Json>; deployment_source: DeploymentSource;
+  runtime_contract: { version: 1; kind: "incus_oci_container"; providers: ["incus"] };
 };
 export type JsonSchemaProperty = {
   type?: string; title?: string; description?: string; format?: string; enum?: Json[];

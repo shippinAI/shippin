@@ -19,6 +19,7 @@ import { PageHeader } from "../../../template/page-header";
 import { QueryView } from "../../admin/ui/query-view";
 import { ServiceConfigForm } from "./service-config-form";
 import { currentGenerationFailure, deploymentFailureMessage } from "../deployment-status";
+import { supportsRuntimeTarget } from "../runtime-targets";
 
 const isObject = (value: unknown): value is Record<string, Json> => value !== null && typeof value === "object" && !Array.isArray(value);
 const serviceSource = (source: DeploymentSource) => source.kind === "oci"
@@ -117,9 +118,10 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
 }) {
   const [serviceId, setServiceId] = useState(deployment?.service_id ?? services[0]?.id ?? "");
   const service = services.find((item) => item.id === serviceId);
+  const compatibleTargets = targets.filter((target) => supportsRuntimeTarget(service?.runtime_contract, target.provider));
   const schema = deployment?.config_schema ?? service?.config_schema;
   const source = deployment?.source ?? service?.deployment_source;
-  const [targetId, setTargetId] = useState(deployment?.target_system_id ?? targets[0]?.id ?? "");
+  const [targetId, setTargetId] = useState(deployment?.target_system_id ?? compatibleTargets[0]?.id ?? "");
   const [configText, setConfigText] = useState(() => JSON.stringify(deployment?.config ?? service?.default_config ?? {}, null, 2));
   const [schemaValid, setSchemaValid] = useState(true);
   const setSchemaValidity = useCallback((value: boolean) => setSchemaValid(value), []);
@@ -134,7 +136,7 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
     footer={<>
       <div className="flex-1" />
       <Button variant="ghost" tooltip="Close without saving" onPress={onClose}>Cancel</Button>
-      <Button variant="primary" tooltip={deployment ? "Append a generation using the current ETag" : "Record desired service configuration"} isDisabled={(!deployment && !service) || !valid || !schemaValid || busy || (!deployment && (!targetId || !targets.some((target) => target.id === targetId)))}
+      <Button variant="primary" tooltip={deployment ? "Append a generation using the current ETag" : "Record desired service configuration"} isDisabled={(!deployment && !service) || !valid || !schemaValid || busy || (!deployment && (!targetId || !compatibleTargets.some((target) => target.id === targetId)))}
         onPress={() => {
           if (!isObject(config) || !schemaValid) return;
           if (deployment) update.mutate({ deployment, config }, { onSuccess: onClose });
@@ -148,9 +150,12 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
             setServiceId(id);
             const selected = services.find((item) => item.id === id);
             setConfigText(JSON.stringify(selected?.default_config ?? {}, null, 2));
+            const nextTarget = targets.find((target) => supportsRuntimeTarget(selected?.runtime_contract, target.provider));
+            setTargetId(nextTarget?.id ?? "");
           }} />
-        <Select label="Target system" value={targetId} options={targets.map((target) => ({ id: target.id,
+        <Select label="Target system" value={targetId} options={compatibleTargets.map((target) => ({ id: target.id,
           label: `${target.provider_label ?? target.provider} Â· ${target.label} Â· ${target.site}${target.state === "planned" ? " Â· connection unverified" : ""}` }))} onChange={setTargetId} />
+        {compatibleTargets.length === 0 && <p className="text-sm text-fg-muted">No assigned target supports this service runtime declaration.</p>}
       </>}
       {source && <div className="rounded-lg border border-line p-3">
         <div className="text-sm font-medium text-fg">Pinned source</div>

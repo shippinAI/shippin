@@ -51,6 +51,15 @@ func (h *Handler) readService(w http.ResponseWriter, r *http.Request) (Service, 
 			auth.Problem(w, http.StatusBadRequest, "The deployable service configuration is invalid: "+err.Error()+".")
 			return v, false
 		}
+		if v.RuntimeContract != nil {
+			if err := v.RuntimeContract.Validate(*v.DeploymentSource); err != nil {
+				auth.Problem(w, http.StatusBadRequest, "The runtime contract is invalid: "+err.Error()+".")
+				return v, false
+			}
+		}
+	} else if v.RuntimeContract != nil {
+		auth.Problem(w, http.StatusBadRequest, "A runtime contract requires a pinned deployment source.")
+		return v, false
 	}
 	return v, true
 }

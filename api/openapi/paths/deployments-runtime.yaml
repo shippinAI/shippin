@@ -5,7 +5,7 @@ deployableServices:
     tags: [deployments]
     operationId: listDeployableServices
     summary: List active deployable catalog services
-    description: Tenant-safe definitions omit source credentials and secret-reference defaults.
+    description: Tenant-safe definitions include a validated provider/runtime compatibility declaration and omit source credentials and secret-reference defaults. A declaration is not evidence of a working executor or deployed service.
     responses:
       "200": { description: Configurable service definitions., content: { application/json: { schema: { $ref: ../schemas/deployments.yaml#/DeployableServiceList } } } }
       "401": { $ref: ../components/responses.yaml#/Problem401 }

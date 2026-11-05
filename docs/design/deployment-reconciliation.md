@@ -67,6 +67,19 @@ The worker must never hold a SQL transaction or deployment row lock while making
 
 The catalog stays metadata and validated configuration. A service definition must declare a versioned runtime kind, supported provider set, image/artifact pin, resource and storage requirements, secret-reference fields, network exposure, health contract, upgrade/backup/restore semantics and removal behavior. No user-controlled shell, Compose, privileged container flag, or raw provider payload becomes an execution contract.
 
+Migration `052_catalog_runtime_contract.sql` adds a validated nullable catalog
+runtime declaration. The first declared tuple is version `1`, kind
+`incus_oci_container`, and provider `incus`, paired with a digest-pinned OCI
+source. Catalog writes validate any declaration present for a pinned source;
+tenant deployment discovery and generation snapshots require and include the
+declaration. A source pin without a runtime remains metadata only. This
+declaration states provider compatibility only; it does not specify engine
+environment, persistent-volume layout, network exposure,
+health, upgrade, backup, restore, or removal behavior. The reconciler remains
+disabled and records `runtime_unsupported` until those semantics and a matching
+executor are implemented. Git sources and Proxmox are not accepted by this
+declaration, and must not be shown as supported service runtimes.
+
 `internal/deployments` owns the typed reconcile request, operation identity, desired/observed transition, event persistence and authorization orchestration. Provider adapters own Incus versus Proxmox API requests, task polling, guest identity tags and provider read-back. A dedicated runtime adapter inside the provider guest owns application installation/configuration. Incus and Proxmox retain separate lifecycle code; common service semantics do not erase provider-specific failure handling.
 
 Initial execution should be limited to an explicitly documented runtime/provider pair whose image, resource, storage, network, credential, upgrade and recovery behavior is implemented and tested end to end. A catalog entry that lacks that executor is not deployable and must not be presented with an enabled action. PostgreSQL, Dragonfly, Redis and ClickHouse each require an engine-specific supported recipe and persistent-volume/recovery contract; a generic image pull is not turnkey deployment.

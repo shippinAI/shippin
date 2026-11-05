@@ -60,6 +60,7 @@ const (
 type DefinitionSnapshot struct {
 	ServiceID     string                   `json:"service_id"`
 	Source        catalog.DeploymentSource `json:"source"`
+	Runtime       catalog.RuntimeContract  `json:"runtime"`
 	ConfigSchema  json.RawMessage          `json:"config_schema"`
 	DefaultConfig json.RawMessage          `json:"default_config"`
 }
@@ -70,6 +71,9 @@ func (s DefinitionSnapshot) Validate(config json.RawMessage) error {
 	}
 	if err := s.Source.Validate(); err != nil {
 		return fmt.Errorf("deployment source is invalid: %w", err)
+	}
+	if err := s.Runtime.Validate(s.Source); err != nil {
+		return fmt.Errorf("deployment runtime is invalid: %w", err)
 	}
 	if err := catalog.ValidateDeploymentConfig(s.ConfigSchema, s.DefaultConfig); err != nil {
 		return fmt.Errorf("deployment definition is invalid: %w", err)
@@ -112,6 +116,9 @@ func (r DeploymentRequest) Validate() error {
 	}
 	if r.DesiredState != DesiredPresent && r.DesiredState != DesiredAbsent {
 		return errors.New("desired state must be present or absent")
+	}
+	if !r.Definition.Runtime.SupportsProvider(string(r.TargetProvider)) {
+		return errors.New("target provider is incompatible with the declared runtime")
 	}
 	if len(r.Actor) == 0 || len(r.Actor) > 255 || strings.TrimSpace(r.Actor) != r.Actor || strings.ContainsAny(r.Actor, "\r\n\x00") {
 		return errors.New("actor is invalid")

@@ -7,6 +7,7 @@ import { Switch } from "../../../../lib/design/components/switch/switch";
 import { Select } from "../../../../lib/design/components/select/select";
 import { catalogPaths, useCatalogWrite } from "../../../../lib/hooks/use-catalog";
 import { deploymentSourceFromDraft, sourceDraft, validDeploymentSource } from "./service-source";
+import { runtimeContractFromDraft, runtimeKindDraft, validRuntimeDraft } from "./service-runtime";
 
 const obj = (s: string) => { try { const v = JSON.parse(s); return v && typeof v === "object" && !Array.isArray(v) ? v : null; } catch { return null; } };
 
@@ -18,11 +19,14 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
   const [schema, setSchema] = useState(JSON.stringify(initial?.config_schema ?? { type: "object", properties: {} }, null, 2));
   const [defaults, setDefaults] = useState(JSON.stringify(initial?.default_config ?? {}, null, 2));
   const [source, setSource] = useState(() => sourceDraft(initial?.deployment_source));
+  const [runtimeKind, setRuntimeKind] = useState(() => runtimeKindDraft(initial?.runtime_contract));
   const save = useCatalogWrite(editing ? "Service updated" : "Service added");
   const del = useCatalogWrite("Service removed");
   const deploymentSource = deploymentSourceFromDraft(source);
   const sourceValid = validDeploymentSource(deploymentSource);
-  const ok = obj(schema) && obj(defaults) && s.id && s.label && sourceValid;
+  const runtimeContract = runtimeContractFromDraft(runtimeKind, deploymentSource);
+  const runtimeValid = validRuntimeDraft(runtimeKind, deploymentSource);
+  const ok = obj(schema) && obj(defaults) && s.id && s.label && sourceValid && runtimeValid;
   const set = (k: keyof typeof s) => (v: string | boolean) => setS({ ...s, [k]: v });
   const updateSourceField = (k: keyof typeof source) => (v: string) => setSource((current) => ({ ...current, [k]: v }));
   return (
@@ -34,7 +38,7 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
         <Button tooltip="Cancel" variant="ghost" onPress={onClose}>Cancel</Button>
         <Button tooltip="Save service" variant="primary" isDisabled={!ok || save.isPending}
           onPress={() => save.mutate({ method: editing ? "PUT" : "POST", path: catalogPaths.service(initial?.id),
-            body: { ...s, config_schema: obj(schema), default_config: obj(defaults), deployment_source: deploymentSource } }, { onSuccess: onClose })}>Save service</Button>
+            body: { ...s, config_schema: obj(schema), default_config: obj(defaults), deployment_source: deploymentSource, runtime_contract: runtimeContract } }, { onSuccess: onClose })}>Save service</Button>
       </>}>
       <div className="grid gap-4 px-6 py-5">
         <div className="grid grid-cols-2 gap-4">
@@ -56,7 +60,11 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
             { id: "github", label: "GitHub repository" },
             { id: "git", label: "Custom Git repository" },
             { id: "oci", label: "OCI image" },
-          ]} value={source.kind} onChange={(kind) => setSource((current) => ({ ...current, kind: kind as typeof current.kind }))} />
+          ]} value={source.kind} onChange={(kind) => {
+            const next = kind as typeof source.kind;
+            setSource((current) => ({ ...current, kind: next }));
+            if (next !== "oci") setRuntimeKind("none");
+          }} />
           {source.kind !== "none" && <>
             <TextField label={source.kind === "oci" ? "Image by digest" : "HTTPS repository URL"} mono value={source.reference} onChange={updateSourceField("reference")}
               description={source.kind === "oci" ? "Use a fully qualified image@sha256 digest; mutable tags are not accepted." : "The fetch runtime will separately enforce its configured egress policy."} />
@@ -69,6 +77,18 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
             {!sourceValid && <p role="alert" className="text-sm text-danger">Use an HTTPS repository pinned to a full commit, or an OCI image pinned by digest. Credentials must be references.</p>}
           </>}
         </section>
+        {source.kind !== "none" && <section className="grid gap-3 rounded-lg border border-line p-4" aria-label="Runtime compatibility">
+          <div>
+            <h3 className="text-sm font-semibold text-fg">Runtime compatibility</h3>
+            <p className="mt-1 text-xs text-fg-muted">A pinned source alone is metadata. The current Incus declaration identifies provider compatibility; it does not enable deployment.</p>
+          </div>
+          <Select label="Runtime declaration" options={[
+            { id: "none", label: "Metadata only; no runtime declared" },
+            ...(source.kind === "oci" ? [{ id: "incus_oci_container", label: "Incus OCI application container" }] : []),
+          ]} value={runtimeKind} onChange={(kind) => setRuntimeKind(kind as typeof runtimeKind)} />
+          {runtimeKind !== "none" && <p className="text-xs text-fg-muted">Provider execution, persistent storage, secrets, health, upgrades, backup, restore, and removal are not implemented for this declaration yet.</p>}
+          {!runtimeValid && <p role="alert" className="text-sm text-danger">The selected runtime does not support this source type.</p>}
+        </section>}
         <div className="flex gap-6">
           <Switch isSelected={s.required} onChange={set("required")} tooltip="Required services are locked on for every plan">Required</Switch>
           <Switch isSelected={s.active} onChange={set("active")} tooltip="Inactive services are left out of effective config">Active</Switch>

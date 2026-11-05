@@ -12,10 +12,17 @@ export type CatalogDeploymentSource = {
   credential_ref?: string;
 };
 
+export type CatalogRuntimeContract = {
+  version: 1;
+  kind: "incus_oci_container";
+  providers: ["incus"];
+};
+
 export type CatalogService = {
   id: string; label: string; description: string; kind: string; docs_url: string;
   config_schema: { properties?: Record<string, { type?: string; title?: string }> };
-  default_config: Record<string, Json>; deployment_source: CatalogDeploymentSource | null; required: boolean; active: boolean;
+  default_config: Record<string, Json>; deployment_source: CatalogDeploymentSource | null;
+  runtime_contract?: CatalogRuntimeContract | null; required: boolean; active: boolean;
 };
 
 export type PlanService = { plan_id: string; service_id: string; enabled: boolean; lock: Lock; limits: Record<string, Json> };

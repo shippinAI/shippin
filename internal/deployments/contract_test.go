@@ -19,10 +19,10 @@ func postgresRequest() DeploymentRequest {
 		Definition: DefinitionSnapshot{
 			ServiceID: "postgres",
 			Source: catalog.DeploymentSource{
-				Kind:      "github",
-				Reference: "https://github.com/acme/postgres",
-				Commit:    "0123456789abcdef0123456789abcdef01234567",
+				Kind:      "oci",
+				Reference: "registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 			},
+			Runtime:       catalog.RuntimeContract{Version: 1, Kind: "incus_oci_container", Providers: []string{"incus"}},
 			ConfigSchema:  json.RawMessage(`{"type":"object","properties":{"port":{"type":"integer"},"password":{"type":"string","format":"shippin-secret-ref"}},"required":["password"],"additionalProperties":false}`),
 			DefaultConfig: json.RawMessage(`{"port":5432,"password":"vaultix://platform/postgres/password"}`),
 		},
@@ -59,6 +59,7 @@ func TestDeploymentRequestRejectsInvalidScopeProviderAndSecretValues(t *testing.
 	mutations := map[string]func(*DeploymentRequest){
 		"invalid tenant":              func(r *DeploymentRequest) { r.TenantID = "tenant-a" },
 		"unsupported provider":        func(r *DeploymentRequest) { r.TargetProvider = "docker" },
+		"incompatible provider":       func(r *DeploymentRequest) { r.TargetProvider = ProviderProxmox },
 		"unresolved password":         func(r *DeploymentRequest) { r.Config = json.RawMessage(`{"port":5432,"password":"plain-text"}`) },
 		"unpaired service definition": func(r *DeploymentRequest) { r.Definition.ServiceID = "redis" },
 	}

@@ -28,7 +28,7 @@ Deployment:
     updated_at: { $ref: common.yaml#/Timestamp }
 DeployableService:
   type: object
-  required: [id, label, kind, config_schema, default_config, deployment_source]
+  required: [id, label, kind, config_schema, default_config, deployment_source, runtime_contract]
   properties:
     id: { type: string }
     label: { type: string }
@@ -45,6 +45,18 @@ DeployableService:
         reference: { type: string }
         commit: { type: string }
         context_path: { type: string }
+      additionalProperties: false
+    runtime_contract:
+      type: object
+      required: [version, kind, providers]
+      properties:
+        version: { type: integer, const: 1 }
+        kind: { type: string, const: incus_oci_container }
+        providers:
+          type: array
+          minItems: 1
+          maxItems: 1
+          prefixItems: [{ type: string, const: incus }]
       additionalProperties: false
 DeploymentTarget:
   type: object

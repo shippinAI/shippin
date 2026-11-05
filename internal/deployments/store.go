@@ -340,10 +340,10 @@ func fingerprintCreateInput(tenant, actor string, input CreateInput) (string, er
 }
 
 func loadDefinition(ctx context.Context, tx pgx.Tx, serviceID string) (DefinitionSnapshot, error) {
-	var sourceRaw, schemaRaw, defaultsRaw []byte
-	err := tx.QueryRow(ctx, `SELECT deployment_source::text, config_schema::text, default_config::text
-		FROM catalog_services WHERE id=$1 AND active=true AND deployment_source IS NOT NULL FOR SHARE`, serviceID).
-		Scan(&sourceRaw, &schemaRaw, &defaultsRaw)
+	var sourceRaw, runtimeRaw, schemaRaw, defaultsRaw []byte
+	err := tx.QueryRow(ctx, `SELECT deployment_source::text, runtime_contract::text, config_schema::text, default_config::text
+		FROM catalog_services WHERE id=$1 AND active=true AND deployment_source IS NOT NULL AND runtime_contract IS NOT NULL FOR SHARE`, serviceID).
+		Scan(&sourceRaw, &runtimeRaw, &schemaRaw, &defaultsRaw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return DefinitionSnapshot{}, ErrDefinitionUnavailable
 	}
@@ -352,6 +352,9 @@ func loadDefinition(ctx context.Context, tx pgx.Tx, serviceID string) (Definitio
 	}
 	definition := DefinitionSnapshot{ServiceID: serviceID, ConfigSchema: schemaRaw, DefaultConfig: defaultsRaw}
 	if err := json.Unmarshal(sourceRaw, &definition.Source); err != nil {
+		return DefinitionSnapshot{}, ErrDefinitionUnavailable
+	}
+	if err := json.Unmarshal(runtimeRaw, &definition.Runtime); err != nil {
 		return DefinitionSnapshot{}, ErrDefinitionUnavailable
 	}
 	return definition, nil

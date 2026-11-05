@@ -1,7 +1,7 @@
 CatalogService:
   type: object
   additionalProperties: false
-  required: [id, label, config_schema, default_config, required, active]
+  required: [id, label, config_schema, default_config, deployment_source, runtime_contract, required, active]
   properties:
     id: { type: string, pattern: '^[a-z][a-z0-9_-]{1,39}$' }
     label: { type: string, minLength: 1 }
@@ -20,6 +20,10 @@ CatalogService:
       oneOf:
         - { type: 'null' }
         - $ref: '#/DeploymentSource'
+    runtime_contract:
+      oneOf:
+        - { type: 'null' }
+        - $ref: '#/RuntimeContract'
     required: { type: boolean }
     active: { type: boolean }
     updated_at: { type: string, format: date-time }
@@ -45,6 +49,10 @@ CatalogServiceInput:
       oneOf:
         - { type: 'null' }
         - $ref: '#/DeploymentSource'
+    runtime_contract:
+      oneOf:
+        - { type: 'null' }
+        - $ref: '#/RuntimeContract'
     required: { type: boolean }
     active: { type: boolean }
 CatalogServiceUpdate:
@@ -68,6 +76,10 @@ CatalogServiceUpdate:
       oneOf:
         - { type: 'null' }
         - $ref: '#/DeploymentSource'
+    runtime_contract:
+      oneOf:
+        - { type: 'null' }
+        - $ref: '#/RuntimeContract'
     required: { type: boolean }
     active: { type: boolean }
 DeploymentSource:
@@ -83,3 +95,15 @@ DeploymentSource:
       type: string
       maxLength: 1024
       pattern: '^(vaultix|sops)://'
+RuntimeContract:
+  type: object
+  additionalProperties: false
+  required: [version, kind, providers]
+  properties:
+    version: { type: integer, const: 1 }
+    kind: { type: string, const: incus_oci_container }
+    providers:
+      type: array
+      minItems: 1
+      maxItems: 1
+      prefixItems: [{ type: string, const: incus }]
