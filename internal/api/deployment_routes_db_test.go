@@ -197,6 +197,10 @@ func (deploymentStorageInventoryDriver) Networks(context.Context) ([]hv.Network,
 	return []hv.Network{{Name: "private-apps", Type: "bridge"}, {Name: "tenant-ovn", Type: "ovn"}, {Name: "uplink0", Type: "physical"}}, nil
 }
 
+type deploymentWrongKindInventoryDriver struct{ hv.Driver }
+
+func (deploymentWrongKindInventoryDriver) Kind() string { return string(deployments.ProviderProxmox) }
+
 func TestDeploymentTargetStorageIsTenantAssignmentScoped(t *testing.T) {
 	a, tenantID, targetID := deploymentRouteAPI(t)
 	a.hvServers = &memHV{items: []servers.Endpoint{{ID: targetID, Kind: "incus"}}}
@@ -236,5 +240,14 @@ func TestDeploymentTargetStorageIsTenantAssignmentScoped(t *testing.T) {
 	a.listDeploymentTargetNetworks(rec, request)
 	if rec.Code != http.StatusNotFound || opened != 2 {
 		t.Fatalf("unassigned target networks must not reach a provider: status=%d opened=%d body=%s", rec.Code, opened, rec.Body)
+	}
+	a.openHV = func(servers.Endpoint) (hv.Driver, error) { return deploymentWrongKindInventoryDriver{}, nil }
+	request = httptest.NewRequest(http.MethodGet, "/", nil)
+	request.SetPathValue("tenantId", tenantID)
+	request.SetPathValue("systemId", targetID)
+	rec = httptest.NewRecorder()
+	a.listDeploymentTargetNetworks(rec, request)
+	if rec.Code != http.StatusServiceUnavailable || opened != 2 {
+		t.Fatalf("Incus network inventory must reject a mismatched provider driver before access: status=%d opened=%d body=%s", rec.Code, opened, rec.Body)
 	}
 }

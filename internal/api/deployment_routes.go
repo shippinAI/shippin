@@ -101,7 +101,7 @@ func (a *API) listDeploymentTargetStorage(w http.ResponseWriter, r *http.Request
 		return
 	}
 	driver, err := a.driver(r.Context(), target.ID)
-	if err != nil {
+	if err != nil || driver == nil || driver.Kind() != string(deployments.ProviderIncus) {
 		deploymentUnavailable(w)
 		return
 	}
@@ -145,7 +145,7 @@ func (a *API) listDeploymentTargetNetworks(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	driver, err := a.driver(r.Context(), target.ID)
-	if err != nil {
+	if err != nil || driver == nil || driver.Kind() != string(deployments.ProviderIncus) {
 		deploymentUnavailable(w)
 		return
 	}

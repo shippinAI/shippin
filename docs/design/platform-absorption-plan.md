@@ -166,22 +166,25 @@ controls in the existing service form; new recipes start incomplete instead of
 assuming service-specific values, and API validation remains authoritative.
 Version 1 and 2 edits remain compatible. PostgreSQL rejects incomplete v2/v3
 shapes. Tenant discovery and immutable deployment generations carry the
-validated version. This contract does not implement provider storage/network
-attachment, secret delivery, an executor, health polling, upgrade,
-backup/restore or removal semantics; the worker must continue to fail closed
-with `runtime_unsupported` until the corresponding executor is proven.
+validated version. The target-configuration workflow discovers Incus pools
+and managed bridge/OVN networks, pins both in each generation, and revalidates
+them at request time. The Incus OCI primitive attaches and reads back the
+selected private NIC. This does not provide edge publication, secret delivery,
+an executor, health polling, upgrade, backup/restore or removal semantics;
+the worker must continue to fail closed with `runtime_unsupported` until the
+corresponding executor is proven.
 
-The current local storage-configuration slice is authored in the existing deployment
-context. It adds tenant-assignment-scoped, read-only Incus pool discovery;
-persists `target_config.storage.pool` alongside each immutable generation;
-requires a pool for storage-bearing runtime v2 requests; shows live pools in
-the existing deployment editor; and includes the selected pool in AgentHub's
-exact action hash and review artifact. Pool changes on an existing deployment
-are rejected until an explicit data migration lifecycle exists. This records
-desired target configuration only: it does not create a volume, connect the
-deployment worker to Incus, or enable provider calls. The local database-backed
-API tests require `SHIPPIN_TEST_DATABASE_URL`, which is not configured in the
-current environment; the repository CI database job remains required evidence.
+The target-configuration slice is authored in the existing deployment context.
+It adds tenant-assignment-scoped, read-only Incus pool and managed-network
+discovery; persists `target_config.storage.pool` and `target_config.network.name`
+alongside each immutable generation; shows live inventory in the existing
+deployment editor; and includes both selections in AgentHub's exact action hash
+and review artifact. Pool and network changes on an existing deployment are
+rejected until explicit migration lifecycles exist. The Incus primitive can
+attach and read back a private NIC, but the worker is not connected to it and
+does not enable provider calls. Database-backed tests passed in CI run
+`41998288896` and a follow-up disposable-Postgres regression; this is not
+evidence of a live Incus deployment.
 
 Each implementation slice names its stage and source rows in the commit and
 journal, lists canonical files it owns, states what it excludes, and shows an

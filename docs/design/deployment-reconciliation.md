@@ -18,7 +18,9 @@ The API now uses one `authorizeDeploymentAction` path to reload the submitted ge
 
 Migration `056` extends event idempotency to the five worker lifecycle event types. `RecordOperationEventWithLease` locks the exact tenant, deployment-generation job and active lease, then checks the current desired generation before appending; an optional observed-state update commits in the same transaction. Identical event retries return the existing event and conflicting key reuse fails. This is a persistence boundary only: the reconciler is not wired to it, it makes no provider calls, and it does not supply provider-side idempotency or recovery.
 
-Migration `054_shippin_deployment_target_config.sql` stores the selected Incus pool in immutable generation state. The existing panel reads live pools only for active tenant-assigned Incus systems, and create-time API validation rechecks the selected pool against provider inventory before accepting a new generation. Missing pools return conflict without writing intent; an idempotent replay uses the stored response without another provider read. These changes are verified by database-backed CI run `41970045619`. They do not enable provider execution.
+Migration `054_shippin_deployment_target_config.sql` stores target placement in immutable generation state. The existing panel reads live pools and managed bridge/OVN networks only for active tenant-assigned Incus systems; create-time API validation rechecks each selected resource against provider inventory before accepting a new generation. Missing pools or networks return conflict without writing intent; an idempotent replay uses its stored response without another provider read. CI runs `41970045619` and `41998288896` cover storage/network request behavior and replay.
+
+Network target configuration is `target_config.network.name`. The API filters inventory to managed Incus `bridge` and `ovn` types, verifies the resolved driver is Incus, and the existing React deployment form pins the selection with storage in the desired generation. The OCI application primitive attaches `eth0` to that selected network and requires matching provider read-back. This is private NIC attachment only: the worker remains `runtime_unsupported`; there is no live Incus reachability, edge ingress, health polling, secret delivery or reconciler integration claim.
 
 The Vaultix deployment secret resolver now requires a deployment job ID and
 lease owner. Immediately before revealing a single tenant-derived Vaultix key,
@@ -106,7 +108,7 @@ the versioned JSON recipe, and deployment discovery and immutable generation
 snapshots carry that exact validated contract.
 
 Version 2 still does not define engine-specific environment configuration,
-secret injection into a runtime, network attachment implementation, upgrade,
+secret injection into a runtime, edge route publication, health polling, upgrade,
 backup, restore, or removal behavior. The control plane therefore continues to
 record `runtime_unsupported` and performs no provider mutation until a matching
 provider executor implements and proves those behaviors. In particular, this
@@ -186,9 +188,11 @@ instance configuration readable by authorized Incus administrators; this is
 not a secret-isolation boundary. The official [instance options](https://linuxcontainers.org/incus/docs/main/reference/instance_options/)
 document `environment.*` as free-form values applied on boot and during exec,
 but no disposable live Incus test has verified their behavior inside an OCI
-application process. The primitive remains unwired and the worker remains
-`runtime_unsupported` until secret handling, health, networking and lifecycle
-semantics are complete.
+application process. The OCI primitive also attaches the generation-selected
+managed bridge/OVN NIC and verifies it on provider read-back; that path is
+simulator-tested but not checked against a live Incus service. The primitive
+remains unwired and the worker remains `runtime_unsupported` until secret
+handling, edge publication, health and lifecycle semantics are complete.
 
 ## Options considered
 
