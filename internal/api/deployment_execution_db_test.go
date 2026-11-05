@@ -191,13 +191,13 @@ func TestDeploymentWorkerExecutesReviewedIncusRemovalAndPreservesVolume(t *testi
 	}
 	var completed, dispatched int
 	if err := a.db.Pool.QueryRow(context.Background(), `SELECT count(*) FROM shippin_deployment_execution_steps
-		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=1 AND state='succeeded'`, tenantID, deployment.ID).Scan(&completed); err != nil || completed != 3 {
+		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=$3 AND state='succeeded'`, tenantID, deployment.ID, deployment.Generation).Scan(&completed); err != nil || completed != 3 {
 		t.Fatalf("completed removal steps=%d err=%v", completed, err)
 	}
 	if err := a.db.Pool.QueryRow(context.Background(), `SELECT count(*) FROM shippin_deployment_execution_step_events e
 		JOIN shippin_deployment_execution_steps s USING(tenant_id,idempotency_key)
-		WHERE s.tenant_id=$1 AND s.deployment_id=$2 AND s.generation=1 AND e.event_type='dispatch_claimed'`,
-		tenantID, deployment.ID).Scan(&dispatched); err != nil || dispatched != 2 {
+		WHERE s.tenant_id=$1 AND s.deployment_id=$2 AND s.generation=$3 AND e.event_type='dispatch_claimed'`,
+		tenantID, deployment.ID, deployment.Generation).Scan(&dispatched); err != nil || dispatched != 2 {
 		t.Fatalf("provider mutation dispatch claims=%d err=%v", dispatched, err)
 	}
 	if _, err := a.runDeploymentReconcileJob(context.Background(), job, func(string) {}); err != nil {
@@ -225,8 +225,8 @@ func TestDeploymentWorkerAgentHubDenialDoesNotStopOrDeleteIncus(t *testing.T) {
 	}
 	var state, failure string
 	if err := a.db.Pool.QueryRow(context.Background(), `SELECT state,coalesce(failure_code,'') FROM shippin_deployment_execution_steps
-		WHERE tenant_id=(SELECT tenant_id FROM shippin_deployments WHERE id=$1) AND deployment_id=$1 AND generation=1 AND step_id='power'`,
-		deployment.ID).Scan(&state, &failure); err != nil || state != "failed" || failure != "agenthub_review_denied" {
+		WHERE tenant_id=(SELECT tenant_id FROM shippin_deployments WHERE id=$1) AND deployment_id=$1 AND generation=$2 AND step_id='power'`,
+		deployment.ID, deployment.Generation).Scan(&state, &failure); err != nil || state != "failed" || failure != "agenthub_review_denied" {
 		t.Fatalf("denied removal step state=%s failure=%s err=%v", state, failure, err)
 	}
 }
@@ -248,14 +248,15 @@ func TestDeploymentWorkerRefusesIncusRemovalWithSnapshotsBeforeDeleteDispatch(t 
 	var deleteDispatches int
 	if err := a.db.Pool.QueryRow(context.Background(), `SELECT count(*) FROM shippin_deployment_execution_step_events e
 		JOIN shippin_deployment_execution_steps s USING(tenant_id,idempotency_key)
-		WHERE s.tenant_id=$1 AND s.deployment_id=$2 AND s.generation=1 AND s.step_id='workload' AND e.event_type='dispatch_claimed'`,
-		tenantID, deployment.ID).Scan(&deleteDispatches); err != nil || deleteDispatches != 0 {
+		WHERE s.tenant_id=$1 AND s.deployment_id=$2 AND s.generation=$3 AND s.step_id='workload' AND e.event_type='dispatch_claimed'`,
+		tenantID, deployment.ID, deployment.Generation).Scan(&deleteDispatches); err != nil || deleteDispatches != 0 {
 		t.Fatalf("snapshot-blocked delete dispatches=%d err=%v", deleteDispatches, err)
 	}
 }
 
 func TestDeploymentWorkerRecoversAmbiguousIncusRemovalWithoutRetry(t *testing.T) {
 	a, _, _, deployment, job, provider, decisions := setupDeploymentRemovalExecution(t, true)
+	a.openIncusOCIRecovery = func(servers.Endpoint) (incusOCIRecoveryProvider, error) { return provider, nil }
 	provider.deleteErr = errors.New("simulated timeout after delete")
 	if _, err := a.runDeploymentReconcileJob(context.Background(), job, func(string) {}); err == nil {
 		t.Fatal("ambiguous delete should leave its intent unresolved")
@@ -277,8 +278,8 @@ func TestDeploymentWorkerRecoversAmbiguousIncusRemovalWithoutRetry(t *testing.T)
 	}
 	var failure string
 	if err := a.db.Pool.QueryRow(context.Background(), `SELECT coalesce(failure_code,'') FROM shippin_deployment_execution_steps
-		WHERE tenant_id=(SELECT tenant_id FROM shippin_deployments WHERE id=$1) AND deployment_id=$1 AND generation=1 AND step_id='workload'`,
-		deployment.ID).Scan(&failure); err != nil || failure != "" {
+		WHERE tenant_id=(SELECT tenant_id FROM shippin_deployments WHERE id=$1) AND deployment_id=$1 AND generation=$2 AND step_id='workload'`,
+		deployment.ID, deployment.Generation).Scan(&failure); err != nil || failure != "" {
 		t.Fatalf("recovered delete failure=%q err=%v", failure, err)
 	}
 }
@@ -407,12 +408,19 @@ func setupDeploymentExecution(t *testing.T, allow bool, desired deployments.Desi
 		t.Fatal(err)
 	}
 	deployment, _, err := a.deploymentStore().Create(ctx, tenantID, "runtime-test-operator", deployments.CreateInput{
-		ServiceID: "postgres", TargetSystemID: systemID, DesiredState: desired,
+		ServiceID: "postgres", TargetSystemID: systemID, DesiredState: deployments.DesiredPresent,
 		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"password":"vaultix://production/services/postgres/password"}`),
 		TargetConfig: json.RawMessage(`{"storage":{"pool":"tenant-data"},"network":{"name":"private-apps"}}`),
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if desired == deployments.DesiredAbsent {
+		deployment, _, err = a.deploymentStore().Update(ctx, tenantID, deployment.ID, "runtime-test-operator", deployment.Generation,
+			deployments.UpdateInput{DesiredState: deployments.DesiredAbsent, IdempotencyKey: uuid.NewString()})
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	_, planSHA, actionSHA, err := deploymentReviewSnapshot(tenantID, deployment)
 	if err != nil {
@@ -421,7 +429,7 @@ func setupDeploymentExecution(t *testing.T, allow bool, desired deployments.Desi
 	reviewID := uuid.NewString()
 	ticketID := "shp-" + strings.ReplaceAll(reviewID, "-", "")
 	ticketSHA := strings.Repeat("c", 64)
-	if _, _, err := a.deploymentStore().ReserveReview(ctx, tenantID, deployment.ID, 1, "runtime-test-operator",
+	if _, _, err := a.deploymentStore().ReserveReview(ctx, tenantID, deployment.ID, deployment.Generation, "runtime-test-operator",
 		uuid.NewString(), reviewID, ticketID, deployments.ExecutionPlanVersion, planSHA, actionSHA); err != nil {
 		t.Fatal(err)
 	}
@@ -431,7 +439,7 @@ func setupDeploymentExecution(t *testing.T, allow bool, desired deployments.Desi
 	seedProvenance := deployments.ReviewDecisionProvenance{DecisionID: "initial-human-review", TenantID: agentHubTenant,
 		MachineID: machineID, TicketID: ticketID, TicketSHA256: ticketSHA, PolicySHA256: strings.Repeat("b", 64),
 		PolicyVersion: 1, MatchedRules: []string{"deployment-review"}, ActionSHA256: actionSHA}
-	if _, err := a.deploymentStore().RecordReviewDecision(ctx, tenantID, deployment.ID, 1,
+	if _, err := a.deploymentStore().RecordReviewDecision(ctx, tenantID, deployment.ID, deployment.Generation,
 		"runtime-test-operator", uuid.NewString(), true, seedProvenance, ""); err != nil {
 		t.Fatal(err)
 	}
@@ -484,12 +492,12 @@ func setupDeploymentExecution(t *testing.T, allow bool, desired deployments.Desi
 	owner, jobID := "runtime-test-worker", uuid.NewString()
 	if _, err := a.db.Pool.Exec(ctx, `INSERT INTO jobs(id,tenant_id,kind,target_type,target_id,status,attempts,max_attempts,
 		created_by,lease_owner,lease_until) VALUES($1,$2,'deployment.reconcile','deployment_generation',$3,'running',1,3,
-		'runtime-test-operator',$4,now()+interval '2 minutes')`, jobID, tenantID, deployment.ID+":1", owner); err != nil {
+		'runtime-test-operator',$4,now()+interval '2 minutes')`, jobID, tenantID, deployment.ID+":"+strconv.FormatInt(deployment.Generation, 10), owner); err != nil {
 		t.Fatal(err)
 	}
-	payload, _ := json.Marshal(deploymentWakeup{DeploymentID: deployment.ID, Generation: 1})
+	payload, _ := json.Marshal(deploymentWakeup{DeploymentID: deployment.ID, Generation: deployment.Generation})
 	job := &jobs.Job{ID: jobID, TenantID: tenantID, Kind: jobs.KindDeploymentReconcile,
-		TargetType: "deployment_generation", TargetID: deployment.ID + ":1", CreatedBy: "runtime-test-operator",
+		TargetType: "deployment_generation", TargetID: deployment.ID + ":" + strconv.FormatInt(deployment.Generation, 10), CreatedBy: "runtime-test-operator",
 		LeaseOwner: owner, Payload: payload}
 	provider := &deploymentExecutionProviderFake{exists: true, powerExists: true, powerStatus: "Running", usePowerState: desired == deployments.DesiredAbsent}
 	a.hvServers = &memHV{items: []servers.Endpoint{{ID: systemID, Kind: "incus"}}}

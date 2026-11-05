@@ -311,3 +311,22 @@ rollback, persistent-data deletion, backup/restore, or live-provider proof.
 Local checks are required before committing; these DB-backed tests require the
 disposable-Postgres CI job because this workstation has no
 `SHIPPIN_TEST_DATABASE_URL`.
+
+### Current checkpoint — Incus desired-absent removal
+
+The canonical worker now executes the reviewed Incus OCI removal packet: stop,
+remove the exact owned workload while retaining its deployment volume, and
+verify absence. Each mutation uses a current lease-fenced AgentHub decision and
+one-time dispatch claim. Before delete dispatch, the worker verifies ownership
+and checks snapshots; if snapshots exist it records a known failed step without
+deleting them or entering ambiguous recovery. Ambiguous provider writes use
+read-only recovery. Only a fresh absence observation records desired-absent as
+observed. This does not add Proxmox workload execution, service health, updates,
+rollback, persistent-data deletion, backup/restore, or live-provider proof.
+Removal tests use the supported lifecycle: create present at generation 1, then
+request absent at generation 2. The first pushed test fixture incorrectly tried
+to create absent directly; CI caught it. A second issue in the recovery test's
+fake provider opener was also fixed. The complete database-backed CI package set
+then passed locally on disposable PostgreSQL with the CI trust-auth mode; the
+correction commit still needs a terminal GitHub Checks result. No live Incus
+host was available.

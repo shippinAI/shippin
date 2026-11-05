@@ -385,6 +385,8 @@ This is a narrow Incus OCI removal path, not complete deployment lifecycle
 support. It does not remove persistent data, remove Incus snapshots, handle
 Proxmox workloads, execute application health, or implement update/rollback,
 backup/restore, or live-provider validation. Database-backed removal, denial,
-snapshot refusal and ambiguous-delete recovery tests are added but need the CI
-disposable-Postgres suite to exercise; local live provider operations were
-unavailable.
+snapshot refusal and ambiguous-delete recovery tests pass against a disposable
+PostgreSQL database. The first pushed run exposed an invalid initial-absent test
+fixture and a missing recovery fake; both were corrected and the full local
+database-backed package set passed. CI must pass on the correction commit.
+Local live provider operations were unavailable.
