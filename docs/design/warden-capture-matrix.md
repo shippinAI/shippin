@@ -15,7 +15,7 @@ modules or deployable capabilities.
 | to-author | 13 |
 | intentionally replaced | 176 |
 | rejected-for-security | 21 |
-| needs-review (additional named sources) | 5 |
+| needs-review (additional named sources) | 0 |
 
 `ported` means behavior was re-authored in a platform owner and has implementation evidence. `intentionally replaced` means a current platform capability owns the same concern; its API and behavior still need verification. `to-author` means the row names a target owner but a supported route is not complete. `rejected-for-security` means the behavior is intentionally excluded. `needs-review` means the source is now available but a feature-level comparison and disposition are incomplete.
 
@@ -285,19 +285,24 @@ From `BACKLOG.md` in the import. Checked items the console already covers are re
 | `warden.env.example` | rejected-for-security | servers.hv_* columns and roles.infra | The env file ships VERIFY_TLS=false and a token secret field. Those keys are not read. TLS verify stays on. token_env is a variable name. |
 | `warden.service` | intentionally replaced | shippin.cloud/console module | The nested module is not built or installed. The console process is the process. Agent instruction files in this tree are not console instructions. |
 
-## Additional source documents now available for review
+## Additional source documents reviewed and dispositioned
 
 The five named sources below are readable in the local `shippin-mesh` checkout at
-`26cce35b` (the original matrix recorded GitHub 404 responses). A read-only review
-found site-specific Proxmox configuration, WardenClyffe module/naming rules and
-database options. The exact behaviors have not all been compared with current
-platform code; none are accepted for copying. The checkout has dirty `go.work.sum`
-and no root license was observed.
+`26cce35b` (the original matrix recorded GitHub 404 responses). They have now
+been compared with current Shippin owners. These dispositions classify the
+documents and do not close the separate capability rows above or establish
+archive readiness. The checkout remains read-only with dirty `go.work.sum`; its
+root license and dependency/asset provenance remain unresolved.
 
 | Source | Status | Console home | How it was aligned |
 |---|---|---|---|
-| `docs/specs/02-proxmox-connector.md` | needs-review | `internal/hv/proxmox`, infrastructure API and tests | Source documents single-node API actions with TLS verification off and no task polling; compare each operation to current driver behavior and official API contracts. |
-| `docs/WARDENCLYFFE_MODULE_MAP.md` | needs-review | capability absorption ledger and existing bounded contexts | Source proposes separate Warden/Clyffe products; those product names and duplicate panel boundaries do not carry forward. Compare only reusable service and ownership concepts. |
-| `docs/WARDENCLYFFE_NAMING_CONVENTIONS.md` | needs-review | `docs/source-of-truth.md` and `docs/design/naming.md` | Historical Warden/Clyffe naming must not enter Shippin product code. Shippin Prox is the requested product name; `proxmox` remains provider terminology. |
-| `docs/WARDENCLYFFE_BACKEND_OPTIONS_2026_05.md` | needs-review | managed-service design and service-context contracts | PostgreSQL/Dragonfly/ClickHouse are relevant candidates; its versions, topology and site assumptions require current product and upstream verification. |
-| `docs/ai/WARDENCLYFFE_BASE_SKILL.md` and Warden agent skills | needs-review | existing Shippin tests, operator docs and configured AgentHub policy | Do not import agent prompts or site policy. Extract only testable provider behavior after security, license and capability comparison. |
+| `docs/specs/02-proxmox-connector.md` | intentionally replaced | `internal/hv/proxmox`, `internal/servers`, infrastructure API and tests | The source defaults TLS verification off, uses singleton environment configuration and accepts UPIDs without polling. Shippin uses configured multi-server records, always-verifying TLS, provider-local lifecycle calls, UPID polling and read-back. Evidence is in `driver.go`, `phase1.go` and `driver_test.go` (`TestTLSRejectsUnknownCA`, task wait/read-back and failed-task cases). Remaining Proxmox coverage stays open in the capability ledger. |
+| `docs/WARDENCLYFFE_MODULE_MAP.md` | intentionally replaced | `docs/source-of-truth.md`, `docs/design/service-contexts.md`, capability ledger | Its two-product Warden/Clyffe boundary conflicts with Shippin's one product and one `web/` panel. Reusable bounded-context and operator/customer authorization ideas are expressed in Shippin-owned boundaries; no second product, API or panel is adopted. Individual service, support and infrastructure behaviors remain tracked separately. |
+| `docs/WARDENCLYFFE_NAMING_CONVENTIONS.md` | intentionally replaced | `docs/design/naming.md`, `docs/source-of-truth.md` | Historical Warden/Clyffe/mesh labels and schema names are not Shippin identifiers. Shippin Prox is the operator capability name and `proxmox` remains the provider kind. |
+| `docs/WARDENCLYFFE_BACKEND_OPTIONS_2026_05.md` | intentionally replaced | `docs/design/managed-services.md`, deployment and persistence owners | Role separation is retained as planning context: PostgreSQL owns platform truth; managed PostgreSQL, Dragonfly, Redis and ClickHouse are separate customer-deployable engines with distinct contracts. No source version pin, topology, site assumption, alternate product database or dependency is adopted. Shippin currently records these service runtimes as design-only. |
+| `docs/ai/WARDENCLYFFE_BASE_SKILL.md` and Warden agent skills | intentionally replaced | `AGENTS.md`, `.agents/skills/`, configured AgentHub policy | Persona prompts and site policy are not imported. Shippin repository rules and task skills govern development; AgentHub owns configurable human review. Only independently testable capabilities enter the source ledger after security and provenance review. |
+
+This closes the five document-classification rows only. It does not resolve the
+Mesh checkout's root license, dependency and asset rights, dirty local work, or
+remaining runtime capabilities; the Mesh source remains ineligible for archive
+readiness.

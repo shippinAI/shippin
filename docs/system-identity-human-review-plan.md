@@ -7,20 +7,22 @@ must not exist as a Shippin or AgentHub product feature, fixed policy, route,
 identity or default. AgentHub owns the configurable review policy and review
 records; the control plane owns the authoritative system inventory.
 
-> **Status (2026-11-04):** the console and its one `web/` panel are in this
+> **Status (2026-11-05):** the console and its one `web/` panel are in this
 > repository. Gold signing, compiled approver defaults and the `HUB_OWNER_*`
 > bypass have been removed from Shippin main. The hypervisor-local board adapter
-> and `hv.Guard` have also been removed; every provider mutation now fails closed
-> until the AgentHub path exists. The implementation gap is tracked in
-> [configurable human review](approval.md). Shippin now persists hostname
-> source/time on enrollment and exposes audited aliases, tags and explicit
-> AgentHub tenant/machine mappings on the existing infrastructure screen for
-> attached and unattached registered systems; this does not yet verify mappings
-> with AgentHub or run its review workflow. The `internal/agenthub` client now
-> backs an operator-configured endpoint and a read-only policy metadata check in
-> the existing Platform settings API and UI. Its tests use a simulated REST
-> server and do not establish live AgentHub compatibility. It is not connected
-> to provider authorization, so provider mutations remain unavailable.
+> and `hv.Guard` have also been removed; generic hypervisor mutation routes remain
+> fail-closed. Shippin persists hostname source/time on enrollment and exposes
+> audited aliases, tags and explicit AgentHub tenant/machine mappings in the
+> existing infrastructure screen. The operator-configured AgentHub connection,
+> policy metadata check and deployment-generation review workflow are implemented
+> in the existing Platform and deployment screens. Deployment review creates or
+> resumes a ticket bound to the exact generation/action/system, adds redacted
+> evidence, submits it and rechecks the current policy/ticket before recording
+> safe provenance. Commit `537f304` adds lease-fenced persistence for worker
+> decision provenance; the worker does not invoke it. Tests use simulated REST
+> services; no live AgentHub installation or least-privilege production principal
+> has been verified. No deployment provider operation is connected, so deployment
+> execution remains unavailable. See [configurable human review](approval.md).
 > Source ownership is defined by [source of truth](source-of-truth.md).
 
 ## Grounded starting point
@@ -51,7 +53,7 @@ records; the control plane owns the authoritative system inventory.
 - Historical console `web/src/features/gold-sign/`, `internal/goldsign/` and
   `internal/api/goldsign_routes.go` implement separate Gold-specific screens,
   storage, signing and routes. They are not the AgentHub policy authority and
-  are not evidence that a generic integrated workflow exists.
+  are not part of the current deployment review flow.
 
 ## Identity and provenance
 

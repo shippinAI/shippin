@@ -61,8 +61,10 @@ documents, change tickets and reviews. The Gold signing routes and store importe
 the console have been removed; see [the approval policy](approval.md) for what became
 of a site's records. AgentHub's Gold-specific seed and runner assumptions live in
 AgentHub and must be retired there through a reviewed migration. Preserve historical
-records and verify their meaning without treating them as new AgentHub decisions. No common
-review backend or integrated navigation exists here yet. See the
+records and verify their meaning without treating them as new AgentHub decisions.
+Shippin now has AgentHub-backed deployment review preparation and exact-action
+operator authorization in the existing panel; worker-side authorization before
+provider execution remains unimplemented. See the
 [system identity and human review plan](system-identity-human-review-plan.md).
 
 The draft service-definition and attachment shapes live in

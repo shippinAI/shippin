@@ -1,15 +1,17 @@
 # Shippin platform absorption plan
 
-Status: active execution plan, refreshed 2026-11-05 against `main` at `a79cda3`.
+Status: active execution plan, refreshed 2026-11-05 against `main` at `3efd1a7`.
 This describes the target and acceptance gates; it does not claim unimplemented
 workflows are live. The [capability ledger](capability-absorption.md) holds
-source-by-source evidence and dispositions. Checks run `41960282206` passed all
-13 jobs for the current baseline.
+source-by-source evidence and dispositions. Checks run `41963346185` passed all
+13 jobs for `537f304`, and documentation-only run `41963735539` passed all 13
+jobs for `3efd1a7`.
 
 ## Current execution checkpoint (2026-11-05)
 
-`main` is at `a79cda3` and GitHub Checks run `41960282206` passed all 13
-jobs. No PRs are open. PR 17 is closed without merge, but its reserved
+`main` is at `3efd1a7`. GitHub Checks run `41963346185` passed all 13 jobs for
+`537f304`; documentation-only follow-up run `41963735539` passed all 13 jobs.
+No PRs are open. PR 17 is closed without merge, but its reserved
 `198.51.100.1` fixture correction is already present in `main`, so no repair
 branch remains to merge. Windows standalone builds of `cmd/console` and
 `cmd/shippin-hostd` succeeded; the React tests, build and bundle budget passed;
@@ -20,7 +22,11 @@ fetch a live third-party URL. `scripts/check.sh` now discovers either `go` or
 console test selection remains build-only by design, and no claim is made about
 the unrelated full-suite failures from earlier direct runs. No live Incus, Proxmox, AgentHub,
 Vaultix, Cloudflare or Tailscale operation was run. The deployment worker still
-makes no provider call, and archive readiness remains open.
+makes no provider call, and archive readiness remains open. Commit `537f304`
+adds lease-fenced persistence for worker review-decision provenance, with
+PostgreSQL coverage for expired, replaced and current lease owners. The worker
+does not call that method: just-in-time AgentHub authorization remains gated on
+a complete runtime executor.
 
 PR 17 remains closed unmerged, but its CGNAT fixture correction is present on
 `main` as an independently authored equivalent patch (`b3992ab`); no open PR
@@ -42,8 +48,9 @@ and [application-container launch path](https://linuxcontainers.org/incus/docs/m
 
 The order below is a dependency order. Each row closes only when its observable
 acceptance checks pass; a panel or catalog screen alone does not close a runtime
-capability. Commits through `a79cda3` are on `main`; CI run `41960282206` passed
-all 13 jobs. AgentHub ticket preparation, exact action authorization and safe
+capability. Commits through `3efd1a7` are on `main`; CI runs `41963346185` and
+`41963735539` passed all 13 jobs for `537f304` and `3efd1a7` respectively.
+AgentHub ticket preparation, exact action authorization and safe
 decision provenance are implemented, but production least-privilege identity
 verification and worker-side authorization immediately before a provider write
 remain gates. The deployment outbox and generation-keyed worker are implemented;
@@ -52,17 +59,18 @@ provider call. Commit `f076cbd` adds a lease-fenced durable unsupported
 outcome. Commit `d9f1c24` adds tenant-scoped Vaultix reference parsing and a
 one-key audited resolver boundary. Typed runtime execution, worker-side
 just-in-time authorization, provider I/O, read-back and deployment health are
-still absent. The current in-progress change adds a validated version 2 Incus
-OCI recipe across catalog persistence, API/OpenAPI, immutable generation types
-and the existing catalog editor; it remains declarative and cannot enable
-provider writes by itself.
+still absent. Commit `668aa56` adds a validated version 2 Incus OCI recipe
+across catalog persistence, API/OpenAPI, immutable generation types and the
+existing catalog editor; it remains declarative and cannot enable provider
+writes by itself. Commit `537f304` adds lease-fenced persistence for future
+worker authorization decisions, but is not wired into the unsupported worker.
 
 | Order | Work package | Canonical owners | Exit evidence | Current state / gate |
 |---|---|---|---|---|
 | 0 | Source inventory, one-panel ownership, migration rules and capability ledger | `docs/design/`, `third_party/warden-ct102` reference matrix | Every candidate row has source revision, observed behavior, destination, disposition, rights/security status and acceptance evidence | In progress. Sibling trees remain read-only; Warden matrix still has open rows; archive is prohibited until these close. |
 | 1 | Provider declarations, credential-safe edits/tests, Incus and Proxmox guest lifecycle, resources and operation read-back | `internal/servers`, `internal/hv/{incus,proxmox}`, `internal/api`, `web/` | Disposable Incus and Proxmox lifecycle workflows, edit/test denial, read-back, task failure, auth denial and secret redaction | Core lifecycle and shared storage inventory exist. Proxmox physical disk listing and capacity are read-only. Full provider coverage and disposable-host evidence remain open. |
 | 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | Shippin identity mapping, generation-bound ticket preparation, exact action authorization and append-only decision provenance are implemented and covered by API/store tests. Disposable AgentHub coverage used synthetic principals. Production least-privilege principal permissions, target-installation timeout/restart behavior, and worker-side just-in-time reauthorization before a future provider write remain open; provider mutation remains unavailable. |
-| 3 | Deployment reconciliation and provider execution | `internal/deployments`, migrations, hostd, provider drivers, jobs, API/OpenAPI, `web/` | Transactional dispatch, fenced lease, immutable generation, provider-specific executor, restart/retry, read-back, health, idempotent removal and negative-path evidence | Outbox relay, generation-keyed jobs, stale-generation handling and explicit lease-fenced `runtime_unsupported` outcome are implemented. Current in-progress slice authors a bounded Incus OCI v2 recipe (resources, persistent mount, exposure/ports and health) across API, storage, snapshots, OpenAPI and UI. Execution, worker-side just-in-time authorization, provider I/O, read-back and service health remain absent. |
+| 3 | Deployment reconciliation and provider execution | `internal/deployments`, migrations, hostd, provider drivers, jobs, API/OpenAPI, `web/` | Transactional dispatch, fenced lease, immutable generation, provider-specific executor, restart/retry, read-back, health, idempotent removal and negative-path evidence | Outbox relay, generation-keyed jobs, stale-generation handling and lease-fenced unsupported outcomes are implemented. Incus OCI v2 recipe is committed and declarative. Commit `537f304` adds a lease-fenced review-decision persistence method, but the worker does not call it. Execution, JIT authorization, provider I/O, read-back and deployment health remain absent. |
 | 4 | Pinned source resolution and bounded builds | catalog/builder owner, isolated worker, secret resolver | Immutable input commit/digest, build provenance, bounded CPU/memory/time/storage/concurrency/egress, secret mounts, cancellation and cleanup | Not implemented. Must precede GitHub/custom Git deployment; OCI digest path still needs provider compatibility. |
 | 5 | Managed PostgreSQL, Dragonfly, Redis and ClickHouse | managed-service owner, hostd/provider adapters, catalog, `web/` | Engine-specific configure/provision/upgrade/backup/restore/health/delete on supported providers; tenant isolation; restore verification | Design only; `internal/managed` is rrflow state, not an engine runtime. No turnkey engine may be advertised. |
 | 6 | Cloudflare Tunnel, Tailscale and custom connectivity management | `internal/networking`, API, migration, `web/` | Per-provider add/edit/test/rotate/revoke and supported mutations, stable system attachment, permission denials, redaction and observed-vs-managed state | Configured inventory/refresh exists. Provider mutation/attachment lifecycle remains open. |
@@ -79,6 +87,9 @@ provider writes by itself.
    same database transaction. API/store tests prove an expired or replaced
    worker cannot append an event or change observed state and a current lease
    can persist `runtime_unsupported`. This slice performs no provider I/O.
+   Commit `537f304` also adds `RecordReviewDecisionWithLease`; PostgreSQL
+   integration coverage proves an expired or replaced lease cannot append
+   AgentHub decision provenance. The reconciler does not call it yet.
 3. Define a complete versioned runtime recipe before writing an executor: source
    digest and provider compatibility; process/config contract; resource bounds;
    persistent volume layout; exposure; health/read-back; secret references and
@@ -143,6 +154,14 @@ remains only for isolated store setup/tests; the production reconciler uses the
 lease-fenced path. This proves durable outcome fencing only; it does not prove
 external provider-call fencing or enable execution.
 
+Commit `537f304` adds the matching `RecordReviewDecisionWithLease` store
+boundary. It locks and validates the live deployment reconcile job before the
+generation, review, ticket and append-only decision checks in the same
+transaction. PostgreSQL integration coverage exercises expired, replaced and
+current lease owners. It is not wired into `authorizeDeploymentAction` or the
+worker; AgentHub calls still happen only in the operator review endpoint while
+the executor is unavailable.
+
 The catalog runtime declaration now has two versions. Version 1 preserves the
 existing compatibility-only Incus/OCI marker. Version 2 requires CPU/memory,
 persistent storage size and normalized mount path, private/Edge exposure with
@@ -158,8 +177,9 @@ Each implementation slice names its stage and source rows in the commit and
 journal, lists canonical files it owns, states what it excludes, and shows an
 acceptance result plus a denial/failure result. If an external contract is
 unavailable, keep its gate open and continue only independent work. Current
-active stage is E. AgentHub authorization, desired-generation outbox and current
-unsupported-runtime reporting are on `main`; local Windows and Linux CI
+active stage is E. AgentHub ticket preparation, operator-side exact-action
+authorization, lease-fenced decision persistence, desired-generation outbox and
+current unsupported-runtime reporting are on `main`; local Windows and Linux CI
 limitations, production AgentHub credential status and lack of a live provider
 are recorded in the evidence journal. The first provider deployment remains
 unimplemented and unavailable.

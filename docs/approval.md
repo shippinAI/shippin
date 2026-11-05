@@ -23,11 +23,21 @@ The former provider board drivers were not AgentHub:
 - `http` spoke this console's `/v1/hub/approvals` contract.
 - `off` disabled that board; it was not a human-review policy source.
 
-The adapter and `hv.Guard` path have been removed. Every operator and tenant
-hypervisor mutation now returns `503 agenthub_review_unavailable` before a
-provider call, regardless of Shippin-local rules or task-board status. Reads,
-server configuration and provider health checks remain available. This fail
-closed response is an explicit implementation gap, not a usable review flow.
+The adapter and `hv.Guard` path have been removed. Generic operator and tenant
+hypervisor mutation routes still return `503 agenthub_review_unavailable`
+before a provider call, regardless of Shippin-local rules or task-board status.
+Reads, server configuration and provider health checks remain available.
+
+Deployment generations have a separate operator-initiated AgentHub review flow
+in `internal/api/deployment_agenthub.go` and `internal/api/deployment_authorization.go`.
+It creates or resumes a ticket bound to the generation action hash and configured
+system mapping, attaches bounded redacted evidence, submits it, and reads ticket
+status back. The operator authorization action rechecks the current policy and
+ticket, requires every matched rule to explicitly require both approval and a
+role-based review quorum, and persists safe decision provenance. The UI reports
+that authorization was recorded for audit and that no provider operation ran.
+The deployment worker does not call this authorization path, and all catalog
+runtime execution remains unavailable.
 
 The legacy `approval.hv_board` operator override has been removed. Old values are
 ignored. The provider mutation gate does not consult a Shippin-local rule or
@@ -44,20 +54,19 @@ and an administrator-issued expiring token appear possible, but their exact
 roles and tenant access must be verified in an isolated AgentHub instance.
 
 The current decision contract returns a boolean `allow`, policy hash/version,
-decision ID and failure details. It does not return a typed `review_required`
-outcome. A denial can mean a missing review or any other configured check. Ticket
-status is also insufficient by itself: it is derived from whether any reviewer
-has passed/blocked/found issues on the current hash, while policy rules can require
-multiple passes or specific reviewer roles. Shippin must not infer authorization
-from status or parse human-readable failures. Source inspection also shows the
-policy engine starts with `allow=true`; when no rule matches the request, that
-value remains true. The response lists matched rule IDs but not their effects or
-the exact Shippin action payload to which the decision applies. Therefore Shippin
-cannot treat `allow=true` alone as authorization. AgentHub needs a stable typed
-result bound to the exact action, system, ticket hash and current policy hash,
-distinguishing allowed-after-review, review-required and deny before provider
-execution can be enabled. The AgentHub checkout is dirty and remains untouched.
-No integrated AgentHub review flow exists yet.
+decision ID and matched rule IDs, but no typed `review_required` result. The
+Shippin deployment adapter compensates for the no-match allow behavior by
+requiring a nonempty matched-rule set and loading the current policy document;
+every matched rule must exist, be enabled, have `effect=require`, and require
+both human approval and a positive role-specific reviewer quorum. It reads
+policy and ticket before and after the decision, verifies the action-bound ticket
+fields and hash, and requires a passed ticket. Ticket status alone is never used
+as authorization, and human-readable errors are not parsed. This path is covered
+by the AgentHub client and API fixtures but has not been verified against a live
+AgentHub installation or a least-privilege production principal. Commit
+`537f304` adds a lease-fenced store method for future worker decision provenance;
+the worker does not call it until an executable runtime exists. The AgentHub
+checkout remains dirty and untouched.
 Do not describe the local task board as AgentHub or as the source of policy.
 
 ## Target request flow
@@ -73,9 +82,11 @@ Do not describe the local task board as AgentHub or as the source of policy.
 4. AgentHub's authorized reviewer records the decision against the ticket hash.
    Shippin re-reads and validates the current ticket, policy version, reviewer,
    decision and system mapping before executing.
-5. Shippin executes only through the configured provider adapter, then writes
-   outcome and provenance back to the ticket/evidence flow and its own resource
-   audit. A decision never changes the stable system ID.
+5. **Not implemented:** after the operator review flow records authorization,
+   the worker must obtain a fresh lease-fenced AgentHub decision for the current
+   action before dispatch. It then executes only through the configured provider
+   adapter and writes provider read-back, health and provenance to Shippin's
+   resource audit. A decision never changes the stable system ID.
 
 AgentHub unavailability, missing/ambiguous mapping, stale policy/ticket hashes,
 missing evidence or a denied decision blocks the gated action. Read-only
@@ -88,20 +99,21 @@ AgentHub decisions.
 - Configure AgentHub URL, authentication credential reference, tenant mapping,
   timeout and supported capabilities per installation. Never commit token
   values or tenant IDs.
-- Validate the current policy/ticket API and add the typed decision result and
-  service-principal authorization contract in its owning system before connecting
-  provider writes. Do not copy AgentHub policy code or create a second policy
-  store in Shippin.
+- Validate the current policy/ticket API and verify an installation-configured,
+  least-privilege AgentHub principal before connecting provider writes. Keep the
+  adapter's explicit matched-rule and ticket-hash checks; do not treat the boolean
+  response as sufficient. Do not copy AgentHub policy code or create a second
+  policy store in Shippin.
 - Keep one system ID across Incus, Proxmox, host enrollment, health, resource
   display, action tickets and audit. Store observed hostname with source and
   timestamp; nickname/aliases/tags remain operator metadata.
 - Test no policy, invalid policy, policy version changes, stale tickets, wrong
   tenant/system, reviewer denial, self-review, unauthorized reviewer, expired
   credentials, AgentHub timeout, retry/replay, provider failure and restart.
-- Keep the local Shippin task-board policy scoped to its own task workflow. Add a
-  separate AgentHub adapter for provider actions only after service-principal
-  authentication, tenant/system mapping, idempotent ticket lifecycle and failure
-  behavior are implemented.
+- Keep the local Shippin task-board policy scoped to its own task workflow. The
+  operator deployment-review adapter exists; worker-side use stays gated on a
+  verified AgentHub principal, lease-fenced provenance and a complete provider
+  executor with negative-path and recovery evidence.
   Preserve existing task/audit records; do not reset dirty AgentHub worktrees.
 
 Historical Gold signing settings and routes were removed from Shippin main.
