@@ -2,15 +2,17 @@ package incus
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"shippin.cloud/console/internal/hv"
 )
 
@@ -20,6 +22,8 @@ import (
 // use it until those lifecycle contracts are implemented as well.
 type OCIApplicationSpec struct {
 	Name           string
+	DeploymentID   string
+	Generation     int64
 	ImageReference string
 	MemoryMiB      int
 	Cores          int
@@ -68,6 +72,9 @@ func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSp
 	if !guestName.MatchString(spec.Name) {
 		return hv.Guest{}, errors.New("incus: application name starts with a letter and uses letters, digits and dashes")
 	}
+	if _, err := uuid.Parse(spec.DeploymentID); err != nil || spec.Generation < 1 {
+		return hv.Guest{}, errors.New("incus: application requires a deployment UUID and positive generation")
+	}
 	image, err := parseOCIApplicationReference(spec.ImageReference)
 	if err != nil {
 		return hv.Guest{}, err
@@ -83,9 +90,15 @@ func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSp
 	if !incusVersionAtLeast(health.Version, 7, 3, 0) {
 		return hv.Guest{}, fmt.Errorf("incus: OCI application pulls require server version 7.3.0 or newer (server reports %q)", health.Version)
 	}
-	if _, err := c.Guest(ctx, spec.Name); err == nil {
-		return hv.Guest{}, fmt.Errorf("incus: guest %q already exists", spec.Name)
-	} else if !errors.Is(err, hv.ErrGuestNotFound) {
+
+	instance, err := c.instanceDetails(ctx, spec.Name)
+	if err == nil {
+		if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+			return hv.Guest{}, err
+		}
+		return c.ensureOCIApplicationState(ctx, spec)
+	}
+	if !errors.Is(err, hv.ErrGuestNotFound) {
 		return hv.Guest{}, err
 	}
 
@@ -102,8 +115,11 @@ func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSp
 			"server": image.Server, "alias": image.Alias,
 		},
 		Config: map[string]string{
-			"limits.cpu":    strconv.Itoa(spec.Cores),
-			"limits.memory": strconv.Itoa(spec.MemoryMiB) + "MiB",
+			"limits.cpu":                          strconv.Itoa(spec.Cores),
+			"limits.memory":                       strconv.Itoa(spec.MemoryMiB) + "MiB",
+			"user.shippin.deployment_id":          spec.DeploymentID,
+			"user.shippin.generation":             strconv.FormatInt(spec.Generation, 10),
+			"user.shippin.image_reference_sha256": imageReferenceHash(spec.ImageReference),
 		},
 	}
 	raw, err := json.Marshal(request)
@@ -120,40 +136,62 @@ func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSp
 	if err := c.wait(ctx, body); err != nil {
 		return hv.Guest{}, fmt.Errorf("incus: OCI application create operation failed: %w", err)
 	}
-	if spec.Start {
-		_, err := c.Start(ctx, spec.Name)
-		if err != nil {
-			return hv.Guest{}, fmt.Errorf("incus: OCI application was created but did not start: %w", err)
-		}
-	}
-	created, err := c.applicationReadback(ctx, spec.Name, spec.Start)
-	if err != nil {
-		return hv.Guest{}, fmt.Errorf("incus: OCI application was created but read-back failed: %w", err)
-	}
-	return created, nil
+	return c.ensureOCIApplicationState(ctx, spec)
 }
 
-func (c *Client) applicationReadback(ctx context.Context, name string, started bool) (hv.Guest, error) {
-	body, code, err := c.do(ctx, http.MethodGet, c.path(instancePath(name)), nil)
+func (c *Client) ensureOCIApplicationState(ctx context.Context, spec OCIApplicationSpec) (hv.Guest, error) {
+	instance, err := c.instanceDetails(ctx, spec.Name)
 	if err != nil {
 		return hv.Guest{}, err
 	}
-	if code != http.StatusOK {
-		return hv.Guest{}, fmt.Errorf("incus: application read-back HTTP %d: %s", code, clip(body))
-	}
-	var result struct {
-		Metadata instance `json:"metadata"`
-	}
-	if err := json.Unmarshal(body, &result); err != nil {
+	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
 		return hv.Guest{}, err
 	}
-	if result.Metadata.Type != "container" || result.Metadata.Config["volatile.container.oci"] != "true" {
-		return hv.Guest{}, errors.New("provider read-back does not identify an Incus OCI application container")
+	if spec.Start && !strings.EqualFold(instance.Status, "Running") {
+		if _, err := c.Start(ctx, spec.Name); err != nil {
+			return hv.Guest{}, fmt.Errorf("incus: OCI application was created but did not start: %w", err)
+		}
+	} else if !spec.Start && !strings.EqualFold(instance.Status, "Stopped") {
+		if _, err := c.Stop(ctx, spec.Name); err != nil {
+			return hv.Guest{}, fmt.Errorf("incus: OCI application was created but did not stop: %w", err)
+		}
 	}
-	if started && !strings.EqualFold(result.Metadata.Status, "Running") {
-		return hv.Guest{}, fmt.Errorf("provider reports application state %q after start", result.Metadata.Status)
+	instance, err = c.instanceDetails(ctx, spec.Name)
+	if err != nil {
+		return hv.Guest{}, err
 	}
-	return result.Metadata.guest(), nil
+	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+		return hv.Guest{}, err
+	}
+	want := "Stopped"
+	if spec.Start {
+		want = "Running"
+	}
+	if !strings.EqualFold(instance.Status, want) {
+		return hv.Guest{}, fmt.Errorf("provider reports application state %q; wanted %q", instance.Status, want)
+	}
+	return instance.guest(), nil
+}
+
+func validateOCIApplicationIdentity(instance instance, spec OCIApplicationSpec) error {
+	config := instance.Config
+	if instance.Type != "container" || config["volatile.container.oci"] != "true" {
+		return errors.New("provider read-back does not identify an Incus OCI application container")
+	}
+	if config["user.shippin.deployment_id"] != spec.DeploymentID ||
+		config["user.shippin.generation"] != strconv.FormatInt(spec.Generation, 10) ||
+		config["user.shippin.image_reference_sha256"] != imageReferenceHash(spec.ImageReference) {
+		return errors.New("Incus instance name is owned by a different Shippin deployment generation or image")
+	}
+	if config["limits.cpu"] != strconv.Itoa(spec.Cores) || config["limits.memory"] != strconv.Itoa(spec.MemoryMiB)+"MiB" {
+		return errors.New("Incus OCI application resource configuration does not match the requested generation")
+	}
+	return nil
+}
+
+func imageReferenceHash(reference string) string {
+	digest := sha256.Sum256([]byte(reference))
+	return hex.EncodeToString(digest[:])
 }
 
 func incusVersionAtLeast(version string, major, minor, patch int) bool {

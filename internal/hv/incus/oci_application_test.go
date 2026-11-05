@@ -12,6 +12,7 @@ import (
 )
 
 const testOCIReference = "registry.example.net/team/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+const testDeploymentID = "11111111-1111-4111-8111-111111111111"
 
 func TestParseOCIApplicationReferenceRequiresQualifiedImmutableImage(t *testing.T) {
 	got, err := parseOCIApplicationReference(testOCIReference)
@@ -40,6 +41,7 @@ func TestParseOCIApplicationReferenceRequiresQualifiedImmutableImage(t *testing.
 func TestCreateOCIApplicationPreflightsVersionWaitsAndReadsBack(t *testing.T) {
 	status := "Stopped"
 	created := false
+	createCount := 0
 	var create map[string]any
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -52,9 +54,17 @@ func TestCreateOCIApplicationPreflightsVersionWaitsAndReadsBack(t *testing.T) {
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"metadata": map[string]any{
 				"name": "app-1", "status": status, "type": "container",
-				"config": map[string]string{"volatile.container.oci": "true"},
+				"config": map[string]string{
+					"volatile.container.oci":              "true",
+					"user.shippin.deployment_id":          testDeploymentID,
+					"user.shippin.generation":             "3",
+					"user.shippin.image_reference_sha256": imageReferenceHash(testOCIReference),
+					"limits.cpu":                          "2",
+					"limits.memory":                       "1024MiB",
+				},
 			}})
 		case r.Method == http.MethodPost && r.URL.Path == "/1.0/instances":
+			createCount++
 			if err := json.NewDecoder(r.Body).Decode(&create); err != nil {
 				t.Errorf("decode create request: %v", err)
 			}
@@ -74,7 +84,8 @@ func TestCreateOCIApplicationPreflightsVersionWaitsAndReadsBack(t *testing.T) {
 	defer srv.Close()
 	c := clientFor(t, srv)
 	got, err := c.CreateOCIApplication(context.Background(), OCIApplicationSpec{
-		Name: "app-1", ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2, Start: true,
+		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
+		ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2, Start: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -82,13 +93,22 @@ func TestCreateOCIApplicationPreflightsVersionWaitsAndReadsBack(t *testing.T) {
 	if got.Name != "app-1" || got.Status != "Running" || got.Kind != hv.KindCT {
 		t.Fatalf("read-back = %+v", got)
 	}
+	got, err = c.CreateOCIApplication(context.Background(), OCIApplicationSpec{
+		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
+		ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2, Start: true,
+	})
+	if err != nil || got.Status != "Running" || createCount != 1 {
+		t.Fatalf("idempotent retry = %+v, creates=%d, err=%v", got, createCount, err)
+	}
 	source, ok := create["source"].(map[string]any)
 	if !ok || source["type"] != "image" || source["mode"] != "pull" || source["protocol"] != "oci" ||
 		source["server"] != "https://registry.example.net" || source["alias"] != "team/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" {
 		t.Fatalf("OCI source = %#v", create["source"])
 	}
 	config := create["config"].(map[string]any)
-	if config["limits.cpu"] != "2" || config["limits.memory"] != "1024MiB" {
+	if config["limits.cpu"] != "2" || config["limits.memory"] != "1024MiB" ||
+		config["user.shippin.deployment_id"] != testDeploymentID || config["user.shippin.generation"] != "3" ||
+		config["user.shippin.image_reference_sha256"] != imageReferenceHash(testOCIReference) {
 		t.Fatalf("resource configuration = %#v", config)
 	}
 }
@@ -108,7 +128,8 @@ func TestCreateOCIApplicationRejectsOldIncusBeforeMutation(t *testing.T) {
 	defer srv.Close()
 	c := clientFor(t, srv)
 	_, err := c.CreateOCIApplication(context.Background(), OCIApplicationSpec{
-		Name: "app-1", ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2,
+		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
+		ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2,
 	})
 	if err == nil || !strings.Contains(err.Error(), "7.3.0 or newer") {
 		t.Fatalf("old server error = %v", err)
@@ -127,10 +148,37 @@ func TestCreateOCIApplicationRejectsInvalidResourcesBeforeProviderCall(t *testin
 	defer srv.Close()
 	c := clientFor(t, srv)
 	_, err := c.CreateOCIApplication(context.Background(), OCIApplicationSpec{
-		Name: "app-1", ImageReference: testOCIReference, MemoryMiB: 64, Cores: 2,
+		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
+		ImageReference: testOCIReference, MemoryMiB: 64, Cores: 2,
 	})
 	if err == nil || requests != 0 {
 		t.Fatalf("validation error=%v provider requests=%d", err, requests)
+	}
+}
+
+func TestCreateOCIApplicationRejectsExistingDifferentGenerationWithoutMutation(t *testing.T) {
+	mutations := 0
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/1.0":
+			_, _ = w.Write([]byte(`{"metadata":{"auth":"trusted","environment":{"server_version":"7.3.0"}}}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/1.0/instances/app-1":
+			_, _ = w.Write([]byte(`{"metadata":{"name":"app-1","status":"Running","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"` + testDeploymentID + `","user.shippin.generation":"2","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"1024MiB"}}}`))
+		case r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodDelete:
+			mutations++
+			http.Error(w, "mutation forbidden in test", http.StatusInternalServerError)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	c := clientFor(t, srv)
+	_, err := c.CreateOCIApplication(context.Background(), OCIApplicationSpec{
+		Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
+		ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2, Start: true,
+	})
+	if err == nil || mutations != 0 {
+		t.Fatalf("generation conflict error=%v mutations=%d", err, mutations)
 	}
 }
 
@@ -142,8 +190,8 @@ func TestOCIApplicationReadbackRequiresOCIContainerAndRequestedState(t *testing.
 		wantErr  bool
 	}{
 		{name: "non oci", metadata: `{"name":"app-1","status":"Running","type":"container","config":{"volatile.container.oci":"false"}}`, started: true, wantErr: true},
-		{name: "not running", metadata: `{"name":"app-1","status":"Stopped","type":"container","config":{"volatile.container.oci":"true"}}`, started: true, wantErr: true},
-		{name: "valid stopped", metadata: `{"name":"app-1","status":"Stopped","type":"container","config":{"volatile.container.oci":"true"}}`, wantErr: false},
+		{name: "unowned", metadata: `{"name":"app-1","status":"Stopped","type":"container","config":{"volatile.container.oci":"true"}}`, wantErr: true},
+		{name: "valid stopped", metadata: `{"name":"app-1","status":"Stopped","type":"container","config":{"volatile.container.oci":"true","user.shippin.deployment_id":"11111111-1111-4111-8111-111111111111","user.shippin.generation":"3","user.shippin.image_reference_sha256":"` + imageReferenceHash(testOCIReference) + `","limits.cpu":"2","limits.memory":"1024MiB"}}`, wantErr: false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +203,10 @@ func TestOCIApplicationReadbackRequiresOCIContainerAndRequestedState(t *testing.
 			}))
 			defer srv.Close()
 			c := clientFor(t, srv)
-			_, err := c.applicationReadback(context.Background(), "app-1", test.started)
+			_, err := c.ensureOCIApplicationState(context.Background(), OCIApplicationSpec{
+				Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
+				ImageReference: testOCIReference, MemoryMiB: 1024, Cores: 2, Start: test.started,
+			})
 			if (err != nil) != test.wantErr {
 				t.Fatalf("read-back error = %v", err)
 			}

@@ -204,23 +204,31 @@ func (c *Client) Guests(ctx context.Context) ([]hv.Guest, error) {
 }
 
 func (c *Client) Guest(ctx context.Context, id string) (hv.Guest, error) {
-	body, code, err := c.do(ctx, http.MethodGet, c.path(instancePath(id)), nil)
+	instance, err := c.instanceDetails(ctx, id)
 	if err != nil {
 		return hv.Guest{}, err
 	}
+	return instance.guest(), nil
+}
+
+func (c *Client) instanceDetails(ctx context.Context, id string) (instance, error) {
+	body, code, err := c.do(ctx, http.MethodGet, c.path(instancePath(id)), nil)
+	if err != nil {
+		return instance{}, err
+	}
 	if code == http.StatusNotFound {
-		return hv.Guest{}, fmt.Errorf("incus: guest %s: %w", id, hv.ErrGuestNotFound)
+		return instance{}, fmt.Errorf("incus: guest %s: %w", id, hv.ErrGuestNotFound)
 	}
 	if code != http.StatusOK {
-		return hv.Guest{}, fmt.Errorf("incus: guest HTTP %d: %s", code, clip(body))
+		return instance{}, fmt.Errorf("incus: guest HTTP %d: %s", code, clip(body))
 	}
 	var r struct {
 		Metadata instance `json:"metadata"`
 	}
 	if err := json.Unmarshal(body, &r); err != nil {
-		return hv.Guest{}, err
+		return instance{}, err
 	}
-	return r.Metadata.guest(), nil
+	return r.Metadata, nil
 }
 
 func (c *Client) Storage(ctx context.Context) ([]hv.Volume, error) {
