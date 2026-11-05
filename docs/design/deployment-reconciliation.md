@@ -1,7 +1,9 @@
 # Deployment reconciliation architecture
 
-**Status:** Proposed for implementation on `main`  
-**Scope:** Stage E of [the platform absorption plan](platform-absorption-plan.md)  
+**Status:** Proposed for implementation on `main`
+
+**Scope:** Stage E of [the platform absorption plan](platform-absorption-plan.md)
+
 **Owners:** `internal/deployments` owns desired/observed deployment truth; `internal/jobs` owns worker leases; `internal/hv/{incus,proxmox}` owns provider-specific guest operations; `web/` remains the only panel.
 
 ## Context and observed current behavior
