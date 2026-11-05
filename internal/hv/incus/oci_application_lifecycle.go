@@ -10,6 +10,39 @@ import (
 	"shippin.cloud/console/internal/hv"
 )
 
+// InspectOCIApplication performs provider read-back for an immutable Shippin
+// OCI application identity without changing guest state. It is suitable for
+// recovery after an ambiguous create response; callers must still hold the
+// current generation and lease before recording the observation.
+func (c *Client) InspectOCIApplication(ctx context.Context, spec OCIApplicationSpec) (hv.Guest, bool, error) {
+	if _, err := validateOCIApplicationSpec(spec); err != nil {
+		return hv.Guest{}, false, err
+	}
+	health, err := c.Health(ctx)
+	if err != nil {
+		return hv.Guest{}, false, fmt.Errorf("incus: application provider inspection failed: %w", err)
+	}
+	if !incusVersionAtLeast(health.Version, 7, 3, 0) {
+		return hv.Guest{}, false, fmt.Errorf("incus: OCI application inspection requires server version 7.3.0 or newer (server reports %q)", health.Version)
+	}
+	instance, err := c.instanceDetails(ctx, spec.Name)
+	if errors.Is(err, hv.ErrGuestNotFound) {
+		return hv.Guest{}, false, nil
+	}
+	if err != nil {
+		return hv.Guest{}, false, err
+	}
+	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+		return hv.Guest{}, false, err
+	}
+	if spec.StoragePool != "" {
+		if err := c.checkOCIApplicationVolume(ctx, spec); err != nil {
+			return hv.Guest{}, false, err
+		}
+	}
+	return instance.guest(), true, nil
+}
+
 // DeleteOCIApplication removes an exact Shippin-owned OCI application
 // instance and confirms its absence. The deployment-owned custom volume is
 // deliberately retained; deleting application data needs a separate,
