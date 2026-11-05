@@ -316,8 +316,12 @@ entered AgentHub tenant and displays only policy version/hash metadata. This can
 verify configured URL and credentials when an operator runs it; fixture tests
 cover the request and local CI has not contacted a live AgentHub. It does not
 validate Shippin system mapping, ticket lifecycle, quorum, service principal
-permissions or provider authorization. Provider mutations continue to return
-unavailable.
+permissions or provider authorization. Single-guest power actions have since
+been implemented as an exact-action AgentHub-reviewed, one-shot flow with
+persistent Shippin provenance. Batch and other provider mutations remain
+unavailable. Live AgentHub policy/quorum and Incus/Proxmox execution are not
+verified; see the active packet status in
+[`../platform-consolidation-plan.md`](../platform-consolidation-plan.md).
 
 The first implementation slice is now authored in the canonical Go database/API
 owners and existing React admin/overview pages: migration 046 backfills the old

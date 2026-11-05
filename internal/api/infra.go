@@ -98,6 +98,8 @@ func (a *API) infraRouteTable() []infraRoute {
 		{"POST /v1/infra/servers/{id}/guests/{guest}/resize", "infra.guests.manage", true, a.infraResize},
 		{"POST /v1/infra/servers/{id}/guests/{guest}/migrate", "infra.guests.manage", true, a.infraMigrate},
 		{"POST /v1/infra/servers/{id}/guests/{guest}/status/{verb}", "infra.guests.power", true, a.infraStatus},
+		{"POST /v1/infra/servers/{id}/guests/{guest}/power-review/{verb}", "infra.guests.power", true, a.prepareInfraPowerReview},
+		{"GET /v1/infra/servers/{id}/guests/{guest}/power-reviews/{reviewID}", "infra.read", false, a.getInfraPowerReview},
 		{"GET /v1/infra/servers/{id}/guests/{guest}/snapshots", "infra.read", false, a.infraSnapshots},
 		{"POST /v1/infra/servers/{id}/guests/{guest}/snapshots", "infra.guests.snapshot", true, a.infraSnapshot},
 		{"POST /v1/infra/servers/{id}/guests/{guest}/snapshots/{name}/rollback", "infra.guests.restore", true, a.infraRollback},
@@ -772,23 +774,14 @@ func (a *API) infraStatus(w http.ResponseWriter, r *http.Request, c *caller) {
 		return
 	}
 	id, guest := r.PathValue("id"), r.PathValue("guest")
-	cl, err := a.driver(r.Context(), id)
+	ep, err := a.powerEndpoint(r.Context(), "", id)
 	if err != nil {
 		infraErr(w, err)
 		return
 	}
-	if a.refuseSelf(w, r, c, cl, guest, verb) {
+	if !a.executeInfraPowerReview(w, r, c, "", ep, id, guest, verb) {
 		return
 	}
-	if !a.permit(w, r, c, id, guest, verb) {
-		return
-	}
-	g, err := a.tracked(r, c, id, guest, verb, func(ctx context.Context) (hv.Guest, error) { return runVerb(ctx, cl, verb, guest) })
-	if err != nil {
-		infraErr(w, err)
-		return
-	}
-	writeJSON(w, g)
 }
 
 // snapshotKeeper opens a driver that can list and restore its snapshots.
@@ -1063,8 +1056,8 @@ func (a *API) infraTask(w http.ResponseWriter, r *http.Request, _ *caller) {
 	writeJSON(w, t)
 }
 
-// permit keeps existing operator mutation handlers behind the AgentHub review gate.
-// Until that adapter is configured, denyProviderMutation stops the request before a driver call.
+// permit keeps non-power operator mutations fail-closed until each action has an
+// exact AgentHub review path.
 func (a *API) permit(w http.ResponseWriter, _ *http.Request, _ *caller, _, _, _ string) bool {
 	return denyProviderMutation(w)
 }

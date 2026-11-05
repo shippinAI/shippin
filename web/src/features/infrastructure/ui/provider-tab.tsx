@@ -12,16 +12,16 @@ import { Skeleton } from "../../../lib/design/components/skeleton/skeleton";
 import { StatusDot } from "../../../lib/design/components/status-dot/status-dot";
 import { formatBytes } from "../../../lib/format";
 import { useServices } from "../../../lib/hooks/use-api";
-import { useCreateGuest, useDeleteGuest, useGuestAction, useGuests, useRollback, useSnapshot, useSnapshots, useStorageInventory, useTask, type Guest } from "../../../lib/hooks/use-hosts";
+import { useCreateGuest, useDeleteGuest, useGuests, useRollback, useSnapshot, useSnapshots, useStorageInventory, useTask, type Guest } from "../../../lib/hooks/use-hosts";
 import { isOpen as operationOpen, useDetachHost, useInfraCan, useOperations, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
 
 import { useText } from "../../../lib/ui-config/use-ui-config";
-import { firstAnswering, formatUptime, isRunning, isStopped, stoppableGuests, verbApplies } from "../model";
+import { firstAnswering, formatUptime, isRunning, isStopped, verbApplies } from "../model";
 import { ActivityCard } from "./activity-card";
 import { ChangeNoteDialog, type PendingChange } from "./change-note-dialog";
+import { PowerReviewDialog } from "./power-review-dialog";
 import { CreateGuestCard } from "./create-guest-card";
 import { NodeFacts } from "./node-details";
-import { StopGuestsDialog } from "./stop-guests-dialog";
 import { SystemIdentityForm } from "./system-identity-form";
 
 function useGuestColumns(): ColumnDef<Guest>[] {
@@ -81,7 +81,6 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
   const [guestId, setGuestId] = useState("");
   const guest = (guests.data?.items ?? []).find((g) => g.id === guestId);
   const snaps = useSnapshots(can("snapshot_list") ? base : "", guest?.id ?? "");
-  const act = useGuestAction(base);
   const operations = useOperations(node.id);
   const snap = useSnapshot(base);
   const back = useRollback(base);
@@ -90,13 +89,13 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
   const detach = useDetachHost();
   const may = useInfraCan();
   const [change, setChange] = useState<PendingChange | null>(null);
-  const [stopping, setStopping] = useState(false);
+  const [powerChange, setPowerChange] = useState<{ guest: string; verb: "start" | "stop" | "shutdown" | "reboot"; self: boolean } | null>(null);
   const [snapName, setSnapName] = useState("");
   const [upid, setUpid] = useState("");
   const [lookup, setLookup] = useState("");
   const task = useTask(can("tasks") ? base : "", lookup);
   // One slow change holds its own guest, and only that one.
-  const guestBusy = !!guest && ((act.isPending && act.variables?.guest === guest.id) || (operations.data?.items ?? []).some((o) => operationOpen(o) && o.guest === guest.id));
+  const guestBusy = !!guest && ((powerChange?.guest === guest.id) || (operations.data?.items ?? []).some((o) => operationOpen(o) && o.guest === guest.id));
   return (
     <>
       <Card elevation={2} className="mb-6 overflow-hidden">
@@ -107,7 +106,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
             <div className="flex gap-2">
               {onEdit && may("infra.hosts.write") && <Button size="sm" variant="secondary" tooltip={t("infra.dialog.editTooltip", { label: node.label })} onPress={() => onEdit(node)}>{t("infra.dialog.edit")}</Button>}
               {can("lifecycle") && may("infra.guests.power") && (
-                <Button size="sm" variant="secondary" tooltip={t("infra.stop.tooltip")} isDisabled={stoppableGuests(guests.data?.items ?? []).length === 0} onPress={() => setStopping(true)}>{t("infra.stop.open")}</Button>
+                <Button size="sm" variant="secondary" tooltip="Batch stops are unavailable; request an AgentHub review for each guest." isDisabled>{t("infra.stop.open")}</Button>
               )}
               {may("infra.hosts.write") && (
                 <Button size="sm" variant="ghost" tooltip={t("infra.detach.tooltip")}
@@ -191,12 +190,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
                 return (
                   <Button key={verb} size="sm" variant="secondary" tooltip={t("infra.guest.verbTooltip", { verb, guest: guest.id })}
                     isDisabled={guestBusy || !verbApplies(verb, guest.status) || (takesPanelDown && !may("infra.self"))}
-                    onPress={() => setChange({
-                      title: t("infra.note.title", { change: `${verb} ${guest.name || guest.id}` }),
-                      warning: takesPanelDown ? t("infra.self.body") : undefined,
-                      confirm: takesPanelDown ? t("infra.self.confirm", { verb }) : verb,
-                      run: (note) => act.mutate({ guest: guest.id, verb, note, confirmSelf: takesPanelDown }),
-                    })}>
+                    onPress={() => setPowerChange({ guest: guest.id, verb, self: takesPanelDown })}>
                     {verb}
                   </Button>
                 );
@@ -279,8 +273,8 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
         </div>
       )}
       <div className="mt-6"><ActivityCard serverId={node.id} /></div>
-      <StopGuestsDialog serverId={node.id} guests={guests.data?.items ?? []} isOpen={stopping} onOpenChange={setStopping} />
       <ChangeNoteDialog change={change} onClose={() => setChange(null)} />
+      {powerChange && <PowerReviewDialog base={base} guest={powerChange.guest} verb={powerChange.verb} confirmSelf={powerChange.self} onClose={() => setPowerChange(null)} onExecuted={() => { void guests.refetch(); void operations.refetch(); }} />}
     </>
   );
 }

@@ -44,6 +44,7 @@ GET /v1/infra/servers/{id}/backups
 GET /v1/infra/servers/{id}/firewall/rules
 GET /v1/infra/servers/{id}/guests
 GET /v1/infra/servers/{id}/guests/{guest}
+GET /v1/infra/servers/{id}/guests/{guest}/power-reviews/{reviewID}
 GET /v1/infra/servers/{id}/guests/{guest}/snapshots
 GET /v1/infra/servers/{id}/health
 GET /v1/infra/servers/{id}/identity
@@ -135,6 +136,7 @@ GET /v1/tenants/{tenantId}/prompt/options
 GET /v1/tenants/{tenantId}/servers
 GET /v1/tenants/{tenantId}/servers/{serverId}/guests
 GET /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}
+GET /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/power-reviews/{reviewID}
 GET /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/snapshots
 GET /v1/tenants/{tenantId}/servers/{serverId}/health
 GET /v1/tenants/{tenantId}/servers/{serverId}/tasks/{upid}
@@ -167,6 +169,7 @@ POST /v1/infra/servers/{id}/backups
 POST /v1/infra/servers/{id}/guests
 POST /v1/infra/servers/{id}/guests/{guest}/clone
 POST /v1/infra/servers/{id}/guests/{guest}/migrate
+POST /v1/infra/servers/{id}/guests/{guest}/power-review/{verb}
 POST /v1/infra/servers/{id}/guests/{guest}/resize
 POST /v1/infra/servers/{id}/guests/{guest}/snapshots
 POST /v1/infra/servers/{id}/guests/{guest}/snapshots/{name}/rollback
@@ -241,6 +244,7 @@ POST /v1/tenants/{tenantId}/projects/{projectId}/services/rrflow
 POST /v1/tenants/{tenantId}/provision
 POST /v1/tenants/{tenantId}/servers
 POST /v1/tenants/{tenantId}/servers/{serverId}/enroll-token
+POST /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/power-review/{verb}
 POST /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/snapshots
 POST /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/snapshots/{name}/rollback
 POST /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/status/{verb}

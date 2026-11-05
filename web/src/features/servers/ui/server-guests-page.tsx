@@ -6,9 +6,10 @@ import { DataTable, type ColumnDef } from "../../../lib/design/components/data-t
 import { EmptyState } from "../../../lib/design/components/empty-state/empty-state";
 import { TextField } from "../../../lib/design/components/field/text-field";
 import { StatusDot } from "../../../lib/design/components/status-dot/status-dot";
-import { useGuestAction, useGuests, useRollback, useSnapshot, useSnapshots, useTask, type Guest } from "../../../lib/hooks/use-hosts";
+import { useGuests, useRollback, useSnapshot, useSnapshots, useTask, type Guest } from "../../../lib/hooks/use-hosts";
 import { useNavigate, useParams } from "../../../lib/router/router";
 import { PageHeader } from "../../../template/page-header";
+import { PowerReviewDialog } from "../../infrastructure/ui/power-review-dialog";
 
 const columns: ColumnDef<Guest>[] = [
   { id: "name", label: "Name", isRowHeader: true, render: (g) => <span className="font-medium text-fg">{g.name || g.id}</span> },
@@ -35,19 +36,19 @@ export function ServerGuestsPage() {
   const [guestId, setGuestId] = useState("");
   const guest = (guests.data?.items ?? []).find((g) => g.id === guestId);
   const snaps = useSnapshots(base, guest?.id ?? "");
-  const act = useGuestAction(base);
   const snap = useSnapshot(base);
   const back = useRollback(base);
   const [snapName, setSnapName] = useState("");
   const [upid, setUpid] = useState("");
   const [lookup, setLookup] = useState("");
+  const [powerChange, setPowerChange] = useState<"start" | "stop" | "shutdown" | "reboot" | null>(null);
   const task = useTask(base, lookup);
   return (
     <>
       <PageHeader
         eyebrow="Servers"
         title="Guests"
-        description="Machines on this server. Inventory is available now; provider changes are unavailable until AgentHub review is integrated."
+        description="Machines on this server. Guest power changes require a current AgentHub review."
         actions={<Button variant="ghost" size="sm" tooltip="Back to the server list" onPress={() => nav(`/t/${tenantId}/servers`)}>All servers</Button>}
       />
       <Card elevation={2} className="mb-6 overflow-hidden">
@@ -60,8 +61,8 @@ export function ServerGuestsPage() {
           <h2 className="mb-3 text-sm font-semibold text-fg">{guest.name || guest.id}</h2>
           <div className="mb-4 flex flex-wrap gap-2">
             {(["start", "stop", "shutdown", "reboot"] as const).map((verb) => (
-              <Button key={verb} size="sm" variant="secondary" tooltip={`${verb} ${guest.id}. Provider changes are unavailable until AgentHub review is integrated.`} isDisabled={act.isPending}
-                onPress={() => act.mutate({ guest: guest.id, verb })}>
+              <Button key={verb} size="sm" variant="secondary" tooltip={`${verb} ${guest.id} after AgentHub review.`} isDisabled={!!powerChange}
+                onPress={() => setPowerChange(verb)}>
                 {verb}
               </Button>
             ))}
@@ -83,6 +84,7 @@ export function ServerGuestsPage() {
           </ul>
         </Card>
       )}
+      {guest && powerChange && <PowerReviewDialog base={base} guest={guest.id} verb={powerChange} confirmSelf={!!guest.self && powerChange !== "start"} onClose={() => setPowerChange(null)} onExecuted={() => { void guests.refetch(); }} />}
       <Card className="p-5">
         <h2 className="mb-3 text-sm font-semibold text-fg">Task</h2>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); setLookup(upid); }}>

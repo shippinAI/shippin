@@ -11,7 +11,10 @@ records; the control plane owns the authoritative system inventory.
 > repository. Gold signing, compiled approver defaults and the `HUB_OWNER_*`
 > bypass have been removed from Shippin main. The hypervisor-local board adapter
 > and `hv.Guard` have also been removed; generic hypervisor mutation routes remain
-> fail-closed. Shippin persists hostname source/time on enrollment and exposes
+> fail-closed except for single-guest start, stop, shutdown and reboot, which now
+> require exact-action AgentHub review, ticket hash verification, one-shot
+> consumption and persisted operation/review provenance. Batch and all other
+> provider mutations remain fail-closed. Shippin persists hostname source/time on enrollment and exposes
 > audited aliases, tags and explicit AgentHub tenant/machine mappings in the
 > existing infrastructure screen. The operator-configured AgentHub connection,
 > policy metadata check and deployment-generation review workflow are implemented

@@ -66,6 +66,9 @@ Shippin now has AgentHub-backed deployment review preparation and exact-action
 operator authorization in the existing panel; worker-side authorization before
 provider execution remains unimplemented. See the
 [system identity and human review plan](system-identity-human-review-plan.md).
+Single-guest Incus and Proxmox power actions now also use persisted exact-action
+AgentHub review and one-shot Shippin execution provenance. Live policy/quorum and
+provider execution remain unverified; other provider writes stay fail-closed.
 
 The draft service-definition and attachment shapes live in
 `api/openapi/schemas/service-catalog.json`, registered in the OpenAPI document.

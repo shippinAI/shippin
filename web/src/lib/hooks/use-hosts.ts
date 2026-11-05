@@ -45,21 +45,6 @@ const showStarted = (qc: ReturnType<typeof useQueryClient>) => {
   setTimeout(() => void qc.invalidateQueries({ queryKey: ["infra", "operations"] }), 500);
 };
 
-export function useGuestAction(base: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    onMutate: () => showStarted(qc),
-    mutationFn: (v: { guest: string; verb: "start" | "stop" | "shutdown" | "reboot"; confirmSelf?: boolean; note?: string }) =>
-      apiSend<Guest>("POST", `${base}/guests/${v.guest}/status/${v.verb}${v.confirmSelf ? "?confirm=self" : ""}`, undefined, { note: v.note }),
-    onSuccess: (g) => {
-      toast.info(`${g.name || g.id} is ${g.status}`, "That is the status the hypervisor reported after the call.");
-      void qc.invalidateQueries({ queryKey: ["hv", base, "guests"] });
-    },
-    onSettled: () => void qc.invalidateQueries({ queryKey: ["infra", "operations"] }),
-    onError: (e) => reportError("The hypervisor did not change the guest", e),
-  });
-}
-
 export type NewGuest = { kind: string; name: string; image: string; storage?: string; network?: string; memory: number; cores: number; disk: number; start: boolean };
 export type GuestImage = { id: string; label: string; kind?: string };
 export type GuestStorage = { name: string; type: string; content?: string; node?: string };

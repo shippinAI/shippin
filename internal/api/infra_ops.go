@@ -180,6 +180,13 @@ func (a *API) RecoverOperations(ctx context.Context) {
 	if n > 0 {
 		log.Printf("infra operations: %d left open by the last run are now unknown", n)
 	}
+	if a.db != nil {
+		if count, err := a.serverStore().RecoverPowerReviews(ctx); err != nil {
+			log.Printf("infra power reviews recovery: %v", err)
+		} else if count > 0 {
+			log.Printf("infra power reviews: %d interrupted provider actions are now unknown", count)
+		}
+	}
 }
 
 // --- Fleets: a group of hosts in the panel. Nothing here touches a host.

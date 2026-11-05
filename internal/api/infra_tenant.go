@@ -22,13 +22,73 @@ func (a *API) tenantHVRoutes(mux Router) {
 		{"GET /v1/tenants/{tenantId}/servers/{serverId}/health", false, a.tenantHealth},
 		{"GET /v1/tenants/{tenantId}/servers/{serverId}/guests", false, a.tenantGuests},
 		{"GET /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}", false, a.tenantGuest},
-		{"POST /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/status/{verb}", true, a.tenantStatus},
 		{"GET /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/snapshots", false, a.tenantSnapshots},
 		{"POST /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/snapshots", true, a.tenantSnapshot},
 		{"POST /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/snapshots/{name}/rollback", true, a.tenantRollback},
 		{"GET /v1/tenants/{tenantId}/servers/{serverId}/tasks/{upid}", false, a.tenantTask},
 	} {
 		mux.HandleFunc(rt.pattern, a.flow.Require(a.tenantHV(rt.mutate, rt.h)))
+	}
+	mux.HandleFunc("POST /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/power-review/{verb}", a.flow.Require(a.tenantPowerReview(a.prepareInfraPowerReviewFor)))
+	mux.HandleFunc("GET /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/power-reviews/{reviewID}", a.flow.Require(a.tenantPowerReviewRead(a.getInfraPowerReviewFor)))
+	mux.HandleFunc("POST /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/status/{verb}", a.flow.Require(a.tenantPowerReview(a.executeTenantPowerStatus)))
+}
+
+type tenantPowerReviewHandler func(http.ResponseWriter, *http.Request, *caller, string)
+
+func (a *API) tenantPowerReview(h tenantPowerReviewHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !a.cfg.Servers.Enabled && a.hvVisible == nil {
+			auth.Problem(w, http.StatusNotFound, "Servers aren't enabled.")
+			return
+		}
+		c, ok := a.resolve(w, r)
+		if !ok {
+			return
+		}
+		t, ok := c.tenant(w, r.PathValue("tenantId"))
+		if !ok {
+			return
+		}
+		if _, err := a.visibleEndpoint(r.Context(), t.ID, r.PathValue("serverId")); err != nil {
+			auth.Problem(w, http.StatusNotFound, "This server is not available to this organization.")
+			return
+		}
+		if !c.canDecide(t) {
+			auth.Problem(w, http.StatusForbidden, "Guest power actions need the org owner or admin role.")
+			return
+		}
+		note, ok := changeNote(w, r)
+		if !ok {
+			return
+		}
+		c.note = note
+		if !a.auditOperator(w, r, c, t.ID, "infra.guest_power.review", r.PathValue("verb")+" "+r.PathValue("guest")) {
+			return
+		}
+		h(w, r, c, t.ID)
+	}
+}
+
+func (a *API) tenantPowerReviewRead(h tenantPowerReviewHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !a.cfg.Servers.Enabled && a.hvVisible == nil {
+			auth.Problem(w, http.StatusNotFound, "Servers aren't enabled.")
+			return
+		}
+		c, ok := a.resolve(w, r)
+		if !ok {
+			return
+		}
+		t, ok := c.tenant(w, r.PathValue("tenantId"))
+		if !ok {
+			return
+		}
+		if _, err := a.visibleEndpoint(r.Context(), t.ID, r.PathValue("serverId")); err != nil {
+			auth.Problem(w, http.StatusNotFound, "This server is not available to this organization.")
+			return
+		}
+		h(w, r, c, t.ID)
 	}
 }
 
@@ -135,23 +195,16 @@ func (a *API) tenantStatus(w http.ResponseWriter, r *http.Request, c *caller, te
 		return
 	}
 	id, guest := r.PathValue("serverId"), r.PathValue("guest")
-	if !a.permitFor(w, r, c, tenant, id, guest, verb) {
-		return
-	}
-	cl, err := a.tenantDriver(r.Context(), tenant, id)
+	ep, err := a.powerEndpoint(r.Context(), tenant, id)
 	if err != nil {
 		infraErr(w, err)
 		return
 	}
-	if a.refuseSelf(w, r, c, cl, guest, verb) {
-		return
-	}
-	got, err2 := a.tracked(r, c, id, guest, verb, func(ctx context.Context) (hv.Guest, error) { return runVerb(ctx, cl, verb, guest) })
-	if err2 != nil {
-		infraErr(w, err2)
-		return
-	}
-	writeJSON(w, got)
+	a.executeInfraPowerReview(w, r, c, tenant, ep, id, guest, verb)
+}
+
+func (a *API) executeTenantPowerStatus(w http.ResponseWriter, r *http.Request, c *caller, tenant string) {
+	a.tenantStatus(w, r, c, tenant)
 }
 
 func (a *API) tenantSnapshots(w http.ResponseWriter, r *http.Request, _ *caller, tenant string) {

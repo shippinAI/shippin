@@ -62,6 +62,85 @@ func TestOperationsAreDurableAndARestartSettlesThem(t *testing.T) {
 	}
 }
 
+func TestPowerReviewIsIdempotentHashBoundOneShotAndRecoversUnknown(t *testing.T) {
+	s, ctx, tenant := testStore(t)
+	host, err := s.Create(ctx, tenant, "power-review-host", "Power review", "lab", "operator")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const endpointSHA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	const actionSHA = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	const ticketSHA = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+	key := uuid.NewString()
+	id := uuid.NewString()
+	input := PowerReview{ID: id, ServerID: host.ID, Guest: "guest-a", Verb: "reboot", Provider: "incus", EndpointSHA256: endpointSHA,
+		ActionSHA256: actionSHA, IdempotencyKey: key, AgentHubTicket: "shp-" + strings.ReplaceAll(id, "-", ""), Actor: "operator", ActorName: "Operator", Note: "Restart after maintenance"}
+	created, fresh, err := s.ReservePowerReview(ctx, input)
+	if err != nil || !fresh || created.State != "preparing" {
+		t.Fatalf("reserve: %+v fresh=%v err=%v", created, fresh, err)
+	}
+	replay := input
+	replay.ID = uuid.NewString()
+	replay.AgentHubTicket = "shp-" + strings.ReplaceAll(replay.ID, "-", "")
+	got, fresh, err := s.ReservePowerReview(ctx, replay)
+	if err != nil || fresh || got.ID != created.ID {
+		t.Fatalf("idempotent replay: %+v fresh=%v err=%v", got, fresh, err)
+	}
+	conflict := replay
+	conflict.ActionSHA256 = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+	if _, _, err := s.ReservePowerReview(ctx, conflict); !errors.Is(err, ErrPowerReviewConflict) {
+		t.Fatalf("changed action reused key: %v", err)
+	}
+	if _, err := s.SetPowerReviewState(ctx, created.ID, "pending_review", ticketSHA, ""); err != nil {
+		t.Fatal(err)
+	}
+	provenance := map[string]any{"decision_id": "decision-test", "action_sha256": actionSHA}
+	claimed, err := s.ClaimPowerReview(ctx, created.ID, host.ID, actionSHA, ticketSHA, provenance)
+	if err != nil || !claimed {
+		t.Fatalf("claim: claimed=%v err=%v", claimed, err)
+	}
+	claimed, err = s.ClaimPowerReview(ctx, created.ID, host.ID, actionSHA, ticketSHA, provenance)
+	if err != nil || claimed {
+		t.Fatalf("approval replay was claimed: claimed=%v err=%v", claimed, err)
+	}
+	if err := s.FinishPowerReview(ctx, created.ID, "succeeded", ""); err != nil {
+		t.Fatal(err)
+	}
+	final, err := s.GetPowerReview(ctx, created.ID, host.ID)
+	if err != nil || final.State != "succeeded" || len(final.Provenance) == 0 {
+		t.Fatalf("final review: %+v err=%v", final, err)
+	}
+
+	other := input
+	other.ID = uuid.NewString()
+	other.IdempotencyKey = uuid.NewString()
+	other.AgentHubTicket = "shp-" + strings.ReplaceAll(other.ID, "-", "")
+	interrupted, _, err := s.ReservePowerReview(ctx, other)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.SetPowerReviewState(ctx, interrupted.ID, "pending_review", ticketSHA, ""); err != nil {
+		t.Fatal(err)
+	}
+	if claimed, err := s.ClaimPowerReview(ctx, interrupted.ID, host.ID, actionSHA, ticketSHA, provenance); err != nil || !claimed {
+		t.Fatalf("claim interrupted action: %v %v", claimed, err)
+	}
+	if n, err := s.RecoverPowerReviews(ctx); err != nil || n != 1 {
+		t.Fatalf("recover interrupted action: n=%d err=%v", n, err)
+	}
+	recovered, err := s.GetPowerReview(ctx, interrupted.ID, host.ID)
+	if err != nil || recovered.State != "unknown" {
+		t.Fatalf("recovered state: %+v err=%v", recovered, err)
+	}
+	var events int
+	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM shippin_infra_power_review_events WHERE review_id=$1`, created.ID).Scan(&events); err != nil || events != 4 {
+		t.Fatalf("review transition journal count=%d err=%v", events, err)
+	}
+	if _, err := s.Pool.Exec(ctx, `UPDATE shippin_infra_power_review_events SET state='failed' WHERE review_id=$1`, created.ID); err == nil {
+		t.Fatal("append-only review events accepted an update")
+	}
+}
+
 func TestSecretsAndFleetsSurviveTheDatabase(t *testing.T) {
 	s, ctx, _ := testStore(t)
 	sealer, err := NewSealer(testKey)
