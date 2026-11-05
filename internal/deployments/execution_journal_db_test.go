@@ -68,16 +68,51 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 	if err != nil || started || replayed.IdempotencyKey != intent.IdempotencyKey {
 		t.Fatalf("replay=%+v started=%t err=%v", replayed, started, err)
 	}
-	if _, err := store.pool.Exec(ctx, `UPDATE jobs SET lease_owner='worker-b',lease_until=now()+interval '1 minute' WHERE id=$1`, jobID); err != nil {
+	if _, err := store.pool.Exec(ctx, `UPDATE jobs SET status='failed',lease_owner=NULL,lease_until=NULL WHERE id=$1`, jobID); err != nil {
 		t.Fatal(err)
+	}
+	recoveryJobID, recoveryOwner := uuid.NewString(), "worker-recovery"
+	if _, err := store.pool.Exec(ctx, `INSERT INTO jobs(id,tenant_id,kind,target_type,target_id,status,attempts,max_attempts,
+		created_by,lease_owner,lease_until) VALUES($1,$2,'deployment.reconcile','deployment_generation',$3,'running',1,3,'test',$4,now()+interval '1 minute')`,
+		recoveryJobID, tenantID, deployment.ID+":1", recoveryOwner); err != nil {
+		t.Fatal(err)
+	}
+	claimed, didClaim, err := store.ClaimExecutionStepRecoveryWithLease(ctx, tenantID, deployment.ID, 1,
+		recoveryJobID, recoveryOwner, planSHA, step)
+	if err != nil || !didClaim || claimed.State != "intent" {
+		t.Fatalf("recovery claim=%+v didClaim=%t err=%v", claimed, didClaim, err)
+	}
+	claimed, didClaim, err = store.ClaimExecutionStepRecoveryWithLease(ctx, tenantID, deployment.ID, 1,
+		recoveryJobID, recoveryOwner, planSHA, step)
+	if err != nil || didClaim || claimed.State != "intent" {
+		t.Fatalf("recovery claim replay=%+v didClaim=%t err=%v", claimed, didClaim, err)
+	}
+	competingJobID, competingOwner := uuid.NewString(), "worker-competing"
+	if _, err := store.pool.Exec(ctx, `INSERT INTO jobs(id,tenant_id,kind,target_type,target_id,status,attempts,max_attempts,
+		created_by,lease_owner,lease_until) VALUES($1,$2,'deployment.reconcile','deployment_generation',$3,'running',1,3,'test',$4,now()+interval '1 minute')`,
+		competingJobID, tenantID, deployment.ID+":1", competingOwner); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := store.ClaimExecutionStepRecoveryWithLease(ctx, tenantID, deployment.ID, 1,
+		competingJobID, competingOwner, planSHA, step); !errors.Is(err, ErrExecutionStepClaimed) {
+		t.Fatalf("competing live worker claimed recovery: %v", err)
+	}
+	reclaimedOwner := "worker-recovery-reclaimed"
+	if _, err := store.pool.Exec(ctx, `UPDATE jobs SET lease_owner=$2,lease_until=now()+interval '1 minute' WHERE id=$1`, recoveryJobID, reclaimedOwner); err != nil {
+		t.Fatal(err)
+	}
+	claimed, didClaim, err = store.ClaimExecutionStepRecoveryWithLease(ctx, tenantID, deployment.ID, 1,
+		recoveryJobID, reclaimedOwner, planSHA, step)
+	if err != nil || !didClaim || claimed.State != "intent" {
+		t.Fatalf("reclaimed recovery claim=%+v didClaim=%t err=%v", claimed, didClaim, err)
+	}
+	if _, err := store.RecordExecutionStepOutcomeWithLease(ctx, tenantID, deployment.ID, 1, recoveryJobID, recoveryOwner, planSHA, step.IdempotencyKey, "succeeded", "provider-op-1", ""); !errors.Is(err, ErrLostJobLease) {
+		t.Fatalf("replaced recovery lease wrote a result: %v", err)
 	}
 	if _, err := store.RecordExecutionStepOutcomeWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step.IdempotencyKey, "succeeded", "provider-op-1", ""); !errors.Is(err, ErrLostJobLease) {
 		t.Fatalf("replaced lease wrote a result: %v", err)
 	}
-	if _, err := store.pool.Exec(ctx, `UPDATE jobs SET lease_owner=$2,lease_until=now()+interval '1 minute' WHERE id=$1`, jobID, owner); err != nil {
-		t.Fatal(err)
-	}
-	completed, err := store.RecordExecutionStepOutcomeWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step.IdempotencyKey, "succeeded", "provider-op-1", "")
+	completed, err := store.RecordExecutionStepOutcomeWithLease(ctx, tenantID, deployment.ID, 1, recoveryJobID, reclaimedOwner, planSHA, step.IdempotencyKey, "succeeded", "provider-op-1", "")
 	if err != nil || completed.State != "succeeded" || completed.ProviderOperationID != "provider-op-1" {
 		t.Fatalf("outcome=%+v err=%v", completed, err)
 	}
@@ -86,8 +121,8 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 		t.Fatalf("completed step replay=%+v started=%t err=%v", replayed, started, err)
 	}
 	var eventCount int
-	if err := store.pool.QueryRow(ctx, `SELECT count(*) FROM shippin_deployment_execution_step_events WHERE tenant_id=$1 AND idempotency_key=$2`, tenantID, step.IdempotencyKey).Scan(&eventCount); err != nil || eventCount != 2 {
-		t.Fatalf("expected one intent and one outcome event, count=%d err=%v", eventCount, err)
+	if err := store.pool.QueryRow(ctx, `SELECT count(*) FROM shippin_deployment_execution_step_events WHERE tenant_id=$1 AND idempotency_key=$2`, tenantID, step.IdempotencyKey).Scan(&eventCount); err != nil || eventCount != 3 {
+		t.Fatalf("expected intent, recovery claim and outcome events, count=%d err=%v", eventCount, err)
 	}
 	if _, err := store.pool.Exec(ctx, `UPDATE shippin_deployment_execution_step_events SET actor='changed' WHERE tenant_id=$1 AND idempotency_key=$2`, tenantID, step.IdempotencyKey); err == nil {
 		t.Fatal("execution step history was mutable")

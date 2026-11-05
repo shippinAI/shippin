@@ -11,7 +11,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-var ErrExecutionStepConflict = errors.New("deployment execution step conflicts with its recorded intent")
+var (
+	ErrExecutionStepConflict = errors.New("deployment execution step conflicts with its recorded intent")
+	ErrExecutionStepClaimed  = errors.New("deployment execution step is claimed by another live recovery worker")
+)
 
 // ExecutionStepRecord is the bounded Shippin journal projection for one
 // approved plan step. It intentionally contains no request configuration or
@@ -139,15 +142,23 @@ func (s *Store) RecordExecutionStepOutcomeWithLease(ctx context.Context, tenantI
 		return ExecutionStepRecord{}, err
 	}
 	var planVersion int
-	err = tx.QueryRow(ctx, `SELECT plan_version FROM shippin_deployment_execution_steps
-		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=$3 AND idempotency_key=$4
-		AND plan_sha256=$5 AND intent_job_id=$6 AND intent_lease_owner=$7 AND state IN ('intent','succeeded','failed','unknown') FOR UPDATE`,
-		tenantID, deploymentID, generation, idempotencyKey, planSHA256, jobID, leaseOwner).Scan(&planVersion)
+	var recoveryJobID, recoveryOwner string
+	err = tx.QueryRow(ctx, `SELECT plan_version,coalesce(recovery_job_id::text,''),coalesce(recovery_lease_owner,'')
+		FROM shippin_deployment_execution_steps WHERE tenant_id=$1 AND deployment_id=$2 AND generation=$3 AND idempotency_key=$4
+		AND plan_sha256=$5 AND state IN ('intent','succeeded','failed','unknown') FOR UPDATE`,
+		tenantID, deploymentID, generation, idempotencyKey, planSHA256).Scan(&planVersion, &recoveryJobID, &recoveryOwner)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ExecutionStepRecord{}, ErrExecutionStepConflict
 	}
 	if err != nil {
 		return ExecutionStepRecord{}, err
+	}
+	var hasRecoveryClaim bool
+	if recoveryJobID != "" {
+		if recoveryJobID != jobID || recoveryOwner != leaseOwner {
+			return ExecutionStepRecord{}, ErrExecutionStepConflict
+		}
+		hasRecoveryClaim = true
 	}
 	var existing string
 	err = tx.QueryRow(ctx, `SELECT state FROM shippin_deployment_execution_steps WHERE tenant_id=$1 AND idempotency_key=$2`, tenantID, idempotencyKey).Scan(&existing)
@@ -155,6 +166,16 @@ func (s *Store) RecordExecutionStepOutcomeWithLease(ctx context.Context, tenantI
 		return ExecutionStepRecord{}, err
 	}
 	if existing == "intent" {
+		if !hasRecoveryClaim {
+			var originalJobID, originalOwner string
+			if err := tx.QueryRow(ctx, `SELECT intent_job_id::text,intent_lease_owner FROM shippin_deployment_execution_steps
+				WHERE tenant_id=$1 AND idempotency_key=$2`, tenantID, idempotencyKey).Scan(&originalJobID, &originalOwner); err != nil {
+				return ExecutionStepRecord{}, err
+			}
+			if originalJobID != jobID || originalOwner != leaseOwner {
+				return ExecutionStepRecord{}, ErrExecutionStepConflict
+			}
+		}
 		_, err = tx.Exec(ctx, `UPDATE shippin_deployment_execution_steps SET state=$3,
 			provider_operation_id=NULLIF($4,''),failure_code=NULLIF($5,''),completed_at=now()
 			WHERE tenant_id=$1 AND idempotency_key=$2 AND state='intent'`, tenantID, idempotencyKey, state, providerOperationID, failureCode)
@@ -186,6 +207,94 @@ func (s *Store) RecordExecutionStepOutcomeWithLease(ctx context.Context, tenantI
 		return ExecutionStepRecord{}, ErrExecutionStepConflict
 	}
 	return record, nil
+}
+
+// ClaimExecutionStepRecoveryWithLease transfers an ambiguous provider-step
+// intent to the current leased worker. It never authorizes a provider retry:
+// callers must inspect exact provider ownership and state before recording an
+// outcome. Expired recovery claims may be replaced; live claims may not.
+func (s *Store) ClaimExecutionStepRecoveryWithLease(ctx context.Context, tenantID, deploymentID string, generation int64,
+	jobID, leaseOwner, planSHA256 string, step ExecutionStep) (ExecutionStepRecord, bool, error) {
+	if !validUUID(tenantID) || !validUUID(deploymentID) || !validUUID(jobID) || generation < 1 ||
+		!validExecutionLeaseOwner(leaseOwner) || !validSHA256Value(planSHA256) ||
+		step.ID == "" || step.Operation == "" || !validSHA256Value(step.IdempotencyKey) {
+		return ExecutionStepRecord{}, false, ErrInvalidRequest
+	}
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return ExecutionStepRecord{}, false, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if err := checkExecutionLease(ctx, tx, tenantID, deploymentID, generation, jobID, leaseOwner); err != nil {
+		return ExecutionStepRecord{}, false, err
+	}
+	deployment, err := scanDeployment(tx.QueryRow(ctx, deploymentGenerationSelect+
+		` WHERE d.tenant_id=$1 AND d.id=$2 AND g.generation=$3 FOR UPDATE OF d`, tenantID, deploymentID, generation))
+	if err != nil {
+		return ExecutionStepRecord{}, false, err
+	}
+	plan, err := BuildExecutionPlan(tenantID, deployment)
+	if err != nil {
+		return ExecutionStepRecord{}, false, err
+	}
+	digest, err := plan.Fingerprint()
+	if err != nil || digest != planSHA256 || !planContainsStep(plan, step) {
+		return ExecutionStepRecord{}, false, ErrReviewConflict
+	}
+	var record ExecutionStepRecord
+	err = tx.QueryRow(ctx, `SELECT tenant_id::text,deployment_id::text,generation,plan_version,plan_sha256,step_id,
+		operation,idempotency_key,state,attempt,coalesce(provider_operation_id,''),coalesce(failure_code,''),intent_at,
+		coalesce(completed_at,'epoch'::timestamptz)
+		FROM shippin_deployment_execution_steps WHERE tenant_id=$1 AND deployment_id=$2 AND generation=$3
+		AND plan_sha256=$4 AND idempotency_key=$5 FOR UPDATE`, tenantID, deploymentID, generation, digest, step.IdempotencyKey).Scan(
+		&record.TenantID, &record.DeploymentID, &record.Generation, &record.PlanVersion, &record.PlanSHA256,
+		&record.StepID, &record.Operation, &record.IdempotencyKey, &record.State, &record.Attempt,
+		&record.ProviderOperationID, &record.FailureCode, &record.IntentAt, &record.CompletedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ExecutionStepRecord{}, false, ErrNotFound
+	}
+	if err != nil {
+		return ExecutionStepRecord{}, false, err
+	}
+	if record.State != "intent" || record.StepID != step.ID || record.Operation != step.Operation {
+		return ExecutionStepRecord{}, false, ErrExecutionStepConflict
+	}
+	var oldJobID, oldOwner string
+	err = tx.QueryRow(ctx, `SELECT coalesce(recovery_job_id::text,''),coalesce(recovery_lease_owner,'')
+		FROM shippin_deployment_execution_steps WHERE tenant_id=$1 AND idempotency_key=$2`, tenantID, step.IdempotencyKey).Scan(&oldJobID, &oldOwner)
+	if err != nil {
+		return ExecutionStepRecord{}, false, err
+	}
+	if oldJobID == jobID && oldOwner == leaseOwner {
+		if err := tx.Commit(ctx); err != nil {
+			return ExecutionStepRecord{}, false, err
+		}
+		return record, false, nil
+	}
+	if oldJobID != "" && oldJobID != jobID {
+		var live bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM jobs WHERE id=$1 AND status='running' AND lease_until>now())`, oldJobID).Scan(&live); err != nil {
+			return ExecutionStepRecord{}, false, err
+		}
+		if live {
+			return ExecutionStepRecord{}, false, ErrExecutionStepClaimed
+		}
+	}
+	_, err = tx.Exec(ctx, `UPDATE shippin_deployment_execution_steps SET recovery_job_id=$3,
+		recovery_lease_owner=$4,recovery_attempts=recovery_attempts+1
+		WHERE tenant_id=$1 AND idempotency_key=$2 AND state='intent'`, tenantID, step.IdempotencyKey, jobID, leaseOwner)
+	if err != nil {
+		return ExecutionStepRecord{}, false, err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO shippin_deployment_execution_step_events
+		(id,tenant_id,idempotency_key,event_type,actor) VALUES($1,$2,$3,'recovery_claimed',$4)`,
+		uuid.NewString(), tenantID, step.IdempotencyKey, leaseOwner); err != nil {
+		return ExecutionStepRecord{}, false, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return ExecutionStepRecord{}, false, err
+	}
+	return record, true, nil
 }
 
 func scanExecutionStep(row pgx.Row) (ExecutionStepRecord, error) {
