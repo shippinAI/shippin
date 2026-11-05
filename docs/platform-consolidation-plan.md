@@ -233,12 +233,13 @@ jobs. No live Proxmox endpoint was available, so real permission and payload
 behavior remain unverified. Cluster-wide aggregation and any writes remain out
 of scope.
 
-The next active packet is deployment runtime. The current clean-main full check
-ran on 2026-11-05 at `e88bc24` and passed (`bash scripts/check.sh`, exit 0).
-GitHub Checks run `41999295954` for `e88bc24` passed all 13 jobs, including
-database-backed identity/API suites and the fresh install, upgrade, compose,
-panel, public-tree and gitleaks jobs. `gh pr list --state open` returned no
-open pull requests. The source-hashed work plan is stored in ignored session
+The active packet is deployment runtime. `bash scripts/check.sh` passed locally
+after packet 4.2f. Commit `b82ae39` is pushed to `main`; GitHub Checks run
+`42012968075` passed all 13 jobs, including database-backed identity/API suites,
+fresh install, upgrade, compose, panel, public-tree and gitleaks jobs. The
+closed public-tree PR #17 was not merged, but its correction is already on
+`main` in `5265ef2`; its Checks run `41780191722` passed. `gh pr list --state
+open` returned no open pull requests. The source-hashed work plan is stored in ignored session
 `.ai/data/sessions/2026/11/519ed9b9-8e0c-4dfe-b026-ff03580ef9f3/` and its
 plan and refreshed source baseline validate against the latest files. The plan
 orders the remaining work as:
@@ -256,8 +257,11 @@ that exposure an explicit, persisted, default-deny operator setting and checks
 it before the Vaultix resolver makes a network request; it does not isolate
 secrets from a trusted Incus administrator. Proxmox has no app executor.
 Private Incus NIC intent is configurable and provider-revalidated; neither it
-nor the new trust policy constitutes an executed deployment. Continue through
-the remaining named subpackets and retain explicit unsupported states until
+nor the new trust policy constitutes an executed deployment. Packet 4.2f adds
+lease-fenced enumeration of unresolved plan intents in approved order and exact
+read-only Incus volume inspection. CI covers the DB-backed intent enumeration
+and provider inspection tests, but the worker does not call either path yet.
+Continue through the remaining named subpackets and retain explicit unsupported states until
 their behavior is implemented and verified.
 
 ### Evidence update rules
