@@ -51,6 +51,16 @@ var ociDigestPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 var ociEnvironmentName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,127}$`)
 var ociNetworkName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$`)
 
+// OCIApplicationName returns the stable, installation-independent Incus name
+// for one Shippin deployment. The generation remains in ownership metadata.
+func OCIApplicationName(deploymentID string) (string, error) {
+	id, err := uuid.Parse(deploymentID)
+	if err != nil {
+		return "", errors.New("incus: application name requires a deployment UUID")
+	}
+	return "shippin-" + strings.ReplaceAll(id.String(), "-", ""), nil
+}
+
 // parseOCIApplicationReference accepts a fully qualified registry/repository
 // reference with an immutable OCI manifest digest. Registry credentials are
 // intentionally out of scope for this anonymous-registry primitive.
@@ -179,6 +189,33 @@ func (c *Client) EnsureOCIApplicationVolume(ctx context.Context, spec OCIApplica
 		return errors.New("incus: OCI application has no declared persistent volume")
 	}
 	return c.ensureOCIApplicationVolume(ctx, spec)
+}
+
+// InspectOCIApplicationVolume performs read-only inspection of the exact
+// deployment-owned custom volume. It never creates, resizes, or deletes data.
+func (c *Client) InspectOCIApplicationVolume(ctx context.Context, spec OCIApplicationSpec) (bool, error) {
+	if _, err := validateOCIApplicationSpec(spec); err != nil {
+		return false, err
+	}
+	if spec.StoragePool == "" {
+		return false, errors.New("incus: OCI application has no declared persistent volume")
+	}
+	volumePath := c.path("/1.0/storage-pools/" + url.PathEscape(spec.StoragePool) + "/volumes/custom/" +
+		url.PathEscape(ociApplicationVolumeName(spec.DeploymentID)))
+	body, code, err := c.do(ctx, http.MethodGet, volumePath, nil)
+	if err != nil {
+		return false, err
+	}
+	if code == http.StatusNotFound {
+		return false, nil
+	}
+	if code != http.StatusOK {
+		return false, fmt.Errorf("incus: persistent volume inspection HTTP %d: %s", code, clip(body))
+	}
+	if err := validateOCIApplicationVolume(body, spec); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // CreateOCIApplicationStopped creates or reads back the exact OCI instance

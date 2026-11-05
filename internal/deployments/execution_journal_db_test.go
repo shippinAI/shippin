@@ -64,6 +64,11 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 	if err != nil || !started || intent.State != "intent" || intent.Attempt != 1 {
 		t.Fatalf("intent=%+v started=%t err=%v", intent, started, err)
 	}
+	unresolvedPlan, unresolvedDigest, unresolved, err := store.UnresolvedExecutionStepsWithLease(ctx, tenantID,
+		deployment.ID, 1, jobID, owner)
+	if err != nil || unresolvedDigest != planSHA || unresolvedPlan.Version != plan.Version || len(unresolved) != 1 || unresolved[0].IdempotencyKey != step.IdempotencyKey {
+		t.Fatalf("unresolved steps plan=%+v digest=%s steps=%+v err=%v", unresolvedPlan, unresolvedDigest, unresolved, err)
+	}
 	replayed, started, err := store.BeginExecutionStepWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step)
 	if err != nil || started || replayed.IdempotencyKey != intent.IdempotencyKey {
 		t.Fatalf("replay=%+v started=%t err=%v", replayed, started, err)

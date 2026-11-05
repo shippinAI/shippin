@@ -8,6 +8,57 @@ import (
 	"testing"
 )
 
+func TestOCIApplicationNameIsStableAndRequiresDeploymentID(t *testing.T) {
+	name, err := OCIApplicationName(testDeploymentID)
+	if err != nil || name != "shippin-11111111111141118111111111111111" {
+		t.Fatalf("name=%q err=%v", name, err)
+	}
+	if _, err := OCIApplicationName("not-a-uuid"); err == nil {
+		t.Fatal("invalid deployment identity produced an Incus name")
+	}
+}
+
+func TestInspectOCIApplicationVolumeIsReadOnlyAndExact(t *testing.T) {
+	reads, writes := 0, 0
+	volumeExists := false
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			writes++
+			http.Error(w, "volume inspection must be read-only", http.StatusInternalServerError)
+			return
+		}
+		reads++
+		if !volumeExists {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"metadata": map[string]any{
+			"name":        "shippin-11111111111141118111111111111111",
+			"description": "Shippin deployment " + testDeploymentID,
+			"config":      map[string]string{"size": "32GiB"},
+		}})
+	}))
+	defer srv.Close()
+	spec := OCIApplicationSpec{Name: "app-1", DeploymentID: testDeploymentID, Generation: 3,
+		ImageReference: testOCIReference, Network: "private-apps", MemoryMiB: 1024, Cores: 2,
+		StoragePool: "tenant-pool", StorageSizeGiB: 32, MountPath: "/var/lib/postgresql/data"}
+	client := clientFor(t, srv)
+	if exists, err := client.InspectOCIApplicationVolume(context.Background(), spec); err != nil || exists {
+		t.Fatalf("absent volume exists=%t err=%v", exists, err)
+	}
+	volumeExists = true
+	if exists, err := client.InspectOCIApplicationVolume(context.Background(), spec); err != nil || !exists {
+		t.Fatalf("owned volume exists=%t err=%v", exists, err)
+	}
+	spec.StorageSizeGiB++
+	if _, err := client.InspectOCIApplicationVolume(context.Background(), spec); err == nil {
+		t.Fatal("volume with a different size was accepted")
+	}
+	if writes != 0 || reads != 3 {
+		t.Fatalf("inspection reads=%d writes=%d", reads, writes)
+	}
+}
+
 func TestCreateOCIApplicationStoppedDoesNotCreateStorageOrChangePower(t *testing.T) {
 	created := false
 	creates, powerChanges := 0, 0

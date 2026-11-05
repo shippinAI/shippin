@@ -20,6 +20,75 @@ type ExecutionRecoverySnapshot struct {
 	EnvironmentInputs []catalog.RuntimeEnvironmentInput
 }
 
+// UnresolvedExecutionStepsWithLease returns outstanding intents in approved
+// plan order. It performs no provider or secret-manager I/O.
+func (s *Store) UnresolvedExecutionStepsWithLease(ctx context.Context, tenantID, deploymentID string, generation int64,
+	jobID, leaseOwner string) (ExecutionPlan, string, []ExecutionStepRecord, error) {
+	if !validUUID(tenantID) || !validUUID(deploymentID) || !validUUID(jobID) || generation < 1 || !validExecutionLeaseOwner(leaseOwner) {
+		return ExecutionPlan{}, "", nil, ErrInvalidRequest
+	}
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return ExecutionPlan{}, "", nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if err := checkExecutionLease(ctx, tx, tenantID, deploymentID, generation, jobID, leaseOwner); err != nil {
+		return ExecutionPlan{}, "", nil, err
+	}
+	deployment, err := scanDeployment(tx.QueryRow(ctx, deploymentGenerationSelect+
+		` WHERE d.tenant_id=$1 AND d.id=$2 AND g.generation=$3 FOR UPDATE OF d`, tenantID, deploymentID, generation))
+	if err != nil {
+		return ExecutionPlan{}, "", nil, err
+	}
+	plan, err := BuildExecutionPlan(tenantID, deployment)
+	if err != nil {
+		return ExecutionPlan{}, "", nil, err
+	}
+	digest, err := plan.Fingerprint()
+	if err != nil {
+		return ExecutionPlan{}, "", nil, err
+	}
+	rows, err := tx.Query(ctx, `SELECT tenant_id::text,deployment_id::text,generation,plan_version,plan_sha256,
+		step_id,operation,idempotency_key,state,attempt,coalesce(provider_operation_id,''),coalesce(failure_code,''),
+		intent_at,coalesce(completed_at,'epoch'::timestamptz)
+		FROM shippin_deployment_execution_steps WHERE tenant_id=$1 AND deployment_id=$2 AND generation=$3
+		AND plan_sha256=$4 AND state='intent' ORDER BY intent_at,idempotency_key FOR UPDATE`,
+		tenantID, deploymentID, generation, digest)
+	if err != nil {
+		return ExecutionPlan{}, "", nil, err
+	}
+	byKey := make(map[string]ExecutionStepRecord)
+	for rows.Next() {
+		record, scanErr := scanExecutionStep(rows)
+		if scanErr != nil {
+			rows.Close()
+			return ExecutionPlan{}, "", nil, scanErr
+		}
+		byKey[record.IdempotencyKey] = record
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return ExecutionPlan{}, "", nil, err
+	}
+	rows.Close()
+	unresolved := make([]ExecutionStepRecord, 0, len(byKey))
+	for _, step := range plan.Steps {
+		if record, ok := byKey[step.IdempotencyKey]; ok {
+			if record.StepID != step.ID || record.Operation != step.Operation {
+				return ExecutionPlan{}, "", nil, ErrExecutionStepConflict
+			}
+			unresolved = append(unresolved, record)
+		}
+	}
+	if len(unresolved) != len(byKey) {
+		return ExecutionPlan{}, "", nil, ErrExecutionStepConflict
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return ExecutionPlan{}, "", nil, err
+	}
+	return plan, digest, unresolved, nil
+}
+
 // ExecutionRecoverySnapshotWithLease reloads a claimed intent from its pinned
 // generation. It performs no provider or secret-manager I/O and refuses stale
 // generations, plans, claims, or leases.
