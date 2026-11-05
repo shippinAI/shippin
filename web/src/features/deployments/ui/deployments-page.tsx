@@ -19,7 +19,7 @@ import { PageHeader } from "../../../template/page-header";
 import { QueryView } from "../../admin/ui/query-view";
 import { ServiceConfigForm } from "./service-config-form";
 import { currentGenerationFailure, deploymentFailureMessage } from "../deployment-status";
-import { supportsRuntimeTarget } from "../runtime-targets";
+import { requiresIncusStorageSelection, supportsRuntimeTarget } from "../runtime-targets";
 
 const isObject = (value: unknown): value is Record<string, Json> => value !== null && typeof value === "object" && !Array.isArray(value);
 const serviceSource = (source: DeploymentSource) => source.kind === "oci"
@@ -126,7 +126,7 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
   const [targetId, setTargetId] = useState(deployment?.target_system_id ?? compatibleTargets[0]?.id ?? "");
   const [storagePool, setStoragePool] = useState(deployment?.target_config.storage?.pool ?? "");
   const selectedTarget = compatibleTargets.find((target) => target.id === targetId);
-  const storageRequired = !deployment && service?.runtime_contract.version === 2;
+  const storageRequired = !deployment && requiresIncusStorageSelection(service?.runtime_contract);
   const targetStorage = useDeploymentTargetStorage(tenantId, targetId,
     storageRequired && selectedTarget?.provider === "incus" && selectedTarget.state === "active");
   const [configText, setConfigText] = useState(() => JSON.stringify(deployment?.config ?? service?.default_config ?? {}, null, 2));
