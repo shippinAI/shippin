@@ -24,10 +24,11 @@ under `shippin_` table names, seals credentials through the configured installat
 key, and treats remote inventory as observation rather than a deployed change.
 
 `internal/catalog/` owns reusable service definitions, customer plan/configuration
-and pinned source provenance. The planned `internal/deployments/` bounded context
-owns tenant-scoped deployment generations, provider targets, desired/observed state,
-reconciliation and deployment events. `internal/jobs/` remains the durable worker
-lease/retry mechanism, not deployment truth. `internal/hv/incus/` and
+and pinned source provenance. `internal/deployments/` owns tenant-scoped deployment
+generations, the transactional `shippin_` outbox, provider targets, desired/observed
+state, reconciliation and deployment events. The outbox producer is implemented;
+the relay, worker and provider application runtime remain planned. `internal/jobs/`
+remains the durable worker lease/retry mechanism, not deployment truth. `internal/hv/incus/` and
 `internal/hv/proxmox/` retain provider-specific guest behavior; `internal/hostd/`
 owns only the bounded in-guest bootstrap and workload operations exposed through its
 authenticated contract. No provider or builder implementation may be hidden in the

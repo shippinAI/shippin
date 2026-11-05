@@ -218,6 +218,9 @@ func (s *Store) Create(ctx context.Context, tenant, actor string, input CreateIn
 		eventID, deploymentID, tenant, EventRequested, actor); err != nil {
 		return nil, false, err
 	}
+	if err := insertOutbox(ctx, tx, tenant, deploymentID.String(), 1, actor); err != nil {
+		return nil, false, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, false, err
 	}
@@ -304,6 +307,9 @@ func (s *Store) Update(ctx context.Context, tenant, id, actor string, expectedGe
 	if _, err := tx.Exec(ctx, `INSERT INTO shippin_deployment_events
 		(id,deployment_id,tenant_id,generation,event_type,actor) VALUES($1,$2,$3,$4,$5,$6)`,
 		eventID, id, tenant, nextGeneration, EventRequested, actor); err != nil {
+		return nil, false, err
+	}
+	if err := insertOutbox(ctx, tx, tenant, id, nextGeneration, actor); err != nil {
 		return nil, false, err
 	}
 	if err := tx.Commit(ctx); err != nil {

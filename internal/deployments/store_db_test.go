@@ -74,12 +74,19 @@ func TestStoreCreateReplayTenantScopeEventsAndAppendOnlyHistory(t *testing.T) {
 	if created.Source.Kind != "github" || created.Source.Commit != "0123456789abcdef0123456789abcdef01234567" {
 		t.Fatalf("pinned source snapshot missing: %+v", created.Source)
 	}
+	outbox, err := store.PendingOutbox(ctx, 100)
+	if err != nil || len(outbox) != 1 || outbox[0].TenantID != tenantID || outbox[0].DeploymentID != created.ID || outbox[0].Generation != 1 {
+		t.Fatalf("create did not atomically add its generation wake-up: items=%+v err=%v", outbox, err)
+	}
 	replayed, isNew, err := store.Create(ctx, tenantID, "operator@example.test", input)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if isNew || replayed.ID != created.ID || replayed.Generation != created.Generation {
 		t.Fatalf("idempotency replay created new desired state: new=%t deployment=%+v", isNew, replayed)
+	}
+	if outbox, err = store.PendingOutbox(ctx, 100); err != nil || len(outbox) != 1 {
+		t.Fatalf("idempotent create replay added an outbox row: items=%+v err=%v", outbox, err)
 	}
 	changed := input
 	changed.Config = json.RawMessage(`{"port":5433,"password":"vaultix://org/project/env/postgres"}`)
@@ -106,6 +113,23 @@ func TestStoreCreateReplayTenantScopeEventsAndAppendOnlyHistory(t *testing.T) {
 	secondUpdate := UpdateInput{DesiredState: DesiredPresent, IdempotencyKey: uuid.NewString(), Config: update.Config}
 	if later, isNew, err := store.Update(ctx, tenantID, created.ID, "operator@example.test", 2, secondUpdate); err != nil || !isNew || later.Generation != 3 {
 		t.Fatalf("second update: new=%t deployment=%+v err=%v", isNew, later, err)
+	}
+	outbox, err = store.PendingOutbox(ctx, 100)
+	if err != nil || len(outbox) != 3 || outbox[1].Generation != 2 || outbox[2].Generation != 3 {
+		t.Fatalf("each new generation must have one ordered outbox row: items=%+v err=%v", outbox, err)
+	}
+	jobID := uuid.NewString()
+	if err := store.MarkOutboxPublished(ctx, outbox[0].ID, jobID); err != nil {
+		t.Fatalf("mark outbox published: %v", err)
+	}
+	if err := store.MarkOutboxPublished(ctx, outbox[0].ID, jobID); err != nil {
+		t.Fatalf("same job publication replay must be idempotent: %v", err)
+	}
+	if err := store.MarkOutboxPublished(ctx, outbox[0].ID, uuid.NewString()); !errors.Is(err, ErrOutboxConflict) {
+		t.Fatalf("different publication replay: got %v", err)
+	}
+	if pending, err := store.PendingOutbox(ctx, 100); err != nil || len(pending) != 2 {
+		t.Fatalf("published outbox row was not removed from pending view: items=%+v err=%v", pending, err)
 	}
 	createReplayAfterUpdates, isNew, err := store.Create(ctx, tenantID, "operator@example.test", input)
 	if err != nil || isNew || createReplayAfterUpdates.Generation != 1 {
@@ -136,6 +160,62 @@ func TestStoreCreateReplayTenantScopeEventsAndAppendOnlyHistory(t *testing.T) {
 	}
 	if _, err := store.pool.Exec(ctx, `DELETE FROM shippin_deployment_generations WHERE deployment_id=$1`, created.ID); err == nil {
 		t.Fatal("append-only generation delete succeeded")
+	}
+}
+
+func TestStoreGenerationAndOutboxInsertAreAtomic(t *testing.T) {
+	store, tenantID, serverID := deploymentTestStore(t)
+	ctx := context.Background()
+	if _, err := store.pool.Exec(ctx, `CREATE FUNCTION shippin_test_reject_outbox() RETURNS trigger LANGUAGE plpgsql AS $$
+		BEGIN RAISE EXCEPTION 'test outbox failure'; END; $$;
+		CREATE TRIGGER shippin_test_reject_outbox BEFORE INSERT ON shippin_deployment_outbox
+		FOR EACH ROW EXECUTE FUNCTION shippin_test_reject_outbox()`); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
+		ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`),
+	})
+	if err == nil {
+		t.Fatal("create succeeded when its transactional outbox insert failed")
+	}
+	for _, table := range []string{"shippin_deployments", "shippin_deployment_generations", "shippin_deployment_events", "shippin_deployment_outbox"} {
+		var count int
+		if err := store.pool.QueryRow(ctx, `SELECT count(*) FROM `+table).Scan(&count); err != nil || count != 0 {
+			t.Fatalf("outbox failure left partial intent in %s: count=%d err=%v", table, count, err)
+		}
+	}
+	if _, err := store.pool.Exec(ctx, `DROP TRIGGER shippin_test_reject_outbox ON shippin_deployment_outbox`); err != nil {
+		t.Fatal(err)
+	}
+	created, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
+		ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.pool.Exec(ctx, `CREATE TRIGGER shippin_test_reject_outbox BEFORE INSERT ON shippin_deployment_outbox
+		FOR EACH ROW EXECUTE FUNCTION shippin_test_reject_outbox()`); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = store.Update(ctx, tenantID, created.ID, "operator@example.test", 1, UpdateInput{
+		DesiredState: DesiredPresent, IdempotencyKey: uuid.NewString(),
+		Config: json.RawMessage(`{"port":5433,"password":"vaultix://org/project/env/postgres"}`),
+	})
+	if err == nil {
+		t.Fatal("update succeeded when its transactional outbox insert failed")
+	}
+	current, err := store.Get(ctx, tenantID, created.ID)
+	if err != nil || current.Generation != 1 {
+		t.Fatalf("outbox failure advanced the desired generation: current=%+v err=%v", current, err)
+	}
+	for table, expected := range map[string]int{"shippin_deployments": 1, "shippin_deployment_generations": 1,
+		"shippin_deployment_events": 1, "shippin_deployment_outbox": 1} {
+		var count int
+		if err := store.pool.QueryRow(ctx, `SELECT count(*) FROM `+table).Scan(&count); err != nil || count != expected {
+			t.Fatalf("outbox failure left partial update in %s: count=%d want=%d err=%v", table, count, expected, err)
+		}
 	}
 }
 

@@ -12,6 +12,8 @@ The deployment API currently persists tenant-scoped desired generations, immutab
 
 `internal/jobs.Runner` provides PostgreSQL-backed leases, heartbeats, retries and lost-lease cancellation. `API.registerJobs` wires workspace, tenant, boundary, project/agent and rrflow service handlers. `jobs.KindServiceProvision` is the rrflow state/binding workflow in `internal/api/job_managed.go`; it is not a general service deployment executor. Existing `hv.GuestManager` and provider drivers manage VM/container lifecycle, not application artifacts or database engine lifecycle.
 
+The outbox producer is implemented: migration `051` adds the prefixed generation-fenced table, and deployment create/update writes an identifier-only row in the same transaction as the generation and requested event. PostgreSQL tests exercise create/update generation coverage, idempotent replay, publication marking and rollback when outbox insertion fails. The leader relay and deployment worker are not wired yet, so these rows are not currently dispatched.
+
 The next capability must connect these components without making the jobs table deployment truth, calling providers in HTTP handlers, or claiming that generic guest CRUD installs PostgreSQL, Dragonfly, Redis or ClickHouse.
 
 ## Decision
@@ -85,7 +87,7 @@ Rejected. Policy/ticket/mapping can change between review and execution. Every a
 
 ## Required implementation slices
 
-1. Add `shippin_deployment_outbox` and transactionally write it from deployment create/update. Add safe claim/publish APIs and database-backed atomicity/replay tests.
+1. **Partially implemented:** add `shippin_deployment_outbox` and transactionally write it from deployment create/update. Database-backed atomicity, generation coverage, idempotency and publication-marking tests pass. Wire the leader relay and verify crash/replay with a registered worker before closing this slice.
 2. Register a dedicated `deployment.reconcile` job. Add relay recovery, stale-generation coalescing, idempotent wake-ups, lease-loss fencing and operator-visible job/event linkage. Do not change the semantics of rrflow `service.provision`.
 3. Extract an AgentHub authorization service shared by the review endpoint and worker. Worker authorization must re-read current mapping, policy, ticket and generation and append a decision event before dispatch. Add denial/no-match/stale-policy/stale-ticket/timeout/restart/replay tests proving provider call count stays zero.
 4. Define and validate the typed service runtime schema and secret resolver. Separate OCI resolution/build isolation from provider guest lifecycle; specify resource, volume, network, health and engine operations.
