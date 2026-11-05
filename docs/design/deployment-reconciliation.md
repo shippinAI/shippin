@@ -254,6 +254,29 @@ This is still not a successful service deployment: the worker records
 `runtime_unsupported` after the power step. The declared TCP health contract has
 no verified guest address/reachability path from the control plane, and there
 is no complete delete/upgrade/backup/restore lifecycle or Proxmox application
-executor. No live Incus operation has been verified. This change must pass the
-repository checks and PostgreSQL CI before this checkpoint is treated as
-verified.
+executor. No live Incus operation has been verified. Commit `0722b96` passed `bash scripts/check.sh` and all 13 GitHub Checks,
+including the PostgreSQL API suite, in run `42029507436`.
+
+### Health reachability gate
+
+The current platform-service probe in `internal/api/services.go` dials TCP or
+HTTP from the console process. Its provider-resource join separately asks the
+configured hypervisor for guest status and metrics; it does not establish that
+the application port is reachable. `hv.Guest` contains no guest addresses, and
+the current `shippin-agent` is a read-only diagnostics CLI, not a per-server
+probe service. A private Incus bridge address is therefore not a safe implicit
+probe target: a remote console may have no route to that bridge.
+
+Before implementing deployment `verify_declared_health`, add a target-scoped,
+authenticated probe capability at the server boundary. It must identify the
+approved deployment and generation, re-read provider ownership and network
+attachment on that server, accept only the declared bounded protocol/port and
+timeout, perform the dial from a namespace that can route to the guest, and
+return a timestamped observation without exposing credentials or arbitrary
+addresses. Server-to-agent enrollment and endpoint configuration must work for
+each attached Incus or Proxmox system; the single installation `HostdURL` is
+not proof of reachability for every provider. Proxmox guest IP discovery needs
+its own declared capability (for example, a configured and available guest
+agent) and must remain unsupported when absent. The UI must distinguish
+provider state, guest reachability, and application health. Do not turn a
+running guest into a healthy or ready service by assumption.
