@@ -6,12 +6,14 @@ import (
 	"errors"
 
 	"shippin.cloud/console/internal/deployments"
+	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/incus"
 	"shippin.cloud/console/internal/jobs"
 )
 
 type incusOCIRecoveryProvider interface {
 	InspectOCIApplicationVolume(context.Context, incus.OCIApplicationSpec) (bool, error)
+	InspectOCIApplication(context.Context, incus.OCIApplicationSpec) (hv.Guest, bool, error)
 }
 
 // recoverDeploymentIntent only observes the first unresolved step when it is
@@ -35,7 +37,7 @@ func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deploy
 			break
 		}
 	}
-	if step.ID == "" || step.Operation != "ensure_persistent_volume" {
+	if step.ID == "" || (step.Operation != "ensure_persistent_volume" && step.Operation != "ensure_oci_instance") {
 		return nil, false, nil
 	}
 	if _, _, err := a.deploymentStore().ClaimExecutionStepRecoveryWithLease(ctx, job.TenantID, deployment.ID,
@@ -71,7 +73,15 @@ func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deploy
 	if err != nil {
 		return nil, false, err
 	}
-	exists, err := provider.InspectOCIApplicationVolume(ctx, spec)
+	var exists bool
+	if step.Operation == "ensure_persistent_volume" {
+		exists, err = provider.InspectOCIApplicationVolume(ctx, spec)
+	} else {
+		spec.Environment, err = a.deploymentRecoveryEnvironment(ctx, job, snapshot)
+		if err == nil {
+			_, exists, err = provider.InspectOCIApplication(ctx, spec)
+		}
+	}
 	if err != nil {
 		return nil, false, err
 	}
@@ -87,6 +97,28 @@ func (a *API) recoverDeploymentIntent(ctx context.Context, job *jobs.Job, deploy
 		return nil, false, err
 	}
 	return map[string]any{"step_id": step.ID, "step_state": state, "provider_mutated": false}, true, nil
+}
+
+func (a *API) deploymentRecoveryEnvironment(ctx context.Context, job *jobs.Job,
+	snapshot deployments.ExecutionRecoverySnapshot) (map[string]string, error) {
+	environment := make(map[string]string, len(snapshot.EnvironmentInputs))
+	for _, input := range snapshot.EnvironmentInputs {
+		value := ""
+		if input.Value != nil {
+			value = *input.Value
+		} else if input.VaultixReference != "" {
+			resolved, err := a.revealTenantDeploymentSecret(ctx, job.TenantID, snapshot.Deployment.ID,
+				snapshot.Deployment.Generation, job.CreatedBy, input.VaultixReference, job.ID, job.LeaseOwner)
+			if err != nil {
+				return nil, err
+			}
+			value = resolved
+		} else {
+			return nil, errors.New("deployment recovery environment input is incomplete")
+		}
+		environment[input.Name] = value
+	}
+	return environment, nil
 }
 
 func incusOCIRecoverySpec(snapshot deployments.ExecutionRecoverySnapshot) (incus.OCIApplicationSpec, error) {
