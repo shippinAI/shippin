@@ -1,6 +1,6 @@
 # Deployment reconciliation architecture
 
-**Status:** Proposed for implementation on `main`
+**Status:** In progress on `main`; provider execution remains unavailable
 
 **Scope:** Stage E of [the platform absorption plan](platform-absorption-plan.md)
 
@@ -8,11 +8,13 @@
 
 ## Context and observed current behavior
 
-The deployment API currently persists tenant-scoped desired generations, immutable catalog snapshots, review tickets, and append-only events. `Create` and `Update` in `internal/deployments/store.go` explicitly do not enqueue work or call providers. `POST .../review/authorize` verifies an AgentHub decision for the exact generation and records provenance, but its response says no provider operation was executed.
+The deployment API currently persists tenant-scoped desired generations, immutable catalog snapshots, review tickets, and append-only events. `Create` and `Update` in `internal/deployments/store.go` write outbox rows transactionally, but do not enqueue jobs or call providers. `POST .../review/authorize` verifies an AgentHub decision for the exact generation and records provenance, but its response says no provider operation was executed.
 
 `internal/jobs.Runner` provides PostgreSQL-backed leases, heartbeats, retries and lost-lease cancellation. `API.registerJobs` wires workspace, tenant, boundary, project/agent and rrflow service handlers. `jobs.KindServiceProvision` is the rrflow state/binding workflow in `internal/api/job_managed.go`; it is not a general service deployment executor. Existing `hv.GuestManager` and provider drivers manage VM/container lifecycle, not application artifacts or database engine lifecycle.
 
-The outbox producer is implemented: migration `051` adds the prefixed generation-fenced table, and deployment create/update writes an identifier-only row in the same transaction as the generation and requested event. PostgreSQL tests exercise create/update generation coverage, idempotent replay, publication marking and rollback when outbox insertion fails. The leader relay and deployment worker are not wired yet, so these rows are not currently dispatched.
+The outbox producer and leader relay are implemented. Migration `051` adds the prefixed generation-fenced table, and deployment create/update writes an identifier-only row in the same transaction as the generation and requested event. The existing singleton reconciliation leader publishes one generation-keyed job through the existing jobs store, then records the publication receipt. A job reloads the current generation; stale jobs finish as superseded. If the current generation reaches the worker while no typed application executor is available, the worker atomically records `runtime_unsupported` and `failed` without calling AgentHub or a provider. PostgreSQL tests cover generation coverage, replay after enqueue-before-receipt failure, distinct generation jobs, stale fencing and the explicit unsupported result.
+
+Provider execution is still absent. The worker currently reports the capability gap honestly; it does not authorize, install, configure or observe an application. A real executor must replace this explicit no-op boundary before any deployment can be called successful.
 
 The next capability must connect these components without making the jobs table deployment truth, calling providers in HTTP handlers, or claiming that generic guest CRUD installs PostgreSQL, Dragonfly, Redis or ClickHouse.
 
@@ -87,8 +89,7 @@ Rejected. Policy/ticket/mapping can change between review and execution. Every a
 
 ## Required implementation slices
 
-1. **Partially implemented:** add `shippin_deployment_outbox` and transactionally write it from deployment create/update. Database-backed atomicity, generation coverage, idempotency and publication-marking tests pass. Wire the leader relay and verify crash/replay with a registered worker before closing this slice.
-2. Register a dedicated `deployment.reconcile` job. Add relay recovery, stale-generation coalescing, idempotent wake-ups, lease-loss fencing and operator-visible job/event linkage. Do not change the semantics of rrflow `service.provision`.
+1. **Partially implemented:** `shippin_deployment_outbox` is transactionally written from create/update; the leader relay enqueues a generation-keyed job and marks its receipt. PostgreSQL coverage verifies crash/replay after enqueue, distinct generation jobs, stale-generation fencing, idempotency and unsupported-runtime persistence. Add lease-loss recovery proof and operator-visible job linkage before closing the dispatch slice. Do not change rrflow `service.provision` semantics.
 3. Extract an AgentHub authorization service shared by the review endpoint and worker. Worker authorization must re-read current mapping, policy, ticket and generation and append a decision event before dispatch. Add denial/no-match/stale-policy/stale-ticket/timeout/restart/replay tests proving provider call count stays zero.
 4. Define and validate the typed service runtime schema and secret resolver. Separate OCI resolution/build isolation from provider guest lifecycle; specify resource, volume, network, health and engine operations.
 5. Implement one provider/runtime pair end to end using disposable Incus or Proxmox and provider simulators for CI. Record operation IDs, read-back state, retries and failures.

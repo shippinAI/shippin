@@ -42,6 +42,7 @@ func (a *API) reconcileOnce(ctx context.Context, drift bool) bool {
 	defer release()
 	j := a.cfg.Jobs
 	stale := config.Sec(2 * j.LeaseSeconds)
+	a.relayDeploymentOutbox(ctx)
 	a.reconcileWorkspaces(ctx, stale)
 	if err := a.db.ReconcileWorkspaceActions(ctx, stale); err != nil {
 		log.Printf("reconcile: workspace actions: %v", err)

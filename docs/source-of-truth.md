@@ -26,8 +26,12 @@ key, and treats remote inventory as observation rather than a deployed change.
 `internal/catalog/` owns reusable service definitions, customer plan/configuration
 and pinned source provenance. `internal/deployments/` owns tenant-scoped deployment
 generations, the transactional `shippin_` outbox, provider targets, desired/observed
-state, reconciliation and deployment events. The outbox producer is implemented;
-the relay, worker and provider application runtime remain planned. `internal/jobs/`
+state, reconciliation and deployment events. The transactional outbox producer,
+leader relay and generation-keyed job worker are implemented; current requests
+receive an explicit `runtime_unsupported` failure until an authorized typed
+provider/runtime executor is implemented. No provider application mutation is
+performed by this worker today. Worker-side AgentHub authorization, provider
+application runtime and event UI remain planned. `internal/jobs/`
 remains the durable worker lease/retry mechanism, not deployment truth. `internal/hv/incus/` and
 `internal/hv/proxmox/` retain provider-specific guest behavior; `internal/hostd/`
 owns only the bounded in-guest bootstrap and workload operations exposed through its

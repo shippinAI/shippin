@@ -20,15 +20,16 @@ const (
 
 // Kinds handled by the console.
 const (
-	KindWorkspaceAction    = "workspace.action"
-	KindWorkspaceProvision = "workspace.provision"
-	KindTenantProvision    = "tenant.provision"
-	KindBoundaryProvision  = "boundary.provision"
-	KindAIActivate         = "ai.activate"         // M2: start a user's activation terminal (payload: optional logout)
-	KindProjectImport      = "project.import"      // M3: create the first workspace of a GitHub-imported project
-	KindProjectPrompt      = "project.from_prompt" // M4: devspace for a prompt-built project, then its agent
-	KindAgentStart         = "agent.start"         // M4: deliver the prompt and start the user's own CLI agent
-	KindServiceProvision   = "service.provision"   // managed service instance (rrflow/state) + binding
+	KindWorkspaceAction     = "workspace.action"
+	KindWorkspaceProvision  = "workspace.provision"
+	KindTenantProvision     = "tenant.provision"
+	KindBoundaryProvision   = "boundary.provision"
+	KindAIActivate          = "ai.activate"          // M2: start a user's activation terminal (payload: optional logout)
+	KindProjectImport       = "project.import"       // M3: create the first workspace of a GitHub-imported project
+	KindProjectPrompt       = "project.from_prompt"  // M4: devspace for a prompt-built project, then its agent
+	KindAgentStart          = "agent.start"          // M4: deliver the prompt and start the user's own CLI agent
+	KindServiceProvision    = "service.provision"    // managed service instance (rrflow/state) + binding
+	KindDeploymentReconcile = "deployment.reconcile" // desired deployment state; payload is identifier-only
 )
 
 var (

@@ -219,6 +219,54 @@ func TestStoreGenerationAndOutboxInsertAreAtomic(t *testing.T) {
 	}
 }
 
+func TestRecordRuntimeUnavailableIsIdempotentAndGenerationFenced(t *testing.T) {
+	store, tenantID, serverID := deploymentTestStore(t)
+	ctx := context.Background()
+	item, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
+		ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if recorded, err := store.RecordRuntimeUnavailable(ctx, tenantID, item.ID, "operator@example.test", 1); err != nil || !recorded {
+		t.Fatalf("first unsupported result: recorded=%t err=%v", recorded, err)
+	}
+	if recorded, err := store.RecordRuntimeUnavailable(ctx, tenantID, item.ID, "operator@example.test", 1); err != nil || recorded {
+		t.Fatalf("replayed unsupported result: recorded=%t err=%v", recorded, err)
+	}
+	updated, _, err := store.Update(ctx, tenantID, item.ID, "operator@example.test", 1, UpdateInput{
+		DesiredState: DesiredPresent, IdempotencyKey: uuid.NewString(),
+		Config: json.RawMessage(`{"port":5433,"password":"vaultix://org/project/env/postgres"}`),
+	})
+	if err != nil || updated.Generation != 2 || updated.ObservedState != ObservedPending {
+		t.Fatalf("next desired generation: deployment=%+v err=%v", updated, err)
+	}
+	if recorded, err := store.RecordRuntimeUnavailable(ctx, tenantID, item.ID, "operator@example.test", 1); err != nil || recorded {
+		t.Fatalf("stale worker result: recorded=%t err=%v", recorded, err)
+	}
+	current, err := store.Get(ctx, tenantID, item.ID)
+	if err != nil || current.Generation != 2 || current.ObservedState != ObservedPending {
+		t.Fatalf("stale result changed current state: deployment=%+v err=%v", current, err)
+	}
+	events, err := store.Events(ctx, tenantID, item.ID, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	failed := 0
+	for _, event := range events {
+		if event.Type == EventOperationFailed {
+			failed++
+			if event.Generation != 1 || event.FailureCode != "runtime_unsupported" {
+				t.Fatalf("unsupported event was not generation scoped: %+v", event)
+			}
+		}
+	}
+	if failed != 1 {
+		t.Fatalf("expected one idempotent runtime_unsupported event, got %d", failed)
+	}
+}
+
 func TestStoreCreateRejectsUnassignedTargetAndUnsafeConfig(t *testing.T) {
 	store, tenantID, serverID := deploymentTestStore(t)
 	ctx := context.Background()
