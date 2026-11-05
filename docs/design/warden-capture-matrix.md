@@ -12,12 +12,12 @@ modules or deployable capabilities.
 | Status | Count |
 |---|---|
 | ported | 6 |
-| to-author | 13 |
-| intentionally replaced | 176 |
-| rejected-for-security | 21 |
+| to-author | 1 |
+| intentionally replaced | 177 |
+| rejected-for-security | 32 |
 | needs-review (additional named sources) | 0 |
 
-`ported` means behavior was re-authored in a platform owner and has implementation evidence. `intentionally replaced` means a current platform capability owns the same concern; its API and behavior still need verification. `to-author` means the row names a target owner but a supported route is not complete. `rejected-for-security` means the behavior is intentionally excluded. `needs-review` means the source is now available but a feature-level comparison and disposition are incomplete.
+`ported` means behavior was re-authored in a platform owner and has implementation evidence. `intentionally replaced` means a current platform capability owns the same concern; its API and behavior still need verification. `to-author` means the row names a target owner but a supported route is not complete. `rejected-for-security` means this imported implementation is excluded; a related product capability can remain open in the backlog for safe re-authoring. `needs-review` means the source is now available but a feature-level comparison and disposition are incomplete.
 
 The reference tree is not served and is not a second panel. It can be removed only after every `to-author` and `needs-review` row is implemented or explicitly rejected and the import provenance is retained. Do not use the row count as proof that every behavior has been exercised.
 
@@ -63,6 +63,14 @@ From `BACKLOG.md` in the import. Checked items the console already covers are re
 | Confirm dangerous actions | intentionally replaced | explicit confirmation in the console; AgentHub review is pending | Browser `confirm()` is not added. Provider mutations currently fail closed until AgentHub integration is complete. |
 | Connection indicator | ported | Hosts empty and error states | The page shows the hypervisor error. It does not invent an online status. |
 
+## Reviewed implementation dispositions (2026-11-05)
+
+The imported backup subsystem came from the Wisconsin CT 102 runtime capture. Its `PROVENANCE.md` says the backup files were present in the running tree but "exist in no git history"; the only source root (`shippin-mesh`) has no root license recorded in the checkout audit, and its dependency licenses/provenance are unresolved. Its nested `go.mod` declares `creack/pty`, `gorilla/websocket`, `pgx/v5`, `msteinert/pam`, and `yaml.v3`; those are not approved backup-specific dependencies. The backup implementation stores estate configuration under the local user config directory, contains estate-specific defaults, executes configurable tar/rsync commands, and includes an `rsync --delete` path. The imported HTTP handlers do not prove the canonical tenant, AgentHub, audit, generation or secret resolver boundaries. Therefore the seven backup implementation/test files are rejected as source code. This is not a rejection of backup/restore as a product capability: that remains open in the backlog and `managed-services.md`, to be authored as a provider- and deployment-scoped feature with secret references and restore verification.
+
+The imported certificates, disks, logs and package screens are local host administration surfaces. Certificate scanning/renewal accesses fixed `/etc` paths and invokes certbot; disk inventory invokes `lsblk`, `smartctl`, `du` and a privileged SMART path; log reads include `/var/log/auth.log` and local journal commands; package actions invoke host `apt-get` install/remove/upgrade. These are not imported. The disk inventory data is independently re-authored from the configured Proxmox API through `internal/hv/proxmox/details.go`, with SMART skipped; the remaining Proxmox certificate, log, apt and fuller disk API items are not routed. The old tests are tied to those implementations and are not platform behavior evidence.
+
+`BACKLOG.md` remains the sole open source row because it contains several requested capabilities still queued below. Its candidate code is not a runtime input. Thus the 216-row counts now distinguish an open backlog document from rejected source implementations and independently re-authored platform behavior.
+
 ## Imported files
 
 | File | Status | Console home | How it was aligned |
@@ -82,20 +90,20 @@ From `BACKLOG.md` in the import. Checked items the console already covers are re
 | `auth_pam_linux.go` | rejected-for-security | internal/auth (Nomen session) | Local PAM passwords are a second identity. The console session is Nomen. There is no PAM conversation and no password form. |
 | `auth_pam_unsupported.go` | rejected-for-security | internal/auth (Nomen session) | Local PAM passwords are a second identity. The console session is Nomen. There is no PAM conversation and no password form. |
 | `auth_test.go` | intentionally replaced | internal/auth, sign-in page | Panel sessions, OIDC hand-roll, and the login page are not a second sign-in. The console already uses Nomen. |
-| `backups.go` | to-author | docs/design/managed-services.md backups section | S3, SMB, Infisical, and estate copy executors are not wired. Destinations will use secret_ref. No shell-out was copied. Coverage scoring is already in internal/backupcov. |
+| `backups.go` | rejected-for-security | managed-services backup design; no executor | The local JSON store, cron-like goroutine and arbitrary tar/rsync path execution are not imported. rsync uses --delete; destinations and source paths are host-local. The backup capability remains open in the managed-services backlog for a deployment-scoped, audited, secret_ref-based executor. |
 | `backups_coverage.go` | ported | internal/backupcov | Coverage scoring and the event ring were rewritten without the the original site paths and without logging secret material. |
-| `backups_estate.go` | to-author | docs/design/managed-services.md backups section | S3, SMB, Infisical, and estate copy executors are not wired. Destinations will use secret_ref. No shell-out was copied. Coverage scoring is already in internal/backupcov. |
+| `backups_estate.go` | rejected-for-security | managed-services backup design; no executor | Estate targets and defaults include installation-specific paths and names. The product will use explicitly enrolled Shippin resources and operator-configured destinations; no host path or estate default is imported. |
 | `backups_events.go` | ported | internal/backupcov | Coverage scoring and the event ring were rewritten without the the original site paths and without logging secret material. |
-| `backups_handlers.go` | to-author | docs/design/managed-services.md backups section | S3, SMB, Infisical, and estate copy executors are not wired. Destinations will use secret_ref. No shell-out was copied. Coverage scoring is already in internal/backupcov. |
-| `backups_infisical.go` | to-author | docs/design/managed-services.md backups section | S3, SMB, Infisical, and estate copy executors are not wired. Destinations will use secret_ref. No shell-out was copied. Coverage scoring is already in internal/backupcov. |
-| `backups_s3.go` | to-author | docs/design/managed-services.md backups section | S3, SMB, Infisical, and estate copy executors are not wired. Destinations will use secret_ref. No shell-out was copied. Coverage scoring is already in internal/backupcov. |
+| `backups_handlers.go` | rejected-for-security | managed-services backup design; no executor | The standalone panel handlers are not mounted in the product and do not establish the canonical tenant, AgentHub, audit or deployment-generation boundary. Re-author API and UI actions in their owners. |
+| `backups_infisical.go` | rejected-for-security | managed-services backup design; Vaultix secret resolver | Infisical-specific calls and source configuration are not adopted. Product destinations use the configured Vaultix secret_ref contract and audited one-key resolution. |
+| `backups_s3.go` | rejected-for-security | managed-services backup design; no transfer executor | The S3 transfer implementation is not adopted. Its dependencies, signing, endpoint semantics and security properties have not been approved for product use; implement a bounded provider with endpoint validation and credential references only after a separate review. |
 | `backups_secrets.go` | rejected-for-security | internal/backupcov.Dest secret_ref | The panel wrote access keys into backups-secrets.json. Destinations store a sops:// or vaultix:// ref. The writer is not ported. |
-| `backups_smb.go` | to-author | docs/design/managed-services.md backups section | S3, SMB, Infisical, and estate copy executors are not wired. Destinations will use secret_ref. No shell-out was copied. Coverage scoring is already in internal/backupcov. |
-| `backups_test.go` | to-author | docs/design/managed-services.md backups section | S3, SMB, Infisical, and estate copy executors are not wired. Destinations will use secret_ref. No shell-out was copied. Coverage scoring is already in internal/backupcov. |
+| `backups_smb.go` | rejected-for-security | managed-services backup design; no transfer executor | The SMB transfer implementation and credential-file assumptions are not adopted. The product must use configured secret references and a bounded audited executor. |
+| `backups_test.go` | rejected-for-security | no imported tests; platform-owned behavior tests required | These tests exercise the excluded standalone local-store implementation, including production-credential-dependent skips. They do not validate Shippin tenant isolation, AgentHub authorization, runtime execution or restore safety. |
 | `catalog.go` | intentionally replaced | internal catalog (migrations 010, 011, 034) and admin catalog pages | The x-warden compose key is not a catalog format. The console catalog is the catalog. |
 | `catalog_handlers.go` | intentionally replaced | internal catalog (migrations 010, 011, 034) and admin catalog pages | The x-warden compose key is not a catalog format. The console catalog is the catalog. |
 | `catalog_test.go` | intentionally replaced | internal catalog (migrations 010, 011, 034) and admin catalog pages | The x-warden compose key is not a catalog format. The console catalog is the catalog. |
-| `certs.go` | to-author | phase 2 certificate info, phase 3 ACME | The local PEM viewer is not ported. Node certificates and ACME are later phases and not routed. |
+| `certs.go` | rejected-for-security | Proxmox certificate-info API is planned; TLS trust is owned by provider enrollment | Local filesystem scans include certificate directories and certbot renewal invokes host commands. No arbitrary host PEM discovery/renewal route is imported. PVE node certificate information and ACME remain separate provider backlog items. |
 | `ci_runners.go` | intentionally replaced | not a console surface yet; do not import the HTML | Runner fleet health stays out until it is designed against the console operator page. The panel handlers and template are not mounted. |
 | `ci_runners_handlers.go` | intentionally replaced | not a console surface yet; do not import the HTML | Runner fleet health stays out until it is designed against the console operator page. The panel handlers and template are not mounted. |
 | `ci_runners_test.go` | intentionally replaced | not a console surface yet; do not import the HTML | Runner fleet health stays out until it is designed against the console operator page. The panel handlers and template are not mounted. |
@@ -128,7 +136,7 @@ From `BACKLOG.md` in the import. Checked items the console already covers are re
 | `deployments.go` | intentionally replaced | projects and internal/jobs | The panel pipeline is not a second deploy engine. Projects and jobs are the console path. |
 | `deployments_handlers.go` | intentionally replaced | projects and internal/jobs | The panel pipeline is not a second deploy engine. Projects and jobs are the console path. |
 | `deployments_pipeline.go` | intentionally replaced | projects and internal/jobs | The panel pipeline is not a second deploy engine. Projects and jobs are the console path. |
-| `disks.go` | to-author | phase 2 node disks (directory, LVM, ZFS) | Local lsblk is not the product. PVE disk APIs are specified for phase 2 and not routed. |
+| `disks.go` | intentionally replaced | internal/hv/proxmox/details.go; existing infrastructure node detail | The old lsblk/smartctl/du host view is not imported. Proxmox node disk inventory is independently re-authored through /nodes/{node}/disks/list?skipsmart=1 and shown as read-only details; SMART probes and local directory usage remain excluded. Disk initialization and pool-specific details remain open. |
 | `dns.go` | intentionally replaced | workspace domains; phase 2 node DNS | Editing /etc/hosts on the panel is not the product. Workspace domains exist. Node DNS is a later Proxmox read. |
 | `docker.go` | intentionally replaced | catalog and managed service instances | The docker.sock admin page is not an API. Compose templates and managed services are the console feature. |
 | `domain_registry.go` | intentionally replaced | workspace domains; phase 2 node DNS | Editing /etc/hosts on the panel is not the product. Workspace domains exist. Node DNS is a later Proxmox read. |
@@ -174,8 +182,8 @@ From `BACKLOG.md` in the import. Checked items the console already covers are re
 | `internal/host/testdata/hosts/server1/host.yaml` | intentionally replaced | internal/servers, migration 036, hostd enroll | The YAML host registry and the wardenclyffe kind are not loaded. A hypervisor API is columns on the server row enroll and hostd already use. The kind name is not a driver. |
 | `internal/host/testdata/hosts/server2/host.yaml` | intentionally replaced | internal/servers, migration 036, hostd enroll | The YAML host registry and the wardenclyffe kind are not loaded. A hypervisor API is columns on the server row enroll and hostd already use. The kind name is not a driver. |
 | `internal/version/version.go` | intentionally replaced | console module version | No nested version package. The console build is the version. |
-| `logs.go` | to-author | phase 2 syslog and journal reads | Host log tailing is not copied. The product is the node syslog and journal API, specified and not routed. |
-| `logs_test.go` | to-author | phase 2 syslog and journal reads | Host log tailing is not copied. The product is the node syslog and journal API, specified and not routed. |
+| `logs.go` | rejected-for-security | future provider-scoped Proxmox syslog/journal read API | The standalone endpoint reads local journal and /var/log files including authentication logs. It is not a tenant/provider-scoped API and can expose secrets or personal data; no host log viewer is imported. Proxmox node log reads remain an explicit future item. |
+| `logs_test.go` | rejected-for-security | no imported tests; provider-scoped tests required | Tests are coupled to the excluded local journal/file implementation and do not cover provider scoping, redaction, authorization or audit. |
 | `main.go` | intentionally replaced | shippin.cloud/console module | The nested module is not built or installed. The console process is the process. Agent instruction files in this tree are not console instructions. |
 | `main_test.go` | intentionally replaced | shippin.cloud/console module | The nested module is not built or installed. The console process is the process. Agent instruction files in this tree are not console instructions. |
 | `managed_workspaces.go` | intentionally replaced | tenants, workspaces, team | Customer YAML and the drill-down HTML are not a second CRM. Tenants and workspaces already model this. |
@@ -188,7 +196,7 @@ From `BACKLOG.md` in the import. Checked items the console already covers are re
 | `oidc_client.go` | intentionally replaced | internal/auth, sign-in page | Panel sessions, OIDC hand-roll, and the login page are not a second sign-in. The console already uses Nomen. |
 | `oidc_handlers.go` | intentionally replaced | internal/auth, sign-in page | Panel sessions, OIDC hand-roll, and the login page are not a second sign-in. The console already uses Nomen. |
 | `oidc_test.go` | intentionally replaced | internal/auth, sign-in page | Panel sessions, OIDC hand-roll, and the login page are not a second sign-in. The console already uses Nomen. |
-| `packages.go` | to-author | phase 2 apt update and versions | The apt page is not copied. Node apt reads are phase 2 and not routed. |
+| `packages.go` | rejected-for-security | future read-only Proxmox apt inventory; no host package mutation | This implementation supports host package discovery and apt-get install/remove/upgrade commands. Host package mutation is not a control-plane feature. PVE apt versions/repositories read APIs remain separate and unimplemented. |
 | `platform_systems.go` | intentionally replaced | operator health and config probes | Local process widgets and the panel home are not a second dashboard. Operator health and the probe list are the console view. |
 | `platform_systems_handlers.go` | intentionally replaced | operator health and config probes | Local process widgets and the panel home are not a second dashboard. Operator health and the probe list are the console view. |
 | `platform_systems_test.go` | intentionally replaced | operator health and config probes | Local process widgets and the panel home are not a second dashboard. Operator health and the probe list are the console view. |

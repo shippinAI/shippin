@@ -52,7 +52,7 @@ Engine-specific operations such as backup, restore, scale and upgrade become ava
 
 ## Backup source review
 
-The Warden reference contains estate-backup concepts for S3, SMB, Infisical, preflight, coverage and event history. The old shell panel is not served. Its secret file and shell-out transfer executors are excluded. Re-author only bounded destination metadata, secret references, coverage facts and redacted events under the appropriate deployment or backup owner after checking provenance, dependency and license status. Hypervisor snapshots remain distinct from engine-consistent database backups.
+The Warden reference contains estate-backup concepts for S3, SMB, Infisical, preflight, coverage and event history. The old shell panel is not served. Its secret file and shell-out transfer executors are excluded. The 2026-11-05 source review found the captured backup subsystem has no Git history, uses a local JSON store and estate-specific paths, executes configurable tar/rsync commands (including rsync --delete), and does not prove the platform tenant, AgentHub, audit, generation or secret-resolver boundaries. Its S3/SMB/Infisical code and tests are rejected as implementation sources; this does not close the product backup requirement. Re-author bounded destination metadata, secret references, coverage facts and redacted events under the appropriate deployment or backup owner after separate provenance, dependency, license and threat review. Hypervisor snapshots remain distinct from engine-consistent database backups.
 
 ## Acceptance gate
 
