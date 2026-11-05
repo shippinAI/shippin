@@ -71,6 +71,38 @@ The catalog stays metadata and validated configuration. A service definition mus
 
 Initial execution should be limited to an explicitly documented runtime/provider pair whose image, resource, storage, network, credential, upgrade and recovery behavior is implemented and tested end to end. A catalog entry that lacks that executor is not deployable and must not be presented with an enabled action. PostgreSQL, Dragonfly, Redis and ClickHouse each require an engine-specific supported recipe and persistent-volume/recovery contract; a generic image pull is not turnkey deployment.
 
+### Incus OCI source and version gate
+
+The catalog's OCI source is a fully qualified registry reference pinned by an OCI
+manifest digest. Incus' OCI protocol accepts a registry reference through an OCI
+remote. The pinned Incus implementation at
+[`cf1259f`](https://github.com/lxc/incus/blob/cf1259fb839948ace7bdf271f43c26c702332bdf/client/oci_images.go)
+preserves the `@digest` (and removes a tag if the reference contains both), asks
+Skopeo to inspect that exact reference, and then derives its own Incus image
+fingerprint by hashing the image layer identifiers. Consequently, the catalog OCI
+manifest digest and Incus `volatile.base_image` fingerprint are distinct facts.
+Persist the source registry and manifest digest in the immutable generation, and
+the Incus image fingerprint as provider observation; never compare one as if it
+were the other. The provider adapter must create only Incus application
+containers for this OCI runtime; the upstream protocol rejects OCI images for
+VMs.
+
+Remote OCI image pulls require a provider version preflight. Incus' server-side
+[`GHSA-p2v3-6wvc-cv3p`](https://github.com/lxc/incus/security/advisories/GHSA-p2v3-6wvc-cv3p)
+describes a critical image-pull path traversal fixed in v7.3.0. Do not invoke the
+OCI pull API against older versions; report a normalized unsupported-provider
+version outcome before any image or instance mutation. The separate
+[`GHSA-9pqw-c7m4-xvg7`](https://github.com/lxc/incus/security/advisories/GHSA-9pqw-c7m4-xvg7)
+concerns the Incus CLI image-export client before v7.4.0. Shippin currently uses
+the Incus REST API and must keep doing so rather than shelling out to the CLI.
+If any future flow adds CLI use, it must separately gate that client version.
+
+An OCI image pull and instance read-back are necessary but not sufficient for a
+managed database. Before catalog enablement, the runtime must prove OCI process
+environment behavior, persistent data-volume attachment, tenant-safe network
+exposure, configured health checks, secret delivery/rotation, restart, backup and
+restore semantics. These are not provided by the current guest CRUD API.
+
 ## Options considered
 
 ### Reuse `jobs` as the only durable deployment record
