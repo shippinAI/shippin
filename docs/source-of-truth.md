@@ -26,7 +26,7 @@ key, and treats remote inventory as observation rather than a deployed change.
 `internal/catalog/` owns reusable service definitions, customer plan/configuration
 and pinned source provenance. `internal/deployments/` owns tenant-scoped deployment
 generations, the transactional `shippin_` outbox, provider targets, desired/observed
-state, reconciliation and deployment events. The transactional outbox producer, leader relay and generation-keyed job worker are implemented. For an approved Incus desired-present generation, the worker currently executes only the `ensure_persistent_volume` step: it reloads the immutable reviewed generation under its live lease, revalidates tenant-assigned storage/network inventory, obtains current AgentHub authorization, consumes a one-time dispatch claim, ensures the deployment-owned volume and reads it back. The step is journaled, but the deployment still ends `runtime_unsupported` because workload creation, power, health, deletion and service runtime are not implemented; Proxmox application execution is absent. This narrow operation is not a deployable service. Lease-fenced worker decision/outcome persistence and audited Vaultix lookup exist; Vaultix delivery is not currently needed or performed by the volume step. `internal/jobs/` remains the durable worker lease/retry mechanism, not deployment truth. `internal/hv/incus/` and `internal/hv/proxmox/` retain provider-specific guest behavior; `internal/hostd/` owns only the bounded in-guest bootstrap and workload operations exposed through its authenticated contract. No provider or builder implementation may be hidden in the
+state, reconciliation and deployment events. The transactional outbox producer, leader relay and generation-keyed job worker are implemented. For an approved Incus desired-present generation, the worker executes reviewed steps in order: it ensures and reads back the deployment-owned persistent volume when declared, then creates and reads back the digest-pinned OCI workload in a stopped state. Each write reloads the immutable reviewed generation under its live lease, revalidates target inventory, obtains current AgentHub authorization and consumes that step's one-time dispatch claim. Declared environment inputs are resolved through the lease-, audit- and provider-trust-gated Vaultix path immediately before workload dispatch. An ambiguous create is observed read-only and never retried blindly. The deployment still ends `runtime_unsupported`: power-on, declared health, deletion, service lifecycle and Proxmox application execution are not implemented. This partial execution is not a deployable service. `internal/jobs/` remains the durable worker lease/retry mechanism, not deployment truth. `internal/hv/incus/` and `internal/hv/proxmox/` retain provider-specific guest behavior; `internal/hostd/` owns only the bounded in-guest bootstrap and workload operations exposed through its authenticated contract. No provider or builder implementation may be hidden in the
 catalog handlers or the React panel.
 
 The [capability absorption ledger](design/capability-absorption.md) records which
@@ -58,7 +58,7 @@ Shippin now has AgentHub-backed deployment review preparation and exact-action
 operator authorization in the existing panel. Worker-side authorization is implemented for the Incus persistent-volume step only; other
 provider execution remains unimplemented. See the
 [system identity and human review plan](system-identity-human-review-plan.md).
-Deployment review reservations also persist the version and digest of a deterministic provider execution plan derived from the immutable generation. The AgentHub action and review evidence bind that plan; a stale plan digest is rejected before an authorization request. The reviewed plan binds the deployment generation; the journal records the Incus volume step, but the generation remains `runtime_unsupported` and this is not proof that a service was deployed.
+Deployment review reservations also persist the version and digest of a deterministic provider execution plan derived from the immutable generation. The AgentHub action and review evidence bind that plan; a stale plan digest is rejected before an authorization request. The journal records completed Incus storage/workload steps, but the generation remains `runtime_unsupported` and this is not proof that a service was deployed.
 Single-guest Incus and Proxmox power actions now also use persisted exact-action
 AgentHub review and one-shot Shippin execution provenance. Live policy/quorum and
 provider execution remain unverified; other provider writes stay fail-closed. The deployment worker volume step is the sole reviewed provider-write exception.
@@ -66,7 +66,7 @@ Incus provider records can explicitly acknowledge that provider administrators
 may read tenant deployment secrets projected into instance configuration. The
 setting is operator-managed, defaults to deny, and gates the lease-fenced
 Vaultix reveal helper; it does not provide isolation from provider administrators
-or make the volume-only deployment executor a complete service runtime.
+or make the partial deployment executor a complete service runtime.
 
 The draft service-definition and attachment shapes live in
 `api/openapi/schemas/service-catalog.json`, registered in the OpenAPI document.

@@ -16,12 +16,17 @@ Incus, Proxmox, AgentHub, Vaultix, Cloudflare or Tailscale operation has been
 run; archive readiness remains open.
 
 The reconciler invokes worker JIT AgentHub authorization and a one-time
-lease/generation/plan/step-bound dispatch claim for exactly one Incus operation:
-ensure the deployment-owned persistent volume and read it back. GitHub run
-`42020794931` passed its PostgreSQL allow, denial, replay and ambiguous-recovery
-tests. The worker then records `runtime_unsupported`; it does not create an OCI
-workload, change power, verify health, delete, deploy a service, or execute a
-Proxmox application runtime.
+lease/generation/plan/step-bound dispatch claim for each implemented Incus
+operation. It ensures and reads back the deployment-owned persistent volume
+when declared, then creates and reads back the digest-pinned OCI workload in a
+stopped state. The workload step resolves declared environment inputs only
+through the audited, tenant-scoped and provider-trust-gated Vaultix path. Each
+step has its own intent, authorization, dispatch claim and outcome. An
+ambiguous create is inspected read-only and never retried blindly. The current
+worktree implements this slice; PostgreSQL CI is required before it is treated
+as verified. No live Incus test has run. The worker still records
+`runtime_unsupported`: start, declared health, delete, service lifecycle and
+Proxmox application runtime are not implemented.
 
 The Incus OCI provider primitive supports digest-pinned image creation, bounded
 CPU/memory, optional deployment-owned persistent volume, ownership and
@@ -29,8 +34,10 @@ generation read-back, run state and guarded removal. Runtime v3 adds
 config-to-environment bindings; the primitive projects bounded values into
 Incus `environment.*` config and checks read-back. Incus administrators can
 inspect stored environment config, so it is not a secret isolation boundary.
-The volume-only worker path does not resolve Vaultix references. No live Incus
-process test has verified OCI environment behavior. Network exposure, service
+The workload worker path resolves declared Vaultix references only after the
+provider trust acknowledgement and audits each reveal; values remain visible
+to Incus administrators. No live Incus process test has verified OCI
+environment behavior. Network exposure, service
 health, secret delivery, upgrade, backup/restore, Proxmox application execution
 and deployable catalog services remain open. Proxmox health rejects malformed
 responses and supports the documented 8/9 major window. Incus OCI pulls require
@@ -45,15 +52,16 @@ The order below is a dependency order. Each row closes only when its observable
 acceptance checks pass; a panel or catalog screen alone does not close a runtime
 capability. The outbox, generation-keyed jobs, lease-fenced outcomes and catalog
 recipes v1-v3 are implemented. Worker JIT AgentHub authorization and dispatch
-claims are integrated for only the Incus persistent-volume step. Complete service
+claims are integrated for Incus persistent-volume and stopped-workload creation
+steps. Complete service
 runtime, process health, network exposure, Proxmox application execution and
 production least-privilege AgentHub/Vaultix verification remain open.
 | Order | Work package | Canonical owners | Exit evidence | Current state / gate |
 |---|---|---|---|---|
 | 0 | Source inventory, one-panel ownership, migration rules and capability ledger | `docs/design/`, `third_party/warden-ct102` reference matrix | Every candidate row has source revision, observed behavior, destination, disposition, rights/security status and acceptance evidence | In progress. Sibling trees remain read-only; Warden matrix still has open rows; archive is prohibited until these close. |
 | 1 | Provider declarations, credential-safe edits/tests, Incus and Proxmox guest lifecycle, resources and operation read-back | `internal/servers`, `internal/hv/{incus,proxmox}`, `internal/api`, `web/` | Disposable Incus and Proxmox lifecycle workflows, edit/test denial, read-back, task failure, auth denial and secret redaction | Core lifecycle and shared storage inventory exist. Proxmox physical disk listing and capacity are read-only. Full provider coverage and disposable-host evidence remain open. |
-| 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | Shippin identity mapping, generation-bound ticket preparation, exact action authorization and append-only decision provenance are implemented and covered by API/store tests. Disposable AgentHub coverage used synthetic principals. Production least-privilege principal permissions and live target-installation timeout/restart behavior remain open. Worker just-in-time authorization is now used immediately before the Incus volume dispatch; other provider writes remain unavailable. |
-| 3 | Deployment reconciliation and provider execution | `internal/deployments`, migrations, hostd, provider drivers, jobs, API/OpenAPI, `web/` | Transactional dispatch, fenced lease, immutable generation, provider-specific executor, restart/retry, read-back, health, idempotent removal and negative-path evidence | Outbox relay, generation-keyed jobs, stale-generation handling and lease-fenced unsupported outcomes are implemented. Incus OCI v2/v3 recipes are declarative; v3 adds bounded config-to-environment mappings. The Incus worker now applies and reads back only the persistent volume under a reviewed plan, live lease, inventory revalidation, AgentHub decision and one-time dispatch claim. PostgreSQL CI covers allow, denial, replay and ambiguous recovery. It still records `runtime_unsupported`; workload, power, health, delete, network exposure and Proxmox application runtime remain absent. |
+| 2 | Stable Shippin system identity and AgentHub review authorization | system/identity owner, AgentHub adapter, API and audit | Exact action + system + resource + ticket hash + policy version decision; least-privilege identity; no-match, stale, denied, timeout and restart all block writes | Shippin identity mapping, generation-bound ticket preparation, exact action authorization and append-only decision provenance are implemented and covered by API/store tests. Disposable AgentHub coverage used synthetic principals. Production least-privilege principal permissions and live target-installation timeout/restart behavior remain open. Worker just-in-time authorization is used immediately before each implemented Incus dispatch; other provider writes remain unavailable. |
+| 3 | Deployment reconciliation and provider execution | `internal/deployments`, migrations, hostd, provider drivers, jobs, API/OpenAPI, `web/` | Transactional dispatch, fenced lease, immutable generation, provider-specific executor, restart/retry, read-back, health, idempotent removal and negative-path evidence | Outbox relay, generation-keyed jobs, stale-generation handling and lease-fenced unsupported outcomes are implemented. Incus OCI v2/v3 recipes are declarative; v3 adds bounded config-to-environment mappings. The current worktree adds a stopped OCI create step after reviewed volume ensure, with fresh AgentHub authorization, audited environment resolution, exact stopped-state read-back and ambiguous create recovery. PostgreSQL CI is pending. It still records `runtime_unsupported`; power, declared health, delete, network exposure and Proxmox application runtime remain absent. |
 | 4 | Pinned source resolution and bounded builds | catalog/builder owner, isolated worker, secret resolver | Immutable input commit/digest, build provenance, bounded CPU/memory/time/storage/concurrency/egress, secret mounts, cancellation and cleanup | Not implemented. Must precede GitHub/custom Git deployment; OCI digest path still needs provider compatibility. |
 | 5 | Managed PostgreSQL, Dragonfly, Redis and ClickHouse | managed-service owner, hostd/provider adapters, catalog, `web/` | Engine-specific configure/provision/upgrade/backup/restore/health/delete on supported providers; tenant isolation; restore verification | Design only; `internal/managed` is rrflow state, not an engine runtime. No turnkey engine may be advertised. |
 | 6 | Cloudflare Tunnel, Tailscale and custom connectivity management | `internal/networking`, API, migration, `web/` | Per-provider add/edit/test/rotate/revoke and supported mutations, stable system attachment, permission denials, redaction and observed-vs-managed state | Configured inventory/refresh exists. Provider mutation/attachment lifecycle remains open. |

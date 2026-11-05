@@ -22,9 +22,12 @@ type deploymentExecutionProviderFake struct {
 	ensureCalls  int
 	inspectCalls int
 	appCalls     int
+	createCalls  int
 	exists       bool
 	ensureErr    error
 	inspectErr   error
+	createErr    error
+	createStatus string
 	spec         incus.OCIApplicationSpec
 }
 
@@ -46,7 +49,20 @@ func (f *deploymentExecutionProviderFake) InspectOCIApplication(_ context.Contex
 	return hv.Guest{ID: spec.Name, Status: "Stopped"}, false, nil
 }
 
-func TestDeploymentWorkerExecutesOnlyAuthorizedIncusStorageStep(t *testing.T) {
+func (f *deploymentExecutionProviderFake) CreateOCIApplicationStopped(_ context.Context, spec incus.OCIApplicationSpec) (hv.Guest, error) {
+	f.createCalls++
+	f.spec = spec
+	if f.createErr != nil {
+		return hv.Guest{}, f.createErr
+	}
+	status := f.createStatus
+	if status == "" {
+		status = "Stopped"
+	}
+	return hv.Guest{ID: spec.Name, Status: status}, nil
+}
+
+func TestDeploymentWorkerExecutesAuthorizedIncusStorageAndStoppedWorkloadSteps(t *testing.T) {
 	a, tenantID, _, deployment, job, provider, calls := setupDeploymentStorageExecution(t, true)
 	result, err := a.runDeploymentReconcileJob(context.Background(), job, func(string) {})
 	if err != nil {
@@ -55,8 +71,9 @@ func TestDeploymentWorkerExecutesOnlyAuthorizedIncusStorageStep(t *testing.T) {
 	out := result.(map[string]any)
 	step := out["runtime_step"].(map[string]any)
 	if out["outcome"] != "runtime_unsupported" || out["provider_mutated"] != true ||
-		step["step_state"] != "succeeded" || provider.ensureCalls != 1 || provider.inspectCalls != 1 || *calls != 1 {
-		t.Fatalf("worker result=%v ensure=%d inspect=%d decisions=%d", result, provider.ensureCalls, provider.inspectCalls, *calls)
+		step["step_state"] != "succeeded" || step["step_id"] != "workload" || provider.ensureCalls != 1 ||
+		provider.inspectCalls != 1 || provider.createCalls != 1 || *calls != 2 {
+		t.Fatalf("worker result=%v ensure=%d inspect=%d create=%d decisions=%d", result, provider.ensureCalls, provider.inspectCalls, provider.createCalls, *calls)
 	}
 	wantName, _ := incus.OCIApplicationName(deployment.ID)
 	if provider.spec.Name != wantName || provider.spec.DeploymentID != deployment.ID || provider.spec.Generation != 1 ||
@@ -70,15 +87,20 @@ func TestDeploymentWorkerExecutesOnlyAuthorizedIncusStorageStep(t *testing.T) {
 	}
 	var dispatchEvents int
 	if err := a.db.Pool.QueryRow(context.Background(), `SELECT count(*) FROM shippin_deployment_execution_step_events
-		WHERE tenant_id=$1 AND event_type='dispatch_claimed'`, tenantID).Scan(&dispatchEvents); err != nil || dispatchEvents != 1 {
+		WHERE tenant_id=$1 AND event_type='dispatch_claimed'`, tenantID).Scan(&dispatchEvents); err != nil || dispatchEvents != 2 {
 		t.Fatalf("dispatch events=%d err=%v", dispatchEvents, err)
+	}
+	var completedSteps int
+	if err := a.db.Pool.QueryRow(context.Background(), `SELECT count(*) FROM shippin_deployment_execution_steps
+		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=1 AND state='succeeded'`, tenantID, deployment.ID).Scan(&completedSteps); err != nil || completedSteps != 2 {
+		t.Fatalf("completed steps=%d err=%v", completedSteps, err)
 	}
 	// A replay sees the completed intent and cannot dispatch the provider again.
 	if _, err := a.runDeploymentReconcileJob(context.Background(), job, func(string) {}); err != nil {
 		t.Fatal(err)
 	}
-	if provider.ensureCalls != 1 || provider.inspectCalls != 1 || *calls != 1 {
-		t.Fatalf("completed step replay repeated a side effect: ensure=%d inspect=%d decisions=%d", provider.ensureCalls, provider.inspectCalls, *calls)
+	if provider.ensureCalls != 1 || provider.inspectCalls != 1 || provider.createCalls != 1 || *calls != 2 {
+		t.Fatalf("completed step replay repeated a side effect: ensure=%d inspect=%d create=%d decisions=%d", provider.ensureCalls, provider.inspectCalls, provider.createCalls, *calls)
 	}
 }
 
@@ -101,6 +123,28 @@ func TestDeploymentWorkerAgentHubDenialDoesNotWriteIncus(t *testing.T) {
 	}
 }
 
+func TestDeploymentWorkerRejectsRunningReadbackForStoppedWorkloadStep(t *testing.T) {
+	a, _, _, deployment, job, provider, _ := setupDeploymentStorageExecution(t, true)
+	provider.createStatus = "Running"
+	result, err := a.runDeploymentReconcileJob(context.Background(), job, func(string) {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := result.(map[string]any)
+	step := out["runtime_step"].(map[string]any)
+	if out["outcome"] != "runtime_unsupported" || step["step_id"] != "workload" ||
+		step["step_state"] != "unknown" || step["failure_code"] != "provider_state_mismatch" ||
+		provider.createCalls != 1 {
+		t.Fatalf("unexpected running read-back was accepted: result=%v create calls=%d", result, provider.createCalls)
+	}
+	var state, failure string
+	if err := a.db.Pool.QueryRow(context.Background(), `SELECT state,coalesce(failure_code,'') FROM shippin_deployment_execution_steps
+		WHERE tenant_id=(SELECT tenant_id FROM shippin_deployments WHERE id=$1) AND deployment_id=$1 AND generation=1 AND step_id='workload'`,
+		deployment.ID).Scan(&state, &failure); err != nil || state != "unknown" || failure != "provider_state_mismatch" {
+		t.Fatalf("workload read-back state=%s failure=%s err=%v", state, failure, err)
+	}
+}
+
 func TestDeploymentWorkerRecoversAmbiguousIncusVolumeWriteWithoutRetry(t *testing.T) {
 	a, _, _, deployment, job, provider, _ := setupDeploymentStorageExecution(t, true)
 	provider.exists = true // Model a provider timeout after the create completed.
@@ -119,15 +163,44 @@ func TestDeploymentWorkerRecoversAmbiguousIncusVolumeWriteWithoutRetry(t *testin
 	}
 	out := result.(map[string]any)
 	recovery := out["recovery"].(map[string]any)
-	if out["provider_mutated"] != false || recovery["step_state"] != "succeeded" ||
-		provider.ensureCalls != 1 || provider.inspectCalls != 1 {
-		t.Fatalf("ambiguous write was not recovered read-only: result=%v ensure=%d inspect=%d", result, provider.ensureCalls, provider.inspectCalls)
+	if out["provider_mutated"] != true || recovery["step_state"] != "succeeded" ||
+		provider.ensureCalls != 1 || provider.inspectCalls != 1 || provider.createCalls != 1 {
+		t.Fatalf("ambiguous write was not recovered before workload creation: result=%v ensure=%d inspect=%d create=%d", result, provider.ensureCalls, provider.inspectCalls, provider.createCalls)
 	}
 	var state string
 	if err := a.db.Pool.QueryRow(context.Background(), `SELECT state FROM shippin_deployment_execution_steps
 		WHERE tenant_id=(SELECT tenant_id FROM shippin_deployments WHERE id=$1) AND deployment_id=$1 AND generation=1`,
 		deployment.ID).Scan(&state); err != nil || state != "succeeded" {
 		t.Fatalf("recovered volume step state=%s err=%v", state, err)
+	}
+}
+
+func TestDeploymentWorkerRecoversAmbiguousIncusWorkloadCreateWithoutRetry(t *testing.T) {
+	a, _, _, deployment, job, provider, _ := setupDeploymentStorageExecution(t, true)
+	provider.createErr = errors.New("simulated create timeout")
+	a.openIncusOCIRecovery = func(servers.Endpoint) (incusOCIRecoveryProvider, error) { return provider, nil }
+	if _, err := a.runDeploymentReconcileJob(context.Background(), job, func(string) {}); err == nil {
+		t.Fatal("provider create error should leave an ambiguous workload intent")
+	}
+	if provider.createCalls != 1 || provider.appCalls != 0 {
+		t.Fatalf("first attempt did not stop at ambiguous create: creates=%d inspections=%d", provider.createCalls, provider.appCalls)
+	}
+	provider.createErr = nil
+	result, err := a.runDeploymentReconcileJob(context.Background(), job, func(string) {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := result.(map[string]any)
+	recovery := out["recovery"].(map[string]any)
+	if out["provider_mutated"] != false || recovery["step_state"] != "unknown" ||
+		provider.createCalls != 1 || provider.appCalls != 1 {
+		t.Fatalf("ambiguous create retried or was not marked unknown: result=%v creates=%d inspections=%d", result, provider.createCalls, provider.appCalls)
+	}
+	var state, failure string
+	if err := a.db.Pool.QueryRow(context.Background(), `SELECT state,coalesce(failure_code,'') FROM shippin_deployment_execution_steps
+		WHERE tenant_id=(SELECT tenant_id FROM shippin_deployments WHERE id=$1) AND deployment_id=$1 AND generation=1 AND step_id='workload'`,
+		deployment.ID).Scan(&state, &failure); err != nil || state != "unknown" || failure != "provider_state_absent" {
+		t.Fatalf("ambiguous workload outcome state=%s failure=%s err=%v", state, failure, err)
 	}
 }
 

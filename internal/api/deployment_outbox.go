@@ -50,8 +50,9 @@ func (a *API) relayDeploymentOutbox(ctx context.Context) {
 }
 
 // runDeploymentReconcileJob reloads the latest canonical desired generation.
-// Until a typed application executor is installed, it persists an explicit
-// unsupported result and returns without authorizing or mutating a provider.
+// The current executor implements reviewed Incus storage and stopped-workload
+// steps only. It persists an explicit unsupported result until the complete
+// workload, power, health and lifecycle contract is implemented.
 func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step func(string)) (any, error) {
 	if job == nil || job.Kind != jobs.KindDeploymentReconcile || job.TargetType != "deployment_generation" || job.TargetID == "" {
 		return nil, jobs.Permanent(errors.New("invalid deployment reconcile job"))
@@ -84,6 +85,20 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 		runtimeStep, _, providerMutated, err = a.executeIncusStorageStep(ctx, job, deployment, step)
 		if err != nil {
 			return nil, err
+		}
+	}
+	mayCreateWorkload := recoveredStep == nil || recoveredStep["step_state"] == "succeeded"
+	if runtimeStep != nil && runtimeStep["step_state"] != "succeeded" {
+		mayCreateWorkload = false
+	}
+	if mayCreateWorkload {
+		workloadStep, handled, mutated, stepErr := a.executeIncusWorkloadStep(ctx, job, deployment, step)
+		if stepErr != nil {
+			return nil, stepErr
+		}
+		if handled {
+			runtimeStep = workloadStep
+			providerMutated = providerMutated || mutated
 		}
 	}
 	step("application_runtime_unavailable")
