@@ -226,10 +226,10 @@ replication status at `/nodes/{node}/replication` (`VM.Audit` required). The
 candidate MCP's `/cluster/replication` is configuration inventory and was not
 treated as job status. Canonical `NodeDetails`, the Proxmox driver and the same
 `web/` node-facts view now carry optional quorum and capped (200 job) local-node
-replication observations. Focused `go test -count=1 ./internal/hv/proxmox`, the
-panel tests, and full post-change `bash scripts/check.sh` passed. The baseline
-main CI run `41992559717` passed all 13 jobs; CI for this implementation is
-pending push. No live Proxmox endpoint was available, so real permission and payload
+replication observations. Implementation commit `4985804` is on `main`; focused
+`go test -count=1 ./internal/hv/proxmox`, panel tests, and full post-change
+`bash scripts/check.sh` passed. GitHub Checks run `41993715181` passed all 13
+jobs. No live Proxmox endpoint was available, so real permission and payload
 behavior remain unverified. Cluster-wide aggregation and any writes remain out
 of scope.
 
