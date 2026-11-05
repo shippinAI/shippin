@@ -388,5 +388,7 @@ backup/restore, or live-provider validation. Database-backed removal, denial,
 snapshot refusal and ambiguous-delete recovery tests pass against a disposable
 PostgreSQL database. The first pushed run exposed an invalid initial-absent test
 fixture and a missing recovery fake; both were corrected and the full local
-database-backed package set passed. CI must pass on the correction commit.
-Local live provider operations were unavailable.
+database-backed package set passed. The fixture and recovery wiring were
+corrected in `e7e1dc6`; GitHub Checks run `42039645110` passed all 13 jobs,
+including the disposable-Postgres API suite. Local live provider operations
+were unavailable.

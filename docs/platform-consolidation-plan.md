@@ -330,3 +330,7 @@ fake provider opener was also fixed. The complete database-backed CI package set
 then passed locally on disposable PostgreSQL with the CI trust-auth mode; the
 correction commit still needs a terminal GitHub Checks result. No live Incus
 host was available.
+
+### CI result — corrected removal fixtures
+
+Commit `e7e1dc6` corrected the database fixtures to create present, request absent through Update, and supply the read-only recovery fake. GitHub Checks run `42039645110` passed all 13 jobs, including the disposable-Postgres API suite. No live Incus host was available, so provider execution remains unverified on a real server.
