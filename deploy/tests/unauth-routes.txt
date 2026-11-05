@@ -1,5 +1,6 @@
 DELETE /v1/infra/fleets/{fleet}
 DELETE /v1/infra/networks/{id}
+DELETE /v1/infra/networks/{id}/resources/{resource}/attachment
 DELETE /v1/infra/servers/{id}/attachment
 DELETE /v1/infra/servers/{id}/guests/{guest}
 DELETE /v1/me/bridge-sessions/{id}
@@ -256,6 +257,7 @@ POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/logi
 POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/site
 PUT /v1/infra/fleets/{fleet}
 PUT /v1/infra/networks/{id}
+PUT /v1/infra/networks/{id}/resources/{resource}/attachment
 PUT /v1/infra/servers/{id}
 PUT /v1/infra/servers/{id}/fleet
 PUT /v1/infra/servers/{id}/guests/{guest}/config
