@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,10 +18,11 @@ import (
 	"shippin.cloud/console/internal/hv"
 )
 
-// OCIApplicationSpec describes the deliberately small, stateless Incus OCI
-// workload primitive. It does not configure credentials, persistent data,
-// network exposure, health checks, or upgrades; catalog deployments must not
-// use it until those lifecycle contracts are implemented as well.
+// OCIApplicationSpec describes the deliberately small Incus OCI workload
+// primitive, with optional deployment-owned persistent storage. It does not
+// configure credentials, network exposure, health checks, upgrades, backups,
+// or removal; catalog deployments must not use it until those lifecycle
+// contracts and worker authorization are implemented as well.
 type OCIApplicationSpec struct {
 	Name           string
 	DeploymentID   string
@@ -27,6 +30,9 @@ type OCIApplicationSpec struct {
 	ImageReference string
 	MemoryMiB      int
 	Cores          int
+	StoragePool    string
+	StorageSizeGiB int
+	MountPath      string
 	Start          bool
 }
 
@@ -82,6 +88,9 @@ func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSp
 	if spec.Cores < 1 || spec.Cores > 32 || spec.MemoryMiB < 128 || spec.MemoryMiB > 65536 {
 		return hv.Guest{}, errors.New("incus: application resources must be 1-32 cores and 128-65536 MiB memory")
 	}
+	if err := validateOCIApplicationStorage(spec); err != nil {
+		return hv.Guest{}, err
+	}
 
 	health, err := c.Health(ctx)
 	if err != nil {
@@ -96,17 +105,28 @@ func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSp
 		if err := validateOCIApplicationIdentity(instance, spec); err != nil {
 			return hv.Guest{}, err
 		}
+		if spec.StoragePool != "" {
+			if err := c.checkOCIApplicationVolume(ctx, spec); err != nil {
+				return hv.Guest{}, err
+			}
+		}
 		return c.ensureOCIApplicationState(ctx, spec)
 	}
 	if !errors.Is(err, hv.ErrGuestNotFound) {
 		return hv.Guest{}, err
 	}
+	if spec.StoragePool != "" {
+		if err := c.ensureOCIApplicationVolume(ctx, spec); err != nil {
+			return hv.Guest{}, err
+		}
+	}
 
 	request := struct {
-		Name   string            `json:"name"`
-		Type   string            `json:"type"`
-		Source map[string]string `json:"source"`
-		Config map[string]string `json:"config"`
+		Name    string                       `json:"name"`
+		Type    string                       `json:"type"`
+		Source  map[string]string            `json:"source"`
+		Config  map[string]string            `json:"config"`
+		Devices map[string]map[string]string `json:"devices,omitempty"`
 	}{
 		Name: spec.Name,
 		Type: "container",
@@ -121,6 +141,9 @@ func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSp
 			"user.shippin.generation":             strconv.FormatInt(spec.Generation, 10),
 			"user.shippin.image_reference_sha256": imageReferenceHash(spec.ImageReference),
 		},
+	}
+	if spec.StoragePool != "" {
+		request.Devices = ociApplicationDevices(spec)
 	}
 	raw, err := json.Marshal(request)
 	if err != nil {
@@ -185,6 +208,124 @@ func validateOCIApplicationIdentity(instance instance, spec OCIApplicationSpec) 
 	}
 	if config["limits.cpu"] != strconv.Itoa(spec.Cores) || config["limits.memory"] != strconv.Itoa(spec.MemoryMiB)+"MiB" {
 		return errors.New("Incus OCI application resource configuration does not match the requested generation")
+	}
+	if spec.StoragePool != "" {
+		device, ok := instance.Devices["shippin-data"]
+		if !ok || device["type"] != "disk" || device["pool"] != spec.StoragePool ||
+			device["source"] != ociApplicationVolumeName(spec.DeploymentID) || device["path"] != spec.MountPath {
+			return errors.New("Incus OCI application persistent storage does not match the requested deployment")
+		}
+	}
+	return nil
+}
+
+func validateOCIApplicationStorage(spec OCIApplicationSpec) error {
+	if spec.StoragePool == "" && spec.StorageSizeGiB == 0 && spec.MountPath == "" {
+		return nil
+	}
+	if !guestName.MatchString(spec.StoragePool) || spec.StorageSizeGiB < 1 || spec.StorageSizeGiB > 65_536 ||
+		!strings.HasPrefix(spec.MountPath, "/") || spec.MountPath == "/" || strings.ContainsAny(spec.MountPath, "\\\r\n\x00") || path.Clean(spec.MountPath) != spec.MountPath {
+		return errors.New("incus: persistent storage requires a valid configured pool, size, and absolute mount path")
+	}
+	return nil
+}
+
+func ociApplicationVolumeName(deploymentID string) string {
+	return "shippin-" + strings.ReplaceAll(deploymentID, "-", "")
+}
+
+func ociApplicationDevices(spec OCIApplicationSpec) map[string]map[string]string {
+	return map[string]map[string]string{
+		"shippin-data": {
+			"type": "disk", "pool": spec.StoragePool, "source": ociApplicationVolumeName(spec.DeploymentID),
+			"path": spec.MountPath,
+		},
+	}
+}
+
+func (c *Client) ensureOCIApplicationVolume(ctx context.Context, spec OCIApplicationSpec) error {
+	poolPath := "/1.0/storage-pools/" + url.PathEscape(spec.StoragePool) + "/volumes/custom"
+	volumePath := poolPath + "/" + url.PathEscape(ociApplicationVolumeName(spec.DeploymentID))
+	volume, code, err := c.do(ctx, "GET", c.path(volumePath), nil)
+	if err != nil {
+		return err
+	}
+	if code == http.StatusOK {
+		return validateOCIApplicationVolume(volume, spec)
+	}
+	if code != http.StatusNotFound {
+		return fmt.Errorf("incus: persistent volume lookup HTTP %d: %s", code, clip(volume))
+	}
+	payload, err := json.Marshal(struct {
+		Name        string            `json:"name"`
+		Description string            `json:"description"`
+		Config      map[string]string `json:"config"`
+	}{ociApplicationVolumeName(spec.DeploymentID), ociApplicationVolumeDescription(spec.DeploymentID),
+		map[string]string{"size": strconv.Itoa(spec.StorageSizeGiB) + "GiB"}})
+	if err != nil {
+		return err
+	}
+	body, code, err := c.do(ctx, "POST", c.path(poolPath), payload)
+	if err != nil {
+		return err
+	}
+	if code == http.StatusConflict {
+		body, code, err = c.do(ctx, "GET", c.path(volumePath), nil)
+		if err != nil {
+			return err
+		}
+		if code != http.StatusOK {
+			return fmt.Errorf("incus: concurrent persistent volume creation could not be read back (HTTP %d)", code)
+		}
+		return validateOCIApplicationVolume(body, spec)
+	}
+	if code != http.StatusOK && code != http.StatusCreated && code != http.StatusAccepted {
+		return fmt.Errorf("incus: persistent volume create HTTP %d: %s", code, clip(body))
+	}
+	if err := c.wait(ctx, body); err != nil {
+		return fmt.Errorf("incus: persistent volume create operation failed: %w", err)
+	}
+	body, code, err = c.do(ctx, "GET", c.path(volumePath), nil)
+	if err != nil {
+		return err
+	}
+	if code != http.StatusOK {
+		return fmt.Errorf("incus: persistent volume read-back HTTP %d: %s", code, clip(body))
+	}
+	return validateOCIApplicationVolume(body, spec)
+}
+
+func (c *Client) checkOCIApplicationVolume(ctx context.Context, spec OCIApplicationSpec) error {
+	volumePath := "/1.0/storage-pools/" + url.PathEscape(spec.StoragePool) + "/volumes/custom/" + url.PathEscape(ociApplicationVolumeName(spec.DeploymentID))
+	body, code, err := c.do(ctx, "GET", c.path(volumePath), nil)
+	if err != nil {
+		return err
+	}
+	if code != http.StatusOK {
+		return fmt.Errorf("incus: persistent volume is missing or unavailable (HTTP %d): %s", code, clip(body))
+	}
+	return validateOCIApplicationVolume(body, spec)
+}
+
+func ociApplicationVolumeDescription(deploymentID string) string {
+	return "Shippin deployment " + deploymentID
+}
+
+func validateOCIApplicationVolume(body []byte, spec OCIApplicationSpec) error {
+	var response struct {
+		Metadata struct {
+			Name        string            `json:"name"`
+			Description string            `json:"description"`
+			Config      map[string]string `json:"config"`
+		} `json:"metadata"`
+	}
+	if err := json.Unmarshal(body, &response); err != nil {
+		return errors.New("incus: persistent volume read-back is invalid")
+	}
+	if response.Metadata.Name != ociApplicationVolumeName(spec.DeploymentID) ||
+		response.Metadata.Description != ociApplicationVolumeDescription(spec.DeploymentID) ||
+		response.Metadata.Config["size"] != strconv.Itoa(spec.StorageSizeGiB)+"GiB" {
+		return errors.New("incus: persistent volume name is already owned by a different configuration")
 	}
 	return nil
 }

@@ -1,6 +1,6 @@
 # Shippin platform absorption plan
 
-Status: active execution plan, refreshed 2026-11-05 against `main` at `f2e9ff3`.
+Status: active execution plan, refreshed 2026-11-05 during the Incus storage provider slice.
 This describes the target and acceptance gates; it does not claim unimplemented
 workflows are live. The [capability ledger](capability-absorption.md) holds
 source-by-source evidence and dispositions. Checks run `41965325001` passed all
@@ -9,8 +9,8 @@ also passed their respective CI runs.
 
 ## Current execution checkpoint (2026-11-05)
 
-`main` is at `f2e9ff3`. GitHub Checks run `41965325001` passed all 13 jobs.
-Its structured Incus OCI runtime editor update preserves all one-panel
+The last confirmed `main` is at `690366e`. GitHub Checks run `41965589095`
+passed all 13 jobs. The structured Incus OCI runtime editor update preserves all one-panel
 boundaries and leaves the worker gated; previous code run `41963346185` passed
 all 13 jobs for `537f304`, and documentation run `41963735539` passed all 13.
 No PRs are open. PR 17 is closed without merge, but its reserved
@@ -37,9 +37,14 @@ deployment-generation identity checks and retry reconciliation: it
 requires an immutable `sha256` image reference, validates resource inputs,
 preflights Incus 7.3.0 or newer, waits for the create operation, and confirms
 the OCI marker and requested run state by reading the instance back. It is not
-wired to the catalog worker and does not yet provide managed data volumes,
-network exposure, health checks, secret delivery, updates, backups, or removal
-ownership; it is not a deployable catalog runtime yet. Proxmox health now
+wired to the catalog worker. The Incus provider primitive now optionally
+creates and attaches a deployment-named custom data volume in an explicitly
+selected storage pool, then verifies volume ownership/size and device read-back.
+It rejects invalid configuration before provider access and refuses to recreate
+a missing volume for an existing instance. This remains a provider primitive:
+there is no target-specific pool selector, worker call, network exposure,
+health check, secret delivery, update, backup, or removal ownership; it is not
+a deployable catalog runtime yet. Proxmox health now
 rejects malformed version responses and versions outside the documented 8/9
 major support window. The implementation is
 limited to the Incus provider and follows Incus' [OCI remote and application
