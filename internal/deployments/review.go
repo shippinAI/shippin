@@ -14,26 +14,29 @@ import (
 var ErrReviewConflict = errors.New("deployment review conflicts with the current generation")
 
 type ReviewRequest struct {
-	ID             string    `json:"id"`
-	DeploymentID   string    `json:"deployment_id"`
-	TenantID       string    `json:"tenant_id"`
-	Generation     int64     `json:"generation"`
-	ActionSHA256   string    `json:"action_sha256"`
-	AgentHubTicket string    `json:"agenthub_ticket_id"`
-	State          string    `json:"state"`
-	TicketSHA256   string    `json:"ticket_sha256,omitempty"`
-	FailureCode    string    `json:"failure_code,omitempty"`
-	CreatedBy      string    `json:"created_by"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID                   string    `json:"id"`
+	DeploymentID         string    `json:"deployment_id"`
+	TenantID             string    `json:"tenant_id"`
+	Generation           int64     `json:"generation"`
+	ExecutionPlanVersion int       `json:"execution_plan_version,omitempty"`
+	ExecutionPlanSHA256  string    `json:"execution_plan_sha256,omitempty"`
+	ActionSHA256         string    `json:"action_sha256"`
+	AgentHubTicket       string    `json:"agenthub_ticket_id"`
+	State                string    `json:"state"`
+	TicketSHA256         string    `json:"ticket_sha256,omitempty"`
+	FailureCode          string    `json:"failure_code,omitempty"`
+	CreatedBy            string    `json:"created_by"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
 }
 
 // ReserveReview creates one stable Shippin-to-AgentHub correlation for an
 // immutable deployment generation. It never calls AgentHub or a provider.
 func (s *Store) ReserveReview(ctx context.Context, tenantID, deploymentID string, generation int64,
-	actor, idempotencyKey, reviewID, ticketID, actionSHA256 string) (ReviewRequest, bool, error) {
+	actor, idempotencyKey, reviewID, ticketID string, executionPlanVersion int, executionPlanSHA256, actionSHA256 string) (ReviewRequest, bool, error) {
 	if !validUUID(tenantID) || !validUUID(deploymentID) || !validUUID(idempotencyKey) || !validUUID(reviewID) ||
-		generation < 1 || !validAgentHubTicketID(ticketID) || !validSHA256Value(actionSHA256) || !validReviewActor(actor) {
+		generation < 1 || !validAgentHubTicketID(ticketID) || executionPlanVersion != ExecutionPlanVersion || !validSHA256Value(executionPlanSHA256) ||
+		!validSHA256Value(actionSHA256) || !validReviewActor(actor) {
 		return ReviewRequest{}, false, ErrInvalidRequest
 	}
 	tx, err := s.pool.Begin(ctx)
@@ -56,7 +59,7 @@ func (s *Store) ReserveReview(ctx context.Context, tenantID, deploymentID string
 	}
 	prior, err := scanReview(tx.QueryRow(ctx, reviewSelect+` WHERE tenant_id=$1 AND deployment_id=$2 AND generation=$3 FOR UPDATE`, tenantID, deploymentID, generation))
 	if err == nil {
-		if prior.ActionSHA256 != actionSHA256 {
+		if prior.ExecutionPlanVersion != executionPlanVersion || prior.ExecutionPlanSHA256 != executionPlanSHA256 || prior.ActionSHA256 != actionSHA256 {
 			return ReviewRequest{}, false, ErrReviewConflict
 		}
 		if err := tx.Commit(ctx); err != nil {
@@ -77,10 +80,10 @@ func (s *Store) ReserveReview(ctx context.Context, tenantID, deploymentID string
 	}
 	var review ReviewRequest
 	err = tx.QueryRow(ctx, `INSERT INTO shippin_deployment_reviews
-		(id,tenant_id,deployment_id,generation,idempotency_key,action_sha256,agenthub_ticket_id,state,created_by)
-		VALUES($1,$2,$3,$4,$5,$6,$7,'preparing',$8) RETURNING `+reviewColumns,
-		reviewID, tenantID, deploymentID, generation, idempotencyKey, actionSHA256, ticketID, actor).Scan(
-		&review.ID, &review.TenantID, &review.DeploymentID, &review.Generation, &review.ActionSHA256, &review.AgentHubTicket,
+		(id,tenant_id,deployment_id,generation,idempotency_key,execution_plan_version,execution_plan_sha256,action_sha256,agenthub_ticket_id,state,created_by)
+		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'preparing',$10) RETURNING `+reviewColumns,
+		reviewID, tenantID, deploymentID, generation, idempotencyKey, executionPlanVersion, executionPlanSHA256, actionSHA256, ticketID, actor).Scan(
+		&review.ID, &review.TenantID, &review.DeploymentID, &review.Generation, &review.ExecutionPlanVersion, &review.ExecutionPlanSHA256, &review.ActionSHA256, &review.AgentHubTicket,
 		&review.State, &review.TicketSHA256, &review.FailureCode, &review.CreatedBy, &review.CreatedAt, &review.UpdatedAt)
 	if err != nil {
 		return ReviewRequest{}, false, err
@@ -94,13 +97,14 @@ func (s *Store) ReserveReview(ctx context.Context, tenantID, deploymentID string
 	return review, true, nil
 }
 
-const reviewColumns = `id::text,tenant_id::text,deployment_id::text,generation,action_sha256,agenthub_ticket_id,state,
+const reviewColumns = `id::text,tenant_id::text,deployment_id::text,generation,coalesce(execution_plan_version,0),coalesce(execution_plan_sha256,''),action_sha256,agenthub_ticket_id,state,
   coalesce(ticket_sha256,''),coalesce(failure_code,''),created_by,created_at,updated_at`
 const reviewSelect = `SELECT ` + reviewColumns + ` FROM shippin_deployment_reviews`
 
 func scanReview(row pgx.Row) (ReviewRequest, error) {
 	var item ReviewRequest
-	err := row.Scan(&item.ID, &item.TenantID, &item.DeploymentID, &item.Generation, &item.ActionSHA256, &item.AgentHubTicket,
+	err := row.Scan(&item.ID, &item.TenantID, &item.DeploymentID, &item.Generation, &item.ExecutionPlanVersion, &item.ExecutionPlanSHA256,
+		&item.ActionSHA256, &item.AgentHubTicket,
 		&item.State, &item.TicketSHA256, &item.FailureCode, &item.CreatedBy, &item.CreatedAt, &item.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ReviewRequest{}, ErrNotFound

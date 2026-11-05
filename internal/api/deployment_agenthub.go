@@ -25,18 +25,20 @@ type deploymentReviewInput struct {
 }
 
 type deploymentReviewAction struct {
-	Operation      string                   `json:"operation"`
-	TenantID       string                   `json:"tenant_id"`
-	DeploymentID   string                   `json:"deployment_id"`
-	Generation     int64                    `json:"generation"`
-	DesiredState   string                   `json:"desired_state"`
-	TargetSystemID string                   `json:"target_system_id"`
-	TargetProvider string                   `json:"target_provider"`
-	ServiceID      string                   `json:"service_id"`
-	DefinitionSHA  string                   `json:"definition_sha256"`
-	Source         deployments.SourceView   `json:"source"`
-	Config         json.RawMessage          `json:"config"`
-	TargetConfig   deployments.TargetConfig `json:"target_config"`
+	Operation           string                    `json:"operation"`
+	TenantID            string                    `json:"tenant_id"`
+	DeploymentID        string                    `json:"deployment_id"`
+	Generation          int64                     `json:"generation"`
+	DesiredState        string                    `json:"desired_state"`
+	TargetSystemID      string                    `json:"target_system_id"`
+	TargetProvider      string                    `json:"target_provider"`
+	ServiceID           string                    `json:"service_id"`
+	DefinitionSHA       string                    `json:"definition_sha256"`
+	Source              deployments.SourceView    `json:"source"`
+	Config              json.RawMessage           `json:"config"`
+	TargetConfig        deployments.TargetConfig  `json:"target_config"`
+	ExecutionPlan       deployments.ExecutionPlan `json:"execution_plan"`
+	ExecutionPlanSHA256 string                    `json:"execution_plan_sha256"`
 }
 
 func (a *API) prepareDeploymentReview(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +75,7 @@ func (a *API) prepareDeploymentReview(w http.ResponseWriter, r *http.Request) {
 		writeDeploymentError(w, deployments.ErrGenerationConflict)
 		return
 	}
-	action, actionSHA256, err := deploymentReviewSnapshot(tenant.ID, deployment)
+	action, planSHA256, actionSHA256, err := deploymentReviewSnapshot(tenant.ID, deployment)
 	if err != nil {
 		deploymentUnavailable(w)
 		return
@@ -89,7 +91,7 @@ func (a *API) prepareDeploymentReview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	review, _, err := a.deploymentStore().ReserveReview(r.Context(), tenant.ID, deployment.ID, deployment.Generation,
-		c.id.Sub, key, reviewID, ticketID, actionSHA256)
+		c.id.Sub, key, reviewID, ticketID, action.ExecutionPlan.Version, planSHA256, actionSHA256)
 	if err != nil {
 		switch {
 		case errors.Is(err, deployments.ErrGenerationConflict):
@@ -144,7 +146,9 @@ func (a *API) prepareDeploymentReview(w http.ResponseWriter, r *http.Request) {
 	}
 	if withEvidence.TenantID != identity.AgentHubTenantID || withEvidence.Machine == nil ||
 		*withEvidence.Machine != identity.AgentHubMachineID || withEvidence.Command != command ||
-		withEvidence.Fields["shippin_action_sha256"] != actionSHA256 {
+		withEvidence.Fields["shippin_action_sha256"] != actionSHA256 ||
+		withEvidence.Fields["shippin_execution_plan_sha256"] != planSHA256 ||
+		withEvidence.Fields["shippin_execution_plan_version"] != strconv.Itoa(action.ExecutionPlan.Version) {
 		a.failDeploymentReview(w, r, review, c.id.Sub, "agenthub_ticket_binding_failed")
 		return
 	}
@@ -156,6 +160,8 @@ func (a *API) prepareDeploymentReview(w http.ResponseWriter, r *http.Request) {
 	if submitted.TenantID != identity.AgentHubTenantID || submitted.Machine == nil || *submitted.Machine != identity.AgentHubMachineID ||
 		submitted.Command != command ||
 		submitted.Fields["shippin_action_sha256"] != actionSHA256 ||
+		submitted.Fields["shippin_execution_plan_sha256"] != planSHA256 ||
+		submitted.Fields["shippin_execution_plan_version"] != strconv.Itoa(action.ExecutionPlan.Version) ||
 		submitted.Fields["shippin_system_id"] != deployment.TargetSystemID ||
 		submitted.Fields["shippin_deployment_id"] != deployment.ID ||
 		submitted.Fields["shippin_generation"] != strconv.FormatInt(deployment.Generation, 10) {
@@ -259,6 +265,11 @@ func (a *API) getDeploymentReview(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"review": review, "agenthub_status": "not_submitted"})
 		return
 	}
+	currentAction, planSHA, actionSHA, err := deploymentReviewSnapshot(tenant.ID, deployment)
+	if err != nil || planSHA != review.ExecutionPlanSHA256 || currentAction.ExecutionPlan.Version != review.ExecutionPlanVersion || actionSHA != review.ActionSHA256 {
+		writeJSON(w, map[string]any{"review": review, "agenthub_status": "binding_mismatch"})
+		return
+	}
 	connection, err := a.db.AgentHubConnection(r.Context())
 	if err != nil || !connection.HasCredential || connection.BaseURL == "" {
 		writeJSON(w, map[string]any{"review": review, "agenthub_status": "unavailable"})
@@ -284,6 +295,8 @@ func (a *API) getDeploymentReview(w http.ResponseWriter, r *http.Request) {
 	identity, err := a.serverStore().Identity(r.Context(), deployment.TargetSystemID)
 	if err != nil || ticket.TenantID != identity.AgentHubTenantID || ticket.Machine == nil ||
 		*ticket.Machine != identity.AgentHubMachineID || ticket.Fields["shippin_action_sha256"] != review.ActionSHA256 ||
+		ticket.Fields["shippin_execution_plan_sha256"] != review.ExecutionPlanSHA256 ||
+		ticket.Fields["shippin_execution_plan_version"] != strconv.Itoa(review.ExecutionPlanVersion) ||
 		ticket.Fields["shippin_system_id"] != deployment.TargetSystemID || ticket.Fields["shippin_deployment_id"] != deployment.ID ||
 		ticket.Fields["shippin_generation"] != strconv.FormatInt(deployment.Generation, 10) || ticket.SHA256 != review.TicketSHA256 {
 		writeJSON(w, map[string]any{"review": review, "agenthub_status": "binding_mismatch"})
@@ -332,9 +345,17 @@ func deploymentReviewCommand(deploymentID string, generation int64, actionSHA256
 	return string(command)
 }
 
-func deploymentReviewSnapshot(tenantID string, deployment *deployments.Deployment) (deploymentReviewAction, string, error) {
+func deploymentReviewSnapshot(tenantID string, deployment *deployments.Deployment) (deploymentReviewAction, string, string, error) {
 	if deployment == nil {
-		return deploymentReviewAction{}, "", errors.New("deployment is required")
+		return deploymentReviewAction{}, "", "", errors.New("deployment is required")
+	}
+	plan, err := deployments.BuildExecutionPlan(tenantID, deployment)
+	if err != nil {
+		return deploymentReviewAction{}, "", "", err
+	}
+	planSHA, err := plan.Fingerprint()
+	if err != nil {
+		return deploymentReviewAction{}, "", "", err
 	}
 	action := deploymentReviewAction{
 		Operation: "deployment." + string(deployment.DesiredState), TenantID: tenantID,
@@ -342,13 +363,14 @@ func deploymentReviewSnapshot(tenantID string, deployment *deployments.Deploymen
 		TargetSystemID: deployment.TargetSystemID, TargetProvider: string(deployment.TargetProvider),
 		ServiceID: deployment.ServiceID, DefinitionSHA: deployment.DefinitionSHA256, Source: deployment.Source,
 		Config: deployment.Config, TargetConfig: deployment.TargetConfig,
+		ExecutionPlan: plan, ExecutionPlanSHA256: planSHA,
 	}
 	canonical, err := json.Marshal(action)
 	if err != nil {
-		return deploymentReviewAction{}, "", err
+		return deploymentReviewAction{}, "", "", err
 	}
 	digest := sha256.Sum256(canonical)
-	return action, hex.EncodeToString(digest[:]), nil
+	return action, planSHA, hex.EncodeToString(digest[:]), nil
 }
 
 func deploymentReviewFields(action deploymentReviewAction, ticketID, evidencePath, actionSHA256 string) map[string]string {
@@ -357,14 +379,16 @@ func deploymentReviewFields(action deploymentReviewAction, ticketID, evidencePat
 	blastRadius := fmt.Sprintf("Tenant %s deployment %s generation %d on target system %s only; no other tenant resources are in scope.",
 		action.TenantID, action.DeploymentID, action.Generation, action.TargetSystemID)
 	return map[string]string{
-		"shippin_action_sha256":      actionSHA256,
-		"shippin_agenthub_ticket_id": ticketID,
-		"shippin_system_id":          action.TargetSystemID,
-		"shippin_deployment_id":      action.DeploymentID,
-		"shippin_generation":         strconv.FormatInt(action.Generation, 10),
-		"topology":                   topology,
-		"blast_radius":               blastRadius,
-		"snapshot":                   evidencePath,
+		"shippin_action_sha256":          actionSHA256,
+		"shippin_execution_plan_sha256":  action.ExecutionPlanSHA256,
+		"shippin_execution_plan_version": strconv.Itoa(action.ExecutionPlan.Version),
+		"shippin_agenthub_ticket_id":     ticketID,
+		"shippin_system_id":              action.TargetSystemID,
+		"shippin_deployment_id":          action.DeploymentID,
+		"shippin_generation":             strconv.FormatInt(action.Generation, 10),
+		"topology":                       topology,
+		"blast_radius":                   blastRadius,
+		"snapshot":                       evidencePath,
 	}
 }
 
@@ -385,21 +409,24 @@ func deploymentReviewLists(action deploymentReviewAction, evidencePath string) m
 func deploymentReviewEvidence(action deploymentReviewAction, ticketID string) (string, error) {
 	redactedConfig := catalog.RedactSecretReferences(action.Config)
 	artifact := struct {
-		TicketID       string                   `json:"ticket_id"`
-		Operation      string                   `json:"operation"`
-		TenantID       string                   `json:"tenant_id"`
-		DeploymentID   string                   `json:"deployment_id"`
-		Generation     int64                    `json:"generation"`
-		DesiredState   string                   `json:"desired_state"`
-		TargetSystemID string                   `json:"target_system_id"`
-		TargetProvider string                   `json:"target_provider"`
-		ServiceID      string                   `json:"service_id"`
-		DefinitionSHA  string                   `json:"definition_sha256"`
-		Source         any                      `json:"source"`
-		Config         json.RawMessage          `json:"config"`
-		TargetConfig   deployments.TargetConfig `json:"target_config"`
+		TicketID            string                    `json:"ticket_id"`
+		Operation           string                    `json:"operation"`
+		TenantID            string                    `json:"tenant_id"`
+		DeploymentID        string                    `json:"deployment_id"`
+		Generation          int64                     `json:"generation"`
+		DesiredState        string                    `json:"desired_state"`
+		TargetSystemID      string                    `json:"target_system_id"`
+		TargetProvider      string                    `json:"target_provider"`
+		ServiceID           string                    `json:"service_id"`
+		DefinitionSHA       string                    `json:"definition_sha256"`
+		Source              any                       `json:"source"`
+		Config              json.RawMessage           `json:"config"`
+		TargetConfig        deployments.TargetConfig  `json:"target_config"`
+		ExecutionPlan       deployments.ExecutionPlan `json:"execution_plan"`
+		ExecutionPlanSHA256 string                    `json:"execution_plan_sha256"`
 	}{ticketID, action.Operation, action.TenantID, action.DeploymentID, action.Generation, action.DesiredState, action.TargetSystemID,
-		action.TargetProvider, action.ServiceID, action.DefinitionSHA, action.Source, redactedConfig, action.TargetConfig}
+		action.TargetProvider, action.ServiceID, action.DefinitionSHA, action.Source, redactedConfig, action.TargetConfig,
+		action.ExecutionPlan, action.ExecutionPlanSHA256}
 	text, err := json.Marshal(artifact)
 	if err != nil || len(text) > 20_000 {
 		return "", errors.New("bounded review evidence could not be encoded")

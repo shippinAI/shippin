@@ -62,14 +62,14 @@ func (a *API) authorizeDeploymentActionWithFence(ctx context.Context, tenantID s
 	if err != nil {
 		return deploymentAuthorizationResult{}, err
 	}
-	if review.State != "pending_review" || review.TicketSHA256 == "" {
+	if review.State != "pending_review" || review.TicketSHA256 == "" || review.ExecutionPlanVersion != deployments.ExecutionPlanVersion || review.ExecutionPlanSHA256 == "" {
 		return deploymentAuthorizationResult{FailureCode: "agenthub_review_not_ready", Status: http.StatusConflict}, nil
 	}
-	_, actionSHA, err := deploymentReviewSnapshot(tenantID, deployment)
+	currentAction, planSHA, actionSHA, err := deploymentReviewSnapshot(tenantID, deployment)
 	if err != nil {
 		return deploymentAuthorizationResult{}, err
 	}
-	if actionSHA != review.ActionSHA256 {
+	if currentAction.ExecutionPlan.Version != review.ExecutionPlanVersion || planSHA != review.ExecutionPlanSHA256 || actionSHA != review.ActionSHA256 {
 		return a.recordDeploymentAuthorizationDenial(ctx, tenantID, deployment, actor, idempotencyKey,
 			"agenthub_review_stale", http.StatusConflict, fence)
 	}

@@ -37,11 +37,13 @@ func TestDeploymentReviewContextSatisfiesAgentHubReviewFields(t *testing.T) {
 	action := deploymentReviewAction{
 		TenantID: "tenant-1", DeploymentID: "deployment-1", Generation: 3, TargetSystemID: "system-1",
 		TargetProvider: "incus", ServiceID: "postgres",
-		Source: deployments.SourceView{Kind: "github", Reference: "https://github.com/example/postgres", Commit: strings.Repeat("a", 40)},
+		ExecutionPlanSHA256: strings.Repeat("b", 64),
+		ExecutionPlan:       deployments.ExecutionPlan{Version: deployments.ExecutionPlanVersion},
+		Source:              deployments.SourceView{Kind: "github", Reference: "https://github.com/example/postgres", Commit: strings.Repeat("a", 40)},
 	}
 	path := "/shippin/deployments/deployment-1/generations/3/review.json"
 	fields := deploymentReviewFields(action, "shp-review-123", path, strings.Repeat("b", 64))
-	for _, key := range []string{"topology", "blast_radius", "snapshot", "shippin_action_sha256", "shippin_agenthub_ticket_id", "shippin_system_id", "shippin_deployment_id", "shippin_generation"} {
+	for _, key := range []string{"topology", "blast_radius", "snapshot", "shippin_action_sha256", "shippin_execution_plan_sha256", "shippin_execution_plan_version", "shippin_agenthub_ticket_id", "shippin_system_id", "shippin_deployment_id", "shippin_generation"} {
 		if fields[key] == "" {
 			t.Errorf("AgentHub review field %q is missing", key)
 		}

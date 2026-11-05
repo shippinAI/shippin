@@ -2,12 +2,11 @@ package api
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -40,23 +39,20 @@ func TestAuthorizeDeploymentReviewRecordsAllowAndNoMatchDenial(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	action := deploymentReviewAction{
-		Operation: "deployment.present", TenantID: tenantID, DeploymentID: deployment.ID,
-		Generation: deployment.Generation, DesiredState: string(deployment.DesiredState), TargetSystemID: systemID,
-		TargetProvider: string(deployment.TargetProvider), ServiceID: deployment.ServiceID,
-		DefinitionSHA: deployment.DefinitionSHA256, Source: deployment.Source, Config: deployment.Config,
-		TargetConfig: deployment.TargetConfig,
-	}
-	actionJSON, err := json.Marshal(action)
+	action, planSHA, actionSHA, err := deploymentReviewSnapshot(tenantID, deployment)
 	if err != nil {
 		t.Fatal(err)
 	}
-	actionHash := sha256.Sum256(actionJSON)
-	actionSHA := hex.EncodeToString(actionHash[:])
+	changedTarget := *deployment
+	changedTarget.TargetSystemID = uuid.NewString()
+	_, changedPlanSHA, changedActionSHA, err := deploymentReviewSnapshot(tenantID, &changedTarget)
+	if err != nil || changedPlanSHA == planSHA || changedActionSHA == actionSHA {
+		t.Fatalf("review hash did not bind target change: plan %s/%s action %s/%s err=%v", planSHA, changedPlanSHA, actionSHA, changedActionSHA, err)
+	}
 	reviewID := uuid.NewString()
 	ticketID := "shp-" + strings.ReplaceAll(reviewID, "-", "")
 	if _, _, err := a.deploymentStore().ReserveReview(ctx, tenantID, deployment.ID, deployment.Generation,
-		"route-test-user", uuid.NewString(), reviewID, ticketID, actionSHA); err != nil {
+		"route-test-user", uuid.NewString(), reviewID, ticketID, deployments.ExecutionPlanVersion, planSHA, actionSHA); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := a.deploymentStore().SetReviewState(ctx, reviewID, "route-test-user", "pending_review", ticketSHA, ""); err != nil {
@@ -75,7 +71,7 @@ func TestAuthorizeDeploymentReviewRecordsAllowAndNoMatchDenial(t *testing.T) {
 			command := deploymentReviewCommand(deployment.ID, deployment.Generation, actionSHA, deployment.DesiredState)
 			body, _ := json.Marshal(map[string]any{"ticket": map[string]any{
 				"id": ticketID, "tenant_id": agentHubTenant, "machine": machineID, "command": command,
-				"fields": map[string]string{"shippin_action_sha256": actionSHA}, "sha256": ticketSHA, "status": "passed", "version": 3,
+				"fields": map[string]string{"shippin_action_sha256": actionSHA, "shippin_execution_plan_sha256": planSHA, "shippin_execution_plan_version": strconv.Itoa(action.ExecutionPlan.Version)}, "sha256": ticketSHA, "status": "passed", "version": 3,
 			}})
 			_, _ = w.Write(body)
 		case "/api/v1/policy/decide":
@@ -145,7 +141,29 @@ func TestAuthorizeDeploymentReviewRecordsAllowAndNoMatchDenial(t *testing.T) {
 		!strings.Contains(allowed.Body.String(), `"policy_version":3`) || strings.Contains(allowed.Body.String(), serviceToken) || decisionCalls != 1 {
 		t.Fatalf("authorization allow response: %d %s", allowed.Code, allowed.Body)
 	}
-	jobID, leaseOwner := uuid.NewString(), "deployment-auth-test-worker"
+	leaseOwner := "deployment-auth-test-worker"
+	stalePlanJobID := uuid.NewString()
+	if _, err := a.db.Pool.Exec(ctx, `INSERT INTO jobs(id,tenant_id,kind,target_type,target_id,status,created_by,lease_owner,lease_until)
+		VALUES($1,$2,'deployment.reconcile','deployment_generation',$3,'running','deployment-auth-test-worker',$4,now()+interval '1 minute')`,
+		stalePlanJobID, tenantID, deployment.ID+":1", leaseOwner); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.db.Pool.Exec(ctx, `UPDATE shippin_deployment_reviews SET execution_plan_sha256=$2 WHERE deployment_id=$1`, deployment.ID, strings.Repeat("d", 64)); err != nil {
+		t.Fatal(err)
+	}
+	decisionCount := decisionCalls
+	stalePlan, err := a.authorizeDeploymentActionWithLease(ctx, tenantID, deployment,
+		"deployment-auth-test-worker", stalePlanJobID, leaseOwner)
+	if err != nil || stalePlan.Status != http.StatusConflict || stalePlan.FailureCode != "agenthub_review_stale" || decisionCalls != decisionCount {
+		t.Fatalf("stale execution-plan digest reached AgentHub: result=%+v calls=%d/%d err=%v", stalePlan, decisionCalls, decisionCount, err)
+	}
+	if _, err := a.db.Pool.Exec(ctx, `UPDATE jobs SET status='failed',lease_owner=NULL,lease_until=NULL WHERE id=$1`, stalePlanJobID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.db.Pool.Exec(ctx, `UPDATE shippin_deployment_reviews SET execution_plan_sha256=$2 WHERE deployment_id=$1`, deployment.ID, planSHA); err != nil {
+		t.Fatal(err)
+	}
+	jobID := uuid.NewString()
 	if _, err := a.db.Pool.Exec(ctx, `INSERT INTO jobs(id,tenant_id,kind,target_type,target_id,status,created_by,lease_owner,lease_until)
 		VALUES($1,$2,'deployment.reconcile','deployment_generation',$3,'running','deployment-auth-test-worker',$4,now()+interval '1 minute')`,
 		jobID, tenantID, deployment.ID+":1", leaseOwner); err != nil {
@@ -156,7 +174,7 @@ func TestAuthorizeDeploymentReviewRecordsAllowAndNoMatchDenial(t *testing.T) {
 	if err != nil || workerAllowed.Status != http.StatusOK || workerAllowed.Event.Type != deployments.EventReviewAllowed {
 		t.Fatalf("worker JIT authorization was not recorded under its lease: result=%+v err=%v", workerAllowed, err)
 	}
-	decisionCount := decisionCalls
+	decisionCount = decisionCalls
 	if _, err := a.db.Pool.Exec(ctx, `UPDATE jobs SET lease_until=now()-interval '1 second' WHERE id=$1`, jobID); err != nil {
 		t.Fatal(err)
 	}

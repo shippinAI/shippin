@@ -298,25 +298,29 @@ func TestDeploymentReviewIsDurableIdempotentAndGenerationBound(t *testing.T) {
 	ticketID := "shp-" + strings.ReplaceAll(reviewID, "-", "")
 	key := uuid.NewString()
 	request, createdNew, err := store.ReserveReview(ctx, tenantID, created.ID, created.Generation, "operator@example.test", key,
-		reviewID, ticketID, strings.Repeat("a", 64))
-	if err != nil || !createdNew || request.State != "preparing" || request.AgentHubTicket != ticketID {
+		reviewID, ticketID, ExecutionPlanVersion, strings.Repeat("d", 64), strings.Repeat("a", 64))
+	if err != nil || !createdNew || request.State != "preparing" || request.AgentHubTicket != ticketID || request.ExecutionPlanVersion != ExecutionPlanVersion || request.ExecutionPlanSHA256 != strings.Repeat("d", 64) {
 		t.Fatalf("reserve request=%+v created=%t err=%v", request, createdNew, err)
 	}
 	replayed, createdNew, err := store.ReserveReview(ctx, tenantID, created.ID, created.Generation, "operator@example.test", key,
-		uuid.NewString(), "shp-ffffffffffffffffffffffffffffffff", strings.Repeat("a", 64))
+		uuid.NewString(), "shp-ffffffffffffffffffffffffffffffff", ExecutionPlanVersion, strings.Repeat("d", 64), strings.Repeat("a", 64))
 	if err != nil || createdNew || replayed.ID != request.ID || replayed.AgentHubTicket != ticketID {
 		t.Fatalf("review idempotency replay=%+v created=%t err=%v", replayed, createdNew, err)
 	}
 	if _, _, err := store.ReserveReview(ctx, tenantID, created.ID, created.Generation, "operator@example.test", uuid.NewString(),
-		uuid.NewString(), "shp-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", strings.Repeat("b", 64)); !errors.Is(err, ErrReviewConflict) {
+		uuid.NewString(), "shp-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", ExecutionPlanVersion, strings.Repeat("d", 64), strings.Repeat("b", 64)); !errors.Is(err, ErrReviewConflict) {
 		t.Fatalf("same generation with a different action hash was accepted: %v", err)
+	}
+	if _, _, err := store.ReserveReview(ctx, tenantID, created.ID, created.Generation, "operator@example.test", uuid.NewString(),
+		uuid.NewString(), "shp-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", ExecutionPlanVersion, strings.Repeat("e", 64), strings.Repeat("a", 64)); !errors.Is(err, ErrReviewConflict) {
+		t.Fatalf("same action with a different provider-plan digest was accepted: %v", err)
 	}
 	updated, err := store.SetReviewState(ctx, request.ID, "operator@example.test", "pending_review", strings.Repeat("c", 64), "")
 	if err != nil || updated.State != "pending_review" || updated.TicketSHA256 != strings.Repeat("c", 64) {
 		t.Fatalf("update review state=%+v err=%v", updated, err)
 	}
 	loaded, err := store.GetReview(ctx, tenantID, created.ID, created.Generation)
-	if err != nil || loaded.ID != request.ID || loaded.CreatedAt.IsZero() || loaded.UpdatedAt.IsZero() {
+	if err != nil || loaded.ID != request.ID || loaded.ExecutionPlanVersion != ExecutionPlanVersion || loaded.ExecutionPlanSHA256 != strings.Repeat("d", 64) || loaded.CreatedAt.IsZero() || loaded.UpdatedAt.IsZero() {
 		t.Fatalf("load review=%+v err=%v", loaded, err)
 	}
 	var events int
@@ -327,7 +331,7 @@ func TestDeploymentReviewIsDurableIdempotentAndGenerationBound(t *testing.T) {
 		t.Fatal("review event history is not append-only")
 	}
 	if _, _, err := store.ReserveReview(ctx, uuid.NewString(), created.ID, created.Generation, "operator@example.test", uuid.NewString(),
-		uuid.NewString(), "shp-dddddddddddddddddddddddddddddddd", strings.Repeat("a", 64)); !errors.Is(err, ErrNotFound) {
+		uuid.NewString(), "shp-dddddddddddddddddddddddddddddddd", ExecutionPlanVersion, strings.Repeat("d", 64), strings.Repeat("a", 64)); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("cross-tenant review reservation: %v", err)
 	}
 }
@@ -345,7 +349,7 @@ func TestReviewAuthorizationProvenanceIsFencedAppendOnlyAndIdempotent(t *testing
 	reviewID := uuid.NewString()
 	ticketID := "shp-" + strings.ReplaceAll(reviewID, "-", "")
 	if _, _, err := store.ReserveReview(ctx, tenantID, deployment.ID, deployment.Generation, "operator@example.test", uuid.NewString(),
-		reviewID, ticketID, strings.Repeat("a", 64)); err != nil {
+		reviewID, ticketID, ExecutionPlanVersion, strings.Repeat("d", 64), strings.Repeat("a", 64)); err != nil {
 		t.Fatal(err)
 	}
 	ticketSHA := strings.Repeat("c", 64)
@@ -412,7 +416,7 @@ func TestWorkerReviewDecisionRequiresCurrentLease(t *testing.T) {
 	reviewID := uuid.NewString()
 	ticketID := "shp-" + strings.ReplaceAll(reviewID, "-", "")
 	if _, _, err := store.ReserveReview(ctx, tenantID, deployment.ID, deployment.Generation,
-		"operator@example.test", uuid.NewString(), reviewID, ticketID, strings.Repeat("a", 64)); err != nil {
+		"operator@example.test", uuid.NewString(), reviewID, ticketID, ExecutionPlanVersion, strings.Repeat("d", 64), strings.Repeat("a", 64)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.SetReviewState(ctx, reviewID, "operator@example.test", "pending_review", strings.Repeat("c", 64), ""); err != nil {

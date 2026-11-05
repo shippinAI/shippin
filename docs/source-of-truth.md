@@ -66,6 +66,7 @@ Shippin now has AgentHub-backed deployment review preparation and exact-action
 operator authorization in the existing panel; worker-side authorization before
 provider execution remains unimplemented. See the
 [system identity and human review plan](system-identity-human-review-plan.md).
+Deployment review reservations also persist the version and digest of a deterministic provider execution plan derived from the immutable generation. The AgentHub action and review evidence bind that plan; a stale plan digest is rejected before an authorization request. The current plan is descriptive and the worker remains `runtime_unsupported`; it is not an execution record or proof that a provider operation ran.
 Single-guest Incus and Proxmox power actions now also use persisted exact-action
 AgentHub review and one-shot Shippin execution provenance. Live policy/quorum and
 provider execution remain unverified; other provider writes stay fail-closed.
