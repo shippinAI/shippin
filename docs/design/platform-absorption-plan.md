@@ -1,6 +1,6 @@
 # Shippin platform absorption plan
 
-Status: active execution plan, refreshed 2026-11-05 during the Incus storage provider slice.
+Status: active execution plan, refreshed 2026-11-05 against `main` at `d6009fe`.
 This describes the target and acceptance gates; it does not claim unimplemented
 workflows are live. The [capability ledger](capability-absorption.md) holds
 source-by-source evidence and dispositions. Checks run `41965325001` passed all
@@ -9,8 +9,9 @@ also passed their respective CI runs.
 
 ## Current execution checkpoint (2026-11-05)
 
-The last confirmed `main` is at `690366e`. GitHub Checks run `41965589095`
-passed all 13 jobs. The structured Incus OCI runtime editor update preserves all one-panel
+`main` is at `d6009fe`. GitHub Checks run `41966835467` passed all 13 jobs,
+including full Go, database-backed, installer, panel and governance jobs. The
+structured Incus OCI runtime editor update preserves all one-panel
 boundaries and leaves the worker gated; previous code run `41963346185` passed
 all 13 jobs for `537f304`, and documentation run `41963735539` passed all 13.
 No PRs are open. PR 17 is closed without merge, but its reserved
