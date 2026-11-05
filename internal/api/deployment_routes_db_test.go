@@ -93,6 +93,12 @@ func deploymentRequest(method, tenantID, id, body, key, etag string) *http.Reque
 
 func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 	a, tenantID, targetID := deploymentRouteAPI(t)
+	a.hvServers = &memHV{items: []servers.Endpoint{{ID: targetID, Kind: "incus"}}}
+	openedDrivers := 0
+	a.openHV = func(servers.Endpoint) (hv.Driver, error) {
+		openedDrivers++
+		return deploymentStorageInventoryDriver{}, nil
+	}
 	services := httptest.NewRecorder()
 	a.listDeployableServices(services, deploymentRequest(http.MethodGet, tenantID, "", "", "", ""))
 	if services.Code != http.StatusOK || strings.Contains(services.Body.String(), "credential_ref") || strings.Contains(services.Body.String(), "vaultix://") || strings.Contains(services.Body.String(), "sops://") || strings.Contains(services.Body.String(), "metadata-only") || !strings.Contains(services.Body.String(), `"kind":"incus_oci_container"`) || !strings.Contains(services.Body.String(), `"version":2`) || !strings.Contains(services.Body.String(), `"mount_path":"/var/lib/postgresql/data"`) {
@@ -113,6 +119,13 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 		t.Fatalf("member target view: %d %s", viewerTargets.Code, viewerTargets.Body)
 	}
 	a.resolveCaller = managerResolver
+	missingPool := httptest.NewRecorder()
+	a.createDeployment(missingPool, deploymentRequest(http.MethodPost, tenantID, "",
+		`{"service_id":"postgres","target_system_id":"`+targetID+`","desired_state":"present","config":{"password":"vaultix://production/services/postgres/password"},"target_config":{"storage":{"pool":"not-on-target"}}}`,
+		uuid.NewString(), ""))
+	if missingPool.Code != http.StatusConflict || openedDrivers != 1 {
+		t.Fatalf("a pool absent from live inventory must be rejected after one provider read: status=%d opened=%d body=%s", missingPool.Code, openedDrivers, missingPool.Body)
+	}
 	createKey := uuid.NewString()
 	body := `{"service_id":"postgres","target_system_id":"` + targetID + `","desired_state":"present","config":{"password":"vaultix://production/services/postgres/password"},"target_config":{"storage":{"pool":"tenant-data"}}}`
 	rec := httptest.NewRecorder()
@@ -132,6 +145,9 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 	a.createDeployment(replayed, deploymentRequest(http.MethodPost, tenantID, "", body, createKey, ""))
 	if replayed.Code != rec.Code || replayed.Body.String() != rec.Body.String() || replayed.Header().Get("Idempotent-Replayed") != "true" || replayed.Header().Get("ETag") != `"1"` {
 		t.Fatalf("create replay differs: %d %v %s", replayed.Code, replayed.Header(), replayed.Body)
+	}
+	if openedDrivers != 2 {
+		t.Fatalf("idempotent replay should use its stored response without another provider read; opened=%d", openedDrivers)
 	}
 
 	updateBody := `{"desired_state":"present","config":{"password":"vaultix://production/services/postgres/password"}}`

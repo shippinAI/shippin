@@ -59,7 +59,7 @@ deployments:
     tags: [deployments]
     operationId: createDeployment
     summary: Record an initial deployment request
-    description: Stores desired state and a pinned catalog snapshot. It does not execute a provider operation; configured AgentHub review and a reconciler remain required.
+    description: Stores desired state and a pinned catalog snapshot. Any selected Incus storage pool is revalidated against the active tenant-assigned target's live inventory before the generation is accepted. This does not execute a provider operation; configured AgentHub review and a reconciler remain required.
     parameters: [{ $ref: ../components/parameters.yaml#/IdempotencyKey }]
     requestBody:
       required: true

@@ -184,6 +184,17 @@ func (a *API) createDeployment(w http.ResponseWriter, r *http.Request) {
 		if !decodeDeploymentBody(w, r, &input) {
 			return
 		}
+		if err := a.validateDeploymentStorageTarget(r.Context(), t.ID, input.TargetSystemID, input.TargetConfig); err != nil {
+			switch {
+			case errors.Is(err, deployments.ErrTargetUnavailable):
+				writeDeploymentError(w, err)
+			case errors.Is(err, errDeploymentStoragePoolUnavailable):
+				auth.Problem(w, http.StatusConflict, "The selected storage pool is no longer available on this target. Refresh the pool list and retry.")
+			default:
+				deploymentUnavailable(w)
+			}
+			return
+		}
 		input.IdempotencyKey = key
 		item, created, err := a.deploymentStore().Create(r.Context(), t.ID, c.id.Sub, input)
 		if err != nil {
