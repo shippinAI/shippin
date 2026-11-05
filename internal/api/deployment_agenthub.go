@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,17 +25,17 @@ type deploymentReviewInput struct {
 }
 
 type deploymentReviewAction struct {
-	Operation      string          `json:"operation"`
-	TenantID       string          `json:"tenant_id"`
-	DeploymentID   string          `json:"deployment_id"`
-	Generation     int64           `json:"generation"`
-	DesiredState   string          `json:"desired_state"`
-	TargetSystemID string          `json:"target_system_id"`
-	TargetProvider string          `json:"target_provider"`
-	ServiceID      string          `json:"service_id"`
-	DefinitionSHA  string          `json:"definition_sha256"`
-	Source         any             `json:"source"`
-	Config         json.RawMessage `json:"config"`
+	Operation      string                 `json:"operation"`
+	TenantID       string                 `json:"tenant_id"`
+	DeploymentID   string                 `json:"deployment_id"`
+	Generation     int64                  `json:"generation"`
+	DesiredState   string                 `json:"desired_state"`
+	TargetSystemID string                 `json:"target_system_id"`
+	TargetProvider string                 `json:"target_provider"`
+	ServiceID      string                 `json:"service_id"`
+	DefinitionSHA  string                 `json:"definition_sha256"`
+	Source         deployments.SourceView `json:"source"`
+	Config         json.RawMessage        `json:"config"`
 }
 
 func (a *API) prepareDeploymentReview(w http.ResponseWriter, r *http.Request) {
@@ -85,14 +86,15 @@ func (a *API) prepareDeploymentReview(w http.ResponseWriter, r *http.Request) {
 	actionDigest := sha256.Sum256(canonicalAction)
 	actionSHA256 := hex.EncodeToString(actionDigest[:])
 	command := deploymentReviewCommand(deployment.ID, deployment.Generation, actionSHA256, deployment.DesiredState)
-	evidenceText, err := deploymentReviewEvidence(action)
+	path := "/shippin/deployments/" + deployment.ID + "/generations/" + strconv.FormatInt(deployment.Generation, 10) + "/review.json"
+	reviewID := uuid.NewString()
+	ticketID := "shp-" + strings.ReplaceAll(reviewID, "-", "")
+	evidenceText, err := deploymentReviewEvidence(action, ticketID)
 	if err != nil {
 		writeHVProblem(w, http.StatusUnprocessableEntity, "review_evidence_too_large", "The deployment snapshot is too large to submit as review evidence.", "", "")
 		return
 	}
 
-	reviewID := uuid.NewString()
-	ticketID := "shp-" + strings.ReplaceAll(reviewID, "-", "")
 	review, _, err := a.deploymentStore().ReserveReview(r.Context(), tenant.ID, deployment.ID, deployment.Generation,
 		c.id.Sub, key, reviewID, ticketID, actionSHA256)
 	if err != nil {
@@ -135,13 +137,12 @@ func (a *API) prepareDeploymentReview(w http.ResponseWriter, r *http.Request) {
 		Title:   "Review deployment " + deployment.ID + " generation " + strconv.FormatInt(deployment.Generation, 10),
 		Machine: identity.AgentHubMachineID,
 		Command: command,
-		Fields: map[string]string{"shippin_action_sha256": actionSHA256, "shippin_system_id": deployment.TargetSystemID,
-			"shippin_deployment_id": deployment.ID, "shippin_generation": strconv.FormatInt(deployment.Generation, 10)},
+		Fields:  deploymentReviewFields(action, review.AgentHubTicket, path, actionSHA256),
+		Lists:   deploymentReviewLists(action, path),
 	}); err != nil {
 		a.failDeploymentReview(w, r, review, c.id.Sub, "agenthub_ticket_create_failed")
 		return
 	}
-	path := "/shippin/deployments/" + deployment.ID + "/generations/" + strconv.FormatInt(deployment.Generation, 10) + "/review.json"
 	withEvidence, err := client.AddTicketEvidence(ctx, "shippin-"+review.ID+"-evidence", review.AgentHubTicket,
 		agenthub.TicketEvidence{Kind: "snapshot", Path: path, Text: evidenceText})
 	if err != nil {
@@ -272,9 +273,41 @@ func deploymentReviewCommand(deploymentID string, generation int64, actionSHA256
 	return string(command)
 }
 
-func deploymentReviewEvidence(action deploymentReviewAction) (string, error) {
+func deploymentReviewFields(action deploymentReviewAction, ticketID, evidencePath, actionSHA256 string) map[string]string {
+	topology := fmt.Sprintf("Shippin system %s uses the %s provider for service %s; provider placement has not been executed or verified.",
+		action.TargetSystemID, action.TargetProvider, action.ServiceID)
+	blastRadius := fmt.Sprintf("Tenant %s deployment %s generation %d on target system %s only; no other tenant resources are in scope.",
+		action.TenantID, action.DeploymentID, action.Generation, action.TargetSystemID)
+	return map[string]string{
+		"shippin_action_sha256":      actionSHA256,
+		"shippin_agenthub_ticket_id": ticketID,
+		"shippin_system_id":          action.TargetSystemID,
+		"shippin_deployment_id":      action.DeploymentID,
+		"shippin_generation":         strconv.FormatInt(action.Generation, 10),
+		"topology":                   topology,
+		"blast_radius":               blastRadius,
+		"snapshot":                   evidencePath,
+	}
+}
+
+func deploymentReviewLists(action deploymentReviewAction, evidencePath string) map[string][]string {
+	research := evidencePath
+	if strings.HasPrefix(action.Source.Reference, "https://") {
+		research = action.Source.Reference
+	}
+	return map[string][]string{
+		"research": []string{research},
+		"verification": []string{
+			"After a separately authorized provider operation exists, verify task completion and read the resulting resource back from the selected system.",
+			"Keep observed state unknown until provider read-back and a fresh health observation confirm the requested state.",
+		},
+	}
+}
+
+func deploymentReviewEvidence(action deploymentReviewAction, ticketID string) (string, error) {
 	redactedConfig := catalog.RedactSecretReferences(action.Config)
 	artifact := struct {
+		TicketID       string          `json:"ticket_id"`
 		Operation      string          `json:"operation"`
 		TenantID       string          `json:"tenant_id"`
 		DeploymentID   string          `json:"deployment_id"`
@@ -286,7 +319,7 @@ func deploymentReviewEvidence(action deploymentReviewAction) (string, error) {
 		DefinitionSHA  string          `json:"definition_sha256"`
 		Source         any             `json:"source"`
 		Config         json.RawMessage `json:"config"`
-	}{action.Operation, action.TenantID, action.DeploymentID, action.Generation, action.DesiredState, action.TargetSystemID,
+	}{ticketID, action.Operation, action.TenantID, action.DeploymentID, action.Generation, action.DesiredState, action.TargetSystemID,
 		action.TargetProvider, action.ServiceID, action.DefinitionSHA, action.Source, redactedConfig}
 	text, err := json.Marshal(artifact)
 	if err != nil || len(text) > 20_000 {
