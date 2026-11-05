@@ -14,7 +14,7 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 	store, tenantID, serverID := deploymentTestStore(t)
 	ctx := context.Background()
 	if _, err := store.pool.Exec(ctx, `UPDATE catalog_services SET runtime_contract=$1::jsonb WHERE id='postgres'`,
-		`{"version":2,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":2,"memory_mib":2048},"storage":{"size_gib":20,"mount_path":"/var/lib/postgresql/data"},"network":{"exposure":"private","ports":[{"name":"postgres","protocol":"tcp","container_port":5432}]},"health":{"kind":"tcp","port":5432,"interval_seconds":30,"timeout_seconds":5,"failure_threshold":3}}`); err != nil {
+		`{"version":3,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":2,"memory_mib":2048},"storage":{"size_gib":20,"mount_path":"/var/lib/postgresql/data"},"network":{"exposure":"private","ports":[{"name":"postgres","protocol":"tcp","container_port":5432}]},"health":{"kind":"tcp","port":5432,"interval_seconds":30,"timeout_seconds":5,"failure_threshold":3},"environment":[{"name":"POSTGRES_PASSWORD","config_path":"/password"}]}`); err != nil {
 		t.Fatal(err)
 	}
 	deployment, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
@@ -109,6 +109,22 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 		finalJobID, finalOwner, planSHA, step)
 	if err != nil || !didClaim || claimed.State != "intent" {
 		t.Fatalf("new-job recovery takeover=%+v didClaim=%t err=%v", claimed, didClaim, err)
+	}
+	recoverySnapshot, err := store.ExecutionRecoverySnapshotWithLease(ctx, tenantID, deployment.ID, 1,
+		finalJobID, finalOwner, planSHA, step.IdempotencyKey)
+	if err != nil || recoverySnapshot.Step.State != "intent" || recoverySnapshot.Definition.Runtime.Version != 3 ||
+		recoverySnapshot.PlanSHA256 != planSHA || len(recoverySnapshot.EnvironmentInputs) != 1 ||
+		recoverySnapshot.EnvironmentInputs[0].VaultixReference != "vaultix://production/services/postgres/password" ||
+		recoverySnapshot.EnvironmentInputs[0].Value != nil {
+		t.Fatalf("runtime recovery snapshot=%+v err=%v", recoverySnapshot, err)
+	}
+	if _, err := store.ExecutionRecoverySnapshotWithLease(ctx, tenantID, deployment.ID, 1,
+		finalJobID, finalOwner, strings.Repeat("f", 64), step.IdempotencyKey); !errors.Is(err, ErrReviewConflict) {
+		t.Fatalf("stale plan loaded recovery snapshot: %v", err)
+	}
+	if _, err := store.ExecutionRecoverySnapshotWithLease(ctx, tenantID, deployment.ID, 1,
+		recoveryJobID, reclaimedOwner, planSHA, step.IdempotencyKey); !errors.Is(err, ErrLostJobLease) {
+		t.Fatalf("stale recovery lease loaded snapshot: %v", err)
 	}
 	if _, err := store.RecordExecutionStepOutcomeWithLease(ctx, tenantID, deployment.ID, 1, recoveryJobID, recoveryOwner, planSHA, step.IdempotencyKey, "succeeded", "provider-op-1", ""); !errors.Is(err, ErrLostJobLease) {
 		t.Fatalf("replaced recovery lease wrote a result: %v", err)
