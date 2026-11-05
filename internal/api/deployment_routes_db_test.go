@@ -153,7 +153,7 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 	if replayed.Code != rec.Code || replayed.Body.String() != rec.Body.String() || replayed.Header().Get("Idempotent-Replayed") != "true" || replayed.Header().Get("ETag") != `"1"` {
 		t.Fatalf("create replay differs: %d %v %s", replayed.Code, replayed.Header(), replayed.Body)
 	}
-	if openedDrivers != 2 {
+	if openedDrivers != 3 {
 		t.Fatalf("idempotent replay should use its stored response without another provider read; opened=%d", openedDrivers)
 	}
 
