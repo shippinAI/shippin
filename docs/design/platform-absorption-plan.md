@@ -1,14 +1,14 @@
 # Shippin platform absorption plan
 
 Status: active execution plan, refreshed 2026-11-05 against `main` at
-`efe8cdd`. This describes target contracts and acceptance gates; it does not
+`611f5ed`. This describes target contracts and acceptance gates; it does not
 claim unimplemented workflows are live. The [capability ledger](capability-absorption.md)
 holds source-by-source evidence and dispositions. GitHub Checks run
-`42021556670` passed all 13 jobs for the current main checkpoint.
+`42023613817` passed all 13 jobs for this main checkpoint.
 
 ## Current execution checkpoint (2026-11-05)
 
-`main` is at `efe8cdd`. GitHub Checks run `42021556670` passed all 13 jobs,
+`main` is at `611f5ed`. GitHub Checks run `42023613817` passed all 13 jobs,
 including PostgreSQL API/deployment suites, standalone console/hostd builds,
 panel, installer, public-tree, compose and secret-scan jobs. `bash
 scripts/check.sh` passed locally after the Incus storage executor. No live
