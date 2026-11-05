@@ -352,7 +352,9 @@ shared probe gate.
 Focused Go tests and the full repository `bash scripts/check.sh` passed locally.
 PostgreSQL 16 migration, endpoint revision and stale-probe tests passed against
 a temporary trust-auth database container; the container was removed after the
-run. GitHub Checks and a live Incus/Proxmox credential path have not yet been
-verified for this checkpoint. The broader rollout, deployment runtime, managed
-database offerings, network provider writes, source absorption review and
-archive-readiness gates remain open in their ordered packets above.
+run. GitHub Checks run `42044128379` for commit `509eef0` passed all 13 jobs,
+including disposable-Postgres integration, console, panel, installer, compose,
+secret scan and public-tree checks. A live Incus/Proxmox credential path remains
+unverified. The broader rollout, deployment runtime, managed database offerings,
+network provider writes, source absorption review and archive-readiness gates
+remain open in their ordered packets above.
