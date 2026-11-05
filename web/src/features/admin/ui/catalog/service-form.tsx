@@ -7,7 +7,9 @@ import { Switch } from "../../../../lib/design/components/switch/switch";
 import { Select } from "../../../../lib/design/components/select/select";
 import { catalogPaths, useCatalogWrite } from "../../../../lib/hooks/use-catalog";
 import { deploymentSourceFromDraft, sourceDraft, validDeploymentSource } from "./service-source";
-import { exampleRuntimeContract, runtimeContractFromDraft, runtimeKindDraft, validRuntimeDraft } from "./service-runtime";
+import type { CatalogRuntimeContractV2 } from "../../../../lib/api/catalog-types";
+import { emptyRuntimeContractDraft, runtimeContractFromDraft, runtimeKindDraft, validRuntimeDraft } from "./service-runtime";
+import { RuntimeRecipeForm } from "./service-runtime-form";
 
 const obj = (s: string) => { try { const v = JSON.parse(s); return v && typeof v === "object" && !Array.isArray(v) ? v : null; } catch { return null; } };
 
@@ -20,7 +22,12 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
   const [defaults, setDefaults] = useState(JSON.stringify(initial?.default_config ?? {}, null, 2));
   const [source, setSource] = useState(() => sourceDraft(initial?.deployment_source));
   const [runtimeKind, setRuntimeKind] = useState(() => runtimeKindDraft(initial?.runtime_contract));
-  const [runtimeJSON, setRuntimeJSON] = useState(() => initial?.runtime_contract ? JSON.stringify(initial.runtime_contract, null, 2) : "");
+  const [runtimeRecipe, setRuntimeRecipe] = useState<CatalogRuntimeContractV2>(() =>
+    initial?.runtime_contract?.version === 2 ? initial.runtime_contract : emptyRuntimeContractDraft());
+  const [runtimeVersion, setRuntimeVersion] = useState<1 | 2>(() => initial?.runtime_contract?.version === 1 ? 1 : 2);
+  const runtimeJSON = JSON.stringify(runtimeVersion === 1
+    ? { version: 1, kind: "incus_oci_container", providers: ["incus"] }
+    : runtimeRecipe);
   const save = useCatalogWrite(editing ? "Service updated" : "Service added");
   const del = useCatalogWrite("Service removed");
   const deploymentSource = deploymentSourceFromDraft(source);
@@ -91,14 +98,11 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
             setRuntimeKind(next);
           }} />
           {runtimeKind !== "none" && <>
-            <TextField label="Versioned runtime recipe (JSON)" multiline mono value={runtimeJSON} onChange={setRuntimeJSON}
-              placeholder='{"version": 2, "kind": "incus_oci_container", ...}'
-              description="Enter values that fit this image for CPU, memory, persistent mount, private or Edge exposure, service ports, and health checks. The API validates version 2; no provider execution is enabled by this declaration." />
-            <details className="text-xs text-fg-muted">
-              <summary className="cursor-pointer">View recipe example</summary>
-              <pre className="mt-2 max-h-64 overflow-auto rounded bg-canvas-subtle p-3 font-mono text-[11px]">{JSON.stringify(exampleRuntimeContract(), null, 2)}</pre>
-            </details>
-            <p className="text-xs text-fg-muted">Recipe v2 records desired runtime constraints. Execution, secret injection, upgrades, backup, restore, and removal remain gated until a provider executor proves those behaviors.</p>
+            <Select label="Recipe version" options={[{ id: "1", label: "Compatibility metadata only" }, { id: "2", label: "Configurable runtime recipe" }]} value={String(runtimeVersion)} onChange={(v) => setRuntimeVersion(v === "1" ? 1 : 2)} />
+            {runtimeVersion === 1 && <p className="text-xs text-fg-muted">Version 1 preserves provider compatibility metadata without resource, storage, network, or health requirements. It does not enable deployment.</p>}
+            {runtimeVersion === 2 && <>
+              <RuntimeRecipeForm value={runtimeRecipe} onChange={setRuntimeRecipe} />
+            </>}
           </>}
           {!runtimeValid && <p role="alert" className="text-sm text-danger">Enter a valid runtime recipe for the selected OCI source. Version 2 requires bounded resources, storage, network ports, and a matching health check.</p>}
         </section>}

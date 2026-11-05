@@ -32,6 +32,19 @@ export function exampleRuntimeContract(): CatalogRuntimeContractV2 {
   };
 }
 
+/** Starts a user-authored recipe without implying app-specific defaults. */
+export function emptyRuntimeContractDraft(): CatalogRuntimeContractV2 {
+  return {
+    version: 2,
+    kind: "incus_oci_container",
+    providers: ["incus"],
+    resources: { cpu_cores: 0, memory_mib: 0 },
+    storage: { size_gib: 0, mount_path: "" },
+    network: { exposure: "private", ports: [{ name: "", protocol: "tcp", container_port: 0 }] },
+    health: { kind: "tcp", port: 0, interval_seconds: 0, timeout_seconds: 0, failure_threshold: 0 },
+  };
+}
+
 export function validRuntimeContract(value: unknown): value is CatalogRuntimeContract {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const contract = value as CatalogRuntimeContract;

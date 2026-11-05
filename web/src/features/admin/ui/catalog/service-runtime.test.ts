@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { exampleRuntimeContract, runtimeContractFromDraft, runtimeKindDraft, validRuntimeContract, validRuntimeDraft } from "./service-runtime";
+import { emptyRuntimeContractDraft, exampleRuntimeContract, runtimeContractFromDraft, runtimeKindDraft, validRuntimeContract, validRuntimeDraft } from "./service-runtime";
 
 const source = { kind: "oci" as const, reference: "registry.example.net/team/app@sha256:" + "a".repeat(64) };
 const git = { kind: "git" as const, reference: "https://git.example.net/team/app", commit: "a".repeat(40) };
@@ -16,6 +16,7 @@ assert.equal(runtimeKindDraft({ ...runtime, providers: ["proxmox"] as unknown as
 
 const recipe = exampleRuntimeContract();
 assert.equal(validRuntimeContract(recipe), true);
+assert.equal(validRuntimeContract(emptyRuntimeContractDraft()), false, "new recipes must require explicit app-specific configuration");
 assert.equal(validRuntimeDraft("incus_oci_container", source, JSON.stringify(recipe)), true);
 assert.equal(validRuntimeContract({ ...recipe, storage: { ...recipe.storage, mount_path: "/var/lib/../etc" } }), false);
 assert.equal(validRuntimeContract({ ...recipe, resources: { ...recipe.resources, cpu_cores: 0 } }), false);
