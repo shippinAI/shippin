@@ -172,7 +172,7 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
       </details>
       {schema && <details className="rounded-lg border border-line p-3">
         <summary className="cursor-pointer text-sm font-medium text-fg">Configuration schema and required fields</summary>
-        <p className="mt-2 text-xs text-fg-muted">Secret defaults are hidden. Enter a Vaultix reference (vaultix://…) or a SOPS reference with a key pointer (sops://file#/path); never enter secret values.</p>
+        <p className="mt-2 text-xs text-fg-muted">Secret defaults are hidden. Vaultix references use vaultix://&lt;environment&gt;/&lt;folder&gt;/&lt;key&gt; and resolve inside this tenant's Vaultix project. SOPS references are stored but are not resolved by the deployment worker yet. Never enter secret values.</p>
         <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-canvas p-3 text-xs text-fg-muted">{JSON.stringify(schema, null, 2)}</pre>
       </details>}
       {deployment && <div className="flex items-center gap-2 text-xs text-fg-subtle"><Clock3 className="size-3.5" /> Saving appends generation {deployment.generation + 1}; previous generations remain in history.</div>}

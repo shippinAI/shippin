@@ -17,7 +17,7 @@ func TestSummarizeCountsRequiredGaps(t *testing.T) {
 }
 
 func TestDestRejectsInlineSecrets(t *testing.T) {
-	ok := Dest{Kind: "s3", Endpoint: "https://s3.example", Bucket: "b", SecretRef: "vaultix://org/proj/prod/s3"}
+	ok := Dest{Kind: "s3", Endpoint: "https://s3.example", Bucket: "b", SecretRef: "vaultix://production/backups/s3/access-key"}
 	if err := ok.Validate(); err != nil {
 		t.Fatal(err)
 	}

@@ -8,7 +8,7 @@ assert.equal(validDeploymentSource({ kind: "git", reference, commit, credential_
   "SOPS references select a key by JSON pointer");
 assert.equal(validDeploymentSource({ kind: "git", reference, commit, credential_ref: "sops://runtime/secrets.yaml" }), false,
   "a SOPS file reference needs a key selector");
-assert.equal(validDeploymentSource({ kind: "git", reference, commit, credential_ref: "vaultix://org/project/key#/token" }), false,
+assert.equal(validDeploymentSource({ kind: "git", reference, commit, credential_ref: "vaultix://production/project/key#/token" }), false,
   "Vaultix references do not use fragments");
 
 console.log("catalog secret reference model ok");

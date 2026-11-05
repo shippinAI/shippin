@@ -76,9 +76,9 @@ func TestCatalogAPIFlow(t *testing.T) {
 	do(t, mux, "PUT", "/v1/operator/catalog/plan-services/starter/chatmaton", `{"lock":"weird"}`, 400)
 	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"backup","label":"Backups","default_config":{"days":7}}`, 201)
 	do(t, mux, "GET", "/v1/operator/catalog/services/backup", "", 200)
-	source := `"deployment_source":{"kind":"oci","reference":"registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","credential_ref":"vaultix://org/project/runtime/registry-token"}`
+	source := `"deployment_source":{"kind":"oci","reference":"registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","credential_ref":"vaultix://production/runtime/registry-token"}`
 	runtime := `"runtime_contract":{"version":1,"kind":"incus_oci_container","providers":["incus"]}`
-	configSchema := `"config_schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"port":{"type":"integer","minimum":1,"maximum":65535},"password":{"type":"string","format":"shippin-secret-ref"}},"required":["password"],"additionalProperties":false},"default_config":{"port":5432,"password":"vaultix://platform/postgres/password"}`
+	configSchema := `"config_schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"port":{"type":"integer","minimum":1,"maximum":65535},"password":{"type":"string","format":"shippin-secret-ref"}},"required":["password"],"additionalProperties":false},"default_config":{"port":5432,"password":"vaultix://production/postgres/password"}`
 	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"unsafe-schema","label":"Unsafe","kind":"database",`+source+`,"config_schema":{"type":"object"}}`, 400)
 	metadataOnly := do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"metadata-only","label":"Metadata only","kind":"database",`+configSchema+`,`+source+`}`, 201)
 	if metadataOnly["runtime_contract"] != nil {
@@ -100,7 +100,7 @@ func TestCatalogAPIFlow(t *testing.T) {
 		t.Fatalf("runtime contract not returned after create: %v", configured["runtime_contract"])
 	}
 	loaded := do(t, mux, "GET", "/v1/operator/catalog/services/postgres", "", 200)
-	if loaded["deployment_source"].(map[string]any)["credential_ref"] != "vaultix://org/project/runtime/registry-token" {
+	if loaded["deployment_source"].(map[string]any)["credential_ref"] != "vaultix://production/runtime/registry-token" {
 		t.Fatalf("source not persisted: %v", loaded["deployment_source"])
 	}
 	do(t, mux, "PUT", "/v1/operator/catalog/services/postgres", `{"label":"Postgres","deployment_source":{"kind":"github","reference":"https://github.com/acme/postgres","commit":"main"}}`, 400)

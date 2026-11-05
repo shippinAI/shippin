@@ -244,8 +244,8 @@ func validateSecretReferenceValue(value any) error {
 	}
 	switch parsed.Scheme {
 	case "vaultix":
-		if parsed.Fragment != "" {
-			return errors.New("Vaultix secret references cannot contain a fragment")
+		if _, err := ParseVaultixReference(text); err != nil {
+			return err
 		}
 	case "sops":
 		if !strings.HasPrefix(parsed.Fragment, "/") {

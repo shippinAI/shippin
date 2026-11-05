@@ -33,7 +33,7 @@ func TestAuthorizeDeploymentReviewRecordsAllowAndNoMatchDenial(t *testing.T) {
 	decisionCalls := 0
 	deployment, _, err := a.deploymentStore().Create(ctx, tenantID, "route-test-user", deployments.CreateInput{
 		ServiceID: "postgres", TargetSystemID: systemID, DesiredState: deployments.DesiredPresent,
-		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"password":"vaultix://org/project/env/postgres"}`),
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"password":"vaultix://production/services/postgres/password"}`),
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -18,7 +18,7 @@ func TestDeploymentOutboxRelayAndWorkerUseGenerationFencedJobs(t *testing.T) {
 	ctx := context.Background()
 	item, _, err := a.deploymentStore().Create(ctx, tenantID, "outbox-test", deployments.CreateInput{
 		ServiceID: "postgres", TargetSystemID: targetID, DesiredState: deployments.DesiredPresent,
-		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"password":"vaultix://org/project/env/postgres"}`),
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"password":"vaultix://production/services/postgres/password"}`),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -53,7 +53,7 @@ func TestDeploymentOutboxRelayAndWorkerUseGenerationFencedJobs(t *testing.T) {
 	}
 	updated, _, err := a.deploymentStore().Update(ctx, tenantID, item.ID, "outbox-test", 1, deployments.UpdateInput{
 		DesiredState: deployments.DesiredPresent, IdempotencyKey: uuid.NewString(),
-		Config: json.RawMessage(`{"password":"vaultix://org/project/env/postgres"}`),
+		Config: json.RawMessage(`{"password":"vaultix://production/services/postgres/password"}`),
 	})
 	if err != nil {
 		t.Fatal(err)

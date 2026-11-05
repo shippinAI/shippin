@@ -49,9 +49,13 @@ provider call.
    authorization principal are verifiable. Keep Incus OCI application containers
    and Proxmox guest bootstrap as separate adapters. Add a provider simulator and
    disposable-host acceptance before exposing any apply action.
-5. Add bounded secret resolution through Vaultix `Reveal` only after defining
-   how each tenant reference maps to Vaultix project/environment/path and proving
-   least-privilege access. Never use broad `Pull` in a deployment worker.
+5. A bounded Vaultix resolver now accepts only tenant-scoped
+   `vaultix://<environment>/<folder...>/<key>` references, derives the project
+   from the tenant ID and installation prefix, allowlists configured
+   environments, audits the deployment/generation before one-key `Reveal`, and
+   never calls broad `Pull`. The resolver is not wired to a worker yet; SOPS
+   remains unresolved. Before wiring it, finish the runtime secret-delivery
+   contract, rotation behavior and least-privilege Vaultix identity evidence.
 6. Continue the managed database, networking, dynamic health/resource, one-panel
    and archive work packages in order. Each commit updates this plan, the source
    ledger and the ignored evidence journal; run the repository checks before

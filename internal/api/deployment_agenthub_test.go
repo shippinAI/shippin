@@ -14,7 +14,7 @@ func TestDeploymentReviewEvidenceRedactsSecretReferences(t *testing.T) {
 		TargetSystemID: "system-1", TargetProvider: "proxmox", ServiceID: "postgres",
 		DefinitionSHA: strings.Repeat("a", 64),
 		Source:        deployments.SourceView{Kind: "oci", Reference: "registry.example/postgres@sha256:deadbeef"},
-		Config:        json.RawMessage(`{"database":"app","auth":{"password":"vaultix://tenant/project/database"},"tokens":["sops://runtime/secrets.yaml#/token"]}`),
+		Config:        json.RawMessage(`{"database":"app","auth":{"password":"vaultix://production/database/password"},"tokens":["sops://runtime/secrets.yaml#/token"]}`),
 	}
 	text, err := deploymentReviewEvidence(action, "shp-review-123")
 	if err != nil {

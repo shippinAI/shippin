@@ -5,7 +5,7 @@ const commit = "0123456789abcdef0123456789abcdef01234567";
 const digest = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 assert.equal(validDeploymentSource(null), true, "services without an installer source remain supported");
-assert.equal(validDeploymentSource({ kind: "github", reference: "https://github.com/acme/postgres", commit, context_path: "deploy/postgres", credential_ref: "vaultix://org/project/runtime/git-token" }), true);
+assert.equal(validDeploymentSource({ kind: "github", reference: "https://github.com/acme/postgres", commit, context_path: "deploy/postgres", credential_ref: "vaultix://production/runtime/git-token" }), true);
 assert.equal(validDeploymentSource({ kind: "git", reference: "https://git.example.net/acme/cache", commit }), true);
 assert.equal(validDeploymentSource({ kind: "oci", reference: `registry.example.net/data/postgres@sha256:${digest}` }), true);
 assert.equal(validDeploymentSource({ kind: "github", reference: "https://git.example.net/acme/app", commit }), false, "GitHub provider must point at GitHub");

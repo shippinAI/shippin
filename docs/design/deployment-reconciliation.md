@@ -12,7 +12,7 @@ The deployment API currently persists tenant-scoped desired generations, immutab
 
 `internal/jobs.Runner` provides PostgreSQL-backed leases, heartbeats, retries and lost-lease cancellation. `API.registerJobs` wires workspace, tenant, boundary, project/agent and rrflow service handlers. `jobs.KindServiceProvision` is the rrflow state/binding workflow in `internal/api/job_managed.go`; it is not a general service deployment executor. Existing `hv.GuestManager` and provider drivers manage VM/container lifecycle, not application artifacts or database engine lifecycle.
 
-The outbox producer and leader relay are implemented. Migration `051` adds the prefixed generation-fenced table, and deployment create/update writes an identifier-only row in the same transaction as the generation and requested event. The existing singleton reconciliation leader publishes one generation-keyed job through the existing jobs store, then records the publication receipt. A job reloads the current generation; stale jobs finish as superseded. If the current generation reaches the worker while no typed application executor is available, the worker atomically records `runtime_unsupported` and `failed` without calling AgentHub or a provider. PostgreSQL tests cover generation coverage, replay after enqueue-before-receipt failure, distinct generation jobs, stale fencing and the explicit unsupported result.
+The outbox producer and leader relay are implemented. Migration `051` adds the prefixed generation-fenced table, and deployment create/update writes an identifier-only row in the same transaction as the generation and requested event. The existing singleton reconciliation leader publishes one generation-keyed job through the existing jobs store, then records the publication receipt. A job reloads the current generation; stale jobs finish as superseded. If the current generation reaches the worker while no typed application executor is available, the worker records `runtime_unsupported` and `failed` without calling AgentHub or a provider. The durable result transaction now locks and checks the current unexpired deployment-job lease and generation before changing observed state or appending the failure event. PostgreSQL tests cover expired and replaced leases, valid lease, generation coverage, replay after enqueue-before-receipt failure, distinct generation jobs, stale fencing and the explicit unsupported result.
 
 The API now uses one `authorizeDeploymentAction` path to reload the submitted generation review, recompute and bind the action hash, resolve the configured AgentHub client and stable Shippin system mapping, request the current policy decision and append safe provenance or a normalized denial. The generation-scoped operation is reusable by a worker. The current worker does not invoke it yet because there is no provider executor to dispatch after authorization.
 
@@ -66,6 +66,17 @@ The worker must never hold a SQL transaction or deployment row lock while making
 ## Runtime and provider boundaries
 
 The catalog stays metadata and validated configuration. A service definition must declare a versioned runtime kind, supported provider set, image/artifact pin, resource and storage requirements, secret-reference fields, network exposure, health contract, upgrade/backup/restore semantics and removal behavior. No user-controlled shell, Compose, privileged container flag, or raw provider payload becomes an execution contract.
+
+Vaultix references for tenant deployment configuration use
+`vaultix://<environment>/<folder...>/<key>`. They do not select a project or
+organization. The resolver derives the Vaultix project slug from the authenticated
+tenant ID and configured project prefix, checks the environment against the
+installation's configured set, audits the deployment ID and generation, then
+calls `Reveal` for one key. It never uses `Pull`. Secret values remain in memory
+only for the future caller and are excluded from events, audit detail, logs and
+API responses. SOPS references remain validated metadata; no deployment SOPS
+resolver exists. The resolver is not yet called by the reconciler because no
+application executor exists.
 
 Migration `052_catalog_runtime_contract.sql` adds a validated nullable catalog
 runtime declaration. The first declared tuple is version `1`, kind
@@ -136,7 +147,7 @@ Rejected. Policy/ticket/mapping can change between review and execution. Every a
 
 ## Required implementation slices
 
-1. **Partially implemented:** `shippin_deployment_outbox` is transactionally written from create/update; the leader relay enqueues a generation-keyed job and marks its receipt. PostgreSQL coverage verifies crash/replay after enqueue, distinct generation jobs, stale-generation fencing, idempotency and unsupported-runtime persistence. Add lease-loss recovery proof and operator-visible job linkage before closing the dispatch slice. Do not change rrflow `service.provision` semantics.
+1. **Partially implemented:** `shippin_deployment_outbox` is transactionally written from create/update; the leader relay enqueues a generation-keyed job and marks its receipt. PostgreSQL coverage verifies crash/replay after enqueue, distinct generation jobs, stale-generation fencing, idempotency, unsupported-runtime persistence, and that expired/replaced worker leases cannot write the unsupported result. Operator-visible job linkage remains open. Do not change rrflow `service.provision` semantics.
 2. **Partially implemented:** the review endpoint's current-generation checks now share `authorizeDeploymentAction`, including mapping resolution, current policy/ticket/action validation and safe event persistence. Wire this same path into the reconciler immediately before executor dispatch; worker authorization must re-read current mapping, policy, ticket and generation. Add denial/no-match/stale-policy/stale-ticket/timeout/restart/replay tests proving provider call count stays zero.
 3. Define and validate the typed service runtime schema and secret resolver. Separate OCI resolution/build isolation from provider guest lifecycle; specify resource, volume, network, health and engine operations.
 4. Implement one provider/runtime pair end to end using disposable Incus or Proxmox and provider simulators for CI. Record operation IDs, read-back state, retries and failures.

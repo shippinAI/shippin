@@ -24,9 +24,9 @@ func postgresRequest() DeploymentRequest {
 			},
 			Runtime:       catalog.RuntimeContract{Version: 1, Kind: "incus_oci_container", Providers: []string{"incus"}},
 			ConfigSchema:  json.RawMessage(`{"type":"object","properties":{"port":{"type":"integer"},"password":{"type":"string","format":"shippin-secret-ref"}},"required":["password"],"additionalProperties":false}`),
-			DefaultConfig: json.RawMessage(`{"port":5432,"password":"vaultix://platform/postgres/password"}`),
+			DefaultConfig: json.RawMessage(`{"port":5432,"password":"vaultix://production/postgres/password"}`),
 		},
-		Config: json.RawMessage(`{"port":5432,"password":"vaultix://platform/postgres/password"}`),
+		Config: json.RawMessage(`{"port":5432,"password":"vaultix://production/postgres/password"}`),
 	}
 }
 

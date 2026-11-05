@@ -48,7 +48,7 @@ func deploymentRouteAPI(t *testing.T) (*API, string, string) {
 		t.Fatal(err)
 	}
 	schema := `{"type":"object","properties":{"password":{"type":"string","format":"shippin-secret-ref","description":"sops://runtime/schema-secret"}},"required":["password"],"additionalProperties":false}`
-	defaults := `{"password":"vaultix://org/project/env/postgres"}`
+	defaults := `{"password":"vaultix://production/services/postgres/password"}`
 	source := `{"kind":"oci","reference":"registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","credential_ref":"sops://runtime/secrets.yaml#/registry/token"}`
 	runtime := `{"version":1,"kind":"incus_oci_container","providers":["incus"]}`
 	if _, err := database.Pool.Exec(t.Context(), `INSERT INTO catalog_services(id,label,kind,config_schema,default_config,deployment_source,runtime_contract)
@@ -111,7 +111,7 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 	}
 	a.resolveCaller = managerResolver
 	createKey := uuid.NewString()
-	body := `{"service_id":"postgres","target_system_id":"` + targetID + `","desired_state":"present","config":{"password":"vaultix://org/project/env/postgres"}}`
+	body := `{"service_id":"postgres","target_system_id":"` + targetID + `","desired_state":"present","config":{"password":"vaultix://production/services/postgres/password"}}`
 	rec := httptest.NewRecorder()
 	a.createDeployment(rec, deploymentRequest(http.MethodPost, tenantID, "", body, createKey, ""))
 	if rec.Code != http.StatusCreated || rec.Header().Get("ETag") != `"1"` {
@@ -131,7 +131,7 @@ func TestDeploymentTenantAPIRecordsIntentAndHistory(t *testing.T) {
 		t.Fatalf("create replay differs: %d %v %s", replayed.Code, replayed.Header(), replayed.Body)
 	}
 
-	updateBody := `{"desired_state":"present","config":{"password":"vaultix://org/project/env/postgres"}}`
+	updateBody := `{"desired_state":"present","config":{"password":"vaultix://production/services/postgres/password"}}`
 	updated := httptest.NewRecorder()
 	a.updateDeployment(updated, deploymentRequest(http.MethodPatch, tenantID, created.ID, updateBody, uuid.NewString(), `"1"`))
 	if updated.Code != http.StatusOK || updated.Header().Get("ETag") != `"2"` {

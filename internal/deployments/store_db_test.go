@@ -49,7 +49,7 @@ func deploymentTestStore(t *testing.T) (*Store, string, string) {
 		t.Fatal(err)
 	}
 	configSchema := `{"type":"object","properties":{"port":{"type":"integer","minimum":1,"maximum":65535},"password":{"type":"string","format":"shippin-secret-ref"}},"required":["password"],"additionalProperties":false}`
-	defaults := `{"port":5432,"password":"vaultix://org/project/env/postgres"}`
+	defaults := `{"port":5432,"password":"vaultix://production/services/postgres/password"}`
 	source := `{"kind":"oci","reference":"registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","credential_ref":"sops://runtime/secrets.yaml#/registry/token"}`
 	runtime := `{"version":1,"kind":"incus_oci_container","providers":["incus"]}`
 	if _, err := database.Pool.Exec(ctx, `INSERT INTO catalog_services(id,label,kind,config_schema,default_config,deployment_source,runtime_contract)
@@ -64,7 +64,7 @@ func TestStoreCreateReplayTenantScopeEventsAndAppendOnlyHistory(t *testing.T) {
 	ctx := context.Background()
 	key := uuid.NewString()
 	input := CreateInput{ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
-		IdempotencyKey: key, Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`)}
+		IdempotencyKey: key, Config: json.RawMessage(`{"port":5432,"password":"vaultix://production/services/postgres/password"}`)}
 	created, isNew, err := store.Create(ctx, tenantID, "operator@example.test", input)
 	if err != nil {
 		t.Fatal(err)
@@ -90,12 +90,12 @@ func TestStoreCreateReplayTenantScopeEventsAndAppendOnlyHistory(t *testing.T) {
 		t.Fatalf("idempotent create replay added an outbox row: items=%+v err=%v", outbox, err)
 	}
 	changed := input
-	changed.Config = json.RawMessage(`{"port":5433,"password":"vaultix://org/project/env/postgres"}`)
+	changed.Config = json.RawMessage(`{"port":5433,"password":"vaultix://production/services/postgres/password"}`)
 	if _, _, err := store.Create(ctx, tenantID, "operator@example.test", changed); !errors.Is(err, ErrIdempotencyConflict) {
 		t.Fatalf("reused key with changed input: got %v", err)
 	}
 	update := UpdateInput{DesiredState: DesiredPresent, IdempotencyKey: uuid.NewString(),
-		Config: json.RawMessage(`{"port":5433,"password":"vaultix://org/project/env/postgres"}`)}
+		Config: json.RawMessage(`{"port":5433,"password":"vaultix://production/services/postgres/password"}`)}
 	updated, isNew, err := store.Update(ctx, tenantID, created.ID, "operator@example.test", 1, update)
 	if err != nil {
 		t.Fatal(err)
@@ -175,7 +175,7 @@ func TestStoreGenerationAndOutboxInsertAreAtomic(t *testing.T) {
 	}
 	_, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
 		ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
-		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`),
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://production/services/postgres/password"}`),
 	})
 	if err == nil {
 		t.Fatal("create succeeded when its transactional outbox insert failed")
@@ -191,7 +191,7 @@ func TestStoreGenerationAndOutboxInsertAreAtomic(t *testing.T) {
 	}
 	created, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
 		ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
-		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`),
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://production/services/postgres/password"}`),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -202,7 +202,7 @@ func TestStoreGenerationAndOutboxInsertAreAtomic(t *testing.T) {
 	}
 	_, _, err = store.Update(ctx, tenantID, created.ID, "operator@example.test", 1, UpdateInput{
 		DesiredState: DesiredPresent, IdempotencyKey: uuid.NewString(),
-		Config: json.RawMessage(`{"port":5433,"password":"vaultix://org/project/env/postgres"}`),
+		Config: json.RawMessage(`{"port":5433,"password":"vaultix://production/services/postgres/password"}`),
 	})
 	if err == nil {
 		t.Fatal("update succeeded when its transactional outbox insert failed")
@@ -225,7 +225,7 @@ func TestRecordRuntimeUnavailableIsIdempotentAndGenerationFenced(t *testing.T) {
 	ctx := context.Background()
 	item, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
 		ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
-		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`),
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://production/services/postgres/password"}`),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -238,7 +238,7 @@ func TestRecordRuntimeUnavailableIsIdempotentAndGenerationFenced(t *testing.T) {
 	}
 	updated, _, err := store.Update(ctx, tenantID, item.ID, "operator@example.test", 1, UpdateInput{
 		DesiredState: DesiredPresent, IdempotencyKey: uuid.NewString(),
-		Config: json.RawMessage(`{"port":5433,"password":"vaultix://org/project/env/postgres"}`),
+		Config: json.RawMessage(`{"port":5433,"password":"vaultix://production/services/postgres/password"}`),
 	})
 	if err != nil || updated.Generation != 2 || updated.ObservedState != ObservedPending {
 		t.Fatalf("next desired generation: deployment=%+v err=%v", updated, err)
@@ -272,7 +272,7 @@ func TestStoreCreateRejectsUnassignedTargetAndUnsafeConfig(t *testing.T) {
 	store, tenantID, serverID := deploymentTestStore(t)
 	ctx := context.Background()
 	input := CreateInput{ServiceID: "postgres", TargetSystemID: uuid.NewString(), DesiredState: DesiredPresent,
-		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`)}
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://production/services/postgres/password"}`)}
 	if _, _, err := store.Create(ctx, tenantID, "operator@example.test", input); !errors.Is(err, ErrTargetUnavailable) {
 		t.Fatalf("unassigned target: got %v", err)
 	}
@@ -289,7 +289,7 @@ func TestDeploymentReviewIsDurableIdempotentAndGenerationBound(t *testing.T) {
 	ctx := context.Background()
 	created, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
 		ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
-		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`),
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://production/services/postgres/password"}`),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -337,7 +337,7 @@ func TestReviewAuthorizationProvenanceIsFencedAppendOnlyAndIdempotent(t *testing
 	ctx := context.Background()
 	deployment, _, err := store.Create(ctx, tenantID, "operator@example.test", CreateInput{
 		ServiceID: "postgres", TargetSystemID: serverID, DesiredState: DesiredPresent,
-		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`),
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://production/services/postgres/password"}`),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -412,7 +412,7 @@ func TestStoreRejectsProviderIncompatibleRuntimeTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 	input := CreateInput{ServiceID: "postgres", TargetSystemID: targetID, DesiredState: DesiredPresent,
-		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://org/project/env/postgres"}`)}
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"port":5432,"password":"vaultix://production/services/postgres/password"}`)}
 	item, created, err := store.Create(ctx, tenantID, "operator@example.test", input)
 	if !errors.Is(err, ErrInvalidConfig) || created || item != nil {
 		t.Fatalf("Incus-only service must reject Proxmox target: created=%t item=%+v err=%v", created, item, err)

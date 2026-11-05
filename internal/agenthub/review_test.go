@@ -320,7 +320,7 @@ func TestTicketLifecycleUsesIdempotencyAndBindsExactDraft(t *testing.T) {
 		t.Fatalf("create result=%+v err=%v", createdResult, err)
 	}
 	evidenceResult, err := c.AddTicketEvidence(context.Background(), "evidence-idempotency-0001", "ticket-1", TicketEvidence{
-		Kind: "snapshot", Path: "/shippin/deployments/deploy-1/generations/4/review.json", Text: `{"config":{"credential":"vaultix://platform/deploy/db#password"}}`,
+		Kind: "snapshot", Path: "/shippin/deployments/deploy-1/generations/4/review.json", Text: `{"config":{"credential":"vaultix://production/deploy/db/password"}}`,
 	})
 	if err != nil || evidenceResult.SHA256 != policyHash {
 		t.Fatalf("evidence result=%+v err=%v", evidenceResult, err)

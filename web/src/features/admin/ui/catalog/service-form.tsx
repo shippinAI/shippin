@@ -73,7 +73,7 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
               <TextField label="Build context path (optional)" mono value={source.context_path} onChange={updateSourceField("context_path")} description="A relative directory inside the pinned repository." />
             </>}
             <TextField label="Credential reference (optional)" mono value={source.credential_ref} onChange={updateSourceField("credential_ref")} autoComplete="off"
-              description="Use a vaultix:// or sops:// reference. Secret values are never accepted here." />
+              description="Use vaultix://<environment>/<folder>/<key> for the deployment tenant's Vaultix project, or a SOPS file reference. Secret values are never accepted here." />
             {!sourceValid && <p role="alert" className="text-sm text-danger">Use an HTTPS repository pinned to a full commit, or an OCI image pinned by digest. Credentials must be references.</p>}
           </>}
         </section>
