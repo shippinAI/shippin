@@ -18,6 +18,17 @@ The API now uses one `authorizeDeploymentAction` path to reload the submitted ge
 
 Migration `054_shippin_deployment_target_config.sql` stores the selected Incus pool in immutable generation state. The existing panel reads live pools only for active tenant-assigned Incus systems, and create-time API validation rechecks the selected pool against provider inventory before accepting a new generation. Missing pools return conflict without writing intent; an idempotent replay uses the stored response without another provider read. These changes are verified by database-backed CI run `41970045619`. They do not enable provider execution.
 
+The Vaultix deployment secret resolver now requires a deployment job ID and
+lease owner. Immediately before revealing a single tenant-derived Vaultix key,
+it locks and verifies the live `deployment.reconcile` job, exact
+`deployment_generation` target, tenant, lease owner, lease expiry and current
+desired generation in one transaction with the append-only secret-access audit
+row. Expired/replaced leases and stale generations fail closed before the
+Vaultix reveal call. Secret references still carry no project ID, audit detail
+contains no key/value, and the resolver remains unwired to the deployment
+worker. This is a secret-read authorization boundary, not a runtime or a claim
+that SOPS or Vaultix secret rotation is implemented.
+
 Provider execution is still absent. The worker currently reports the capability gap honestly; it does not authorize, install, configure or observe an application. A real executor must replace this explicit no-op boundary before any deployment can be called successful.
 
 The next capability must connect these components without making the jobs table deployment truth, calling providers in HTTP handlers, or claiming that generic guest CRUD installs PostgreSQL, Dragonfly, Redis or ClickHouse.
@@ -176,7 +187,7 @@ Rejected. Policy/ticket/mapping can change between review and execution. Every a
 
 1. **Partially implemented:** `shippin_deployment_outbox` is transactionally written from create/update; the leader relay enqueues a generation-keyed job and marks its receipt. PostgreSQL coverage verifies crash/replay after enqueue, distinct generation jobs, stale-generation fencing, idempotency, unsupported-runtime persistence, and that expired/replaced worker leases cannot write the unsupported result. Operator-visible job linkage remains open. Do not change rrflow `service.provision` semantics.
 2. **Partially implemented:** the review endpoint's current-generation checks now share `authorizeDeploymentAction`, including mapping resolution, current policy/ticket/action validation and safe event persistence. Wire this same path into the reconciler immediately before executor dispatch; worker authorization must re-read current mapping, policy, ticket and generation. Add denial/no-match/stale-policy/stale-ticket/timeout/restart/replay tests proving provider call count stays zero.
-3. Define and validate the typed service runtime schema and secret resolver. Separate OCI resolution/build isolation from provider guest lifecycle; specify resource, volume, network, health and engine operations.
+3. Define and validate the typed service runtime schema and secret resolver. The Vaultix resolver now enforces worker lease/generation at the audit boundary; SOPS resolution, secret delivery/rotation and runtime wiring remain open. Separate OCI resolution/build isolation from provider guest lifecycle; specify resource, volume, network, health and engine operations.
 4. Implement one provider/runtime pair end to end using disposable Incus or Proxmox and provider simulators for CI. Record operation IDs, read-back state, retries and failures.
 5. Only then expose enabled create/update/remove actions for that capability in the existing deployment panel, showing current generation, review state, job/task progress, observed state and event history.
 6. Expand provider/runtime pairs and managed database engines independently. Keep unsupported combinations rejected and visible as unsupported.

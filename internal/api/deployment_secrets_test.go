@@ -9,12 +9,29 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"shippin.cloud/console/internal/deployments"
 	"shippin.cloud/console/internal/vaultix"
 )
 
 func TestRevealTenantDeploymentSecretDerivesTenantProjectAndAuditsBeforeReveal(t *testing.T) {
-	a, tenantID, _ := deploymentRouteAPI(t)
-	deploymentID := "e90b1445-8b45-4ba5-9e6e-9b5381cd044f"
+	a, tenantID, targetID := deploymentRouteAPI(t)
+	deployment, _, err := a.deploymentStore().Create(context.Background(), tenantID, "deployment-test-worker", deployments.CreateInput{
+		ServiceID: "postgres", TargetSystemID: targetID, DesiredState: deployments.DesiredPresent,
+		IdempotencyKey: uuid.NewString(), Config: json.RawMessage(`{"password":"vaultix://production/services/postgres/password"}`),
+		TargetConfig: json.RawMessage(`{"storage":{"pool":"tenant-data"}}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deploymentID := deployment.ID
+	jobID, leaseOwner := uuid.NewString(), "deployment-test-worker"
+	_, err = a.db.Pool.Exec(context.Background(), `INSERT INTO jobs(id,tenant_id,kind,target_type,target_id,status,created_by,lease_owner,lease_until)
+		VALUES($1,$2,'deployment.reconcile','deployment_generation',$3,'running','deployment-test-worker',$4,now()+interval '1 minute')`,
+		jobID, tenantID, deploymentID+":1", leaseOwner)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var revealCount int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -39,7 +56,7 @@ func TestRevealTenantDeploymentSecretDerivesTenantProjectAndAuditsBeforeReveal(t
 			var action, detail string
 			if err := a.db.Pool.QueryRow(context.Background(), `SELECT action,detail FROM audit_log WHERE tenant_id=$1 ORDER BY id DESC LIMIT 1`, tenantID).Scan(&action, &detail); err != nil {
 				t.Errorf("audit must be written before Reveal: %v", err)
-			} else if action != "deployment.secret.reveal" || !strings.Contains(detail, "deployment="+deploymentID) || !strings.Contains(detail, "generation=3") {
+			} else if action != "deployment.secret.reveal" || !strings.Contains(detail, "deployment="+deploymentID) || !strings.Contains(detail, "generation=1") {
 				t.Errorf("unexpected secret access audit: action=%q detail=%q", action, detail)
 			}
 			json.NewEncoder(w).Encode(map[string]any{"secret": map[string]any{"secretKey": "db-password", "secretPath": "/services/postgres", "secretValue": "test-secret-value"}})
@@ -54,8 +71,8 @@ func TestRevealTenantDeploymentSecretDerivesTenantProjectAndAuditsBeforeReveal(t
 	a.cfg.Vaultix.ProjectPrefix = "tenant-"
 	a.n2.vx = &vaultixDeps{c: vaultix.New(server.URL, "client-id", "client-secret", time.Second), cfg: a.cfg.Vaultix, db: a.db}
 
-	value, err := a.revealTenantDeploymentSecret(context.Background(), tenantID, deploymentID, 3,
-		"deployment-test-worker", "vaultix://production/services/postgres/db-password")
+	value, err := a.revealTenantDeploymentSecret(context.Background(), tenantID, deploymentID, 1,
+		"deployment-test-worker", "vaultix://production/services/postgres/db-password", jobID, leaseOwner)
 	if err != nil || value != "test-secret-value" {
 		t.Fatalf("Reveal result=%q err=%v", value, err)
 	}
@@ -69,6 +86,16 @@ func TestRevealTenantDeploymentSecretDerivesTenantProjectAndAuditsBeforeReveal(t
 	if strings.Contains(detail, "test-secret-value") || strings.Contains(detail, "db-password") {
 		t.Fatalf("audit contains secret material or key: %q", detail)
 	}
+	if _, err := a.db.Pool.Exec(context.Background(), `UPDATE jobs SET lease_until=now()-interval '1 second' WHERE id=$1`, jobID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.revealTenantDeploymentSecret(context.Background(), tenantID, deploymentID, 1,
+		"deployment-test-worker", "vaultix://production/services/postgres/db-password", jobID, leaseOwner); err == nil {
+		t.Fatal("expired lease must not authorize another secret reveal")
+	}
+	if revealCount != 1 {
+		t.Fatalf("Vaultix Reveal called after lease expiry: count=%d", revealCount)
+	}
 }
 
 func TestRevealTenantDeploymentSecretRejectsUnconfiguredEnvironmentBeforeNetwork(t *testing.T) {
@@ -78,7 +105,7 @@ func TestRevealTenantDeploymentSecretRejectsUnconfiguredEnvironmentBeforeNetwork
 	a.cfg.Vaultix.ProjectPrefix = "tenant-"
 	a.n2.vx = &vaultixDeps{c: vaultix.New("http://127.0.0.1:1", "unused", "unused", time.Second), cfg: a.cfg.Vaultix}
 	if _, err := a.revealTenantDeploymentSecret(context.Background(), "e90b1445-8b45-4ba5-9e6e-9b5381cd044f",
-		"e90b1445-8b45-4ba5-9e6e-9b5381cd044f", 1, "worker", "vaultix://other/database/password"); err == nil {
+		"e90b1445-8b45-4ba5-9e6e-9b5381cd044f", 1, "worker", "vaultix://other/database/password", uuid.NewString(), "worker"); err == nil {
 		t.Fatal("unconfigured environment was resolved")
 	}
 }
