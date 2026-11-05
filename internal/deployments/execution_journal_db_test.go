@@ -123,7 +123,7 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 	if err != nil || completed.State != "succeeded" || completed.ProviderOperationID != "provider-op-1" {
 		t.Fatalf("outcome=%+v err=%v", completed, err)
 	}
-	replayed, started, err = store.BeginExecutionStepWithLease(ctx, tenantID, deployment.ID, 1, jobID, owner, planSHA, step)
+	replayed, started, err = store.BeginExecutionStepWithLease(ctx, tenantID, deployment.ID, 1, finalJobID, finalOwner, planSHA, step)
 	if err != nil || started || replayed.State != "succeeded" {
 		t.Fatalf("completed step replay=%+v started=%t err=%v", replayed, started, err)
 	}
