@@ -1,22 +1,23 @@
 # Shippin platform absorption plan
 
-Status: active execution plan, refreshed 2026-11-05 against `main` at `d6009fe`.
+Status: active execution plan, refreshed 2026-11-05 against `main` at `69d633a`.
 This describes the target and acceptance gates; it does not claim unimplemented
 workflows are live. The [capability ledger](capability-absorption.md) holds
-source-by-source evidence and dispositions. Checks run `41965325001` passed all
-13 jobs for `f2e9ff3`; earlier runtime authorization and source-review updates
-also passed their respective CI runs.
+source-by-source evidence and dispositions. Checks run `41970721148` passed all
+13 jobs for `69d633a`; run `41970045619` passed all 13 jobs for the database-backed
+Incus storage-pool revalidation.
 
 ## Current execution checkpoint (2026-11-05)
 
-`main` is at `d6009fe`. GitHub Checks run `41966835467` passed all 13 jobs,
-including full Go, database-backed, installer, panel and governance jobs. The
-structured Incus OCI runtime editor update preserves all one-panel
-boundaries and leaves the worker gated; previous code run `41963346185` passed
-all 13 jobs for `537f304`, and documentation run `41963735539` passed all 13.
-No PRs are open. PR 17 is closed without merge, but its reserved
-`198.51.100.1` fixture correction is already present in `main`, so no repair
-branch remains to merge. Windows standalone builds of `cmd/console` and
+`main` is at `69d633a`. GitHub Checks run `41970721148` passed all 13 jobs,
+including database-backed, installer, panel and governance jobs. The Incus OCI
+runtime editor and storage-pool selector preserve the one-panel boundary and
+leave the worker gated. No PRs are open. PR 17 is closed without merge; its
+reserved `198.51.100.1` fixture correction is present on `main` as independently
+authored commit `b3992ab`. Run `41969024332` failed because database fixtures
+omitted immutable target configuration; explicit fixture updates in `1bc83b7`
+and live pool revalidation in `1c87bbf` were followed by green
+database-backed run `41970045619`. Windows standalone builds of `cmd/console` and
 `cmd/shippin-hostd` succeeded; the React tests, build and bundle budget passed;
 `go vet` passed. The full Windows Go suite still fails in unrelated app,
 enrollment and hostd tests that assume POSIX shell/path/permission behavior or
@@ -31,9 +32,7 @@ PostgreSQL coverage for expired, replaced and current lease owners. The worker
 does not call that method: just-in-time AgentHub authorization remains gated on
 a complete runtime executor.
 
-PR 17 remains closed unmerged, but its CGNAT fixture correction is present on
-`main` as an independently authored equivalent patch (`b3992ab`); no open PR
-was found. The Incus driver now has a tested OCI application-container primitive with
+The Incus driver has a tested OCI application-container primitive with
 deployment-generation identity checks and retry reconciliation: it
 requires an immutable `sha256` image reference, validates resource inputs,
 preflights Incus 7.3.0 or newer, waits for the create operation, and confirms
@@ -41,11 +40,14 @@ the OCI marker and requested run state by reading the instance back. It is not
 wired to the catalog worker. The Incus provider primitive now optionally
 creates and attaches a deployment-named custom data volume in an explicitly
 selected storage pool, then verifies volume ownership/size and device read-back.
-It rejects invalid configuration before provider access and refuses to recreate
-a missing volume for an existing instance. This remains a provider primitive:
-there is no target-specific pool selector, worker call, network exposure,
-health check, secret delivery, update, backup, or removal ownership; it is not
-a deployable catalog runtime yet. Proxmox health now
+The existing panel lists pools from the tenant-assigned active Incus target;
+create-time API validation rechecks current provider inventory and rejects an
+absent pool before saving desired state. The unwired OCI removal primitive
+revalidates Shippin ownership around stop, confirms instance absence, retains
+custom data volumes, and refuses deletion when Incus snapshots exist. This is
+still provider groundwork: no worker call, network exposure, health check,
+secret delivery, update, backup/restore, enabled removal action or deployable
+catalog runtime exists. Proxmox health now
 rejects malformed version responses and versions outside the documented 8/9
 major support window. The implementation is
 limited to the Incus provider and follows Incus' [OCI remote and application

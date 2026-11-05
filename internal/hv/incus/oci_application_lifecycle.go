@@ -1,0 +1,123 @@
+package incus
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
+
+	"shippin.cloud/console/internal/hv"
+)
+
+// DeleteOCIApplication removes an exact Shippin-owned OCI application
+// instance and confirms its absence. The deployment-owned custom volume is
+// deliberately retained; deleting application data needs a separate,
+// explicitly reviewed and authorized operation. Callers must still perform
+// current-generation, job-lease and AgentHub checks immediately before use.
+// Incus does not offer a conditional delete by Shippin ownership metadata, so
+// this provider primitive must not be treated as a substitute for those gates.
+func (c *Client) DeleteOCIApplication(ctx context.Context, spec OCIApplicationSpec) error {
+	if _, err := validateOCIApplicationSpec(spec); err != nil {
+		return err
+	}
+
+	instance, err := c.instanceDetails(ctx, spec.Name)
+	if errors.Is(err, hv.ErrGuestNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+		return fmt.Errorf("incus: refusing to delete unowned application: %w", err)
+	}
+	if err := c.ensureOCIApplicationHasNoSnapshots(ctx, spec.Name); err != nil {
+		return err
+	}
+
+	if !strings.EqualFold(instance.Status, "Stopped") {
+		if err := c.stopOwnedOCIApplication(ctx, spec); err != nil {
+			return fmt.Errorf("incus: stop application before delete: %w", err)
+		}
+	}
+
+	// Re-read ownership after stopping so a name that was replaced while the
+	// stop operation ran cannot be deleted based on stale read-back.
+	instance, err = c.instanceDetails(ctx, spec.Name)
+	if errors.Is(err, hv.ErrGuestNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+		return fmt.Errorf("incus: refusing to delete application after ownership changed: %w", err)
+	}
+	if !strings.EqualFold(instance.Status, "Stopped") {
+		return fmt.Errorf("incus: refusing to delete application in state %q", instance.Status)
+	}
+	// Incus deletes instance snapshots together with the instance. Recheck after
+	// stop and refuse removal when snapshots exist so delete cannot silently
+	// discard a recovery point.
+	if err := c.ensureOCIApplicationHasNoSnapshots(ctx, spec.Name); err != nil {
+		return err
+	}
+
+	body, code, err := c.do(ctx, http.MethodDelete, c.path(instancePath(spec.Name)), nil)
+	if err != nil {
+		return err
+	}
+	if code != http.StatusNotFound && code != http.StatusOK && code != http.StatusAccepted {
+		return fmt.Errorf("incus: delete application HTTP %d: %s", code, clip(body))
+	}
+	if code != http.StatusNotFound {
+		if err := c.wait(ctx, body); err != nil {
+			return fmt.Errorf("incus: delete application operation failed: %w", err)
+		}
+	}
+	if _, err := c.instanceDetails(ctx, spec.Name); err == nil {
+		return fmt.Errorf("incus: application %s still present after delete", spec.Name)
+	} else if !errors.Is(err, hv.ErrGuestNotFound) {
+		return fmt.Errorf("incus: couldn't confirm application %s was deleted: %w", spec.Name, err)
+	}
+	return nil
+}
+
+func (c *Client) stopOwnedOCIApplication(ctx context.Context, spec OCIApplicationSpec) error {
+	instance, err := c.instanceDetails(ctx, spec.Name)
+	if err != nil {
+		return err
+	}
+	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+		return fmt.Errorf("application ownership changed before stop: %w", err)
+	}
+	if strings.EqualFold(instance.Status, "Stopped") {
+		return nil
+	}
+	if err := c.putState(ctx, spec.Name, "stop"); err != nil {
+		return err
+	}
+	instance, err = c.instanceDetails(ctx, spec.Name)
+	if err != nil {
+		return err
+	}
+	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+		return fmt.Errorf("application ownership changed while stopping: %w", err)
+	}
+	if !strings.EqualFold(instance.Status, "Stopped") {
+		return fmt.Errorf("provider reports application state %q after stop", instance.Status)
+	}
+	return nil
+}
+
+func (c *Client) ensureOCIApplicationHasNoSnapshots(ctx context.Context, name string) error {
+	snapshots, err := c.Snapshots(ctx, name)
+	if err != nil {
+		return fmt.Errorf("incus: inspect application snapshots before delete: %w", err)
+	}
+	if len(snapshots) != 0 {
+		return fmt.Errorf("incus: refusing to delete application with %d snapshots; preserve or remove them explicitly first", len(snapshots))
+	}
+	return nil
+}

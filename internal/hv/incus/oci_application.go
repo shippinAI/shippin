@@ -75,20 +75,8 @@ func parseOCIApplicationReference(reference string) (ociImageReference, error) {
 // must perform their own current-generation, lease and AgentHub checks before
 // invoking this provider mutation.
 func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSpec) (hv.Guest, error) {
-	if !guestName.MatchString(spec.Name) {
-		return hv.Guest{}, errors.New("incus: application name starts with a letter and uses letters, digits and dashes")
-	}
-	if _, err := uuid.Parse(spec.DeploymentID); err != nil || spec.Generation < 1 {
-		return hv.Guest{}, errors.New("incus: application requires a deployment UUID and positive generation")
-	}
-	image, err := parseOCIApplicationReference(spec.ImageReference)
+	image, err := validateOCIApplicationSpec(spec)
 	if err != nil {
-		return hv.Guest{}, err
-	}
-	if spec.Cores < 1 || spec.Cores > 32 || spec.MemoryMiB < 128 || spec.MemoryMiB > 65536 {
-		return hv.Guest{}, errors.New("incus: application resources must be 1-32 cores and 128-65536 MiB memory")
-	}
-	if err := validateOCIApplicationStorage(spec); err != nil {
 		return hv.Guest{}, err
 	}
 
@@ -160,6 +148,29 @@ func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSp
 		return hv.Guest{}, fmt.Errorf("incus: OCI application create operation failed: %w", err)
 	}
 	return c.ensureOCIApplicationState(ctx, spec)
+}
+
+// validateOCIApplicationSpec applies the same identity and provider bounds to
+// every lifecycle action. The returned image has already passed immutable
+// digest validation and is safe to use in ownership comparisons.
+func validateOCIApplicationSpec(spec OCIApplicationSpec) (ociImageReference, error) {
+	if !guestName.MatchString(spec.Name) {
+		return ociImageReference{}, errors.New("incus: application name starts with a letter and uses letters, digits and dashes")
+	}
+	if _, err := uuid.Parse(spec.DeploymentID); err != nil || spec.Generation < 1 {
+		return ociImageReference{}, errors.New("incus: application requires a deployment UUID and positive generation")
+	}
+	image, err := parseOCIApplicationReference(spec.ImageReference)
+	if err != nil {
+		return ociImageReference{}, err
+	}
+	if spec.Cores < 1 || spec.Cores > 32 || spec.MemoryMiB < 128 || spec.MemoryMiB > 65536 {
+		return ociImageReference{}, errors.New("incus: application resources must be 1-32 cores and 128-65536 MiB memory")
+	}
+	if err := validateOCIApplicationStorage(spec); err != nil {
+		return ociImageReference{}, err
+	}
+	return image, nil
 }
 
 func (c *Client) ensureOCIApplicationState(ctx context.Context, spec OCIApplicationSpec) (hv.Guest, error) {

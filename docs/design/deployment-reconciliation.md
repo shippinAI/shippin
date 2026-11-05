@@ -121,6 +121,23 @@ were the other. The provider adapter must create only Incus application
 containers for this OCI runtime; the upstream protocol rejects OCI images for
 VMs.
 
+The provider package now has an unwired `DeleteOCIApplication` primitive. It
+validates the exact deployment UUID, generation, image digest identity and
+requested resource limits before stopping or deleting an instance; it rechecks
+identity after stop and confirms provider-side absence after the asynchronous
+delete. It is idempotent when the instance is already absent. It does not delete
+the deployment-owned custom data volume. Incus deletes instance snapshots with
+the instance, so the primitive checks snapshots before stopping and again before
+delete, and refuses removal when any exist. This follows Incus'
+[instance deletion contract](https://linuxcontainers.org/incus/docs/main/howto/instances_manage/)
+and its documented [independent custom-volume lifecycle](https://linuxcontainers.org/incus/docs/main/howto/storage_volumes/).
+The provider API does not make deletion conditional on Shippin ownership
+metadata; therefore this remains a provider primitive, not authorization. The
+deployment worker does not invoke it, and no deployment removal action is
+enabled until worker-side lease/generation checks and exact AgentHub authorization
+are wired immediately before provider calls. Custom-volume deletion, snapshot
+handling workflows, backup and restore remain separate capabilities.
+
 Remote OCI image pulls require a provider version preflight. Incus' server-side
 [`GHSA-p2v3-6wvc-cv3p`](https://github.com/lxc/incus/security/advisories/GHSA-p2v3-6wvc-cv3p)
 describes a critical image-pull path traversal fixed in v7.3.0. Do not invoke the
