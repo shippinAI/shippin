@@ -74,9 +74,17 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 	}
 	var recoveredStep map[string]any
 	step("recover_ambiguous_provider_step")
-	recoveredStep, _, err = a.recoverDeploymentIntent(ctx, job, deployment)
+	recoveredStep, recovered, err := a.recoverDeploymentIntent(ctx, job, deployment)
 	if err != nil {
 		return nil, err
+	}
+	var runtimeStep map[string]any
+	providerMutated := false
+	if !recovered {
+		runtimeStep, _, providerMutated, err = a.executeIncusStorageStep(ctx, job, deployment, step)
+		if err != nil {
+			return nil, err
+		}
 	}
 	step("application_runtime_unavailable")
 	created, err := a.deploymentStore().RecordRuntimeUnavailableWithLease(ctx, job.TenantID, deployment.ID,
@@ -95,9 +103,12 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 		}
 	}
 	result := map[string]any{"deployment_id": deployment.ID, "generation": wakeup.Generation,
-		"outcome": outcome, "event_recorded": created, "provider_mutated": false}
+		"outcome": outcome, "event_recorded": created, "provider_mutated": providerMutated}
 	if recoveredStep != nil {
 		result["recovery"] = recoveredStep
+	}
+	if runtimeStep != nil {
+		result["runtime_step"] = runtimeStep
 	}
 	return result, nil
 }

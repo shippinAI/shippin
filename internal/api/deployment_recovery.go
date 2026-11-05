@@ -130,23 +130,7 @@ func (a *API) deploymentRecoveryEnvironment(ctx context.Context, job *jobs.Job,
 }
 
 func incusOCIRecoverySpec(snapshot deployments.ExecutionRecoverySnapshot) (incus.OCIApplicationSpec, error) {
-	runtime := snapshot.Definition.Runtime
-	if runtime.Kind != "incus_oci_container" || runtime.Resources == nil || runtime.Storage == nil || runtime.Network == nil {
-		return incus.OCIApplicationSpec{}, errors.New("deployment recovery runtime recipe is incomplete")
-	}
-	target := snapshot.Deployment.TargetConfig
-	if target.Storage == nil || target.Network == nil {
-		return incus.OCIApplicationSpec{}, deployments.ErrInvalidConfig
-	}
-	name, err := incus.OCIApplicationName(snapshot.Deployment.ID)
-	if err != nil {
-		return incus.OCIApplicationSpec{}, err
-	}
-	return incus.OCIApplicationSpec{Name: name, DeploymentID: snapshot.Deployment.ID,
-		Generation: snapshot.Deployment.Generation, ImageReference: snapshot.Definition.Source.Reference,
-		Network: target.Network.Name, MemoryMiB: runtime.Resources.MemoryMiB, Cores: runtime.Resources.CPUCores,
-		StoragePool: target.Storage.Pool, StorageSizeGiB: runtime.Storage.SizeGiB,
-		MountPath: runtime.Storage.MountPath}, nil
+	return incusOCIApplicationSpec(snapshot)
 }
 
 var _ incusOCIRecoveryProvider = (*incus.Client)(nil)

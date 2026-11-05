@@ -82,6 +82,9 @@ type API struct {
 	// openIncusOCIRecovery is a read-only OCI recovery seam. Production opens the
 	// configured Incus endpoint; tests can assert that recovery invokes no writes.
 	openIncusOCIRecovery func(servers.Endpoint) (incusOCIRecoveryProvider, error)
+	// openIncusOCIExecutor opens the narrowly scoped OCI deployment step driver.
+	// Production uses the configured Incus client; tests inject a fake provider.
+	openIncusOCIExecutor func(servers.Endpoint) (incusOCIExecutorProvider, error)
 	// hvVisible is the tenant isolation seam. Nil uses the server registry.
 	hvVisible func(ctx context.Context, tenant, id string) (servers.Endpoint, error)
 }

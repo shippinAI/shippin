@@ -20,6 +20,57 @@ type ExecutionRecoverySnapshot struct {
 	EnvironmentInputs []catalog.RuntimeEnvironmentInput
 }
 
+// ExecutionSnapshotWithLease reloads only the current immutable generation
+// under a live deployment job lease. It never resolves secrets or performs
+// provider I/O, and its plan digest must match the approved generation.
+func (s *Store) ExecutionSnapshotWithLease(ctx context.Context, tenantID, deploymentID string, generation int64,
+	jobID, leaseOwner, planSHA256 string) (ExecutionRecoverySnapshot, error) {
+	if !validUUID(tenantID) || !validUUID(deploymentID) || !validUUID(jobID) || generation < 1 ||
+		!validExecutionLeaseOwner(leaseOwner) || !validSHA256Value(planSHA256) {
+		return ExecutionRecoverySnapshot{}, ErrInvalidRequest
+	}
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return ExecutionRecoverySnapshot{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if err := checkExecutionLease(ctx, tx, tenantID, deploymentID, generation, jobID, leaseOwner); err != nil {
+		return ExecutionRecoverySnapshot{}, err
+	}
+	deployment, err := scanDeployment(tx.QueryRow(ctx, deploymentGenerationSelect+
+		` WHERE d.tenant_id=$1 AND d.id=$2 AND g.generation=$3 FOR UPDATE OF d`, tenantID, deploymentID, generation))
+	if err != nil {
+		return ExecutionRecoverySnapshot{}, err
+	}
+	plan, err := BuildExecutionPlan(tenantID, deployment)
+	if err != nil {
+		return ExecutionRecoverySnapshot{}, err
+	}
+	digest, err := plan.Fingerprint()
+	if err != nil || digest != planSHA256 {
+		return ExecutionRecoverySnapshot{}, ErrReviewConflict
+	}
+	var reviewed bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM shippin_deployment_reviews
+		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=$3 AND state='pending_review'
+		AND execution_plan_version=$4 AND execution_plan_sha256=$5)`,
+		tenantID, deploymentID, generation, plan.Version, digest).Scan(&reviewed); err != nil {
+		return ExecutionRecoverySnapshot{}, err
+	}
+	if !reviewed {
+		return ExecutionRecoverySnapshot{}, ErrReviewConflict
+	}
+	snapshot, environmentInputs, err := executionSnapshotDefinition(deployment, plan, digest)
+	if err != nil {
+		return ExecutionRecoverySnapshot{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return ExecutionRecoverySnapshot{}, err
+	}
+	snapshot.EnvironmentInputs = environmentInputs
+	return snapshot, nil
+}
+
 // UnresolvedExecutionStepsWithLease returns outstanding intents in approved
 // plan order. It performs no provider or secret-manager I/O.
 func (s *Store) UnresolvedExecutionStepsWithLease(ctx context.Context, tenantID, deploymentID string, generation int64,
@@ -146,20 +197,33 @@ func (s *Store) ExecutionRecoverySnapshotWithLease(ctx context.Context, tenantID
 	if record.StepID != step.ID || record.Operation != step.Operation {
 		return ExecutionRecoverySnapshot{}, ErrExecutionStepConflict
 	}
-	var definition DefinitionSnapshot
-	if len(deployment.definitionSnapshot) == 0 || json.Unmarshal(deployment.definitionSnapshot, &definition) != nil || definition.Validate(deployment.Config) != nil {
-		return ExecutionRecoverySnapshot{}, ErrDefinitionUnavailable
-	}
-	environmentInputs := []catalog.RuntimeEnvironmentInput{}
-	if definition.Runtime.Version == 3 {
-		environmentInputs, err = catalog.ExtractRuntimeEnvironmentInputs(definition.Runtime, definition.ConfigSchema, deployment.Config)
-		if err != nil {
-			return ExecutionRecoverySnapshot{}, ErrDefinitionUnavailable
-		}
+	snapshot, environmentInputs, err := executionSnapshotDefinition(deployment, plan, digest)
+	if err != nil {
+		return ExecutionRecoverySnapshot{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return ExecutionRecoverySnapshot{}, err
 	}
-	return ExecutionRecoverySnapshot{Deployment: deployment, Definition: definition, Plan: plan,
-		PlanSHA256: digest, Step: record, EnvironmentInputs: environmentInputs}, nil
+	snapshot.Step = record
+	snapshot.EnvironmentInputs = environmentInputs
+	return snapshot, nil
+}
+
+func executionSnapshotDefinition(deployment *Deployment, plan ExecutionPlan, digest string) (ExecutionRecoverySnapshot,
+	[]catalog.RuntimeEnvironmentInput, error) {
+	var definition DefinitionSnapshot
+	if deployment == nil || len(deployment.definitionSnapshot) == 0 ||
+		json.Unmarshal(deployment.definitionSnapshot, &definition) != nil || definition.Validate(deployment.Config) != nil {
+		return ExecutionRecoverySnapshot{}, nil, ErrDefinitionUnavailable
+	}
+	environmentInputs := []catalog.RuntimeEnvironmentInput{}
+	if definition.Runtime.Version == 3 {
+		var err error
+		environmentInputs, err = catalog.ExtractRuntimeEnvironmentInputs(definition.Runtime, definition.ConfigSchema, deployment.Config)
+		if err != nil {
+			return ExecutionRecoverySnapshot{}, nil, ErrDefinitionUnavailable
+		}
+	}
+	return ExecutionRecoverySnapshot{Deployment: deployment, Definition: definition, Plan: plan, PlanSHA256: digest},
+		environmentInputs, nil
 }

@@ -73,6 +73,16 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 		"operator@example.test", jobID, jobID, owner, true, workerProvenance, ""); err != nil {
 		t.Fatal(err)
 	}
+	executionSnapshot, err := store.ExecutionSnapshotWithLease(ctx, tenantID, deployment.ID, 1,
+		jobID, owner, planSHA)
+	if err != nil || executionSnapshot.PlanSHA256 != planSHA || executionSnapshot.Definition.Runtime.Kind != "incus_oci_container" ||
+		executionSnapshot.Deployment.TargetConfig.Storage == nil || executionSnapshot.Deployment.TargetConfig.Storage.Pool != "tenant-pool" {
+		t.Fatalf("lease-fenced execution snapshot=%+v err=%v", executionSnapshot, err)
+	}
+	if _, err := store.ExecutionSnapshotWithLease(ctx, tenantID, deployment.ID, 1,
+		jobID, owner, strings.Repeat("f", 64)); !errors.Is(err, ErrReviewConflict) {
+		t.Fatalf("stale plan loaded execution snapshot: %v", err)
+	}
 	if _, err := store.pool.Exec(ctx, `CREATE OR REPLACE FUNCTION shippin_test_reject_dispatch_claim() RETURNS trigger
 		LANGUAGE plpgsql AS $$ BEGIN IF NEW.event_type='dispatch_claimed' THEN
 		RAISE EXCEPTION 'injected dispatch audit failure'; END IF; RETURN NEW; END $$`); err != nil {
