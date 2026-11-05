@@ -168,6 +168,154 @@ func (c *Client) CreateOCIApplication(ctx context.Context, spec OCIApplicationSp
 	return c.ensureOCIApplicationState(ctx, spec)
 }
 
+// EnsureOCIApplicationVolume creates the deployment-owned custom volume when
+// absent and verifies its pool, size and ownership metadata. It changes no
+// instance state.
+func (c *Client) EnsureOCIApplicationVolume(ctx context.Context, spec OCIApplicationSpec) error {
+	if _, err := validateOCIApplicationSpec(spec); err != nil {
+		return err
+	}
+	if spec.StoragePool == "" {
+		return errors.New("incus: OCI application has no declared persistent volume")
+	}
+	return c.ensureOCIApplicationVolume(ctx, spec)
+}
+
+// CreateOCIApplicationStopped creates or reads back the exact OCI instance
+// without changing power state. If storage is declared, its volume must
+// already exist; this operation never creates storage as a side effect.
+func (c *Client) CreateOCIApplicationStopped(ctx context.Context, spec OCIApplicationSpec) (hv.Guest, error) {
+	image, err := validateOCIApplicationSpec(spec)
+	if err != nil {
+		return hv.Guest{}, err
+	}
+	health, err := c.Health(ctx)
+	if err != nil {
+		return hv.Guest{}, fmt.Errorf("incus: application provider preflight failed: %w", err)
+	}
+	if !incusVersionAtLeast(health.Version, 7, 3, 0) {
+		return hv.Guest{}, fmt.Errorf("incus: OCI application pulls require server version 7.3.0 or newer (server reports %q)", health.Version)
+	}
+	if spec.StoragePool != "" {
+		if err := c.checkOCIApplicationVolume(ctx, spec); err != nil {
+			return hv.Guest{}, err
+		}
+	}
+	instance, err := c.instanceDetails(ctx, spec.Name)
+	if err == nil {
+		if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+			return hv.Guest{}, err
+		}
+		return instance.guest(), nil
+	}
+	if !errors.Is(err, hv.ErrGuestNotFound) {
+		return hv.Guest{}, err
+	}
+	if err := c.createOCIApplicationInstance(ctx, spec, image); err != nil {
+		return hv.Guest{}, err
+	}
+	instance, err = c.instanceDetails(ctx, spec.Name)
+	if err != nil {
+		return hv.Guest{}, err
+	}
+	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+		return hv.Guest{}, err
+	}
+	if spec.StoragePool != "" {
+		if err := c.checkOCIApplicationVolume(ctx, spec); err != nil {
+			return hv.Guest{}, err
+		}
+	}
+	return instance.guest(), nil
+}
+
+func (c *Client) createOCIApplicationInstance(ctx context.Context, spec OCIApplicationSpec, image ociImageReference) error {
+	request := struct {
+		Name    string                       `json:"name"`
+		Type    string                       `json:"type"`
+		Source  map[string]string            `json:"source"`
+		Config  map[string]string            `json:"config"`
+		Devices map[string]map[string]string `json:"devices,omitempty"`
+	}{
+		Name: spec.Name, Type: "container",
+		Source: map[string]string{"type": "image", "mode": "pull", "protocol": "oci", "server": image.Server, "alias": image.Alias},
+		Config: map[string]string{
+			"limits.cpu": strconv.Itoa(spec.Cores), "limits.memory": strconv.Itoa(spec.MemoryMiB) + "MiB",
+			"user.shippin.deployment_id":          spec.DeploymentID,
+			"user.shippin.generation":             strconv.FormatInt(spec.Generation, 10),
+			"user.shippin.image_reference_sha256": imageReferenceHash(spec.ImageReference),
+		},
+	}
+	for name, value := range spec.Environment {
+		request.Config["environment."+name] = value
+	}
+	request.Devices = ociApplicationDevices(spec)
+	raw, err := json.Marshal(request)
+	if err != nil {
+		return err
+	}
+	body, code, err := c.do(ctx, "POST", c.path("/1.0/instances"), raw)
+	if err != nil {
+		return err
+	}
+	if code != 200 && code != 201 && code != 202 {
+		if len(spec.Environment) > 0 {
+			return fmt.Errorf("incus: OCI application create HTTP %d", code)
+		}
+		return fmt.Errorf("incus: OCI application create HTTP %d: %s", code, clip(body))
+	}
+	if err := c.wait(ctx, body); err != nil {
+		if len(spec.Environment) > 0 {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return err
+			}
+			return errors.New("incus: OCI application create operation failed")
+		}
+		return fmt.Errorf("incus: OCI application create operation failed: %w", err)
+	}
+	return nil
+}
+
+// EnsureOCIApplicationRunning changes only power state and confirms it by
+// provider read-back. The caller must persist its approved power-step intent
+// and repeat lease, generation and AgentHub checks immediately before use.
+func (c *Client) EnsureOCIApplicationRunning(ctx context.Context, spec OCIApplicationSpec) (hv.Guest, error) {
+	if _, err := validateOCIApplicationSpec(spec); err != nil {
+		return hv.Guest{}, err
+	}
+	instance, err := c.instanceDetails(ctx, spec.Name)
+	if err != nil {
+		return hv.Guest{}, err
+	}
+	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+		return hv.Guest{}, err
+	}
+	if spec.StoragePool != "" {
+		if err := c.checkOCIApplicationVolume(ctx, spec); err != nil {
+			return hv.Guest{}, err
+		}
+	}
+	if !strings.EqualFold(instance.Status, "Running") {
+		if !strings.EqualFold(instance.Status, "Stopped") {
+			return hv.Guest{}, fmt.Errorf("incus: cannot start OCI application from provider state %q", instance.Status)
+		}
+		if _, err := c.Start(ctx, spec.Name); err != nil {
+			return hv.Guest{}, fmt.Errorf("incus: OCI application start failed: %w", err)
+		}
+	}
+	instance, err = c.instanceDetails(ctx, spec.Name)
+	if err != nil {
+		return hv.Guest{}, err
+	}
+	if err := validateOCIApplicationIdentity(instance, spec); err != nil {
+		return hv.Guest{}, err
+	}
+	if !strings.EqualFold(instance.Status, "Running") {
+		return hv.Guest{}, fmt.Errorf("incus: provider reports application state %q after start", instance.Status)
+	}
+	return instance.guest(), nil
+}
+
 // validateOCIApplicationSpec applies the same identity and provider bounds to
 // every lifecycle action. The returned image has already passed immutable
 // digest validation and is safe to use in ownership comparisons.

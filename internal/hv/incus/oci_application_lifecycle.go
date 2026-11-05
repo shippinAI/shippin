@@ -54,7 +54,6 @@ func (c *Client) DeleteOCIApplication(ctx context.Context, spec OCIApplicationSp
 	if _, err := validateOCIApplicationSpec(spec); err != nil {
 		return err
 	}
-
 	instance, err := c.instanceDetails(ctx, spec.Name)
 	if errors.Is(err, hv.ErrGuestNotFound) {
 		return nil
@@ -68,16 +67,31 @@ func (c *Client) DeleteOCIApplication(ctx context.Context, spec OCIApplicationSp
 	if err := c.ensureOCIApplicationHasNoSnapshots(ctx, spec.Name); err != nil {
 		return err
 	}
-
 	if !strings.EqualFold(instance.Status, "Stopped") {
-		if err := c.stopOwnedOCIApplication(ctx, spec); err != nil {
+		if err := c.StopOCIApplication(ctx, spec); err != nil {
 			return fmt.Errorf("incus: stop application before delete: %w", err)
 		}
 	}
+	return c.DeleteOCIApplicationStopped(ctx, spec)
+}
 
-	// Re-read ownership after stopping so a name that was replaced while the
-	// stop operation ran cannot be deleted based on stale read-back.
-	instance, err = c.instanceDetails(ctx, spec.Name)
+// StopOCIApplication changes only the power state of an exact owned instance
+// and confirms the stopped state. It does not remove the instance or volume.
+func (c *Client) StopOCIApplication(ctx context.Context, spec OCIApplicationSpec) error {
+	if _, err := validateOCIApplicationSpec(spec); err != nil {
+		return err
+	}
+	return c.stopOwnedOCIApplication(ctx, spec)
+}
+
+// DeleteOCIApplicationStopped removes an exact owned instance only when it is
+// already stopped. It preserves the deployment volume and confirms absence.
+// This lets callers put stop and delete behind distinct step intents.
+func (c *Client) DeleteOCIApplicationStopped(ctx context.Context, spec OCIApplicationSpec) error {
+	if _, err := validateOCIApplicationSpec(spec); err != nil {
+		return err
+	}
+	instance, err := c.instanceDetails(ctx, spec.Name)
 	if errors.Is(err, hv.ErrGuestNotFound) {
 		return nil
 	}
@@ -119,6 +133,9 @@ func (c *Client) DeleteOCIApplication(ctx context.Context, spec OCIApplicationSp
 
 func (c *Client) stopOwnedOCIApplication(ctx context.Context, spec OCIApplicationSpec) error {
 	instance, err := c.instanceDetails(ctx, spec.Name)
+	if errors.Is(err, hv.ErrGuestNotFound) {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -127,6 +144,9 @@ func (c *Client) stopOwnedOCIApplication(ctx context.Context, spec OCIApplicatio
 	}
 	if strings.EqualFold(instance.Status, "Stopped") {
 		return nil
+	}
+	if !strings.EqualFold(instance.Status, "Running") {
+		return fmt.Errorf("incus: cannot stop OCI application from provider state %q", instance.Status)
 	}
 	if err := c.putState(ctx, spec.Name, "stop"); err != nil {
 		return err
