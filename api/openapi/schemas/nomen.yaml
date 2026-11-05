@@ -1,6 +1,6 @@
 App:
   type: object
-  description: A customer OIDC app in the tenant's Nomen (Zitadel) org.
+  description: A customer OIDC app in the tenant's Nomen org.
   required: [id, name, type]
   properties:
     id: { $ref: common.yaml#/Uuid }
@@ -24,7 +24,7 @@ AppList:
     page: { $ref: common.yaml#/PageInfo }
 Agent:
   type: object
-  description: An agent identity (a Zitadel service user now; Nomen token exchange + act later).
+  description: An agent identity (a Nomen service identity).
   required: [id, name]
   properties:
     id: { $ref: common.yaml#/Uuid }

@@ -8,7 +8,7 @@ connection:
     x-implementation-status: registered
     security:
       - consoleSession: []
-      - zitadel: []
+      - nomen: []
     responses:
       '200':
         description: Write-only connection configuration status.
@@ -31,7 +31,7 @@ connection:
     x-implementation-status: registered
     security:
       - consoleSession: []
-      - zitadel: []
+      - nomen: []
     requestBody:
       required: true
       content:
@@ -67,7 +67,7 @@ testConnection:
     x-implementation-status: registered
     security:
       - consoleSession: []
-      - zitadel: []
+      - nomen: []
     requestBody:
       required: true
       content:

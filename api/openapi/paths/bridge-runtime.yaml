@@ -89,7 +89,7 @@ bridgeDecision:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Console sign-in required. Unknown/expired code returns 404.
@@ -110,7 +110,7 @@ bridgeDecision:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     requestBody:
       required: false
       content:
@@ -140,7 +140,7 @@ bridgeSessions:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Only the signed-in account sessions are returned.
@@ -168,7 +168,7 @@ bridgeRevoke:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Audits first, revokes the session and closes its active relays.

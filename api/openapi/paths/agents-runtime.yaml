@@ -13,7 +13,7 @@ promptOptions:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Returns configured feature availability, stacks and agent choices.
@@ -49,7 +49,7 @@ fromPrompt:
       accepted builds cannot complete agent execution.
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     requestBody:
       required: true
       content:
@@ -89,7 +89,7 @@ projectAgent:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Members only. Returns nullable run plus available live status; may record an observed agent
@@ -129,7 +129,7 @@ startAgent:
       accepted builds cannot complete agent execution.
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     requestBody:
       required: false
       content:

@@ -9,7 +9,7 @@ subscriptions:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Lists the caller own AI homes and connections only in tenants where they remain a member. Does
@@ -48,7 +48,7 @@ activate:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '202':
         description: AI-enabled member tenant only. Returns 202 with home, terminal URL and vendor login command.
@@ -84,7 +84,7 @@ checkSubscription:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Reads the isolated owner runner status; invalid/stale reports fail closed. May queue builds
@@ -116,7 +116,7 @@ disconnectSubscription:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Records disconnected status before vendor logout. Returns 200 if absent or signed out, 202
@@ -152,7 +152,7 @@ touchTerminal:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Keeps the caller terminal from the idle-stop policy.
@@ -178,7 +178,7 @@ closeTerminal:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Stops the caller terminal; the persistent AI home is retained.

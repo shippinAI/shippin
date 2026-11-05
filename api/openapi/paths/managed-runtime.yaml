@@ -17,7 +17,7 @@ services:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Tenant members only; reports configured rrflow availability and recorded service instances.
@@ -51,7 +51,7 @@ attachRRFlow:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     requestBody:
       required: false
       content:
@@ -101,7 +101,7 @@ rrflowState:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     parameters:
     - name: limit
       in: query

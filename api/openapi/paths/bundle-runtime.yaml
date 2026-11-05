@@ -14,7 +14,7 @@ bundle:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: 'Returns ready, missing or not_available component records. Implementation caveat: starter-db
@@ -46,7 +46,7 @@ reconcileBundle:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Tenant manager permission and audit required. Planned components remain not_available; this

@@ -7,7 +7,7 @@ Tenant:
         name: { $ref: common.yaml#/Label }
         status: { type: string, enum: [provisioning, active, suspended, deleting, deleted], readOnly: true }
         plan_id: { $ref: common.yaml#/Uuid }
-        idp_org_id: { type: string, readOnly: true, description: 'Zitadel organization id.' }
+        idp_org_id: { type: string, readOnly: true, description: 'Nomen organization id.' }
         labels: { $ref: common.yaml#/Labels }
         quota: { $ref: '#/Quota' }
 Quota:
@@ -23,10 +23,10 @@ Quota:
 TenantCreate:
   type: object
   required: [name]
-  description: 'Either owner (new org) or idp_org_id (map an existing Zitadel org; v0.1 implements only this).'
+  description: 'Either owner (new org) or idp_org_id (map an existing Nomen org; v0.1 implements only this).'
   properties:
     name: { $ref: common.yaml#/Label }
-    idp_org_id: { type: string, description: 'Existing Zitadel org to map to a new tenant UUID (operator only).' }
+    idp_org_id: { type: string, description: 'Existing Nomen org to map to a new tenant UUID (operator only).' }
     plan_id: { type: string, description: 'Plan id from /settings/plans (v0.1: plan key, e.g. founder).' }
     owner:
       type: object

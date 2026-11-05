@@ -5,7 +5,7 @@ apps:
     x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
     tags: [identity]
     operationId: listIdentityApps
-    summary: List customer OIDC apps in the tenant's Nomen org (Zitadel proxy)
+    summary: List customer OIDC apps in the tenant's Nomen organization
     parameters:
       - $ref: ../components/parameters.yaml#/PageSize
       - $ref: ../components/parameters.yaml#/PageToken
@@ -78,7 +78,7 @@ agents:
   get:
     tags: [identity]
     operationId: listAgents
-    summary: List agent identities (Zitadel service users)
+    summary: List agent identities (Nomen service users)
     parameters:
       - $ref: ../components/parameters.yaml#/PageSize
       - $ref: ../components/parameters.yaml#/PageToken

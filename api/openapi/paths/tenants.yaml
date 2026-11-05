@@ -20,7 +20,7 @@ tenants:
   post:
     tags: [tenants]
     operationId: createTenant
-    summary: Create a tenant (signup or operator). Creates the Zitadel org, dataset, pool, project, network.
+    summary: Create a tenant (signup or operator). Creates the Nomen org, dataset, pool, project, network.
     parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
     requestBody:
       required: true

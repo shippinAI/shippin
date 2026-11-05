@@ -13,7 +13,7 @@ testMapping:
     x-implementation-status: registered
     security:
       - consoleSession: []
-      - zitadel: []
+      - nomen: []
     parameters:
       - name: X-Change-Note
         in: header

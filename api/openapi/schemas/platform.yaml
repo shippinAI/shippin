@@ -4,7 +4,7 @@ Probe:
     id: { type: string, format: uuid }
     name: { type: string }
     alias: { type: string }
-    kind: { type: string, description: 'zitadel, infisical, caddy, postgres…' }
+    kind: { type: string, description: 'nomen, vaultix, caddy, postgres' }
     instance: { type: string }
     healthy: { type: boolean }
     configured: { type: boolean, description: 'Whether a probe target is configured; false means unknown rather than down.' }

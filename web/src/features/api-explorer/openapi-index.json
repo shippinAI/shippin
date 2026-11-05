@@ -735,7 +735,7 @@
       "method": "GET",
       "path": "/tenants/{tenantId}/identity/agents",
       "operationId": "listAgents",
-      "summary": "List agent identities (Zitadel service users)",
+      "summary": "List agent identities (Nomen service users)",
       "tags": [
         "identity"
       ],
@@ -755,7 +755,7 @@
       "method": "GET",
       "path": "/tenants/{tenantId}/identity/apps",
       "operationId": "listIdentityApps",
-      "summary": "List customer OIDC apps in the tenant's Nomen org (Zitadel proxy)",
+      "summary": "List customer OIDC apps in the tenant's Nomen organization",
       "tags": [
         "identity"
       ],
@@ -905,7 +905,7 @@
       "method": "GET",
       "path": "/tenants/{tenantId}/members",
       "operationId": "listMembers",
-      "summary": "List members (Zitadel org users + roles)",
+      "summary": "List members (Nomen org users + roles)",
       "tags": [
         "members"
       ],
@@ -915,7 +915,7 @@
       "method": "POST",
       "path": "/tenants/{tenantId}/members",
       "operationId": "inviteMember",
-      "summary": "Invite a member (Zitadel user + OpenFGA tuples)",
+      "summary": "Invite a member (Nomen user + OpenFGA tuples)",
       "tags": [
         "members"
       ],
@@ -1445,7 +1445,7 @@
       "method": "POST",
       "path": "/tenants",
       "operationId": "createTenant",
-      "summary": "Create a tenant (signup or operator). Creates the Zitadel org, dataset, pool, project, network.",
+      "summary": "Create a tenant (signup or operator). Creates the Nomen org, dataset, pool, project, network.",
       "tags": [
         "tenants"
       ],

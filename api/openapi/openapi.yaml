@@ -1,11 +1,11 @@
 openapi: 3.1.0
 info:
-  title: Shippin.Cloud control-plane API
+  title: Shippin.app Platform API
   version: 0.1.0
   summary: One API for the console, CLI and automation.
   description: |
-    Draft v0.1 (2026-10-15). The Go control plane wraps Incus, Zitadel (Nomen),
-    Infisical (Vaultix), OVN and Caddy. Clients never call those systems directly.
+    Draft v0.1 (2026-10-15). The Go control plane wraps Incus, Nomen,
+    Vaultix, OVN and Caddy. Clients never call those systems directly.
     Implementation status is operation-specific: planned methods are retained design intent;
     registered methods exist in source but are not proof of deployment or provider readiness;
     blocked methods accept requests but cannot complete the documented downstream workflow.
@@ -14,22 +14,22 @@ info:
     not a claim that every registered endpoint implements pagination, ETags or durable jobs.
     Conventions:
     - Every resource id is a UUID. Names are labels only.
-    - Auth: Zitadel OIDC access token as a bearer (JWT). Nomen later, same contract.
+    - Auth: Nomen OIDC access token as a bearer (JWT).
     - Errors: RFC 9457 `application/problem+json` with a `message` for toasts.
     - Lists: cursor pagination (`page_size`, `page_token` → `next_page_token`).
     - Mutations: an `Idempotency-Key` header (UUID). A replay returns the first result.
     - Long-running work returns `202` + a Job. Poll `/jobs/{jobId}` or watch the events stream.
     - Updates: `ETag` / `If-Match` for optimistic concurrency.
   contact:
-    name: Shippin.Cloud
+    name: Shippin.app
 servers:
   - url: /v1
     description: Relative to the configured API origin for this installation.
 security:
-  - zitadel: []
+  - nomen: []
 tags:
   - name: tenants
-    description: Tenant (= Zitadel org) lifecycle. Operator and signup.
+    description: Tenant (= Nomen org) lifecycle. Operator and signup.
   - name: folders
     description: Nested folders inside a tenant.
   - name: workspaces
@@ -39,13 +39,13 @@ tags:
   - name: jobs
     description: Long-running operations.
   - name: members
-    description: Members and roles (Zitadel users + OpenFGA tuples).
+    description: Members and roles (Nomen users + OpenFGA tuples).
   - name: settings
     description: Platform and tenant settings (domains, brands, plans).
   - name: secrets
-    description: Vaultix (Infisical) proxied, scoped per tenant.
+    description: Vaultix proxied, scoped per tenant.
   - name: identity
-    description: Nomen (Zitadel) proxied, customer apps and agent service users.
+    description: Nomen proxied, customer apps and agent service users.
   - name: rrflow
     description: AI governance policies.
   - name: audit
@@ -311,6 +311,6 @@ components:
     consoleSession: {type: apiKey, in: cookie, name: shippin_session}
     bridgeBearer: {type: http, scheme: bearer, description: Account-bound bridge session token.}
     githubSignature: {type: apiKey, in: header, name: X-Hub-Signature-256, description: HMAC SHA-256 signature over the exact webhook body.}
-    zitadel:
-      $ref: components/security.yaml#/zitadel
+    nomen:
+      $ref: components/security.yaml#/nomen
     apiKey: {type: http, scheme: bearer, description: Scoped directory API key (shp_).}

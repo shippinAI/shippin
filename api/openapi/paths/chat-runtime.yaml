@@ -9,7 +9,7 @@ chatConfig:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Requires enabled console chat and sign-in.
@@ -40,7 +40,7 @@ chatTips:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     parameters:
     - name: route
       in: query
@@ -69,7 +69,7 @@ chatSessions:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Returns sessions owned by the caller.
@@ -92,7 +92,7 @@ chatSessions:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     requestBody:
       required: true
       content:
@@ -134,7 +134,7 @@ chatSession:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Owner-scoped session read; message history is returned from the chat store.
@@ -164,7 +164,7 @@ chatReady:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     responses:
       '200':
         description: Rechecks workspace access and runs the configured provider check through hostd. Returns readiness/connect
@@ -201,7 +201,7 @@ chatMessages:
     x-implementation-status: registered
     security:
     - consoleSession: []
-    - zitadel: []
+    - nomen: []
     requestBody:
       required: true
       content:
