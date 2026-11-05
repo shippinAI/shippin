@@ -23,7 +23,7 @@ With no `.env` it serves `https://localhost:8443` with a generated certificate a
 
 To upgrade, run `git pull --ff-only && docker compose up -d --build`. The panel's top bar shows when a newer build exists, and this command.
 
-Set `SHIPPIN_HV_*` tokens in `.env`, and mount any certificate files a hypervisor attachment names.
+Add each Incus or Proxmox connection under **Infrastructure → Hosts & nodes**. The form is provider-configured, tests the connection before saving, and seals credentials in the platform database. If an installation manages provider secrets outside the panel, the optional **Token environment variable** field can reference a `SHIPPIN_HV_*` value in `/etc/shippin/console.env`; mount any CA or client certificate files named by the connection. No global Proxmox endpoint or Warden configuration file is used.
 
 ## On a Debian or Ubuntu machine
 
@@ -148,7 +148,7 @@ sudo ./install/panel/install.sh --example
 | `SHIPPIN_CAPTCHA_SECRET` | when captcha provider is `turnstile` | Siteverify secret |
 | `SHIPPIN_MAIL_SINK` | disposable installs only | File that receives mail bodies. Leave unset on a real site |
 
-Host agent settings, hypervisor tokens, and SMTP passwords stay in that uncommitted file or in `/etc/shippin/hostd.json` copied from [deploy/hostd.example.json](../deploy/hostd.example.json). The Proxmox panel reads `/etc/warden/warden.env`, copied from [third_party/warden-ct102/warden.env.example](../third_party/warden-ct102/warden.env.example), with TLS verification left on.
+Host agent settings stay in `/etc/shippin/hostd.json`, copied from [deploy/hostd.example.json](../deploy/hostd.example.json). SMTP passwords and optional externally managed provider-token environment variables stay in the root-only `/etc/shippin/console.env`. Provider endpoints and their per-server credentials are configured through **Infrastructure → Hosts & nodes**; TLS verification remains enabled.
 
 ## What is switched on
 
@@ -186,4 +186,4 @@ Migrations run forward only, so going back to an older build means restoring a d
 
 If the new process fails its health check, the installer says so and stops. Start the previous binary again, or fix what it reports and re-run. The older Incus release scripts under `deploy/` can still roll a release back when `CONSOLE_IP`, `DOMAIN`, and `SECRETS_FILE` are set in the environment. They no longer default to a site address.
 
-GitHub Actions on pull requests and `main` runs the Go tests, the web tests and build, the Warden module tests, the public-tree literal scan, gitleaks, this installer with `--example`, and an update from an older build under systemd.
+GitHub Actions on pushes and pull requests runs the Go tests, the web tests and build, reference-tree checks for the retained Proxmox source capture, the public-tree literal scan, gitleaks, this installer with `--example`, and an update from an older build under systemd. The reference-tree job does not build or ship a second panel or runtime.
