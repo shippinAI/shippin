@@ -59,7 +59,7 @@ func (s *Store) QueueProbeCommand(ctx context.Context, serverID, tenantID, deplo
 		SELECT $1,$2,$3,$4,$5,$6,$7,'probe_incus_application',$8,now()+($9 * interval '1 second')
 		FROM shippin_deployments d JOIN servers s ON s.id=d.target_system_id
 		WHERE d.id=$4 AND d.tenant_id=$3 AND d.target_system_id=$2 AND d.desired_generation=$5
-		AND s.state='active' AND s.cred_expires_at>now()
+		AND s.state='active'
 		ON CONFLICT(tenant_id,idempotency_key) DO NOTHING
 		RETURNING id::text,deployment_id::text,generation,plan_sha256,idempotency_key,command_type,payload,expires_at,state`,
 		uuid.NewString(), serverID, tenantID, deploymentID, generation, planSHA256, idempotencyKey,

@@ -119,7 +119,7 @@ func TestDeploymentWorkerExecutesAuthorizedIncusStorageAndStoppedWorkloadSteps(t
 	step := out["runtime_step"].(map[string]any)
 	if out["outcome"] != "runtime_unsupported" || out["provider_mutated"] != true ||
 		step["step_state"] != "unknown" || step["step_id"] != "health" || step["health_status"] != "unknown" ||
-		step["application_probe_verified"] != false || step["failure_code"] != "application_health_probe_unavailable" || provider.ensureCalls != 1 ||
+		step["application_probe_verified"] != false || step["pending"] != true || provider.ensureCalls != 1 ||
 		provider.inspectCalls != 1 || provider.createCalls != 1 || provider.runCalls != 1 || *calls != 3 {
 		t.Fatalf("worker result=%v ensure=%d inspect=%d create=%d run=%d decisions=%d", result, provider.ensureCalls, provider.inspectCalls, provider.createCalls, provider.runCalls, *calls)
 	}
@@ -130,7 +130,7 @@ func TestDeploymentWorkerExecutesAuthorizedIncusStorageAndStoppedWorkloadSteps(t
 	}
 	var state string
 	if err := a.db.Pool.QueryRow(context.Background(), `SELECT state FROM shippin_deployment_execution_steps
-		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=1 AND step_id='health'`, tenantID, deployment.ID).Scan(&state); err != nil || state != "unknown" {
+		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=1 AND step_id='health'`, tenantID, deployment.ID).Scan(&state); err != nil || state != "intent" {
 		t.Fatalf("step outcome=%s err=%v", state, err)
 	}
 	var dispatchEvents int
