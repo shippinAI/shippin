@@ -504,7 +504,7 @@ func setupDeploymentExecution(t *testing.T, allow bool, desired deployments.Desi
 	job := &jobs.Job{ID: jobID, TenantID: tenantID, Kind: jobs.KindDeploymentReconcile,
 		TargetType: "deployment_generation", TargetID: deployment.ID + ":" + strconv.FormatInt(deployment.Generation, 10), CreatedBy: "runtime-test-operator",
 		LeaseOwner: owner, Payload: payload}
-	provider := &deploymentExecutionProviderFake{exists: true, powerExists: true, powerStatus: "Running", usePowerState: desired == deployments.DesiredAbsent}
+	provider := &deploymentExecutionProviderFake{exists: true, powerExists: true, powerStatus: "Running", usePowerState: true}
 	a.hvServers = &memHV{items: []servers.Endpoint{{ID: systemID, Kind: "incus"}}}
 	a.openHV = func(servers.Endpoint) (hv.Driver, error) { return deploymentStorageInventoryDriver{}, nil }
 	a.hvVisible = func(context.Context, string, string) (servers.Endpoint, error) {
