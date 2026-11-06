@@ -1,20 +1,20 @@
 # Shippin platform absorption plan
 
 Status: active execution plan, refreshed 2026-11-06 against `main` at
-`06ca323`. This describes target contracts and acceptance gates; it does not
+`ce8fe8c`. This describes target contracts and acceptance gates; it does not
 claim unimplemented workflows are live. The [capability ledger](capability-absorption.md)
 holds source-by-source evidence and dispositions. Exact-head Checks run
-`42295590228` passed on `06ca323` (12 jobs). The ignored packet
+`42297978561` passed on `ce8fe8c` (12 jobs). The ignored packet
 `2026/11/115cde7d-49e5-43f0-81c8-7c708475b602` contains the source-hashed
 readiness correction plan and work journal.
 
 ## Current execution checkpoint (2026-11-06)
 
-Canonical `main` is `06ca3232aab1554efb96ba2a543709f2c19c4416`, clean and synchronized with `origin/main`. `bash scripts/check.sh` passed after the implementation. This Windows workstation has no `SHIPPIN_TEST_DATABASE_URL`, so PostgreSQL integration tests skipped locally; exact-head Checks run `42295590228` passed all 12 jobs, including the PostgreSQL API, deployment, server, hub, database, catalog and networking suites. `go test ./internal/enroll` still encounters pre-existing POSIX path and file-mode assumptions on Windows; enrollment code was not changed.
+Canonical `main` is `ce8fe8c602cb058ac666eb3df8187e517d9ad9e2`, clean and synchronized with `origin/main`. `bash scripts/check.sh` passed after the latest panel change. This Windows workstation has no `SHIPPIN_TEST_DATABASE_URL`, so PostgreSQL suites ran in hosted CI: exact-head Checks run `42297978561` passed all 12 jobs, including identity/database integration, console and hostd builds, panel, installers, upgrade, compose, public-tree and secret scan. No live provider or AgentHub target is available.
 
-The latest delivered provider slice persists bounded API reachability observations separately from guest inventory, keys them to provider configuration revision, and surfaces status, time and latency in the existing infrastructure view. It does not prove a guest OS or declared application is healthy. Review of the current reconciler found that `internal/api/deployment_execution.go` treated Incus `Running` read-back as application `passing`, and `internal/api/deployment_outbox.go` consequently returned `ready` without probing the configured port. Commit `06ca323` now persists application health as unknown and keeps deployment runtime unsupported until a real target-scoped probe exists; the health-step result alone cannot produce ready. Exact-head PostgreSQL tests verify this negative path. The untracked typed draft `internal/enroll/health.go` was removed because it had no heartbeat, provider-local identity, durable command/result, or worker integration and could be mistaken for a capability. No live hypervisor, AgentHub, Vaultix, Cloudflare or Tailscale operation has been run.
+The latest delivered provider slice persists bounded API reachability observations separately from guest inventory, keys them to provider configuration revision, and surfaces status, time and latency in the existing infrastructure view. It does not prove a guest OS or declared application is healthy. Review of the current reconciler found that `internal/api/deployment_execution.go` treated Incus `Running` read-back as application `passing`, and `internal/api/deployment_outbox.go` consequently returned `ready` without probing the configured port. Commit `06ca323` now persists application health as unknown and keeps deployment runtime unsupported until a real target-scoped probe exists; the health-step result alone cannot produce ready. Exact-head PostgreSQL tests verify this negative path. The existing deployment panel now labels provider and application-health events separately, shows the persisted unknown state and explains the missing target-scoped probe; it does not add probe execution. The untracked typed draft `internal/enroll/health.go` was removed because it had no heartbeat, provider-local identity, durable command/result, or worker integration and could be mistaken for a capability. No live hypervisor, AgentHub, Vaultix, Cloudflare or Tailscale operation has been run.
 
-All requested scope remains in this register and the ignored full execution plan. Work remains ordered by prerequisites: source audit and rights; provider declarations/lifecycle; AgentHub authorization; durable deployment/build; managed engines; networking; dynamic service health/resources; sole-panel developer/rollout; then archive decisions. A screen, catalog row, schema or mocked response does not close runtime behavior. Each bounded packet must update the plan and ledger, run contribution checks, commit to `main`, push and wait for every current hosted check before dependent work.
+All requested scope remains in this register and the ignored full execution plan. Work remains ordered by prerequisites: source audit and rights; provider declarations/lifecycle; AgentHub authorization; durable deployment/build; managed engines; networking; dynamic service health/resources; sole-panel developer/rollout; then archive decisions. A screen, catalog row, schema or mocked response does not close runtime behavior. Each bounded packet must update the plan and ledger, run contribution checks, commit to `main`, push and wait for all 12 current hosted jobs before dependent work.
 
 
 Earlier deployment checkpoint `0722b96` passed all 13 jobs in run
@@ -88,11 +88,13 @@ and current source-hashed health packet `2026/11/115cde7d-49e5-43f0-81c8-7c70847
 contain execution steps, evidence requirements and remaining unknowns. These
 local work records do not imply any unsupported stage is done.
 
-1. **False-ready correction shipped:** canonical `main` is `06ca323`; exact-head
-   run `42295590228` passed all 12 jobs, including PostgreSQL integration suites. The false-ready correction
-   passed local Go unit/package checks and `bash scripts/check.sh`; PostgreSQL
-   tests skip locally without `SHIPPIN_TEST_DATABASE_URL` and are required in
-   hosted CI. No disposable/live provider is available here.
+1. **Current checkpoint verified:** canonical `main` is `ce8fe8c`; exact-head
+   run `42297978561` passed all 12 jobs, including PostgreSQL integration,
+   panel, console/hostd build, install, upgrade and compose checks. The false-ready
+   correction and the panel's persisted health/provider event view passed local
+   `bash scripts/check.sh`. Local Windows has no `SHIPPIN_TEST_DATABASE_URL`;
+   PostgreSQL integration ran in hosted CI. No disposable/live provider is
+   available here.
 2. **Current source slice completed, not whole inventory:** the 12 Warden
    implementation rows for local backups, certs, disks, logs and packages now
    have explicit dispositions. Unsafe host-local operations are rejected as
@@ -115,7 +117,7 @@ local work records do not imply any unsupported stage is done.
    acceptance.
 5. For every packet, update this plan, the capability ledger and ignored journal;
    run the relevant local checks from `CONTRIBUTING.md`, stage explicit paths,
-   commit directly to `main`, push, and confirm all 13 hosted jobs pass before
+   commit directly to `main`, push, and confirm all 12 current hosted jobs pass before
    starting dependent work. Do not claim live deployment without a live target.
 6. Prepare archive recommendations only after per-source code/rights/dirty-file
    gates and clean-checkout developer build/install/upgrade/rollback evidence
