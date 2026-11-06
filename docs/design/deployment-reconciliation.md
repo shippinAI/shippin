@@ -1,45 +1,28 @@
 # Deployment reconciliation architecture
 
-**Status:** In progress on `main`; provider execution remains unavailable
+**Status:** Partial Incus execution is implemented on `main`; complete service deployment remains unsupported pending target-scoped application health, complete lifecycle, and a Proxmox application executor.
 
 **Scope:** Stage E of [the platform absorption plan](platform-absorption-plan.md)
 
 **Owners:** `internal/deployments` owns desired/observed deployment truth; `internal/jobs` owns worker leases; `internal/hv/{incus,proxmox}` owns provider-specific guest operations; `web/` remains the only panel.
 
-## Context and observed current behavior
+## Context and observed current behavior (2026-11-06)
 
-The deployment API currently persists tenant-scoped desired generations, immutable catalog snapshots, review tickets, and append-only events. `Create` and `Update` in `internal/deployments/store.go` write outbox rows transactionally, but do not enqueue jobs or call providers. `POST .../review/authorize` verifies an AgentHub decision for the exact generation and records provenance, but its response says no provider operation was executed.
+The deployment API persists tenant-scoped desired generations, immutable catalog snapshots, review tickets, append-only events, and transactional outbox rows. The leader relay publishes identifier-only generation jobs. The worker reloads current state under a PostgreSQL lease; stale generations are superseded. Lease, generation, plan digest, and per-step idempotency fences protect durable outcomes.
 
-`internal/jobs.Runner` provides PostgreSQL-backed leases, heartbeats, retries and lost-lease cancellation. `API.registerJobs` wires workspace, tenant, boundary, project/agent and rrflow service handlers. `jobs.KindServiceProvision` is the rrflow state/binding workflow in `internal/api/job_managed.go`; it is not a general service deployment executor. Existing `hv.GuestManager` and provider drivers manage VM/container lifecycle, not application artifacts or database engine lifecycle.
+The worker performs a bounded Incus sequence when the generation has a supported recipe: ensure and read back its deployment-owned volume, create the digest-pinned OCI workload stopped, start and read back that exact workload, then attempt the declared health step. Each Incus write obtains fresh AgentHub authorization and a one-time dispatch claim immediately before provider dispatch. Ambiguous provider outcomes use read-only identity inspection rather than blind retry. Desired-absent generations have a separately authorized stop/remove/absence path that preserves the volume and refuses removal when snapshots exist.
 
-The outbox producer and leader relay are implemented. Migration `051` adds the prefixed generation-fenced table, and deployment create/update writes an identifier-only row in the same transaction as the generation and requested event. The existing singleton reconciliation leader publishes one generation-keyed job through the existing jobs store, then records the publication receipt. A job reloads the current generation; stale jobs finish as superseded. If the current generation reaches the worker while no typed application executor is available, the worker records `runtime_unsupported` and `failed` without calling AgentHub or a provider. The durable result transaction now locks and checks the current unexpired deployment-job lease and generation before changing observed state or appending the failure event. PostgreSQL tests cover expired and replaced leases, valid lease, generation coverage, replay after enqueue-before-receipt failure, distinct generation jobs, stale fencing and the explicit unsupported result.
+The health step deliberately does not infer application health from Incus `Running`. It records unknown until an authenticated probe reaches the exact workload from a namespace with a proven route. The worker therefore records `runtime_unsupported` after the implemented Incus steps; it cannot return ready. The target-scoped probe transport and persisted fresh application observation remain unimplemented. Proxmox guest lifecycle exists in its provider driver, but there is no Proxmox application executor in the deployment worker.
 
-The API now uses one `authorizeDeploymentAction` path to reload the submitted generation review, recompute and bind the action hash, resolve the configured AgentHub client and stable Shippin system mapping, request the current policy decision and append safe provenance or a normalized denial. The generation-scoped operation is reusable by a worker. The current worker does not invoke it yet because there is no provider executor to dispatch after authorization.
+Vaultix environment references are extracted from immutable generation data and resolved only after workload authorization. The resolver derives the Vaultix project from the tenant, validates the configured environment, and audits a single-key reveal under the current generation and live job lease. Values are projected to Incus environment configuration only when the selected endpoint has the explicit tenant-secret trust acknowledgement. Incus administrators can inspect those values; this is not a secret-isolation boundary. SOPS deployment resolution, secret rotation, and live-provider verification remain absent.
 
-Migration `056` extends event idempotency to the five worker lifecycle event types. `RecordOperationEventWithLease` locks the exact tenant, deployment-generation job and active lease, then checks the current desired generation before appending; an optional observed-state update commits in the same transaction. Identical event retries return the existing event and conflicting key reuse fails. This is a persistence boundary only: the reconciler is not wired to it, it makes no provider calls, and it does not supply provider-side idempotency or recovery.
+Migration `054_shippin_deployment_target_config.sql` stores selected storage and network in the immutable generation. The API revalidates active tenant-assigned Incus pools and managed bridge/OVN networks before accepting a new generation. The OCI instance uses the selected network and verifies provider read-back. This is private NIC attachment; Edge exposure, health reachability, upgrade/rollback, backup/restore, and Proxmox application execution remain open.
 
-Migration `054_shippin_deployment_target_config.sql` stores target placement in immutable generation state. The existing panel reads live pools and managed bridge/OVN networks only for active tenant-assigned Incus systems; create-time API validation rechecks each selected resource against provider inventory before accepting a new generation. Missing pools or networks return conflict without writing intent; an idempotent replay uses its stored response without another provider read. CI runs `41970045619` and `41998288896` cover storage/network request behavior and replay.
-
-Network target configuration is `target_config.network.name`. The API filters inventory to managed Incus `bridge` and `ovn` types, verifies the resolved driver is Incus, and the existing React deployment form pins the selection with storage in the desired generation. The OCI application primitive attaches `eth0` to that selected network and requires matching provider read-back. This is private NIC attachment only: the worker remains `runtime_unsupported`; there is no live Incus reachability, edge ingress, health polling, secret delivery or reconciler integration claim.
-
-The Vaultix deployment secret resolver now requires a deployment job ID and
-lease owner. Immediately before revealing a single tenant-derived Vaultix key,
-it locks and verifies the live `deployment.reconcile` job, exact
-`deployment_generation` target, tenant, lease owner, lease expiry and current
-desired generation in one transaction with the append-only secret-access audit
-row. Expired/replaced leases and stale generations fail closed before the
-Vaultix reveal call. Secret references still carry no project ID, audit detail
-contains no key/value, and the resolver remains unwired to the deployment
-worker. This is a secret-read authorization boundary, not a runtime or a claim
-that SOPS or Vaultix secret rotation is implemented.
-
-Provider execution is still absent. The worker currently reports the capability gap honestly; it does not authorize, install, configure or observe an application. A real executor must replace this explicit no-op boundary before any deployment can be called successful.
-
-The next capability must connect these components without making the jobs table deployment truth, calling providers in HTTP handlers, or claiming that generic guest CRUD installs PostgreSQL, Dragonfly, Redis or ClickHouse.
+The next capability is target-scoped application health, followed by the remaining lifecycle and provider-specific executors. Keep desired deployment truth in the deployment tables, use jobs only for wake-up and leases, keep provider calls out of HTTP handlers, and do not claim generic guest CRUD installs PostgreSQL, Dragonfly, Redis or ClickHouse.
 
 ## Decision
 
-Build a deployment-specific reconciler in the existing bounded contexts. Keep durable desired state in `shippin_deployments` and immutable `shippin_deployment_generations`; use the existing durable jobs runner only as an at-least-once wake-up/lease mechanism. Add a `shippin_` outbox in the same database transaction as every new desired generation. Provider execution remains unavailable until an explicitly supported, validated service runtime contract and the provider executor for that contract are both present.
+Continue the deployment-specific reconciler in the existing bounded contexts. Keep durable desired state in `shippin_deployments` and immutable `shippin_deployment_generations`; use the existing durable jobs runner only as an at-least-once wake-up/lease mechanism. The `shippin_` outbox is written in the same transaction as each desired generation. Keep each provider operation unavailable unless its validated runtime contract, authorization, read-back, and recovery behavior are implemented.
 
 Each apply/remove operation requires a fresh AgentHub authorization for the current generation and exact operation snapshot immediately before dispatch. The earlier UI authorization record is audit evidence and is not a reusable worker grant. AgentHub policy, ticket, mapped system, tool, operation, command and action hash must be checked again by the worker. A changed generation, expired/changed ticket or policy, no-match, denied decision, missing mapping, unavailable AgentHub, or lost worker lease stops before the provider call.
 
@@ -89,11 +72,12 @@ Vaultix references for tenant deployment configuration use
 organization. The resolver derives the Vaultix project slug from the authenticated
 tenant ID and configured project prefix, checks the environment against the
 installation's configured set, audits the deployment ID and generation, then
-calls `Reveal` for one key. It never uses `Pull`. Secret values remain in memory
-only for the future caller and are excluded from events, audit detail, logs and
-API responses. SOPS references remain validated metadata; no deployment SOPS
-resolver exists. The resolver is not yet called by the reconciler because no
-application executor exists.
+calls `Reveal` for one key. It never uses `Pull`. The Incus workload path invokes
+this resolver after AgentHub authorization and before its dispatch claim. Secret
+values are excluded from events, audit detail, logs, and API responses. Values
+are stored as Incus instance environment config, which Incus administrators can
+read. SOPS references remain validated metadata; no deployment SOPS resolver
+exists.
 
 Migration `052_catalog_runtime_contract.sql` introduced the nullable catalog
 runtime declaration. Version `1`, kind `incus_oci_container`, provider `incus`,
@@ -107,14 +91,14 @@ rejects incomplete recipe shapes. The existing catalog UI can author and edit
 the versioned JSON recipe, and deployment discovery and immutable generation
 snapshots carry that exact validated contract.
 
-Version 2 still does not define engine-specific environment configuration,
-secret injection into a runtime, edge route publication, health polling, upgrade,
-backup, restore, or removal behavior. The control plane therefore continues to
-record `runtime_unsupported` and performs no provider mutation until a matching
-provider executor implements and proves those behaviors. In particular, this
-does not yet make PostgreSQL, Dragonfly, Redis, or ClickHouse turnkey. Git
-sources and Proxmox are not accepted by this Incus OCI runtime contract and
-must not be shown as supported service runtimes.
+Version 2 does not define engine-specific environment configuration, edge route
+publication, health polling, upgrade, backup, or restore. The current worker can
+execute reviewed Incus volume, workload create, power, and removal operations,
+but then records `runtime_unsupported` because verified application health and
+the full service lifecycle are not implemented. This does not make PostgreSQL,
+Dragonfly, Redis, or ClickHouse turnkey. Git sources and Proxmox are not accepted
+by this Incus OCI runtime contract and must not be shown as supported service
+runtimes.
 
 Migration `055_catalog_runtime_environment.sql` adds runtime version 3 without
 changing versions 1 or 2. Version 3 adds up to 16 OCI environment bindings,
@@ -123,9 +107,11 @@ The single existing catalog editor authors these bindings. Go checks unique
 POSIX-style variable names, pointer syntax, declared string fields, nested
 object paths and actual deployment values. A schema-marked secret field must
 carry a supported `vaultix://` reference; unmarked secret references, SOPS
-references and non-string mappings are rejected. This records a safe mapping
-contract only: the executor still does not inject values, and secret resolution
-remains unwired to runtime execution.
+references and non-string mappings are rejected. The Incus workload worker
+resolves these inputs after fresh AgentHub authorization and projects them to
+provider environment configuration only when the selected endpoint has the
+explicit tenant-secret trust acknowledgement. Values remain visible to Incus
+administrators, so this is not a secret-isolation boundary.
 
 `internal/deployments` owns the typed reconcile request, operation identity, desired/observed transition, event persistence and authorization orchestration. Provider adapters own Incus versus Proxmox API requests, task polling, guest identity tags and provider read-back. A dedicated runtime adapter inside the provider guest owns application installation/configuration. Incus and Proxmox retain separate lifecycle code; common service semantics do not erase provider-specific failure handling.
 
@@ -147,7 +133,7 @@ were the other. The provider adapter must create only Incus application
 containers for this OCI runtime; the upstream protocol rejects OCI images for
 VMs.
 
-The provider package now has an unwired `DeleteOCIApplication` primitive. It
+The provider package has a `DeleteOCIApplication` primitive. It
 validates the exact deployment UUID, generation, image digest identity and
 requested resource limits before stopping or deleting an instance; it rechecks
 identity after stop and confirms provider-side absence after the asynchronous
@@ -159,10 +145,12 @@ delete, and refuses removal when any exist. This follows Incus'
 and its documented [independent custom-volume lifecycle](https://linuxcontainers.org/incus/docs/main/howto/storage_volumes/).
 The provider API does not make deletion conditional on Shippin ownership
 metadata; therefore this remains a provider primitive, not authorization. The
-deployment worker does not invoke it, and no deployment removal action is
-enabled until worker-side lease/generation checks and exact AgentHub authorization
-are wired immediately before provider calls. Custom-volume deletion, snapshot
-handling workflows, backup and restore remain separate capabilities.
+deployment worker invokes the corresponding typed stop/remove/read-back path
+through `internal/api/deployment_removal.go`, with current lease/generation
+checks and exact AgentHub authorization immediately before each provider write.
+Snapshot presence blocks deletion, and the deployment-owned custom volume is
+preserved. Custom-volume deletion, snapshot removal workflows, backup, and
+restore remain separate capabilities.
 
 Remote OCI image pulls require a provider version preflight. Incus' server-side
 [`GHSA-p2v3-6wvc-cv3p`](https://github.com/lxc/incus/security/advisories/GHSA-p2v3-6wvc-cv3p)
@@ -190,9 +178,10 @@ document `environment.*` as free-form values applied on boot and during exec,
 but no disposable live Incus test has verified their behavior inside an OCI
 application process. The OCI primitive also attaches the generation-selected
 managed bridge/OVN NIC and verifies it on provider read-back; that path is
-simulator-tested but not checked against a live Incus service. The primitive
-remains unwired and the worker remains `runtime_unsupported` until secret
-handling, edge publication, health and lifecycle semantics are complete.
+simulator-tested but not checked against a live Incus service. The create, power,
+and removal primitives are wired into the lease-fenced worker. The worker still
+records `runtime_unsupported` until target-scoped health, edge publication, and
+the remaining lifecycle semantics are complete.
 
 ## Options considered
 
