@@ -12,14 +12,18 @@ modules or deployable capabilities.
 | Status | Count |
 |---|---|
 | ported | 6 |
-| to-author | 1 |
-| intentionally replaced | 177 |
+| to-author | 0 |
+| intentionally replaced | 178 |
 | rejected-for-security | 32 |
 | needs-review (additional named sources) | 0 |
 
 `ported` means behavior was re-authored in a platform owner and has implementation evidence. `intentionally replaced` means a current platform capability owns the same concern; its API and behavior still need verification. `to-author` means the row names a target owner but a supported route is not complete. `rejected-for-security` means this imported implementation is excluded; a related product capability can remain open in the backlog for safe re-authoring. `needs-review` means the source is now available but a feature-level comparison and disposition are incomplete.
 
-The reference tree is not served and is not a second panel. It can be removed only after every `to-author` and `needs-review` row is implemented or explicitly rejected and the import provenance is retained. Do not use the row count as proof that every behavior has been exercised.
+The reference tree is not served and is not a second panel. The row count does
+not authorize removal: retain the import until all mapped product requirements
+have implementation or rejection evidence, source and dependency rights are
+resolved, provenance is retained, and the archive checklist is reviewed. Do not
+use the row count as proof that every behavior has been exercised.
 
 ## How alignment was applied
 
@@ -69,7 +73,11 @@ The imported backup subsystem came from the Wisconsin CT 102 runtime capture. It
 
 The imported certificates, disks, logs and package screens are local host administration surfaces. Certificate scanning/renewal accesses fixed `/etc` paths and invokes certbot; disk inventory invokes `lsblk`, `smartctl`, `du` and a privileged SMART path; log reads include `/var/log/auth.log` and local journal commands; package actions invoke host `apt-get` install/remove/upgrade. These are not imported. The disk inventory data is independently re-authored from the configured Proxmox API through `internal/hv/proxmox/details.go`, with SMART skipped; the remaining Proxmox certificate, log, apt and fuller disk API items are not routed. The old tests are tied to those implementations and are not platform behavior evidence.
 
-`BACKLOG.md` remains the sole open source row because it contains several requested capabilities still queued below. Its candidate code is not a runtime input. Thus the 216-row counts now distinguish an open backlog document from rejected source implementations and independently re-authored platform behavior.
+`BACKLOG.md` is dispositioned as intentionally replaced by this explicit
+requirement map and the platform execution plan; its candidate code is not a
+runtime input. This closes the file's disposition only. The mapped product
+capabilities remain open until their own API, UI, runtime and acceptance gates
+pass. Thus the 216-row count is source accounting, not capability completion.
 
 ## Imported files
 
@@ -77,7 +85,7 @@ The imported certificates, disks, logs and package screens are local host admini
 |---|---|---|---|
 
 | `AGENTS.md` | intentionally replaced | shippin.cloud/console module | The nested module is not built or installed. The console process is the process. Agent instruction files in this tree are not console instructions. |
-| `BACKLOG.md` | to-author | this matrix, backlog section | Open items are listed below and mapped to a console home. Checked items that the console already has are not re-built. |
+| `BACKLOG.md` | intentionally replaced | this matrix, backlog section and platform execution plan | The source document is replaced by a normalized capability list and explicit gates. Listed product requirements remain open until implemented and verified. |
 | `CLAUDE.md` | intentionally replaced | shippin.cloud/console module | The nested module is not built or installed. The console process is the process. Agent instruction files in this tree are not console instructions. |
 | `Makefile` | intentionally replaced | shippin.cloud/console module | The nested module is not built or installed. The console process is the process. Agent instruction files in this tree are not console instructions. |
 | `PROVENANCE.md` | intentionally replaced | this matrix and the import commit | Provenance stays in the import commit and this matrix. The file is not a runtime input. |
