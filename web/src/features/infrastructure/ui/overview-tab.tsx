@@ -6,11 +6,12 @@ import { Card, CardHeader } from "../../../lib/design/components/card/card";
 import { DataTable, type ColumnDef } from "../../../lib/design/components/data-table/data-table";
 import { EmptyState } from "../../../lib/design/components/empty-state/empty-state";
 import { StatusDot } from "../../../lib/design/components/status-dot/status-dot";
+import { formatBytes } from "../../../lib/format";
 import type { InfraNode, InfraOverview } from "../../../lib/hooks/use-infra";
 import { useNavigate } from "../../../lib/router/router";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { StatTile } from "../../overview/ui/stat-tile";
-import { providersWithHosts, tabHref } from "../model";
+import { memoryPercent, providersWithHosts, tabHref } from "../model";
 import { ActivityCard } from "./activity-card";
 import { ProviderCards } from "./provider-cards";
 import { SystemIdentityForm } from "./system-identity-form";
@@ -23,6 +24,11 @@ export function OverviewTab({ data, onAdd }: Props) {
   const t = useText();
   const nav = useNavigate();
   const rows: Row[] = data.providers.flatMap((p) => p.nodes.map((n) => ({ ...n, id: `${p.kind}:${n.id}`, providerLabel: p.label })));
+  const memoryRows = rows
+    .filter((n) => n.details?.mem_total_bytes)
+    .map((n) => ({ node: n, percent: memoryPercent(n.details) ?? 0 }))
+    .sort((a, b) => b.percent - a.percent);
+  const providerGuestRows = data.providers.filter((p) => p.nodes.length > 0);
   const inUse = providersWithHosts(data).length;
   const columns: ColumnDef<Row>[] = [
     {
@@ -30,6 +36,7 @@ export function OverviewTab({ data, onAdd }: Props) {
       render: (n) => (
         <>
           <span className="font-medium text-fg">{n.label}</span>
+          <Badge tone="neutral" className="ml-2">{n.kind}</Badge>
           {n.control_plane && <Badge tone="warning" className="ml-2">{t("infra.controlPlane")}</Badge>}
           {n.source === "agent" && <span className="ml-2 text-[12px] text-fg-subtle">{t("infra.status.localAgent")}</span>}
         </>
@@ -72,6 +79,55 @@ export function OverviewTab({ data, onAdd }: Props) {
           {t("infra.agent.down", { label: data.local_agent.label })}
         </p>
       )}
+      <div className="mb-6 grid gap-4 lg:grid-cols-2">
+        <Card className="overflow-hidden">
+          <CardHeader title={t("infra.graph.memory.title")} description={t("infra.graph.memory.description")} />
+          {memoryRows.length === 0 ? (
+            <p className="px-5 pb-5 text-sm text-fg-muted">{t("infra.graph.memory.empty")}</p>
+          ) : (
+            <ul className="space-y-3 px-5 pb-5">
+              {memoryRows.map(({ node, percent }) => (
+                <li key={node.id}>
+                  <div className="mb-1 flex items-center justify-between gap-3 text-[12px]">
+                    <span className="truncate text-fg"><span className="font-medium">{node.label}</span> <span className="text-fg-subtle">({node.kind})</span></span>
+                    <span className="tabular-nums text-fg-subtle">
+                      {formatBytes(node.details?.mem_used_bytes ?? 0)} / {formatBytes(node.details?.mem_total_bytes ?? 0)}
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-raised">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+        <Card className="overflow-hidden">
+          <CardHeader title={t("infra.graph.guests.title")} description={t("infra.graph.guests.description")} />
+          {providerGuestRows.length === 0 ? (
+            <p className="px-5 pb-5 text-sm text-fg-muted">{t("infra.graph.guests.empty")}</p>
+          ) : (
+            <ul className="space-y-3 px-5 pb-5">
+              {providerGuestRows.map((provider) => {
+                const total = provider.totals.guests;
+                const running = provider.totals.running;
+                const percent = total > 0 ? Math.round((running / total) * 100) : 0;
+                return (
+                  <li key={provider.kind}>
+                    <div className="mb-1 flex items-center justify-between gap-3 text-[12px]">
+                      <span className="truncate text-fg"><span className="font-medium">{provider.label}</span> <span className="text-fg-subtle">({provider.kind})</span></span>
+                      <span className="tabular-nums text-fg-subtle">{running} / {total}</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-raised">
+                      <div className="h-full rounded-full bg-success" style={{ width: `${percent}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+      </div>
       <div className="mb-6"><ProviderCards providers={data.providers} onAdd={onAdd && ((kind) => onAdd(kind))} /></div>
       <Card elevation={2} className="mb-6 overflow-hidden">
         <CardHeader title={t("infra.nodes.title")} description={t("infra.nodes.description")} />
