@@ -18,7 +18,10 @@ import {
 import { PageHeader } from "../../../template/page-header";
 import { QueryView } from "../../admin/ui/query-view";
 import { ServiceConfigForm } from "./service-config-form";
-import { currentGenerationFailure, deploymentFailureMessage, deploymentObservedStateTone } from "../deployment-status";
+import {
+  currentGenerationFailure, deploymentEventLabel, deploymentEventSummary, deploymentFailureMessage,
+  deploymentObservedStateTone,
+} from "../deployment-status";
 import { requiresIncusTargetConfiguration, supportsRuntimeTarget } from "../runtime-targets";
 
 const isObject = (value: unknown): value is Record<string, Json> => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -146,7 +149,7 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
   const storagePoolValid = !storageRequired || !!targetStorage.data?.items.some((item) => item.name === storagePool);
   const networkValid = !networkRequired || !!targetNetworks.data?.items.some((item) => item.name === networkName && (item.type === "bridge" || item.type === "ovn"));
   return <Drawer isOpen onOpenChange={(open) => !open && onClose()} title={deployment ? `Edit ${service?.label ?? deployment.service_id}` : "Request deployment"}
-    subtitle="This records desired configuration and a pinned catalog revision; provider execution is not connected yet."
+    subtitle="This records desired configuration and a pinned catalog revision. Provider execution is partial; application health and full service readiness are not yet supported."
     footer={<>
       <div className="flex-1" />
       <Button variant="ghost" tooltip="Close without saving" onPress={onClose}>Cancel</Button>
@@ -261,7 +264,7 @@ function DeploymentExecutionStatus({ tenantId, deployment }: { tenantId: string;
   const failure = currentGenerationFailure(events.data?.items ?? [], deployment.generation);
   if (!failure) return null;
   return <div role="status" className="mt-3 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
-    <p className="font-medium text-fg">Deployment generation {deployment.generation} did not run</p>
+    <p className="font-medium text-fg">Deployment generation {deployment.generation} is incomplete</p>
     <p className="mt-1 text-fg-muted">{deploymentFailureMessage(failure.failure_code)}</p>
     <p className="mt-1 text-xs text-fg-subtle">Recorded {new Date(failure.recorded_at).toLocaleString()}.</p>
   </div>;
@@ -272,8 +275,12 @@ function DeploymentHistory({ tenantId, deployment }: { tenantId: string; deploym
   if (query.isPending) return <p className="mt-3 text-xs text-fg-muted">Loading event history…</p>;
   if (query.error) return <p className="mt-3 text-xs text-danger">{query.error.message}</p>;
   return <ol className="mt-3 grid gap-2 border-l border-line pl-4">
-    {(query.data?.items ?? []).map((event) => <li key={event.id} className="text-xs text-fg-muted">
-      <span className="font-medium text-fg">{event.event_type}</span> Â· generation {event.generation} Â· {event.actor} Â· {new Date(event.recorded_at).toLocaleString()}
-    </li>)}
+    {(query.data?.items ?? []).map((event) => {
+      const summary = deploymentEventSummary(event);
+      return <li key={event.id} className="text-xs text-fg-muted">
+        <span className="font-medium text-fg">{deploymentEventLabel(event.event_type)}</span> Â· generation {event.generation} Â· {event.actor} Â· {new Date(event.recorded_at).toLocaleString()}
+        {summary && <p className="mt-1">{summary}</p>}
+      </li>;
+    })}
   </ol>;
 }
