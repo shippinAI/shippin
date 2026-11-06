@@ -184,6 +184,42 @@ start a dependent packet while its gate is open. Source-by-source provenance and
 dispositions remain in [`design/capability-absorption.md`](design/capability-absorption.md);
 the architecture and UI path remain in [`design/platform-absorption-plan.md`](design/platform-absorption-plan.md).
 
+### Source-closure worklist
+
+Use this table to decide when a source folder can be marked "closed for active
+delivery" and moved to archive-ready review. A source is not closable until all
+checkpoints in its row are complete and linked to evidence in this plan,
+[`design/capability-absorption.md`](design/capability-absorption.md) and
+[`design/archive-readiness.md`](design/archive-readiness.md).
+
+Before marking any row closed, also pass the boundary and nesting gate below.
+
+| Source folder / checkout | What "fully imported and authored here" means | Blocking checkpoints before closure |
+| --- | --- | --- |
+| `shippin-console` | Every accepted control-plane and host operation is re-authored under canonical `internal/`, `cmd/`, `install/` and `web/` owners with AgentHub-backed approval and no runtime dependency on the standalone checkout. | Finish packets 2, 3 and 4 with live-provider evidence; complete rights/dependency/security review and disposition in packet 1; preserve untracked local user data separately before any archive decision. |
+| `shippin-cloud` | Any still-useful behavior is represented as platform-owned API/domain/UI contracts in this repository, or explicitly rejected/deferred with reasons. No second panel or alternate runtime remains. | Complete packet 1 capability and rights inventory for all candidate paths; map accepted behavior to packets 2-7; update archive ledger with adopt/re-author/reject/defer decisions per capability. |
+| `shippin-mesh` | Mesh-origin capabilities (including provider tooling and automation) are either re-authored into canonical providers/deployments/networking boundaries or rejected with evidence. Site-specific automation is converted to validated configuration, not copied scripts. | Complete packet 1 full path inventory and rights/security review; finish packets 3, 4 and 5 for accepted provider/network/runtime behavior; keep dirty user work preserved and accounted for. |
+| Historical `shippin` / Warden checkout | Useful behavior is re-authored into canonical product owners without Warden naming, parallel panel flows, plaintext secret handling or host-specific assumptions. | Preserve all dirty and untracked entries; close remaining capability rows in `design/capability-absorption.md`; complete packet 7 independent evidence that no unique required behavior remains outside this repo. |
+| `third_party/warden-ct102` | The reference matrix is fully dispositioned; remaining needed behavior is implemented in canonical owners and independently tested. | Close outstanding matrix rows and screenshot dispositions; verify no shipped runtime or panel path depends on this tree; then make a separate keep/remove decision in archive review. |
+
+### Boundary and nesting gate (required for every closure)
+
+Treat this as a fail-closed checklist. If any item is "no", the source is not
+closure-ready.
+
+1. **Canonical owner match:** every adopted capability is implemented in the owner
+   defined by [`source-of-truth.md`](source-of-truth.md) (for example, one panel
+   in `web/`, provider logic in `internal/hv/{incus,proxmox}/`, deployment runtime
+   in `internal/deployments/`).
+2. **No cross-layer leaks:** provider or builder behavior is not placed in panel
+   code, and UI-specific behavior is not embedded in provider drivers.
+3. **No parallel surfaces:** no second panel, alternate runtime entrypoint, or
+   sibling-checkout dependency is introduced to "speed up" import.
+4. **Path-level evidence:** capability ledger rows include destination paths and
+   tests proving behavior from canonical owners, not from historical trees.
+5. **Archive gate alignment:** archive-readiness and capability ledgers both show
+   the same final disposition for each imported capability.
+
 | Order | Packet and canonical owner | Current status | Implementation order and observable exit gate |
 | --- | --- | --- | --- |
 | 0 | Baseline and one deployable: `web/`, `cmd/console`, `cmd/shippin-hostd`, `install/`, CI | **Current baseline passed locally and on GitHub.** `bash scripts/check.sh` passed on `main` `e88bc24` on 2026-11-05. GitHub Checks run `41999295954` passed all 13 jobs, including disposable-Postgres API/identity suites, the one React panel build/budget, installer fresh/upgrade, compose, public-tree and secret scans. No open PRs were returned by `gh pr list --state open`. Standalone release/rollout and live provider behavior remain open. | Keep all panel work inside `web/`; verify standalone control-plane and host-agent artifacts, install/upgrade/migration flow, and no sibling checkout runtime dependency. Record Linux CI and installation evidence. |

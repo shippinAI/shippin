@@ -33,6 +33,9 @@ The order is in [fleet operations](design/fleet-operations.md):
 3. Implement bounded deployment reconciliation and source builds, then managed data services and their backup/restore flows.
 4. Finish fleet capacity totals and placement, then updating from a button with health checks and rollback.
 
+For source-folder closure sequencing (console/cloud/mesh/Warden imports), use the
+[source-closure worklist](platform-consolidation-plan.md#source-closure-worklist).
+
 Then secondary-node installation, signed releases, backup and restore with a tested restore, and managed data services. Those are [designed](design/managed-services.md) but not built.
 
 ## Release gates
