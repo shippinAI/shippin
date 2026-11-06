@@ -220,6 +220,20 @@ closure-ready.
 5. **Archive gate alignment:** archive-readiness and capability ledgers both show
    the same final disposition for each imported capability.
 
+### Immediate closure execution queue
+
+Run this queue in order. Do not start the next item until the current item's
+evidence is added to this plan and the linked ledgers.
+
+| Order | Action | Canonical owners | Required evidence to mark done |
+| --- | --- | --- | --- |
+| A1 | Complete packet-1 capability inventory for `shippin-cloud` and `shippin-console` (path, source revision/hash, disposition, rights/dependency/security notes) | `docs/design/capability-absorption.md` | Every remaining row has `adopt`/`re-author`/`reject`/`defer`, canonical destination path, and test/evidence expectation; no "unknown ownership" rows remain. |
+| A2 | Complete packet-1 capability inventory for `shippin-mesh` and historical Warden checkout families | `docs/design/capability-absorption.md` | Each family is mapped to a canonical owner or explicit rejection; site-specific scripts and local-only assumptions are marked non-importable unless re-authored. |
+| A3 | Reconcile capability and archive ledgers so each checkout has matching disposition language and open-gate reasons | `docs/design/capability-absorption.md`, `docs/design/archive-readiness.md` | For each checkout row, open blockers in both ledgers are identical in meaning and scope; no contradiction between "absorbed" and "not yet evidenced". |
+| A4 | Close packet-2/3 live-evidence gap for approved provider mutations (AgentHub + Incus + Proxmox) without adding alternate runtime paths | `internal/agenthub/`, `internal/hv/`, `internal/api/`, `web/` | Disposable-provider runs include approval success/denial/replay/expiry and provider call read-back; results referenced here with commit and Checks run IDs. |
+| A5 | Close packet-4 runtime gap to remove `runtime_unsupported` claims for supported paths only | `internal/deployments/`, `internal/catalog/`, `internal/hostd/`, `web/` | Declared health, recovery, and lifecycle evidence exists for each supported action; unsupported actions stay explicitly labeled unsupported. |
+| A6 | Run closure decision review per source using the boundary/nesting gate and release gates | This plan plus both ledgers | Each source row has a pass/fail checklist result; only pass rows are eligible for explicit archive/shutdown decisions. |
+
 | Order | Packet and canonical owner | Current status | Implementation order and observable exit gate |
 | --- | --- | --- | --- |
 | 0 | Baseline and one deployable: `web/`, `cmd/console`, `cmd/shippin-hostd`, `install/`, CI | **Current baseline passed locally and on GitHub.** `bash scripts/check.sh` passed on `main` `e88bc24` on 2026-11-05. GitHub Checks run `41999295954` passed all 13 jobs, including disposable-Postgres API/identity suites, the one React panel build/budget, installer fresh/upgrade, compose, public-tree and secret scans. No open PRs were returned by `gh pr list --state open`. Standalone release/rollout and live provider behavior remain open. | Keep all panel work inside `web/`; verify standalone control-plane and host-agent artifacts, install/upgrade/migration flow, and no sibling checkout runtime dependency. Record Linux CI and installation evidence. |
