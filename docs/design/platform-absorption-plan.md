@@ -1,16 +1,18 @@
 # Shippin platform absorption plan
 
-Status: active execution plan, refreshed 2026-11-06 against `main` at
-`ce8fe8c`. This describes target contracts and acceptance gates; it does not
-claim unimplemented workflows are live. The [capability ledger](capability-absorption.md)
-holds source-by-source evidence and dispositions. Exact-head Checks run
-`42297978561` passed on `ce8fe8c` (12 jobs). The ignored packet
-`2026/11/115cde7d-49e5-43f0-81c8-7c708475b602` contains the source-hashed
-readiness correction plan and work journal.
+Status: active execution plan, reconciled 2026-11-06 against `main` at
+`a67f81b46eaa7eb45d7d2e86ef2ea5a4dc3f9809`. This describes target contracts and
+acceptance gates; it does not claim unimplemented workflows are live. The
+[capability ledger](capability-absorption.md) holds source-by-source evidence
+and dispositions. Exact-head Checks run `42298976958` passed on `a67f81b` (12
+jobs). The current ignored packet
+`2026/11/ee85788b-eca3-4a9b-ab12-640ef0c02db6` contains the full execution plan,
+source baseline and work journal. Earlier packets document completed slices;
+they do not complete this full objective.
 
 ## Current execution checkpoint (2026-11-06)
 
-Canonical `main` is `ce8fe8c602cb058ac666eb3df8187e517d9ad9e2`, clean and synchronized with `origin/main`. `bash scripts/check.sh` passed after the latest panel change. This Windows workstation has no `SHIPPIN_TEST_DATABASE_URL`, so PostgreSQL suites ran in hosted CI: exact-head Checks run `42297978561` passed all 12 jobs, including identity/database integration, console and hostd builds, panel, installers, upgrade, compose, public-tree and secret scan. No live provider or AgentHub target is available.
+Canonical `main` is `a67f81b46eaa7eb45d7d2e86ef2ea5a4dc3f9809`, clean and synchronized with `origin/main` at packet start. `bash scripts/check.sh` passed for the previous docs-only change. This Windows workstation has no `SHIPPIN_TEST_DATABASE_URL`, so PostgreSQL suites ran in hosted CI: exact-head Checks run `42298976958` passed all 12 jobs, including identity/database integration, console and hostd builds, panel, installers, upgrade, compose, public-tree and secret scan. No live provider or AgentHub target is available.
 
 The latest delivered provider slice persists bounded API reachability observations separately from guest inventory, keys them to provider configuration revision, and surfaces status, time and latency in the existing infrastructure view. It does not prove a guest OS or declared application is healthy. Review of the current reconciler found that `internal/api/deployment_execution.go` treated Incus `Running` read-back as application `passing`, and `internal/api/deployment_outbox.go` consequently returned `ready` without probing the configured port. Commit `06ca323` now persists application health as unknown and keeps deployment runtime unsupported until a real target-scoped probe exists; the health-step result alone cannot produce ready. Exact-head PostgreSQL tests verify this negative path. The existing deployment panel now labels provider and application-health events separately, shows the persisted unknown state and explains the missing target-scoped probe; it does not add probe execution. The untracked typed draft `internal/enroll/health.go` was removed because it had no heartbeat, provider-local identity, durable command/result, or worker integration and could be mistaken for a capability. No live hypervisor, AgentHub, Vaultix, Cloudflare or Tailscale operation has been run.
 
