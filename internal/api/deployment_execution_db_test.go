@@ -362,7 +362,7 @@ func TestDeploymentWorkerRecoversAmbiguousIncusVolumeWriteWithoutRetry(t *testin
 	}
 	var state string
 	if err := a.db.Pool.QueryRow(context.Background(), `SELECT state FROM shippin_deployment_execution_steps
-		WHERE tenant_id=(SELECT tenant_id FROM shippin_deployments WHERE id=$1) AND deployment_id=$1 AND generation=1`,
+		WHERE tenant_id=(SELECT tenant_id FROM shippin_deployments WHERE id=$1) AND deployment_id=$1 AND generation=1 AND step_id='storage'`,
 		deployment.ID).Scan(&state); err != nil || state != "succeeded" {
 		t.Fatalf("recovered volume step state=%s err=%v", state, err)
 	}
