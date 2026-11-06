@@ -40,10 +40,18 @@ type Agent struct {
 }
 
 func (a *Agent) client() *http.Client {
+	client := &http.Client{Timeout: 10 * time.Second}
 	if a.HTTP != nil {
-		return a.HTTP
+		copy := *a.HTTP
+		client = &copy
 	}
-	return &http.Client{Timeout: 10 * time.Second}
+	// Enrollment and heartbeat carry bearer credentials. Treat redirects as
+	// endpoint failures so credentials and host identity never follow a
+	// server-controlled Location header, including same-origin redirects.
+	client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	return client
 }
 
 // post sends body to the console; a 401 is ErrRejected, other non-2xx are retryable errors.

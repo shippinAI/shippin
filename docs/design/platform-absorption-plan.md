@@ -1,7 +1,7 @@
 # Shippin platform absorption plan
 
 Status: active execution plan, reconciled 2026-11-06 against `main` at
-`a67f81b46eaa7eb45d7d2e86ef2ea5a4dc3f9809`. This describes target contracts and
+`31310ffda966d0718c781121b65f3773168bd26b`. This describes target contracts and
 acceptance gates; it does not claim unimplemented workflows are live. The
 [capability ledger](capability-absorption.md) holds source-by-source evidence
 and dispositions. Exact-head Checks run `42298976958` passed on `a67f81b` (12
@@ -12,13 +12,58 @@ they do not complete this full objective.
 
 ## Current execution checkpoint (2026-11-06)
 
-Canonical `main` is `a67f81b46eaa7eb45d7d2e86ef2ea5a4dc3f9809`, clean and synchronized with `origin/main` at packet start. `bash scripts/check.sh` passed for the previous docs-only change. This Windows workstation has no `SHIPPIN_TEST_DATABASE_URL`, so PostgreSQL suites ran in hosted CI: exact-head Checks run `42298976958` passed all 12 jobs, including identity/database integration, console and hostd builds, panel, installers, upgrade, compose, public-tree and secret scan. No live provider or AgentHub target is available.
+Canonical `main` is `31310ffda966d0718c781121b65f3773168bd26b`, clean and synchronized with `origin/main`. The latest code slice, `e1adde0` (service redirects are unhealthy and are never followed), passed `bash scripts/check.sh` and exact-head Checks run `42301847324` (12 jobs). The latest documentation correction, `31310ff`, passed `bash scripts/check.sh`, `git diff --check`, and exact-head Checks run `42302600010` (12 jobs). This Windows workstation has no `SHIPPIN_TEST_DATABASE_URL`, so PostgreSQL suites ran in hosted CI. No live provider or AgentHub target is available.
 
 The latest delivered provider slice persists bounded API reachability observations separately from guest inventory, keys them to provider configuration revision, and surfaces status, time and latency in the existing infrastructure view. It does not prove a guest OS or declared application is healthy. Review of the current reconciler found that `internal/api/deployment_execution.go` treated Incus `Running` read-back as application `passing`, and `internal/api/deployment_outbox.go` consequently returned `ready` without probing the configured port. Commit `06ca323` now persists application health as unknown and keeps deployment runtime unsupported until a real target-scoped probe exists; the health-step result alone cannot produce ready. Exact-head PostgreSQL tests verify this negative path. The existing deployment panel now labels provider and application-health events separately, shows the persisted unknown state and explains the missing target-scoped probe; it does not add probe execution. The untracked typed draft `internal/enroll/health.go` was removed because it had no heartbeat, provider-local identity, durable command/result, or worker integration and could be mistaken for a capability. No live hypervisor, AgentHub, Vaultix, Cloudflare or Tailscale operation has been run.
 
 The existing platform-health registry is already operator-configurable in the canonical API and panel: create/edit/disable/check, bounded cadence, revision-fenced observations/history and optional provider resource joins are implemented. Review found its HTTP status rule classified redirects as healthy while correctly refusing to follow them. Commit `e1adde0` makes only 2xx responses healthy and tests 2xx, 3xx, 4xx and 5xx plus the no-follow negative path. Exact-head Checks run `42301847324` passed all 12 jobs. This corrects service-health status; it does not implement target-scoped deployment health or close the richer metrics/resource gaps in stage 7.
 
 All requested scope remains in this register and the ignored full execution plan. Work remains ordered by prerequisites: source audit and rights; provider declarations/lifecycle; AgentHub authorization; durable deployment/build; managed engines; networking; dynamic service health/resources; sole-panel developer/rollout; then archive decisions. A screen, catalog row, schema or mocked response does not close runtime behavior. Each bounded packet must update the plan and ledger, run contribution checks, commit to `main`, push and wait for all 12 current hosted jobs before dependent work.
+
+## Execution map: canonical ownership and work products
+
+Use this map to turn each historical feature into a reviewed Shippin capability.
+The source checkout is evidence; it is never the destination. Preserve each
+checkout and its dirty files. Before adopting any specific implementation, record
+its exact commit/path, license and asset rights, dependencies, threat boundary,
+failure behavior and tests in the capability ledger. A missing right or unsafe
+boundary means defer or reject that source implementation and author a clean
+Shippin design from the product requirement.
+
+| Workstream | Canonical product files | Required authored result | Completion evidence |
+|---|---|---|---|
+| Incus infrastructure | `internal/hv/incus/`, `internal/api/infra*.go`, `internal/servers/`, existing infrastructure feature under `web/src/features/infrastructure/` | UI-managed endpoint, credential source, test/edit, capabilities and provider-specific lifecycle; stable server identity and operation history | API and provider tests for valid/invalid credentials, denied/malformed responses, task failures, retries and read-back; disposable Incus evidence before advertising guest/service deploy |
+| Proxmox / Shippin Prox | `internal/hv/proxmox/`, provider-scoped API handlers, existing infrastructure feature | UI-managed PVE endpoints/nodes, scoped credentials, resource/guest inventory, task lifecycle, and a separate Proxmox application runtime contract; `proxmox` remains the provider enum and Warden remains provenance only | Fake/API negative paths plus disposable PVE create/start/health/update/remove and restart-recovery evidence; until then expose only verified inventory and guest operations |
+| Deployment control plane | `internal/deployments/`, `internal/api/deployment_*.go`, `internal/db/migrations/`, `internal/jobs/`, `cmd/console`, `web/src/features/deployments/` | Immutable validated generations, target selections, durable jobs, AgentHub JIT decision per exact write, provider-specific executors, read-back, health and truthful rollback/removal status | PostgreSQL replay/fencing/denial/recovery tests; provider simulators; per-provider disposable target; no `ready` without configured application probe and observed success |
+| Catalog and custom source | `internal/catalog/`, bounded builder package (not catalog HTTP handlers), catalog API/OpenAPI, existing catalog/deployment UI | UI-managed repository or OCI source, immutable revision/digest, provenance, schema-validated service config, isolated bounded build and cancellation | Floating refs rejected, credentials excluded from URL/logs, egress/resource/time/concurrency limits tested; built image read back by digest before deployment |
+| Managed data engines | new `internal/managed/` package with `shippin_` migrations, provider adapter contract, catalog definitions, existing service/deployment UI | Engine-specific PostgreSQL, Dragonfly, Redis and ClickHouse provisioning, secret rotation, network policy, health, upgrade and backup/restore lifecycle; shared API model only where semantics truly match | Independent per-engine integration and restore tests, isolation proof, capacity limits, failure recovery and provider matrix; no database is called turnkey until this passes |
+| Connectivity | `internal/networking/`, migrations `041`/`042` plus additive migrations, networking APIs and existing infrastructure networking UI | Separate observed inventory from Shippin-managed writes; scoped Cloudflare/Tailscale/custom setup, attachment to stable system IDs, credential rotate/revoke, AgentHub JIT review for external writes | Permission-scope tests, redaction, denial/timeout/no-mutation proof, provider read-back and detached/stale resource states; custom adapter schema and all new table names prefixed `shippin_` |
+| Platform services and resources | `internal/api/platform_health.go`, `internal/db/platform_health.go`, migration `046`, provider metrics APIs and existing Platform UI | Keep service definitions editable and persistent; add authorized secret-backed probes and fresh resource observations joined by stable IDs; retain explicit unknown/stale/down and provenance | Existing scheduler/registry tests plus concurrent-worker, secret-denial, stale observation, metrics failure and history/retention tests; never infer service health from provider power state |
+| Identity and review | Shippin system/servers owners, `internal/agenthub/`, audit and existing Platform/deployment UI; policy stays in AgentHub | Hostname is observed control-plane identity; aliases/tags are operator metadata; explicit AgentHub mapping; no Gold/second policy engine | Restart-persistent identity, provenance/freshness, ambiguous mapping blocked; AgentHub ticket/policy/version/action binding and stale/deny/timeout/lease-loss paths produce zero provider writes |
+| One panel and release | `web/` only, `cmd/console`, `cmd/shippin-hostd`, `install/`, `scripts/`, `docs/` | Colocated feature routes, validated UI configuration, clean standalone console/agent build and install/upgrade/rollback path; destinations within four actions | Clean-clone build and all contribution checks, route/action coverage, config round-trip, fresh install and upgrade/rollback evidence |
+
+### Ordered execution rule
+
+1. Finish source feature-family accounting without changing sibling checkouts.
+2. Complete provider declarations and safe resource inventory for both Incus and
+   Proxmox; retain provider-specific files and contracts.
+3. Implement target-scoped deployment health and close a complete Incus lifecycle.
+   Do not widen service claims while this gate is open.
+4. Implement Proxmox application execution as its own plan version, step set,
+   authorization scope, runtime and target configuration; do not adapt Incus OCI
+   operation names to Proxmox.
+5. Add the bounded builder and prove immutable custom-source deployment.
+6. Bring up PostgreSQL as the first managed engine; then Dragonfly, Redis and
+   ClickHouse each get independent configuration and lifecycle proofs.
+7. Add provider-write connectivity after inventory-only behavior, credential
+   scopes, AgentHub action review and observed-state contracts are verified.
+8. Complete service/resource dashboards and one-panel clean install/build evidence.
+9. Reconcile every source row and dirty path, then produce archive recommendations.
+
+Every numbered step requires a concrete file-level plan, implementation, negative
+paths, contribution checks, explicit-path commit to `main`, push, and an all-green
+exact-head hosted run before dependent steps proceed. Absorption is capability
+behavior under canonical owners, not code volume transferred.
 
 
 Earlier deployment checkpoint `0722b96` passed all 13 jobs in run

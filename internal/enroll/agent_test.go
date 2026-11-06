@@ -82,3 +82,27 @@ func TestCredentialFileMode(t *testing.T) {
 		t.Fatalf("mode %v", st.Mode().Perm())
 	}
 }
+
+func TestHeartbeatDoesNotFollowRedirectWithHostCredential(t *testing.T) {
+	var redirected atomic.Int32
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		redirected.Add(1)
+	}))
+	defer target.Close()
+
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer shph_secret" {
+			t.Errorf("source did not receive host credential")
+		}
+		http.Redirect(w, r, target.URL+"/capture", http.StatusTemporaryRedirect)
+	}))
+	defer source.Close()
+
+	a := &Agent{Cfg: Config{ConsoleURL: source.URL}}
+	if err := a.Beat(context.Background(), &saved{Credential: "shph_secret"}); err == nil || !strings.Contains(err.Error(), "HTTP 307") {
+		t.Fatalf("redirect should be reported as an endpoint failure, got %v", err)
+	}
+	if redirected.Load() != 0 {
+		t.Fatalf("host credential followed redirect to another endpoint %d times", redirected.Load())
+	}
+}
