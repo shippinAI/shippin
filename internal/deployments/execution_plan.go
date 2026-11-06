@@ -91,12 +91,10 @@ func BuildExecutionPlan(tenantID string, deployment *Deployment) (ExecutionPlan,
 		plan.UnsupportedReason = "executor_not_installed"
 	} else if definition.Runtime.Version < 2 {
 		plan.UnsupportedReason = "runtime_recipe_required"
-	} else if deployment.DesiredState == DesiredAbsent {
-		// The reviewed Incus OCI stop/remove/absence path is implemented. Data
-		// deletion remains a separate operation and is never implied here.
-		plan.UnsupportedReason = ""
 	} else {
-		plan.UnsupportedReason = "executor_not_installed"
+		// The reviewed Incus OCI present/absent path is implemented with
+		// bounded step intents and read-back. Data deletion remains separate.
+		plan.UnsupportedReason = ""
 	}
 	stepIDs := []struct{ id, operation string }{}
 	if deployment.DesiredState == DesiredPresent {

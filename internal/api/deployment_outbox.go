@@ -116,6 +116,19 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 			providerMutated = providerMutated || mutated
 		}
 	}
+	if runtimeStep != nil && runtimeStep["step_state"] != "succeeded" {
+		mayProgressIncusRuntime = false
+	}
+	if mayProgressIncusRuntime {
+		healthStep, handled, mutated, stepErr := a.executeIncusHealthStep(ctx, job, deployment, step)
+		if stepErr != nil {
+			return nil, stepErr
+		}
+		if handled {
+			runtimeStep = healthStep
+			providerMutated = providerMutated || mutated
+		}
+	}
 	if mayProgressIncusRuntime && deployment.DesiredState == deployments.DesiredAbsent {
 		removalStep, handled, mutated, stepErr := a.executeIncusRemovalSteps(ctx, job, deployment, step)
 		if stepErr != nil {
@@ -132,6 +145,18 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 		return map[string]any{"deployment_id": deployment.ID, "generation": wakeup.Generation,
 			"outcome": "absent", "event_recorded": true, "provider_mutated": providerMutated,
 			"recovery": recoveredStep, "runtime_step": runtimeStep}, nil
+	}
+	if deployment.DesiredState == deployments.DesiredPresent && runtimeStep != nil && runtimeStep["step_id"] == "health" {
+		outcome := "degraded"
+		if runtimeStep["step_state"] == "succeeded" {
+			outcome = "ready"
+		}
+		result := map[string]any{"deployment_id": deployment.ID, "generation": wakeup.Generation,
+			"outcome": outcome, "event_recorded": true, "provider_mutated": providerMutated, "runtime_step": runtimeStep}
+		if recoveredStep != nil {
+			result["recovery"] = recoveredStep
+		}
+		return result, nil
 	}
 	step("application_runtime_unavailable")
 	created, err := a.deploymentStore().RecordRuntimeUnavailableWithLease(ctx, job.TenantID, deployment.ID,

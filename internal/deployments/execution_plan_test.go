@@ -54,7 +54,7 @@ func TestExecutionPlanBindsImmutableGenerationAndExactStepSet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if plan.Version != ExecutionPlanVersion || plan.UnsupportedReason != "executor_not_installed" || len(plan.Steps) != 5 {
+	if plan.Version != ExecutionPlanVersion || plan.UnsupportedReason != "" || len(plan.Steps) != 5 {
 		t.Fatalf("unexpected Incus runtime plan: %+v", plan)
 	}
 	if got := []string{plan.Steps[0].Operation, plan.Steps[1].Operation, plan.Steps[2].Operation, plan.Steps[3].Operation, plan.Steps[4].Operation}; strings.Join(got, ",") != "ensure_persistent_volume,ensure_oci_instance,ensure_running,verify_instance_identity,verify_declared_health" {

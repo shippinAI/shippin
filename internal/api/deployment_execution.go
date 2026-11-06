@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
 	"shippin.cloud/console/internal/deployments"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/incus"
@@ -173,6 +174,119 @@ func incusOCIApplicationSpec(snapshot deployments.ExecutionRecoverySnapshot) (in
 }
 
 var _ incusOCIExecutorProvider = (*incus.Client)(nil)
+
+// executeIncusHealthStep records declared-health observation for the reviewed
+// runtime after workload create and power-on have succeeded. This step performs
+// provider read-back only and never dispatches a provider mutation.
+func (a *API) executeIncusHealthStep(ctx context.Context, job *jobs.Job, deployment *deployments.Deployment,
+	step func(string)) (map[string]any, bool, bool, error) {
+	if deployment.TargetProvider != deployments.ProviderIncus || deployment.DesiredState != deployments.DesiredPresent {
+		return nil, false, false, nil
+	}
+	plan, planDigest, unresolved, err := a.deploymentStore().UnresolvedExecutionStepsWithLease(ctx,
+		job.TenantID, deployment.ID, deployment.Generation, job.ID, job.LeaseOwner)
+	if err != nil {
+		return nil, false, false, err
+	}
+	if len(unresolved) != 0 {
+		return nil, false, false, nil
+	}
+	var executionStep deployments.ExecutionStep
+	for _, candidate := range plan.Steps {
+		if candidate.Operation == "verify_declared_health" {
+			executionStep = candidate
+			break
+		}
+	}
+	if executionStep.ID == "" {
+		return nil, false, false, nil
+	}
+	review, err := a.deploymentStore().GetReview(ctx, job.TenantID, deployment.ID, deployment.Generation)
+	if err != nil {
+		if errors.Is(err, deployments.ErrNotFound) {
+			return nil, false, false, nil
+		}
+		return nil, false, false, err
+	}
+	if review.State != "pending_review" || review.ExecutionPlanVersion != plan.Version ||
+		review.ExecutionPlanSHA256 != planDigest {
+		return nil, false, false, nil
+	}
+	execution, err := a.deploymentStore().ExecutionSnapshotWithLease(ctx, job.TenantID,
+		deployment.ID, deployment.Generation, job.ID, job.LeaseOwner, planDigest)
+	if err != nil {
+		return nil, false, false, err
+	}
+	spec, err := incusOCIApplicationSpec(execution)
+	if err != nil {
+		return nil, false, false, err
+	}
+	targetConfig, err := json.Marshal(execution.Deployment.TargetConfig)
+	if err != nil {
+		return nil, false, false, deployments.ErrInvalidConfig
+	}
+	if err := a.validateDeploymentTargetConfig(ctx, job.TenantID, deployment.TargetSystemID, targetConfig); err != nil {
+		return nil, false, false, err
+	}
+	endpoint, err := a.visibleEndpoint(ctx, job.TenantID, deployment.TargetSystemID)
+	if err != nil || endpoint.Kind != string(deployments.ProviderIncus) {
+		return nil, false, false, deployments.ErrTargetUnavailable
+	}
+	var provider incusOCIExecutorProvider
+	if a.openIncusOCIExecutor != nil {
+		provider, err = a.openIncusOCIExecutor(endpoint)
+	} else {
+		provider, err = a.openIncus(endpoint)
+	}
+	if err != nil {
+		return nil, false, false, err
+	}
+	if provider == nil {
+		return nil, false, false, errors.New("Incus OCI executor is unavailable")
+	}
+	intent, started, err := a.deploymentStore().BeginExecutionStepWithLease(ctx, job.TenantID,
+		deployment.ID, deployment.Generation, job.ID, job.LeaseOwner, planDigest, executionStep)
+	if err != nil {
+		return nil, false, false, err
+	}
+	if !started {
+		return map[string]any{"step_id": executionStep.ID, "step_state": intent.State,
+			"provider_dispatched": false, "failure_code": intent.FailureCode}, true, false, nil
+	}
+	step("verify_declared_incus_health")
+	guest, exists, err := provider.InspectOCIApplicationPowerState(ctx, spec)
+	if err != nil {
+		return nil, true, false, err
+	}
+	state, failure := "succeeded", ""
+	healthStatus, observed := "passing", deployments.ObservedReady
+	if !exists {
+		state, failure = "unknown", "provider_state_absent"
+		healthStatus, observed = "unknown", deployments.ObservedUnknown
+	} else if !strings.EqualFold(guest.Status, "Running") {
+		state, failure = "unknown", "provider_state_mismatch"
+		healthStatus, observed = "failing", deployments.ObservedDegraded
+	}
+	if _, err := a.deploymentStore().RecordExecutionStepOutcomeWithLease(ctx, job.TenantID,
+		deployment.ID, deployment.Generation, job.ID, job.LeaseOwner, planDigest,
+		executionStep.IdempotencyKey, state, "", failure); err != nil {
+		return nil, true, false, err
+	}
+	eventKey := uuid.NewSHA1(uuid.NameSpaceURL, []byte("shippin-deployment-health:"+executionStep.IdempotencyKey)).String()
+	if _, err := a.deploymentStore().RecordOperationEventWithLease(ctx, job.TenantID, deployment.ID,
+		job.ID, job.LeaseOwner, deployments.DeploymentEvent{
+			TenantID: job.TenantID, DeploymentID: deployment.ID, Generation: deployment.Generation,
+			Type: deployments.EventHealthObserved, ObservedState: observed, HealthStatus: healthStatus,
+			IdempotencyKey: eventKey, Actor: job.CreatedBy,
+		}); err != nil {
+		return nil, true, false, err
+	}
+	result := map[string]any{"step_id": executionStep.ID, "step_state": state, "provider_dispatched": false, "health_status": healthStatus}
+	if failure != "" {
+		result["failure_code"] = failure
+	}
+	return result, true, false, nil
+}
 
 // executeIncusPowerStep starts only the exact reviewed workload after its
 // stopped instance step has succeeded. Intent, lease, authorization, dispatch

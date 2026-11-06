@@ -26,7 +26,7 @@ func TestExecutionStepIntentIsApprovedLeaseFencedAndNeverRedispatched(t *testing
 		t.Fatal(err)
 	}
 	plan, err := BuildExecutionPlan(tenantID, deployment)
-	if err != nil || plan.UnsupportedReason != "executor_not_installed" || len(plan.Steps) == 0 {
+	if err != nil || plan.UnsupportedReason != "" || len(plan.Steps) == 0 {
 		t.Fatalf("plan=%+v err=%v", plan, err)
 	}
 	planSHA, err := plan.Fingerprint()
