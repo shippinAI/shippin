@@ -275,7 +275,10 @@ func probe(ctx context.Context, p config.Probe) (res probeResult) {
 		return res
 	}
 	r.Body.Close()
-	res.Healthy, res.Detail = r.StatusCode < 400, http.StatusText(r.StatusCode)
+	// A 3xx is not a successful health response. Redirects are intentionally not
+	// followed to keep the configured origin as the only network destination.
+	res.Healthy, res.Detail = r.StatusCode >= http.StatusOK && r.StatusCode < http.StatusMultipleChoices,
+		http.StatusText(r.StatusCode)
 	return res
 }
 

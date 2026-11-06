@@ -76,8 +76,33 @@ func TestProbeDoesNotFollowRedirectsToOtherDestinations(t *testing.T) {
 	defer origin.Close()
 
 	got := probe(context.Background(), config.Probe{URL: origin.URL})
-	if !got.Healthy || !got.Configured || redirected.Load() {
+	if got.Healthy || !got.Configured || got.Detail != http.StatusText(http.StatusFound) || redirected.Load() {
 		t.Fatalf("probe followed redirect or misreported configured origin: result=%+v redirected=%v", got, redirected.Load())
+	}
+}
+
+func TestProbeTreatsOnlySuccessfulHTTPStatusesAsHealthy(t *testing.T) {
+	for _, status := range []int{
+		http.StatusOK,
+		http.StatusNoContent,
+		299,
+		http.StatusMultipleChoices,
+		http.StatusFound,
+		http.StatusBadRequest,
+		http.StatusInternalServerError,
+	} {
+		t.Run(fmt.Sprint(status), func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(status)
+			}))
+			defer server.Close()
+
+			got := probe(context.Background(), config.Probe{URL: server.URL})
+			wantHealthy := status >= http.StatusOK && status < http.StatusMultipleChoices
+			if got.Healthy != wantHealthy || !got.Configured {
+				t.Fatalf("HTTP %d health=%v configured=%v, want health=%v and configured=true", status, got.Healthy, got.Configured, wantHealthy)
+			}
+		})
 	}
 }
 
