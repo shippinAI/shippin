@@ -1,6 +1,6 @@
 # Deployment reconciliation architecture
 
-**Status:** Partial Incus execution is implemented on `main`; complete service deployment remains unsupported pending target-scoped application health, complete lifecycle, and a Proxmox application executor.
+**Status:** Partial Incus execution and an authenticated, durable target-health path are implemented on `main`. Complete service deployment remains unsupported until disposable Incus pass/fail/restart acceptance, the remaining Incus lifecycle, and a distinct Proxmox application executor are verified.
 
 **Scope:** Stage E of [the platform absorption plan](platform-absorption-plan.md)
 
@@ -12,13 +12,13 @@ The deployment API persists tenant-scoped desired generations, immutable catalog
 
 The worker performs a bounded Incus sequence when the generation has a supported recipe: ensure and read back its deployment-owned volume, create the digest-pinned OCI workload stopped, start and read back that exact workload, then attempt the declared health step. Each Incus write obtains fresh AgentHub authorization and a one-time dispatch claim immediately before provider dispatch. Ambiguous provider outcomes use read-only identity inspection rather than blind retry. Desired-absent generations have a separately authorized stop/remove/absence path that preserves the volume and refuses removal when snapshots exist.
 
-The health step deliberately does not infer application health from Incus `Running`. It records unknown until an authenticated probe reaches the exact workload from a namespace with a proven route. The worker therefore records `runtime_unsupported` after the implemented Incus steps; it cannot return ready. The target-scoped probe transport and persisted fresh application observation remain unimplemented. Proxmox guest lifecycle exists in its provider driver, but there is no Proxmox application executor in the deployment worker.
+The health step deliberately does not infer application health from Incus `Running`. The worker persists a typed command bound to the selected server, deployment generation, plan digest and step key. An authenticated host heartbeat delivers it; hostd checks the exact Incus instance and configured managed network before bounded TCP/HTTP probing. Result submission is authenticated and durable, then wakes a current-generation leased reconcile. Only verified application success reaches ready, verified failure becomes degraded, and a missing result stays unknown. Until a result is reconciled, the deployment remains unsupported. This path has hosted PostgreSQL coverage but has not been exercised against a live or disposable Incus host. Proxmox guest lifecycle exists in its provider driver, but there is no Proxmox application executor in the deployment worker.
 
 Vaultix environment references are extracted from immutable generation data and resolved only after workload authorization. The resolver derives the Vaultix project from the tenant, validates the configured environment, and audits a single-key reveal under the current generation and live job lease. Values are projected to Incus environment configuration only when the selected endpoint has the explicit tenant-secret trust acknowledgement. Incus administrators can inspect those values; this is not a secret-isolation boundary. SOPS deployment resolution, secret rotation, and live-provider verification remain absent.
 
-Migration `054_shippin_deployment_target_config.sql` stores selected storage and network in the immutable generation. The API revalidates active tenant-assigned Incus pools and managed bridge/OVN networks before accepting a new generation. The OCI instance uses the selected network and verifies provider read-back. This is private NIC attachment; Edge exposure, health reachability, upgrade/rollback, backup/restore, and Proxmox application execution remain open.
+Migration `054_shippin_deployment_target_config.sql` stores selected storage and network in the immutable generation. The API revalidates active tenant-assigned Incus pools and managed bridge/OVN networks before accepting a new generation. The OCI instance uses the selected network and verifies provider read-back. This is private NIC attachment. Target health is now implemented with a separate `shippin_server_commands` migration; Edge exposure, live health acceptance, upgrade/rollback, backup/restore, and Proxmox application execution remain open.
 
-The next capability is target-scoped application health, followed by the remaining lifecycle and provider-specific executors. Keep desired deployment truth in the deployment tables, use jobs only for wake-up and leases, keep provider calls out of HTTP handlers, and do not claim generic guest CRUD installs PostgreSQL, Dragonfly, Redis or ClickHouse.
+The next capability is disposable Incus health and lifecycle acceptance, followed by a provider-specific Proxmox deployment runtime. Keep desired deployment truth in the deployment tables, use jobs only for wake-up and leases, keep provider calls out of HTTP handlers, and do not claim generic guest CRUD installs PostgreSQL, Dragonfly, Redis or ClickHouse.
 
 ## Decision
 
@@ -93,9 +93,10 @@ snapshots carry that exact validated contract.
 
 Version 2 does not define engine-specific environment configuration, edge route
 publication, health polling, upgrade, backup, or restore. The current worker can
-execute reviewed Incus volume, workload create, power, and removal operations,
-but then records `runtime_unsupported` because verified application health and
-the full service lifecycle are not implemented. This does not make PostgreSQL,
+execute reviewed Incus volume, workload create, power, and removal operations.
+It now persists a target-scoped health command, but records `runtime_unsupported`
+until a fresh host result is reconciled and the full service lifecycle is
+implemented. This does not make PostgreSQL,
 Dragonfly, Redis, or ClickHouse turnkey. Git sources and Proxmox are not accepted
 by this Incus OCI runtime contract and must not be shown as supported service
 runtimes.
@@ -179,9 +180,9 @@ but no disposable live Incus test has verified their behavior inside an OCI
 application process. The OCI primitive also attaches the generation-selected
 managed bridge/OVN NIC and verifies it on provider read-back; that path is
 simulator-tested but not checked against a live Incus service. The create, power,
-and removal primitives are wired into the lease-fenced worker. The worker still
-records `runtime_unsupported` until target-scoped health, edge publication, and
-the remaining lifecycle semantics are complete.
+removal and target-health paths are wired into the lease-fenced worker. The
+worker records `runtime_unsupported` when a health result is not yet available;
+edge publication and the remaining lifecycle semantics are still open.
 
 ## Options considered
 
@@ -239,15 +240,16 @@ read-only provider inspection; they are never blindly retried. The power step
 uses the already validated immutable execution snapshot and does not resolve or
 reveal environment secrets.
 
-This is still not a successful service deployment: the worker records
-`runtime_unsupported` after the power step. The declared TCP health contract has
-no verified guest address/reachability path from the control plane. The narrow
-Incus desired-absent stop/remove/absence path is now separately implemented and
+This is still not a proven production service deployment: the worker records
+`runtime_unsupported` until the target reports fresh application health. The
+declared TCP/HTTP path now verifies the managed guest address from the selected
+Incus host, but no live Incus operation has been verified. The narrow
+Incus desired-absent stop/remove/absence path is separately implemented and
 verified (see the removal checkpoint below); complete upgrade/rollback/backup/
-restore and Proxmox application execution remain absent. No live Incus operation
-has been verified. Earlier create/start checkpoint `0722b96` passed all 13 jobs
-in run `42029507436`; the later removal checkpoint passed all 13 jobs in run
-`42039645110`.
+restore and Proxmox application execution remain absent. Earlier create/start
+checkpoint `0722b96` passed all 13 jobs in run `42029507436`; the later removal
+checkpoint passed all 13 jobs in run `42039645110`, and target health passed
+hosted checks in `42310489066`.
 
 ### Health reachability gate
 
@@ -264,29 +266,32 @@ The current `shippin-agent` is a read-only diagnostics CLI, not a per-server
 probe service. A private Incus bridge address is therefore not a safe implicit
 probe target: a remote console may have no route to that bridge.
 
-Before implementing deployment `verify_declared_health`, add a target-scoped,
-authenticated probe capability at the server boundary. It must identify the
-approved deployment and generation, re-read provider ownership and network
-attachment on that server, accept only the declared bounded protocol/port and
-timeout, perform the dial from a namespace that can route to the guest, and
-return a timestamped observation without exposing credentials or arbitrary
-addresses. Server-to-agent enrollment and endpoint configuration must work for
-each attached Incus or Proxmox system; the single installation `HostdURL` is
-not proof of reachability for every provider. Proxmox QEMU IP discovery uses
-the configured guest agent; it remains unknown when absent or unavailable. The
-UI must distinguish provider state, guest reachability, and application health. Do not turn a
-running guest into a healthy or ready service by assumption.
+Deployment `verify_declared_health` now uses a target-scoped authenticated host
+command. It binds the approved deployment and generation, verifies provider
+ownership and managed network attachment on the selected Incus host, and dials
+only a declared bounded protocol/port with a configured timeout. Results are
+timestamped and persisted without exposing credentials or arbitrary addresses.
+The configured installation `HostdURL` is not used as a substitute for the
+per-server channel. Proxmox QEMU IP discovery still uses the configured guest
+agent and remains unknown when absent or unavailable. The UI distinguishes
+provider state, guest reachability, and application health. Never treat a
+running guest as healthy or ready by assumption.
 
 The provider-address slice is covered by simulator tests for Incus project
 scoping and state decoding, Proxmox QEMU guest-agent and LXC response shapes,
-and the existing service-resource/API and panel join. No live provider endpoint
-was available, so real provider permissions and network observations remain
-unverified. The next implementation step is the authenticated per-server probe
-service; it must validate target ownership and perform the declared TCP/HTTP
-check from a namespace with a proven route. Keep deployment health unsupported
-until that contract and persisted fresh observations are implemented.
+and the existing service-resource/API and panel join. The per-server probe
+contract is covered by hosted PostgreSQL, hostd, enrollment and deployment
+tests. No live provider endpoint was available, so real provider permissions,
+network routing and application pass/fail remain unverified. The next
+implementation step is disposable Incus acceptance and completion of its
+remaining lifecycle. Keep deployment health unknown until a fresh authenticated
+result is reconciled.
 
-## Immediate execution order after the 2026-11-05 baseline
+## Historical execution order from the 2026-11-05 baseline
+
+Target-scoped probe code and hosted database checks are complete in the current
+platform absorption plan. This earlier sequence now tracks the open live
+provider, lifecycle and runtime gates.
 
 This is the active dependency order for the remaining consolidation. A packet is
 not complete because its UI, schema, or design exists; it closes only with the
@@ -294,17 +299,17 @@ listed behavior and failure evidence. Each implementation stays in the canonical
 owner in `platform-consolidation-plan.md`, is committed directly to `main` after
 local checks, and must pass CI before starting its dependent packet.
 
-1. **Complete the health-probe security boundary** (`agent`, `internal/api`, health tests):
+1. **Health-probe security boundary** (`internal/healthprobe`, `internal/servers`, `internal/api`, `internal/hostd`):
    configured console probes are bounded, do not follow redirects, keep endpoint
    health separate from provider state, and cover cancellation, unreachable
-   targets and redaction. The remaining task is an authenticated per-server
-   probe protocol; include target generation, owner revalidation, bounded
-   protocol/port/timeout, probe
-   namespace routing, replay protection and timestamped results. Do not infer a
-   route from provider-reported guest addresses.
+   targets and redaction. The authenticated per-server protocol now binds
+   generation and owner, and hostd checks the managed network before probing.
+   Remaining work is disposable-host validation of real routing, restart, and
+   pass/fail behavior. Do not infer a route from provider-reported guest
+   addresses.
 2. **Finish deployment runtime** (`internal/deployments`, `internal/jobs`,
    `internal/hv`, `internal/hostd`, existing deployment UI): finish the
-   generation-bound health contract, safe update and rollback, delete with
+   live-test the generation-bound health contract, safe update and rollback, delete with
    provider read-back, restart recovery and unsupported-state reporting. The
    desired-absent Incus OCI path is being implemented as an independent typed
    packet: stop, remove only the exact Shippin workload while preserving its
