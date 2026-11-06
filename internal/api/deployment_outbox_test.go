@@ -15,6 +15,27 @@ import (
 	"shippin.cloud/console/internal/servers"
 )
 
+func TestVerifiedApplicationHealthRequiresPositiveApplicationProbe(t *testing.T) {
+	for name, step := range map[string]map[string]any{
+		"missing":               nil,
+		"provider running only": {"step_id": "health", "step_state": "succeeded", "health_status": "passing"},
+		"unknown probe":         {"step_id": "health", "application_probe_verified": false, "health_status": "unknown"},
+		"failed probe":          {"step_id": "health", "application_probe_verified": true, "health_status": "failing"},
+		"wrong step":            {"step_id": "power", "application_probe_verified": true, "health_status": "passing"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if verifiedApplicationHealth(step) {
+				t.Fatal("non-passing or unverified state was accepted as ready")
+			}
+		})
+	}
+	if !verifiedApplicationHealth(map[string]any{
+		"step_id": "health", "application_probe_verified": true, "health_status": "passing",
+	}) {
+		t.Fatal("verified passing application probe was not accepted")
+	}
+}
+
 type deploymentRecoveryProviderFake struct {
 	exists    bool
 	appFound  bool

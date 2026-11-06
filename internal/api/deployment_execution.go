@@ -258,14 +258,16 @@ func (a *API) executeIncusHealthStep(ctx context.Context, job *jobs.Job, deploym
 	if err != nil {
 		return nil, true, false, err
 	}
-	state, failure := "succeeded", ""
-	healthStatus, observed := "passing", deployments.ObservedReady
+	// Provider power state is not application health. Keep the declared health
+	// step unknown until a target-scoped probe has actually checked the
+	// configured application endpoint.
+	state, failure := "unknown", "application_health_probe_unavailable"
+	healthStatus, observed := "unknown", deployments.ObservedUnknown
 	if !exists {
-		state, failure = "unknown", "provider_state_absent"
-		healthStatus, observed = "unknown", deployments.ObservedUnknown
+		failure = "provider_state_absent"
 	} else if !strings.EqualFold(guest.Status, "Running") {
-		state, failure = "unknown", "provider_state_mismatch"
-		healthStatus, observed = "failing", deployments.ObservedDegraded
+		failure = "provider_state_mismatch"
+		observed = deployments.ObservedDegraded
 	}
 	if _, err := a.deploymentStore().RecordExecutionStepOutcomeWithLease(ctx, job.TenantID,
 		deployment.ID, deployment.Generation, job.ID, job.LeaseOwner, planDigest,
@@ -281,7 +283,8 @@ func (a *API) executeIncusHealthStep(ctx context.Context, job *jobs.Job, deploym
 		}); err != nil {
 		return nil, true, false, err
 	}
-	result := map[string]any{"step_id": executionStep.ID, "step_state": state, "provider_dispatched": false, "health_status": healthStatus}
+	result := map[string]any{"step_id": executionStep.ID, "step_state": state,
+		"provider_dispatched": false, "health_status": healthStatus, "application_probe_verified": false}
 	if failure != "" {
 		result["failure_code"] = failure
 	}

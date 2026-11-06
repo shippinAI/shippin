@@ -146,7 +146,7 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 			"outcome": "absent", "event_recorded": true, "provider_mutated": providerMutated,
 			"recovery": recoveredStep, "runtime_step": runtimeStep}, nil
 	}
-	if deployment.DesiredState == deployments.DesiredPresent && runtimeStep != nil && runtimeStep["step_id"] == "health" {
+	if deployment.DesiredState == deployments.DesiredPresent && verifiedApplicationHealth(runtimeStep) {
 		outcome := "degraded"
 		if runtimeStep["step_state"] == "succeeded" {
 			outcome = "ready"
@@ -183,4 +183,12 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 		result["runtime_step"] = runtimeStep
 	}
 	return result, nil
+}
+
+// verifiedApplicationHealth is the only gate that may map a provider step to
+// deployment ready. Guest power state, successful instance read-back, or a
+// claimed health status alone are insufficient without an actual probe result.
+func verifiedApplicationHealth(step map[string]any) bool {
+	return step != nil && step["step_id"] == "health" &&
+		step["application_probe_verified"] == true && step["health_status"] == "passing"
 }

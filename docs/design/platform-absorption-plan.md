@@ -1,19 +1,20 @@
 # Shippin platform absorption plan
 
-Status: active execution plan, refreshed 2026-11-05 against `main` at
-`99689a5`. This describes target contracts and acceptance gates; it does not
+Status: active execution plan, refreshed 2026-11-06 against `main` at
+`6a1a202`. This describes target contracts and acceptance gates; it does not
 claim unimplemented workflows are live. The [capability ledger](capability-absorption.md)
-holds source-by-source evidence and dispositions. The latest feature checkpoint
-`509eef0` passed all 13 jobs in run `42044128379`, and current documentation commit
-`99689a5` passed all 13 jobs in run `42047167113`.
+holds source-by-source evidence and dispositions. Exact-head Checks run
+`42285639479` passed on `6a1a202` (12 jobs). The ignored packet
+`2026/11/115cde7d-49e5-43f0-81c8-7c708475b602` contains the source-hashed
+readiness correction plan and work journal.
 
-## Current execution checkpoint (2026-11-05, refreshed after provider health)
+## Current execution checkpoint (2026-11-06)
 
-Canonical `main` is `99689a5d36c554e7e3810461441f65a0430b9cfa`; the worktree is clean and synchronized. `bash scripts/check.sh` passes locally. Feature commit `509eef090a91b3a7f0b3bb301dbc4d5bbbd2dde0` passed all 13 GitHub Checks in run `42044128379`. Current exact-head documentation commit `99689a5` passed all 13 jobs in run `42047167113`. The superseded run `42044754808` was cancelled after its Go race-test job remained in progress for more than 15 minutes; the replacement exact-head run is green.
+Canonical `main` was clean and synchronized at `6a1a2021b7207991b852487f3a041524aa5e78d8` before this packet's edits. `bash scripts/check.sh` passed locally before the latest test-helper edit; the focused Go API and deployment package tests also passed. This Windows workstation has no `SHIPPIN_TEST_DATABASE_URL`, so PostgreSQL integration tests skipped locally and must be exercised by hosted CI. Exact-head Checks run `42285639479` passed all 12 current jobs. A direct `go test ./internal/enroll` run failed its pre-existing POSIX path and file-mode assumptions on Windows; no enrollment implementation was changed by that run.
 
-The latest delivered provider slice persists bounded API reachability observations separately from guest inventory, keys them to provider configuration revision, and surfaces status, time and latency in the existing infrastructure view. It does not prove a guest OS is healthy or validate a live Incus/Proxmox credential. No live hypervisor, AgentHub, Vaultix, Cloudflare or Tailscale operation has been run.
+The latest delivered provider slice persists bounded API reachability observations separately from guest inventory, keys them to provider configuration revision, and surfaces status, time and latency in the existing infrastructure view. It does not prove a guest OS or declared application is healthy. Review of the current reconciler found that `internal/api/deployment_execution.go` treated Incus `Running` read-back as application `passing`, and `internal/api/deployment_outbox.go` consequently returned `ready` without probing the configured port. The worker and its regression checks now keep application health unknown and deployment runtime unsupported until a real target-scoped probe exists. The untracked typed draft `internal/enroll/health.go` was removed because it had no heartbeat, provider-local identity, durable command/result, or worker integration and could be mistaken for a capability. No live hypervisor, AgentHub, Vaultix, Cloudflare or Tailscale operation has been run.
 
-All requested scope is now in this register and the ignored full execution plan. Work remains ordered by prerequisites: source audit and rights; provider declarations/lifecycle; AgentHub authorization; durable deployment/build; managed engines; networking; dynamic service health/resources; sole-panel developer/rollout; then archive decisions. A screen, catalog row, schema or mocked response does not close runtime behavior. Each bounded packet must update the plan and ledger, run contribution checks, commit to `main`, push and wait for all 13 checks before dependent work.
+All requested scope remains in this register and the ignored full execution plan. Work remains ordered by prerequisites: source audit and rights; provider declarations/lifecycle; AgentHub authorization; durable deployment/build; managed engines; networking; dynamic service health/resources; sole-panel developer/rollout; then archive decisions. A screen, catalog row, schema or mocked response does not close runtime behavior. Each bounded packet must update the plan and ledger, run contribution checks, commit to `main`, push and wait for every current hosted check before dependent work.
 
 
 Earlier deployment checkpoint `0722b96` passed all 13 jobs in run
@@ -34,7 +35,9 @@ outcomes are inspected without blind retry and persistent data is preserved.
 Removal passed all 13 jobs in run `42039645110`. The worker still records
 `runtime_unsupported` after the supported Incus steps because configured
 application health, complete service lifecycle and Proxmox application runtime
-remain absent. No live Incus test has run.
+remain absent. The executable health step was found to contradict this documented
+gate by inferring application readiness from the provider's `Running` state; the
+current packet removes that inference. No live Incus test has run.
 
 The Incus OCI provider primitive supports digest-pinned image creation, bounded
 CPU/memory, optional deployment-owned persistent volume, ownership and
@@ -80,14 +83,16 @@ production least-privilege AgentHub/Vaultix verification remain open.
 ### Immediate execution packet (current)
 
 The full ordered architecture and exit gates are in this document. The ignored,
-schema-validated session `2026/11/b54b453c-1a83-41a5-a945-d1614180fe37` contains
-the complete user-scope execution plan, source hashes, gates and unknowns. It is
-not a product feature and does not imply any unsupported stage is done.
+schema-validated full-scope session `2026/11/b54b453c-1a83-41a5-a945-d1614180fe37`
+and current source-hashed health packet `2026/11/115cde7d-49e5-43f0-81c8-7c708475b602`
+contain execution steps, evidence requirements and remaining unknowns. These
+local work records do not imply any unsupported stage is done.
 
-1. **Baseline verified:** canonical `main` is clean at `99689a5`; local
-   `bash scripts/check.sh` and all 13 exact-head jobs in run `42047167113` passed.
-   The superseded run `42044754808` was cancelled; no failure remains on current
-   main.
+1. **Baseline verified:** canonical `main` was clean at `6a1a202`; exact-head
+   run `42285639479` passed all 12 current jobs. The working false-ready fix has
+   passed local Go unit/package checks and `bash scripts/check.sh`; PostgreSQL
+   tests skip locally without `SHIPPIN_TEST_DATABASE_URL` and are required in
+   hosted CI. No disposable/live provider is available here.
 2. **Current source slice completed, not whole inventory:** the 12 Warden
    implementation rows for local backups, certs, disks, logs and packages now
    have explicit dispositions. Unsafe host-local operations are rejected as
