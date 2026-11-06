@@ -34,6 +34,12 @@ func TestVerifiedApplicationHealthRequiresPositiveApplicationProbe(t *testing.T)
 	}) {
 		t.Fatal("verified passing application probe was not accepted")
 	}
+	if !failedApplicationHealth(map[string]any{"step_id": "health", "application_probe_verified": true, "health_status": "failing"}) {
+		t.Fatal("a real failing application probe must remain distinguishable from an unsupported runtime")
+	}
+	if failedApplicationHealth(map[string]any{"step_id": "health", "application_probe_verified": false, "health_status": "failing"}) {
+		t.Fatal("unverified health failure was accepted")
+	}
 }
 
 type deploymentRecoveryProviderFake struct {

@@ -31,6 +31,7 @@ func (a *API) serverRoutes(mux Router) {
 	mux.HandleFunc("POST /v1/tenants/{tenantId}/servers/{serverId}/revoke", a.flow.Require(a.serverAdmin(a.revokeServer)))
 	mux.HandleFunc("POST /v1/servers/enroll", a.enrollServer)
 	mux.HandleFunc("POST /v1/servers/heartbeat", a.serverHeartbeat)
+	mux.HandleFunc("POST /v1/servers/commands/{commandId}/result", a.serverCommandResult)
 }
 
 type serverHandler func(http.ResponseWriter, *http.Request, *caller, *tenantView)

@@ -32,6 +32,7 @@ func serverTestAPI(t *testing.T, role string) (*API, *db.DB, db.Tenant, *httptes
 	mux.HandleFunc("POST /v1/tenants/{tenantId}/servers/{serverId}/revoke", a.serverAdmin(a.revokeServer))
 	mux.HandleFunc("POST /v1/servers/enroll", a.enrollServer)
 	mux.HandleFunc("POST /v1/servers/heartbeat", a.serverHeartbeat)
+	mux.HandleFunc("POST /v1/servers/commands/{commandId}/result", a.serverCommandResult)
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	return a, d, tn, srv

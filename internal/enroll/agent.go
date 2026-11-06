@@ -33,10 +33,30 @@ type saved struct {
 
 // Agent enrolls and beats. HTTP and Hostname are seams for tests.
 type Agent struct {
-	Cfg      Config
-	Version  string
-	Hostname func() (string, error)
-	HTTP     *http.Client
+	Cfg           Config
+	Version       string
+	Hostname      func() (string, error)
+	HTTP          *http.Client
+	HandleCommand func(context.Context, Command) (CommandResult, error)
+}
+
+// Command is delivered by the console over the authenticated heartbeat.
+type Command struct {
+	ID             string          `json:"id"`
+	Type           string          `json:"type"`
+	DeploymentID   string          `json:"deployment_id"`
+	Generation     int64           `json:"generation"`
+	PlanSHA256     string          `json:"plan_sha256"`
+	IdempotencyKey string          `json:"idempotency_key"`
+	Payload        json.RawMessage `json:"payload"`
+	ExpiresAt      time.Time       `json:"expires_at"`
+}
+
+// CommandResult contains bounded probe output and no provider response bodies.
+type CommandResult struct {
+	Status     string `json:"status"`
+	DurationMS int64  `json:"duration_ms"`
+	Failure    string `json:"failure_code,omitempty"`
 }
 
 func (a *Agent) client() *http.Client {

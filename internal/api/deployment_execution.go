@@ -6,9 +6,11 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/deployments"
+	"shippin.cloud/console/internal/healthprobe"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/incus"
 	"shippin.cloud/console/internal/jobs"
@@ -188,9 +190,6 @@ func (a *API) executeIncusHealthStep(ctx context.Context, job *jobs.Job, deploym
 	if err != nil {
 		return nil, false, false, err
 	}
-	if len(unresolved) != 0 {
-		return nil, false, false, nil
-	}
 	var executionStep deployments.ExecutionStep
 	for _, candidate := range plan.Steps {
 		if candidate.Operation == "verify_declared_health" {
@@ -199,6 +198,9 @@ func (a *API) executeIncusHealthStep(ctx context.Context, job *jobs.Job, deploym
 		}
 	}
 	if executionStep.ID == "" {
+		return nil, false, false, nil
+	}
+	if len(unresolved) != 0 && unresolved[0].IdempotencyKey != executionStep.IdempotencyKey {
 		return nil, false, false, nil
 	}
 	review, err := a.deploymentStore().GetReview(ctx, job.TenantID, deployment.ID, deployment.Generation)
@@ -232,59 +234,104 @@ func (a *API) executeIncusHealthStep(ctx context.Context, job *jobs.Job, deploym
 	if err != nil || endpoint.Kind != string(deployments.ProviderIncus) {
 		return nil, false, false, deployments.ErrTargetUnavailable
 	}
-	var provider incusOCIExecutorProvider
-	if a.openIncusOCIExecutor != nil {
-		provider, err = a.openIncusOCIExecutor(endpoint)
-	} else {
-		provider, err = a.openIncus(endpoint)
-	}
-	if err != nil {
-		return nil, false, false, err
-	}
-	if provider == nil {
-		return nil, false, false, errors.New("Incus OCI executor is unavailable")
-	}
 	intent, started, err := a.deploymentStore().BeginExecutionStepWithLease(ctx, job.TenantID,
 		deployment.ID, deployment.Generation, job.ID, job.LeaseOwner, planDigest, executionStep)
 	if err != nil {
 		return nil, false, false, err
 	}
-	if !started {
+	if !started && intent.State != "intent" {
 		return map[string]any{"step_id": executionStep.ID, "step_state": intent.State,
 			"provider_dispatched": false, "failure_code": intent.FailureCode}, true, false, nil
 	}
-	step("verify_declared_incus_health")
-	guest, exists, err := provider.InspectOCIApplicationPowerState(ctx, spec)
+	if !started {
+		if _, _, err := a.deploymentStore().ClaimExecutionStepRecoveryWithLease(ctx, job.TenantID,
+			deployment.ID, deployment.Generation, job.ID, job.LeaseOwner, planDigest, executionStep); err != nil {
+			return nil, true, false, err
+		}
+	}
+	probeResult, hasResult, err := a.serverStore().ProbeCommandResult(ctx, job.TenantID, executionStep.IdempotencyKey)
 	if err != nil {
 		return nil, true, false, err
 	}
-	// Provider power state is not application health. Keep the declared health
-	// step unknown until a target-scoped probe has actually checked the
-	// configured application endpoint.
-	state, failure := "unknown", "application_health_probe_unavailable"
-	healthStatus, observed := "unknown", deployments.ObservedUnknown
-	if !exists {
-		failure = "provider_state_absent"
-	} else if !strings.EqualFold(guest.Status, "Running") {
-		failure = "provider_state_mismatch"
-		observed = deployments.ObservedDegraded
+	if !hasResult {
+		if !started {
+			step("read_persisted_target_health_result")
+		}
+		if execution.Definition.Runtime.Health == nil || execution.Deployment.TargetConfig.Network == nil {
+			return nil, true, false, deployments.ErrDefinitionUnavailable
+		}
+		health := execution.Definition.Runtime.Health
+		probeRequest := healthprobe.ApplicationRequest{DeploymentID: deployment.ID, Generation: deployment.Generation,
+			ImageReference: spec.ImageReference, Network: execution.Deployment.TargetConfig.Network.Name,
+			Kind: health.Kind, Port: health.Port, Path: health.Path, TimeoutSeconds: health.TimeoutSeconds}
+		payload, err := json.Marshal(probeRequest)
+		if err != nil {
+			return nil, true, false, deployments.ErrInvalidConfig
+		}
+		step("queue_target_scoped_incus_health_probe")
+		if _, err := a.serverStore().QueueProbeCommand(ctx, deployment.TargetSystemID, job.TenantID,
+			deployment.ID, deployment.Generation, planDigest, executionStep.IdempotencyKey, payload, 5*time.Minute); err != nil {
+			return nil, true, false, err
+		}
+		return a.recordIncusHealthObservation(ctx, job, deployment, executionStep, planDigest,
+			"unknown", "", 0, false, "probe_pending")
+	}
+	var result serverCommandResult
+	if err := json.Unmarshal(probeResult, &result); err != nil ||
+		(result.Status != "passing" && result.Status != "failing") || result.DurationMS < 0 || result.DurationMS > 3_600_000 ||
+		(result.Status == "passing" && result.Failure != "") ||
+		(result.Status == "failing" && !serverCommandFailure.MatchString(result.Failure)) {
+		return nil, true, false, errors.New("persisted target health result is invalid")
+	}
+	state, failure := "succeeded", ""
+	if result.Status == "failing" {
+		state, failure = "failed", result.Failure
 	}
 	if _, err := a.deploymentStore().RecordExecutionStepOutcomeWithLease(ctx, job.TenantID,
 		deployment.ID, deployment.Generation, job.ID, job.LeaseOwner, planDigest,
 		executionStep.IdempotencyKey, state, "", failure); err != nil {
 		return nil, true, false, err
 	}
-	eventKey := uuid.NewSHA1(uuid.NameSpaceURL, []byte("shippin-deployment-health:"+executionStep.IdempotencyKey)).String()
+	return a.recordIncusHealthObservation(ctx, job, deployment, executionStep, planDigest,
+		result.Status, failure, result.DurationMS, true, "")
+}
+
+func (a *API) recordIncusHealthObservation(ctx context.Context, job *jobs.Job, deployment *deployments.Deployment,
+	executionStep deployments.ExecutionStep, _ string, healthStatus, failure string, durationMS int64,
+	verified bool, pending string) (map[string]any, bool, bool, error) {
+	observed := deployments.ObservedUnknown
+	if healthStatus == "passing" {
+		observed = deployments.ObservedReady
+	}
+	if healthStatus == "failing" {
+		observed = deployments.ObservedDegraded
+	}
+	eventKey := uuid.NewSHA1(uuid.NameSpaceURL, []byte("shippin-deployment-health:"+executionStep.IdempotencyKey+":"+healthStatus)).String()
+	var duration *int64
+	if verified {
+		observedDuration := durationMS
+		duration = &observedDuration
+	}
 	if _, err := a.deploymentStore().RecordOperationEventWithLease(ctx, job.TenantID, deployment.ID,
 		job.ID, job.LeaseOwner, deployments.DeploymentEvent{
 			TenantID: job.TenantID, DeploymentID: deployment.ID, Generation: deployment.Generation,
 			Type: deployments.EventHealthObserved, ObservedState: observed, HealthStatus: healthStatus,
-			IdempotencyKey: eventKey, Actor: job.CreatedBy,
+			HealthDurationMS: duration, IdempotencyKey: eventKey, Actor: job.CreatedBy,
 		}); err != nil {
 		return nil, true, false, err
 	}
-	result := map[string]any{"step_id": executionStep.ID, "step_state": state,
-		"provider_dispatched": false, "health_status": healthStatus, "application_probe_verified": false}
+	stepState := "unknown"
+	if healthStatus == "passing" {
+		stepState = "succeeded"
+	}
+	if healthStatus == "failing" {
+		stepState = "failed"
+	}
+	result := map[string]any{"step_id": executionStep.ID, "step_state": stepState,
+		"provider_dispatched": false, "health_status": healthStatus, "application_probe_verified": verified}
+	if pending != "" {
+		result["pending"] = true
+	}
 	if failure != "" {
 		result["failure_code"] = failure
 	}

@@ -158,6 +158,10 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 		}
 		return result, nil
 	}
+	if deployment.DesiredState == deployments.DesiredPresent && failedApplicationHealth(runtimeStep) {
+		return map[string]any{"deployment_id": deployment.ID, "generation": wakeup.Generation,
+			"outcome": "degraded", "event_recorded": true, "provider_mutated": providerMutated, "runtime_step": runtimeStep}, nil
+	}
 	step("application_runtime_unavailable")
 	created, err := a.deploymentStore().RecordRuntimeUnavailableWithLease(ctx, job.TenantID, deployment.ID,
 		job.CreatedBy, wakeup.Generation, job.ID, job.LeaseOwner)
@@ -191,4 +195,9 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 func verifiedApplicationHealth(step map[string]any) bool {
 	return step != nil && step["step_id"] == "health" &&
 		step["application_probe_verified"] == true && step["health_status"] == "passing"
+}
+
+func failedApplicationHealth(step map[string]any) bool {
+	return step != nil && step["step_id"] == "health" &&
+		step["application_probe_verified"] == true && step["health_status"] == "failing"
 }

@@ -106,3 +106,61 @@ func TestHeartbeatDoesNotFollowRedirectWithHostCredential(t *testing.T) {
 		t.Fatalf("host credential followed redirect to another endpoint %d times", redirected.Load())
 	}
 }
+
+func TestHeartbeatExecutesTypedCommandAndSubmitsResult(t *testing.T) {
+	var resultRequests atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer shph_command" {
+			t.Error("credential missing from authenticated request")
+		}
+		switch r.URL.Path {
+		case "/v1/servers/heartbeat":
+			_, _ = w.Write([]byte(`{"command":{"id":"2d6a4a79-9c0f-46df-83da-8ec9cde05a11","type":"probe_incus_application","deployment_id":"2d6a4a79-9c0f-46df-83da-8ec9cde05a11","generation":2,"plan_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","idempotency_key":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","payload":{},"expires_at":"2026-11-07T00:00:00Z"}}`))
+		case "/v1/servers/commands/2d6a4a79-9c0f-46df-83da-8ec9cde05a11/result":
+			var got CommandResult
+			if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+				t.Fatal(err)
+			}
+			if got.Status != "passing" || got.DurationMS != 17 {
+				t.Errorf("result payload = %#v", got)
+			}
+			resultRequests.Add(1)
+			w.WriteHeader(http.StatusAccepted)
+			_, _ = w.Write([]byte(`{}`))
+		default:
+			t.Errorf("unexpected path %q", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+	a := &Agent{Cfg: Config{ConsoleURL: srv.URL}, HandleCommand: func(_ context.Context, command Command) (CommandResult, error) {
+		if command.Type != "probe_incus_application" || command.Generation != 2 {
+			t.Fatalf("command = %#v", command)
+		}
+		return CommandResult{Status: "passing", DurationMS: 17}, nil
+	}}
+	if err := a.Beat(context.Background(), &saved{Credential: "shph_command"}); err != nil {
+		t.Fatal(err)
+	}
+	if resultRequests.Load() != 1 {
+		t.Fatalf("result submissions = %d", resultRequests.Load())
+	}
+}
+
+func TestHeartbeatDoesNotExecuteUnknownCommandWithoutHandler(t *testing.T) {
+	resultRequests := atomic.Int32{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/servers/heartbeat" {
+			_, _ = w.Write([]byte(`{"command":{"id":"2d6a4a79-9c0f-46df-83da-8ec9cde05a11","type":"probe_incus_application"}}`))
+			return
+		}
+		resultRequests.Add(1)
+	}))
+	defer srv.Close()
+	a := &Agent{Cfg: Config{ConsoleURL: srv.URL}}
+	if err := a.Beat(context.Background(), &saved{Credential: "shph_command"}); err == nil {
+		t.Fatal("command without handler was accepted")
+	}
+	if resultRequests.Load() != 0 {
+		t.Fatal("unhandled command result was submitted")
+	}
+}
