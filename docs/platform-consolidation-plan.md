@@ -234,6 +234,34 @@ evidence is added to this plan and the linked ledgers.
 | A5 | Close packet-4 runtime gap to remove `runtime_unsupported` claims for supported paths only | `internal/deployments/`, `internal/catalog/`, `internal/hostd/`, `web/` | Declared health, recovery, and lifecycle evidence exists for each supported action; unsupported actions stay explicitly labeled unsupported. |
 | A6 | Run closure decision review per source using the boundary/nesting gate and release gates | This plan plus both ledgers | Each source row has a pass/fail checklist result; only pass rows are eligible for explicit archive/shutdown decisions. |
 
+### Canonical absorption delivery plan (execution-ready)
+
+This is the concrete build sequence for shipping the canonical panel/runtime and
+closing source folders safely. Execute in order; each packet must end with a
+green `main`, linked evidence, and explicit unsupported boundaries.
+
+| Window | Packet | Scope and canonical owners | Acceptance checks (must pass before next packet) |
+| --- | --- | --- | --- |
+| Now | P1 - absorption inventory completion | Finish packet-1 family mapping and source dispositions in `docs/design/capability-absorption.md` and `docs/design/archive-readiness.md` for all source checkouts. | Every source family has `adopt`/`re-author`/`reject`/`defer` with canonical destination and blocker text aligned in both ledgers. |
+| Next | P2 - Incus runtime completion | Complete present/absent runtime path in `internal/deployments/`, `internal/api/`, `internal/hv/incus/`, and `web/` read models for supported operations. | Worker outcomes are `ready`/`degraded`/`absent` for supported paths; failure/recovery paths are tested; unsupported operations remain explicitly unsupported and never success-shaped. |
+| Next | P3 - Proxmox runtime parity | Implement Proxmox application runtime path under `internal/hv/proxmox/` and `internal/api/` with the same lease/review/dispatch/recovery contract used by Incus. | Disposable-provider tests cover create/start/stop/remove/read-back plus denial/replay/lease-loss/ambiguous-provider recovery. |
+| Next | P4 - provider mutation live proof | Validate live AgentHub + provider behavior for approved mutation paths in `internal/agenthub/`, `internal/api/`, infra UI. | Evidence includes approval allow/deny/expiry/replay and provider read-back on disposable Incus and Proxmox, with zero-write denial proof. |
+| Next | P5 - install/upgrade hardening | Harden install and upgrade paths in `install/`, `deploy/`, `scripts/`, migrations, and release checks. | Fresh install, upgrade, and rollback-by-restore workflows pass from clean checkout; no runtime dependency on sibling source trees. |
+| Next | P6 - closure decision pass | Apply boundary/nesting gate and release gates source-by-source. | Only rows with complete evidence move to archive-ready review; no source folder is shut down or deleted without explicit pass result and user review. |
+
+### Definition of done for every packet
+
+1. Canonical owner boundaries are preserved (`web/` single panel, provider logic
+   in `internal/hv/*`, orchestration in `internal/api/` + `internal/deployments/`).
+2. Behavior is proven by checks that observe runtime outcomes and at least one
+   negative/recovery path, not only schema or UI presence.
+3. `main` is green after push (current Checks workflow), and the packet records
+   commit + run IDs in this plan and the ledgers.
+4. Install/upgrade compatibility is preserved: migrations are forward-safe, and
+   installer/update paths remain validated by existing CI gates.
+5. Unsupported behavior is explicitly surfaced as unsupported; no silent fallback
+   or success-shaped failure.
+
 | Order | Packet and canonical owner | Current status | Implementation order and observable exit gate |
 | --- | --- | --- | --- |
 | 0 | Baseline and one deployable: `web/`, `cmd/console`, `cmd/shippin-hostd`, `install/`, CI | **Current baseline passed locally and on GitHub.** `bash scripts/check.sh` passed on `main` `e88bc24` on 2026-11-05. GitHub Checks run `41999295954` passed all 13 jobs, including disposable-Postgres API/identity suites, the one React panel build/budget, installer fresh/upgrade, compose, public-tree and secret scans. No open PRs were returned by `gh pr list --state open`. Standalone release/rollout and live provider behavior remain open. | Keep all panel work inside `web/`; verify standalone control-plane and host-agent artifacts, install/upgrade/migration flow, and no sibling checkout runtime dependency. Record Linux CI and installation evidence. |

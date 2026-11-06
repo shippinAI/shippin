@@ -35,6 +35,8 @@ The order is in [fleet operations](design/fleet-operations.md):
 
 For source-folder closure sequencing (console/cloud/mesh/Warden imports), use the
 [source-closure worklist](platform-consolidation-plan.md#source-closure-worklist).
+For the concrete packet-by-packet build sequence and acceptance gates, use the
+[canonical absorption delivery plan](platform-consolidation-plan.md#canonical-absorption-delivery-plan-execution-ready).
 
 Then secondary-node installation, signed releases, backup and restore with a tested restore, and managed data services. Those are [designed](design/managed-services.md) but not built.
 
