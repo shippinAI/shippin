@@ -62,6 +62,9 @@ Incus query errors, missing instances, owner/generation/image mismatch, stopped
 instances, unmanaged/wrong networks, invalid CIDRs and addresses outside the
 selected network cannot pass health. A missing heartbeat/result keeps health
 unknown. Provider power state by itself never creates a passing event.
+While a probe is queued, the deployment remains `unknown`; that active health
+workflow is not recorded as `runtime_unsupported`. The authenticated result
+enqueues the generation for reconciliation.
 
 If the host accepts a result but the queue is unavailable, the endpoint returns
 an error so the host retries the same command result. The database result is

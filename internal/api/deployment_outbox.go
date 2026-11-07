@@ -162,6 +162,14 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 		return map[string]any{"deployment_id": deployment.ID, "generation": wakeup.Generation,
 			"outcome": "degraded", "event_recorded": true, "provider_mutated": providerMutated, "runtime_step": runtimeStep}, nil
 	}
+	// A queued target probe is an active health workflow, not an unsupported
+	// runtime. Keep the observed state unknown until the enrolled host returns a
+	// result; that result will enqueue this generation for reconciliation.
+	if deployment.DesiredState == deployments.DesiredPresent && runtimeHealthPending(runtimeStep) {
+		return map[string]any{"deployment_id": deployment.ID, "generation": wakeup.Generation,
+			"outcome": "health_pending", "event_recorded": true, "provider_mutated": providerMutated,
+			"recovery": recoveredStep, "runtime_step": runtimeStep}, nil
+	}
 	step("application_runtime_unavailable")
 	created, err := a.deploymentStore().RecordRuntimeUnavailableWithLease(ctx, job.TenantID, deployment.ID,
 		job.CreatedBy, wakeup.Generation, job.ID, job.LeaseOwner)
@@ -187,6 +195,12 @@ func (a *API) runDeploymentReconcileJob(ctx context.Context, job *jobs.Job, step
 		result["runtime_step"] = runtimeStep
 	}
 	return result, nil
+}
+
+func runtimeHealthPending(step map[string]any) bool {
+	return step != nil && step["step_id"] == "health" && step["pending"] == true &&
+		step["step_state"] == "unknown" && step["health_status"] == "unknown" &&
+		step["application_probe_verified"] == false
 }
 
 // verifiedApplicationHealth is the only gate that may map a provider step to

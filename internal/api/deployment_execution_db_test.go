@@ -110,14 +110,14 @@ func (f *deploymentExecutionProviderFake) EnsureOCIApplicationRunning(_ context.
 }
 
 func TestDeploymentWorkerExecutesAuthorizedIncusStorageAndStoppedWorkloadSteps(t *testing.T) {
-	a, tenantID, _, deployment, job, provider, calls := setupDeploymentStorageExecution(t, true)
+	a, tenantID, serverID, deployment, job, provider, calls := setupDeploymentStorageExecution(t, true)
 	result, err := a.runDeploymentReconcileJob(context.Background(), job, func(string) {})
 	if err != nil {
 		t.Fatal(err)
 	}
 	out := result.(map[string]any)
 	step := out["runtime_step"].(map[string]any)
-	if out["outcome"] != "runtime_unsupported" || out["provider_mutated"] != true ||
+	if out["outcome"] != "health_pending" || out["event_recorded"] != true || out["provider_mutated"] != true ||
 		step["step_state"] != "unknown" || step["step_id"] != "health" || step["health_status"] != "unknown" ||
 		step["application_probe_verified"] != false || step["pending"] != true || provider.ensureCalls != 1 ||
 		provider.inspectCalls != 1 || provider.createCalls != 1 || provider.runCalls != 1 || *calls != 3 {
@@ -145,13 +145,17 @@ func TestDeploymentWorkerExecutesAuthorizedIncusStorageAndStoppedWorkloadSteps(t
 	}
 	var observed string
 	if err := a.db.Pool.QueryRow(context.Background(), `SELECT observed_state FROM shippin_deployments
-		WHERE tenant_id=$1 AND id=$2`, tenantID, deployment.ID).Scan(&observed); err != nil || observed != string(deployments.ObservedFailed) {
-		t.Fatalf("deployment without an application probe must stay unsupported: observed state=%q err=%v", observed, err)
+		WHERE tenant_id=$1 AND id=$2`, tenantID, deployment.ID).Scan(&observed); err != nil || observed != string(deployments.ObservedUnknown) {
+		t.Fatalf("deployment awaiting its application probe must remain unknown: observed state=%q err=%v", observed, err)
 	}
-	var healthEvents int
+	var healthEvents, unsupportedEvents int
 	if err := a.db.Pool.QueryRow(context.Background(), `SELECT count(*) FROM shippin_deployment_events
 		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=1 AND event_type='health_observed' AND health_status='passing'`, tenantID, deployment.ID).Scan(&healthEvents); err != nil || healthEvents != 0 {
 		t.Fatalf("unprobed deployment recorded %d passing health events, err=%v", healthEvents, err)
+	}
+	if err := a.db.Pool.QueryRow(context.Background(), `SELECT count(*) FROM shippin_deployment_events
+		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=1 AND event_type='operation_failed' AND failure_code='runtime_unsupported'`, tenantID, deployment.ID).Scan(&unsupportedEvents); err != nil || unsupportedEvents != 0 {
+		t.Fatalf("pending target probe was marked runtime_unsupported %d times, err=%v", unsupportedEvents, err)
 	}
 	// A replay sees the completed intent and cannot dispatch the provider again.
 	if _, err := a.runDeploymentReconcileJob(context.Background(), job, func(string) {}); err != nil {
@@ -159,6 +163,38 @@ func TestDeploymentWorkerExecutesAuthorizedIncusStorageAndStoppedWorkloadSteps(t
 	}
 	if provider.ensureCalls != 1 || provider.inspectCalls != 1 || provider.createCalls != 1 || provider.runCalls != 1 || *calls != 3 {
 		t.Fatalf("completed step replay repeated a side effect: ensure=%d inspect=%d create=%d run=%d decisions=%d", provider.ensureCalls, provider.inspectCalls, provider.createCalls, provider.runCalls, *calls)
+	}
+	credential := "shph_" + strings.Repeat("A", 43)
+	if _, err := a.db.Pool.Exec(context.Background(), `UPDATE servers SET cred_sha256=$2,
+		cred_expires_at=now()+interval '1 hour' WHERE id=$1`, serverID, servers.Hash(credential)); err != nil {
+		t.Fatal(err)
+	}
+	var commandID string
+	if err := a.db.Pool.QueryRow(context.Background(), `SELECT id::text FROM shippin_server_commands
+		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=1 AND state='queued'`, tenantID, deployment.ID).Scan(&commandID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.serverStore().CompleteCommand(context.Background(), credential, commandID,
+		json.RawMessage(`{"status":"passing","duration_ms":12}`)); err != nil {
+		t.Fatalf("complete authenticated target probe: %v", err)
+	}
+	result, err = a.runDeploymentReconcileJob(context.Background(), job, func(string) {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ready := result.(map[string]any)
+	readyStep := ready["runtime_step"].(map[string]any)
+	if ready["outcome"] != "ready" || readyStep["health_status"] != "passing" ||
+		readyStep["application_probe_verified"] != true || ready["provider_mutated"] != false {
+		t.Fatalf("authenticated passing target probe did not make the generation ready: %v", result)
+	}
+	if err := a.db.Pool.QueryRow(context.Background(), `SELECT observed_state FROM shippin_deployments
+		WHERE tenant_id=$1 AND id=$2`, tenantID, deployment.ID).Scan(&observed); err != nil || observed != string(deployments.ObservedReady) {
+		t.Fatalf("verified target health did not update observed state: state=%q err=%v", observed, err)
+	}
+	if err := a.db.Pool.QueryRow(context.Background(), `SELECT count(*) FROM shippin_deployment_events
+		WHERE tenant_id=$1 AND deployment_id=$2 AND generation=1 AND event_type='operation_failed' AND failure_code='runtime_unsupported'`, tenantID, deployment.ID).Scan(&unsupportedEvents); err != nil || unsupportedEvents != 0 {
+		t.Fatalf("completed target probe left runtime_unsupported events=%d err=%v", unsupportedEvents, err)
 	}
 }
 

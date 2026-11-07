@@ -15,7 +15,7 @@ What works today, what does not, and what comes next. [The objective](objective.
 
 ## Known gaps
 
-- **Hypervisors:** host enrollment and read-only inventory remain available. Although provider drivers, operation records and lifecycle routes exist, every provider mutation currently returns `503 agenthub_review_unavailable` before a driver call. Earlier disposable-node lifecycle exercises predate this gate and do not prove that mutations work in the current build. AgentHub's typed action/system/resource authorization and service identity must be integrated before lifecycle execution can be re-enabled. Then repeat tests for Incus containers and VMs, Proxmox QEMU and LXC, clean shutdown, snapshots, task read-back, denial, timeout, restart and real clusters on disposable infrastructure.
+- **Hypervisors:** host enrollment and read-only inventory are available. Narrow Incus and Proxmox single-guest power actions have persisted AgentHub review and one-shot execution records. The deployment worker has a separate bounded Incus OCI create/start/remove path and target-scoped health command/result protocol. General provider mutations and a Proxmox application runtime remain unavailable. No disposable provider or live AgentHub policy/quorum acceptance has been completed. Verify these narrow paths on disposable Incus/Proxmox, then fill the remaining provider-specific lifecycle and recovery matrix before broadening support claims.
 - **Passkeys and certificates:** browsers refuse passkeys on a site with a certificate warning. With a self-signed certificate, no mail and no identity provider, each sign-in uses up one of eight recovery codes, and they do not renew. Use a real certificate, a provider or mail for anything you intend to keep.
 - **Rollback:** migrations run forward only. Going back to an older build means restoring a backup.
 - **Local agent:** neither deployment path sets up `shippin-hostd`. The features that depend on it, including workspaces on the primary, need `incus.hostd_url` set and hostd installed by hand. See `deploy/hostd-install.sh`.
@@ -28,10 +28,10 @@ What works today, what does not, and what comes next. [The objective](objective.
 
 The order is in [fleet operations](design/fleet-operations.md):
 
-1. Implement and verify the AgentHub review contract and least-privilege Shippin identity. Provider mutations remain disabled until that is proven.
-2. Re-enable lifecycle through the review gate, then run the Hypervisors matrix above and make disposable-provider workflows repeatable in CI.
-3. Implement bounded deployment reconciliation and source builds, then managed data services and their backup/restore flows.
-4. Finish fleet capacity totals and placement, then updating from a button with health checks and rollback.
+1. Verify the existing AgentHub review contract and least-privilege Shippin identity against a live configured AgentHub installation, including quorum, denial and stale-policy behavior.
+2. Run the narrow Incus/Proxmox power and Incus deployment health workflows on disposable providers; complete Incus lifecycle and author Proxmox application runtime as a separate contract.
+3. Implement immutable Git/custom source builds, then PostgreSQL as the first managed engine, optional tenant application Auth, ClickHouse and workload-justified Dragonfly/Redis. Each needs a complete engine-specific backup/restore and lifecycle path.
+4. Complete Cloudflare/Tailscale/custom connectivity mutations, dynamic platform-service/resource views, public-core/private-extension release boundaries, and clean developer/install/upgrade/rollback evidence.
 
 For source-folder closure sequencing (console/cloud/mesh/Warden imports), use the
 [source-closure worklist](platform-consolidation-plan.md#source-closure-worklist).

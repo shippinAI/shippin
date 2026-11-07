@@ -37,10 +37,12 @@ generation under its live lease, revalidates target inventory, obtains current
 AgentHub authorization and consumes that step's one-time dispatch claim. Declared
 environment inputs are resolved through the lease-, audit- and provider-trust-
 gated Vaultix path immediately before workload dispatch. Ambiguous writes are
-observed read-only and never retried blindly. The deployment still ends
-`runtime_unsupported`: target-scoped declared application health, upgrades,
-backup/restore, complete service lifecycle and Proxmox application execution are
-not implemented. This partial execution is not a deployable service.
+observed read-only and never retried blindly. A queued target-health command
+leaves observed state `unknown` and returns `health_pending`; an authenticated
+result is reconciled separately. Only a verified pass can produce `ready`.
+Upgrades, backup/restore, complete service lifecycle and Proxmox application
+execution are not implemented, so this partial runtime is not yet a turnkey
+deployable service.
 `internal/jobs/` remains the durable worker lease/retry mechanism, not deployment
 truth. `internal/hv/incus/` and `internal/hv/proxmox/` retain provider-specific
 guest behavior; `internal/hostd/` owns only the bounded in-guest bootstrap and
@@ -84,8 +86,9 @@ the [system identity and human review plan](system-identity-human-review-plan.md
 Deployment review reservations persist the version and digest of a deterministic
 provider execution plan derived from the immutable generation. The AgentHub action
 and review evidence bind that plan; stale plan digests are rejected before an
-authorization request. The generation remains `runtime_unsupported`; these
-provider steps do not prove a complete service deployment.
+authorization request. A pending application probe stays `unknown`; generations
+without a supported executor remain `runtime_unsupported`. These provider steps
+do not prove a complete service deployment.
 Incus provider records can explicitly acknowledge that provider administrators
 may read tenant deployment secrets projected into instance configuration. The
 setting is operator-managed, defaults to deny, and gates the lease-fenced
