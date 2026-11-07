@@ -115,7 +115,14 @@ func TestHeartbeatExecutesTypedCommandAndSubmitsResult(t *testing.T) {
 		}
 		switch r.URL.Path {
 		case "/v1/servers/heartbeat":
-			_, _ = w.Write([]byte(`{"command":{"id":"2d6a4a79-9c0f-46df-83da-8ec9cde05a11","type":"probe_incus_application","deployment_id":"2d6a4a79-9c0f-46df-83da-8ec9cde05a11","generation":2,"plan_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","idempotency_key":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","payload":{},"expires_at":"2026-11-07T00:00:00Z"}}`))
+			if err := json.NewEncoder(w).Encode(map[string]Command{"command": {
+				ID: "2d6a4a79-9c0f-46df-83da-8ec9cde05a11", Type: "probe_incus_application",
+				DeploymentID: "2d6a4a79-9c0f-46df-83da-8ec9cde05a11", Generation: 2,
+				PlanSHA256: strings.Repeat("a", 64), IdempotencyKey: strings.Repeat("b", 64),
+				Payload: json.RawMessage(`{}`), ExpiresAt: time.Now().Add(time.Minute),
+			}}); err != nil {
+				t.Errorf("encode heartbeat command: %v", err)
+			}
 		case "/v1/servers/commands/2d6a4a79-9c0f-46df-83da-8ec9cde05a11/result":
 			var got CommandResult
 			if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
