@@ -1,29 +1,18 @@
-# Run the panel and its database with Docker:
-#
-#   docker compose up -d --build
-#   docker compose logs panel | grep setup_code
-#
-# Then open https://localhost:8443/setup. It works with no configuration. For a real installation,
-# copy config/site.env.example to .env and edit it; docs/deploy.md has the details.
-name: shippin
+# One installation: panel + PostgreSQL + Dragonfly. Dependency definitions belong
+# to install/docker. Existing db and state volume names are preserved on upgrade.
+# python install/docker/configure.py
+# docker compose up -d --build
+name: shippin-platform
 
 services:
   db:
-    image: postgres:16
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: shippin
-      POSTGRES_DB: shippin
-      # Reachable only on this project's private network. Set your own in .env before going live.
-      POSTGRES_PASSWORD: ${SHIPPIN_DB_PASSWORD:-shippin-local-only}
-    volumes:
-      - db:/var/lib/postgresql/data
-    healthcheck:
-      test: [CMD-SHELL, pg_isready -U shippin -d shippin]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-
+    extends:
+      file: install/docker/postgres.compose.yaml
+      service: postgres
+  dragonfly:
+    extends:
+      file: install/docker/dragonfly.compose.yaml
+      service: dragonfly
   panel:
     build: .
     image: shippin-panel:local
@@ -31,11 +20,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      dragonfly:
+        condition: service_healthy
     env_file:
       - path: .env
         required: false
     environment:
-      SHIPPIN_DATABASE_URL: postgres://shippin:${SHIPPIN_DB_PASSWORD:-shippin-local-only}@db:5432/shippin?sslmode=disable
+      SHIPPIN_DATABASE_URL: ${SHIPPIN_DATABASE_URL:-postgres://${SHIPPIN_DB_USER:-shippin}:${SHIPPIN_DB_PASSWORD}@db:5432/${SHIPPIN_DB_NAME:-shippin}?sslmode=disable}
+      SHIPPIN_REDIS_URL: ${SHIPPIN_REDIS_URL:-redis://:${SHIPPIN_DRAGONFLY_PASSWORD}@dragonfly:6379/0}
+      SHIPPIN_REDIS_PREFIX: ${SHIPPIN_REDIS_PREFIX:-shippin:}
       SHIPPIN_LISTEN: :8443
       SHIPPIN_DEPLOY_METHOD: compose
       SHIPPIN_PORT: ${SHIPPIN_PORT:-8443}
@@ -46,4 +39,5 @@ services:
 
 volumes:
   db:
+  dragonfly:
   state:

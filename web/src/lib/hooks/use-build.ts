@@ -13,7 +13,7 @@ export const usePromptOptions = (tenantId?: string) =>
     staleTime: 60_000,
   });
 
-export type PromptBody = { prompt: string; provider: string; stack?: string };
+export type PromptBody = { prompt: string; provider: string; stack?: string; workspace_id?: string };
 
 /** M4: create a project from a prompt; the build runs as a job with the user's own agent CLI. */
 export function useCreateFromPrompt(tenantId: string) {
@@ -23,6 +23,7 @@ export function useCreateFromPrompt(tenantId: string) {
     onSuccess: (p) => {
       toast.success(`Building ${p.name}`, "Your devspace is on its way. Follow along in Build.");
       void qc.invalidateQueries({ queryKey: ["tenant", tenantId, "projects"] });
+      void qc.invalidateQueries({ queryKey: ["tenant", tenantId, "organization-workspaces"] });
     },
     onError: (e) => toast.error("Couldn't start the build", e.message),
   });

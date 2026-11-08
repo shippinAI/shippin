@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+type attemptLimiter interface{ Allow(string, time.Time) bool }
+
 // Limiter counts events per key inside a window. It is per process.
 type Limiter struct {
 	mu     sync.Mutex

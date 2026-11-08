@@ -49,6 +49,10 @@ func (a *API) opTenants(w http.ResponseWriter, r *http.Request, _ *caller) {
 
 // orgOwner returns the first ORG_OWNER of a Nomen org (display name, login/email).
 func (a *API) orgOwner(ctx context.Context, org string) (string, string) {
+	var localName, localEmail string
+	if err := a.db.Pool.QueryRow(ctx, `SELECT u.name,u.email FROM identity_members m JOIN identity_users u ON u.id=m.user_id WHERE m.org_id::text=$1 AND m.role='owner' ORDER BY u.created_at LIMIT 1`, org).Scan(&localName, &localEmail); err == nil {
+		return localName, localEmail
+	}
 	var res struct {
 		Result []struct {
 			DisplayName        string   `json:"displayName"`

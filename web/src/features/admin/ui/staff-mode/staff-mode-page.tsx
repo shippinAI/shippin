@@ -11,7 +11,7 @@ export function StaffModePage() {
   const [params] = useSearchParams();
   const from = params.get("from") ?? "";
   const rd = params.get("rd") ?? "/admin/tenants";
-  const target = rd.startsWith("/admin/") ? rd : "/admin/tenants";
+  const target = rd.startsWith("/admin/") || rd === "/operator" || rd.startsWith("/operator/") ? rd : "/admin/tenants";
   const mode = useStaffMode().data;
   const enter = useEnterStaffMode();
   const nav = useNavigate();

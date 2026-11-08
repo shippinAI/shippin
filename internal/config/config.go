@@ -156,6 +156,8 @@ type Config struct {
 	Updates           Updates           `json:"updates"`
 	Catalog           Catalog           `json:"catalog"`
 	DatabaseURL       string            `json:"-"`
+	RedisURL          string            `json:"-"`
+	RedisPrefix       string            `json:"-"`
 	SessionKey        string            `json:"-"`
 	Listen            string            `json:"-"`
 	StaticDir         string            `json:"-"`
@@ -197,6 +199,8 @@ func Load() (*Config, error) {
 		c.GovernanceDomains = []string{c.Domain}
 	}
 	c.DatabaseURL = os.Getenv("SHIPPIN_DATABASE_URL")
+	c.RedisURL = os.Getenv("SHIPPIN_REDIS_URL")
+	c.RedisPrefix = env("SHIPPIN_REDIS_PREFIX", "shippin:")
 	c.SessionKey = os.Getenv("SHIPPIN_SESSION_KEY")
 	c.IDPServiceToken = os.Getenv("SHIPPIN_IDP_SERVICE_TOKEN")
 	c.IDPReadToken = os.Getenv("SHIPPIN_IDP_READ_TOKEN")
@@ -220,6 +224,9 @@ func Load() (*Config, error) {
 
 // Check validates every fail-closed section.
 func (c *Config) Check() error {
+	if err := c.checkCache(); err != nil {
+		return err
+	}
 	if c.ProbeConcurrency != 0 && (c.ProbeConcurrency < 1 || c.ProbeConcurrency > MaxProbeConcurrency) {
 		return fmt.Errorf("probe_concurrency must be between 1 and %d", MaxProbeConcurrency)
 	}

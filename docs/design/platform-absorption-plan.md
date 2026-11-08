@@ -1,5 +1,12 @@
 # Shippin platform absorption plan
 
+**Execution-order correction, 2026-11-07:** [the product contract](../objective.md)
+and [roadmap](../roadmap.md) now govern ownership, staff primary/secondary roles,
+the tenant workspace/project hierarchy, and automatic/advanced service deployment.
+The first packet reconciles internal-org and staff authorities before releasing
+pending bootstrap changes. Earlier phase orders below are historical planning
+evidence and must be reconciled with that current roadmap.
+
 Status: active execution plan, reconciled 2026-11-06 against `main` at
 `82e7e24b1fb40a540f5e0de1a072b1530bd9a9dd` at packet start. This describes target contracts and
 acceptance gates; it does not claim unimplemented workflows are live. The

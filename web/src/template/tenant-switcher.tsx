@@ -33,7 +33,7 @@ export function TenantSwitcher() {
           id={t.tenant_id}
           textValue={t.name}
           onAction={() => {
-            nav(`/t/${t.tenant_id}`);
+            nav(`/t/${t.tenant_id}/workspaces`);
             toast.info(`Switched to ${t.name}`);
           }}
         >

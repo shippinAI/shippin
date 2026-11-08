@@ -51,6 +51,10 @@ projects:
             properties:
               name: *id001
               environment: *id001
+              workspace_id:
+                type: string
+                format: uuid
+                description: Organization workspace; omitted by legacy clients to use the default. Cross-tenant IDs are rejected.
     responses:
       '201':
         description: Member manager only. Environment defaults to dev. A project may remain pending until placement

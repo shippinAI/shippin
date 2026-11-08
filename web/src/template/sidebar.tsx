@@ -32,7 +32,7 @@ export function Sidebar() {
   return (
     <aside className="hidden w-64 md:flex shrink-0 flex-col border-r border-line bg-surface/60">
       <div className="flex h-14 items-center gap-2.5 px-5">
-        <BrandMark size={26} />
+        <BrandMark size={26} logoURL={settings?.brand.logo_url} />
         <span className="text-[15px] font-semibold tracking-tight">{settings?.brand.name ?? ""}</span>
       </div>
       {tenants.length > 0 && (

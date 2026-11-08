@@ -22,6 +22,7 @@ export function useImportRepo(tenantId: string) {
     onSuccess: (r) => {
       toast.success(`Project ${r.slug} imported`, `${r.repo}@${r.branch} is cloned into ~/code/${r.slug} in your devspace.`);
       void qc.invalidateQueries({ queryKey: ["tenant", tenantId, "projects"] });
+      void qc.invalidateQueries({ queryKey: ["tenant", tenantId, "organization-workspaces"] });
     },
     onError: (e) => toast.error("Import failed", e.message),
   });

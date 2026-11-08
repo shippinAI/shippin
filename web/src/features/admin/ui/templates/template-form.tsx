@@ -6,7 +6,7 @@ import { Select } from "../../../../lib/design/components/select/select";
 import { Switch } from "../../../../lib/design/components/switch/switch";
 import type { Template } from "../../../../lib/api/types";
 import { useSaveTemplate } from "../../../../lib/hooks/use-templates";
-import { iconKeys } from "../../../workspaces/ui/create/template-icon";
+import { iconKeys } from "../../../devspaces/ui/create/template-icon";
 
 const blank: Partial<Template> = { slug: "", name: "", description: "", icon: "debian", image: "", toolchain: [], cpu: 2, memory_gib: 4, disk_gib: 20, repo: "", startup: "", ports: [], enabled: true, sort: 100 };
 const list = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);

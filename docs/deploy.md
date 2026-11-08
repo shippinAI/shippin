@@ -15,13 +15,37 @@ This works on Debian and Ubuntu. It writes `/etc/shippin/site.env` the first tim
 ```sh
 git clone https://github.com/shippinAI/shippin && cd shippin
 cp config/site.env.example .env   # optional; edit it for a real site
+python install/docker/configure.py # generates missing credentials; keeps existing values
 docker compose up -d --build
 docker compose logs panel | grep setup_code
 ```
 
-With no `.env` it serves `https://localhost:8443` with a generated certificate and a database on a private network. For a real site, set at least `SHIPPIN_CONSOLE_HOST`, `SHIPPIN_DB_PASSWORD` and `SHIPPIN_BIND` in `.env`, and either `SHIPPIN_TLS_CERT` and `SHIPPIN_TLS_KEY` or `SHIPPIN_TLS=proxy` behind your own TLS proxy. State lives in the `db` and `state` volumes, so back those up.
+With generated credentials and no other settings it serves `https://localhost:8443` with a generated certificate. PostgreSQL and authenticated Dragonfly are private services in the same Compose project, with no database ports published. `install/docker/postgres.compose.yaml` and `install/docker/dragonfly.compose.yaml` own those definitions; root `compose.yaml` assembles the installation. PostgreSQL holds platform data, encrypted sessions and durable jobs. Dragonfly holds expiring shared password/passkey/public-form rate-limit counters. Its snapshot volume does not replace PostgreSQL backups. The platform health page reports live connectivity for both. Loss of a configured Dragonfly connection denies limited authentication attempts and returns HTTP 503 from `/readyz` and `/healthz`.
+
+For a real site, configure the hostname, bind address and TLS. State lives in `db`, `state` and `dragonfly` volumes. Keep the same Compose project name on upgrade; older installations created as `shippin` must continue using `docker compose -p shippin` to retain their volumes. The current default project name is `shippin-platform`.
+
+For hosted dependencies, set `SHIPPIN_DATABASE_URL` and/or `SHIPPIN_REDIS_URL` in `.env` (use PostgreSQL TLS settings and `rediss://` where required). Explicit URLs override the bundled defaults. Start only the selected services: `docker compose up -d --no-deps panel` for both external, or include `db` or `dragonfly` when that dependency is bundled. Run the credential initializer before Compose even for unused local definitions. Use a unique `SHIPPIN_REDIS_PREFIX` per installation when sharing an external Redis database. Connection credentials are bootstrap configuration; the live health table does not edit or migrate databases. Tenant-managed PostgreSQL, Dragonfly and ClickHouse deployment, backups and upgrades are separate unfinished capabilities.
+
+Images and capacity are configurable through `SHIPPIN_POSTGRES_IMAGE`, `SHIPPIN_DRAGONFLY_IMAGE`, `SHIPPIN_DRAGONFLY_MAXMEMORY` and `SHIPPIN_DRAGONFLY_THREADS`. This Docker path includes Dragonfly; the systemd installer still uses process-local limits unless `SHIPPIN_REDIS_URL` is configured.
 
 To upgrade, run `git pull --ff-only && docker compose up -d --build`. The panel's top bar shows when a newer build exists, and this command.
+
+Before upgrading, back up PostgreSQL and the `state` volume (including the session
+encryption key), and retain the current image. Migrations 064–066 add password
+credentials, explicit internal organization ownership, and default organization
+workspaces. They preserve existing customer memberships, project/environment IDs,
+and compute devspace IDs. Existing passwordless owners keep their sign-in methods
+and can establish a password in **Account → Security** after signing in. Do not
+reset setup or recreate the owner to upgrade. Reverting schema requires restoring
+the matching database/state backups; changing the image alone is not a schema rollback.
+
+After first installation, the owner lands in the operator area. Enter staff mode,
+open **Organizations**, and create a customer with an explicitly selected owner and
+plan. This creates a draft organization and its default workspace without
+provisioning a server. Organization members open **Workspaces → Open projects**;
+owners/admins can add/edit workspaces and create multiple projects in each. A
+project without compute stays pending. Compute instance management is under
+**Devspaces**; existing `/workspaces/{id}` compute links remain compatible.
 
 Add each Incus or Proxmox connection under **Infrastructure → Hosts & nodes**. The form is provider-configured, tests the connection before saving, and seals credentials in the platform database. If an installation manages provider secrets outside the panel, the optional **Token environment variable** field can reference a `SHIPPIN_HV_*` value in `/etc/shippin/console.env`; mount any CA or client certificate files named by the connection. No global Proxmox endpoint or Warden configuration file is used.
 
@@ -81,9 +105,9 @@ incus config device add <vm> panel proxy nat=true listen=tcp:<host address>:443 
 
 ## First owner
 
-After the health check passes, the installer runs `shippin-console setup` and prints `setup_code=...` while no owner exists. The code is valid for 24 hours. Running the installer again before it is redeemed issues a new code and invalidates the old one; once an owner exists, nothing is issued. Open `https://<console host>/setup` and enter the code with your name and email (or `POST /v1/setup` with `code`, `email`, `name` from the panel's https origin). That creates the owner, signs you in, and shows eight recovery codes once. The sign-in page links to `/setup` while no owner exists and offers "Use a recovery code" afterwards.
+After the health check passes, the installer runs `shippin-console setup` and prints `setup_code=...` while no owner exists. The code is valid for 24 hours. Running the installer again before it is redeemed issues a new code and invalidates the old one; once an owner exists, nothing is issued. Open `https://<console host>/setup` and enter the one-time code, then choose a username and password and provide your full name, email, organization name, and installation branding. The password is chosen by the owner; the installer does not ship a shared default credential. Setup atomically creates the owner, local organization and tenant boundary, and branding settings, signs the owner in, and shows eight recovery codes once. Sign-in accepts username or email with the chosen password, passkeys, and recovery codes.
 
-The owner is the platform admin without any upstream IdP: a local session maps the owner to the `roles.iam` source of `operator.role`, and each directory org to an org membership. Tenant onboarding (`/welcome`) still creates its org through the upstream IdP, so a panel with no IdP client cannot create tenants yet. See [identity and access](identity-and-access.md).
+The owner is the platform admin without any upstream IdP: a local session maps the owner to the `roles.iam` source of `operator.role`, and the first local organization maps directly to a customer tenant boundary. No compute is provisioned during first-run setup. Existing passwordless accounts can set their first password under **Account → Security** after signing in; accounts with a password must verify it to change it. See [identity and access](identity-and-access.md).
 
 The `--example` install redeems its own code as part of the smoke test.
 

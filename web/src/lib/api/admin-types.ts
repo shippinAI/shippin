@@ -1,5 +1,6 @@
 // Provider panel (/v1/operator/*) response shapes. No secrets are ever returned.
 export type SystemTenant = {
+  organization: { id: string; name: string; identity_org_id: string };
   tenant: { id: string; name: string; status: string; created_at: string };
   hosts: number;
   self_guest: string;

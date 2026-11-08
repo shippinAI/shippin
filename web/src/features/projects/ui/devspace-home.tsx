@@ -2,7 +2,7 @@ import type { Project } from "../../../lib/api/project-types";
 import type { Workspace } from "../../../lib/api/types";
 import { Card, CardHeader } from "../../../lib/design/components/card/card";
 import { timeAgo } from "../../../lib/format";
-import { ProvisionProgress } from "../../workspaces/ui/provision-progress";
+import { ProvisionProgress } from "../../devspaces/ui/provision-progress";
 
 /** Devspace home: state in plain words, and what "resume" keeps (02b Persistence). */
 export function DevspaceHome({ ws, project }: { ws?: Workspace; project: Project }) {

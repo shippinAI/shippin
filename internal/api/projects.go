@@ -18,6 +18,10 @@ func (a *API) projectRoutes(mux Router) {
 			if !ok {
 				return
 			}
+			if !t.member() && t.grantFor("") == nil {
+				auth.Problem(w, http.StatusForbidden, "A devspace support grant does not grant access to organization projects or workspace groups.")
+				return
+			}
 			if write && !c.canDecide(t) {
 				auth.Problem(w, http.StatusForbidden, "Changing projects needs the org owner or admin role.")
 				return

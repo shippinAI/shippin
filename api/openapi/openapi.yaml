@@ -195,6 +195,12 @@ paths:
     $ref: paths/workspace-runtime.yaml#/adopt
   /tenants/{tenantId}/projects:
     $ref: paths/projects-runtime.yaml#/projects
+  /tenants/{tenantId}/organization-workspaces:
+    $ref: paths/organization-workspaces.yaml#/workspaces
+  /tenants/{tenantId}/organization-workspaces/{groupId}:
+    $ref: paths/organization-workspaces.yaml#/workspace
+  /tenants/{tenantId}/organization-workspaces/{groupId}/projects:
+    $ref: paths/organization-workspaces.yaml#/projects
   /tenants/{tenantId}/projects/{projectId}:
     $ref: paths/projects-runtime.yaml#/project
   /tenants/{tenantId}/projects/{projectId}/environments:
@@ -299,6 +305,10 @@ paths:
     $ref: paths/directory.yaml#/setup
   /session/magic:
     $ref: paths/directory.yaml#/magic
+  /session/password:
+    $ref: paths/directory.yaml#/passwordLogin
+  /directory/me/password:
+    $ref: paths/directory.yaml#/passwordChange
   /waitlist:
     $ref: paths/directory.yaml#/waitlist
   /admin/waitlist.csv:

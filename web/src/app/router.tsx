@@ -15,14 +15,15 @@ const InstancesPage = lazy(() => import("../features/instances/ui/instances-page
 const InfrastructurePage = lazy(() => import("../features/infrastructure/ui/infrastructure-page").then((m) => ({ default: m.InfrastructurePage })));
 const PlatformPage = lazy(() => import("../features/instances/ui/platform-page").then((m) => ({ default: m.PlatformPage })));
 const SettingsPage = lazy(() => import("../features/settings/ui/settings-page").then((m) => ({ default: m.SettingsPage })));
-const WorkspacesPage = lazy(() => import("../features/workspaces/ui/workspaces-page").then((m) => ({ default: m.WorkspacesPage })));
+const DevspacesPage = lazy(() => import("../features/devspaces/ui/devspaces-page").then((m) => ({ default: m.DevspacesPage })));
 const DeploymentsPage = lazy(() => import("../features/deployments/ui/deployments-page").then((m) => ({ default: m.DeploymentsPage })));
-const WorkspaceDetailPage = lazy(() => import("../features/workspaces/ui/workspace-detail-page").then((m) => ({ default: m.WorkspaceDetailPage })));
+const WorkspaceDetailPage = lazy(() => import("../features/devspaces/ui/workspace-detail-page").then((m) => ({ default: m.WorkspaceDetailPage })));
 const AIConnectionsPage = lazy(() => import("../features/account/ui/ai-connections-page").then((m) => ({ default: m.AIConnectionsPage })));
 const SecurityPage = lazy(() => import("../features/account/ui/security-page").then((m) => ({ default: m.SecurityPage })));
 const SSHKeysPage = lazy(() => import("../features/account/ui/ssh-keys-page").then((m) => ({ default: m.SSHKeysPage })));
-const CreateWorkspacePage = lazy(() => import("../features/workspaces/ui/create/create-workspace-page").then((m) => ({ default: m.CreateWorkspacePage })));
+const CreateWorkspacePage = lazy(() => import("../features/devspaces/ui/create/create-workspace-page").then((m) => ({ default: m.CreateWorkspacePage })));
 const ProjectsPage = lazy(() => import("../features/projects/ui/projects-page").then((m) => ({ default: m.ProjectsPage })));
+const OrganizationWorkspacesPage = lazy(() => import("../features/workspaces/ui/workspaces-page").then((m) => ({ default: m.OrganizationWorkspacesPage })));
 const DevspacePage = lazy(() => import("../features/projects/ui/devspace-page").then((m) => ({ default: m.DevspacePage })));
 const OpsServersPage = lazy(() => import("../features/orgs/ui/ops-servers-page").then((m) => ({ default: m.OpsServersPage })));
 const ServersPage = lazy(() => import("../features/servers/ui/servers-page").then((m) => ({ default: m.ServersPage })));
@@ -63,7 +64,9 @@ export const router = createBrowserRouter([
               { path: "/t/:tenantId/database", element: <Suspense fallback={null}><DatabasePage /></Suspense> },
               { path: "/t/:tenantId/deployments", element: <Suspense fallback={null}><DeploymentsPage /></Suspense> },
               { path: "/t/:tenantId/projects/:projectId", element: <DevspacePage /> },
-              { path: "/t/:tenantId/workspaces", element: <WorkspacesPage /> },
+              { path: "/t/:tenantId/workspaces", element: <OrganizationWorkspacesPage /> },
+              { path: "/t/:tenantId/workspaces/:groupId/projects", element: <ProjectsPage /> },
+              { path: "/t/:tenantId/devspaces", element: <DevspacesPage /> },
               { path: "/t/:tenantId/identity", element: <IdentityPage /> },
               { path: "/t/:tenantId/servers", element: <ServersPage /> },
               { path: "/t/:tenantId/servers/:serverId", element: <Suspense fallback={null}><ServerGuestsPage /></Suspense> },

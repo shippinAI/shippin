@@ -6,6 +6,6 @@ export function useTenant() {
   const { tenantId } = useParams();
   const me = useMe();
   const tenants = me.data?.tenants ?? [];
-  const tenant = tenants.find((t) => t.tenant_id === tenantId) ?? tenants[0];
+  const tenant = tenantId ? tenants.find((t) => t.tenant_id === tenantId) : undefined;
   return { tenant, tenants, me: me.data, isOperator: (me.data?.platform_roles.length ?? 0) > 0 };
 }

@@ -3,7 +3,7 @@ import { LinkButton } from "../../../lib/design/components/button/link-button";
 import { Card, CardHeader } from "../../../lib/design/components/card/card";
 import { EmptyState } from "../../../lib/design/components/empty-state/empty-state";
 import { useWorkspaces } from "../../../lib/hooks/use-workspaces";
-import { StateBadge } from "../../workspaces/ui/state-badge";
+import { StateBadge } from "../../devspaces/ui/state-badge";
 
 /** Overview card: recent workspaces, or an empty state pointing at Workspaces. */
 export function WorkspacesEmpty({ tenantId }: { tenantId?: string }) {

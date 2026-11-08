@@ -1,0 +1,21 @@
+services:
+  dragonfly:
+    image: ${SHIPPIN_DRAGONFLY_IMAGE:-docker.dragonflydb.io/dragonflydb/dragonfly:v1.34.2}
+    restart: unless-stopped
+    command:
+      - --requirepass=${SHIPPIN_DRAGONFLY_PASSWORD:?Run python install/docker/configure.py first}
+      - --maxmemory=${SHIPPIN_DRAGONFLY_MAXMEMORY:-512mb}
+      - --proactor_threads=${SHIPPIN_DRAGONFLY_THREADS:-2}
+      - --snapshot_cron=*/5 * * * *
+      - --dir=/data
+    environment:
+      REDISCLI_AUTH: ${SHIPPIN_DRAGONFLY_PASSWORD}
+    volumes:
+      - dragonfly:/data
+    ulimits:
+      memlock: -1
+    healthcheck:
+      test: [CMD-SHELL, 'redis-cli ping | grep -qx PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 30

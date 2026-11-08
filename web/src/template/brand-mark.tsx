@@ -1,5 +1,6 @@
 /** Shippin logo mark: stacked layers in a gradient tile. */
-export function BrandMark({ size = 28 }: { size?: number }) {
+export function BrandMark({ size = 28, logoURL }: { size?: number; logoURL?: string }) {
+  if (logoURL) return <img src={logoURL} width={size} height={size} className="rounded object-contain" alt="" />;
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
       <defs>

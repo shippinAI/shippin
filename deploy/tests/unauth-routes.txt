@@ -21,6 +21,7 @@ DELETE /v1/tenants/{tenantId}/db/snippets/{snippetId}
 DELETE /v1/tenants/{tenantId}/db/tables/{table}/rows
 DELETE /v1/tenants/{tenantId}/deployments/{deploymentId}
 DELETE /v1/tenants/{tenantId}/members/{userId}
+DELETE /v1/tenants/{tenantId}/organization-workspaces/{groupId}
 DELETE /v1/tenants/{tenantId}/projects/{projectId}
 DELETE /v1/tenants/{tenantId}/subscriptions/{provider}
 DELETE /v1/tenants/{tenantId}/teams/{teamId}
@@ -127,6 +128,9 @@ GET /v1/tenants/{tenantId}/github/install
 GET /v1/tenants/{tenantId}/github/repos
 GET /v1/tenants/{tenantId}/identity/agents
 GET /v1/tenants/{tenantId}/members
+GET /v1/tenants/{tenantId}/organization-workspaces
+GET /v1/tenants/{tenantId}/organization-workspaces/{groupId}
+GET /v1/tenants/{tenantId}/organization-workspaces/{groupId}/projects
 GET /v1/tenants/{tenantId}/projects
 GET /v1/tenants/{tenantId}/projects/{projectId}
 GET /v1/tenants/{tenantId}/projects/{projectId}/agent
@@ -157,6 +161,7 @@ GET /v1/tenants/{tenantId}/workspaces/{workspaceId}/terminal
 GET /v1/version
 PATCH /v1/tenants/{tenantId}/deployments/{deploymentId}
 PATCH /v1/tenants/{tenantId}/members/{userId}
+PATCH /v1/tenants/{tenantId}/organization-workspaces/{groupId}
 POST /v1/bridge/device/{code}
 POST /v1/chat/sessions
 POST /v1/chat/sessions/{id}/messages
@@ -236,6 +241,7 @@ POST /v1/tenants/{tenantId}/desktop/prepare
 POST /v1/tenants/{tenantId}/github/import
 POST /v1/tenants/{tenantId}/identity/agents
 POST /v1/tenants/{tenantId}/members
+POST /v1/tenants/{tenantId}/organization-workspaces
 POST /v1/tenants/{tenantId}/projects
 POST /v1/tenants/{tenantId}/projects/from-prompt
 POST /v1/tenants/{tenantId}/projects/{projectId}/agent/start

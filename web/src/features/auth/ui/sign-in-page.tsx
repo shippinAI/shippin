@@ -28,7 +28,7 @@ export function SignInPage() {
       <div className="flex items-center justify-center p-10">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-3">
-            <BrandMark size={36} />
+            <BrandMark size={36} logoURL={s?.brand.logo_url} />
             <span className="text-xl font-semibold tracking-tight">{s?.brand.name}</span>
           </div>
           <h1 className="text-[28px] font-semibold tracking-tight">Welcome back</h1>
@@ -71,6 +71,18 @@ export function SignInPage() {
                 Continue with {p.label} <ArrowRight className="size-4" />
               </Button>
             ))}
+            {s?.local_login !== false && (
+              <form className="mb-4 grid gap-2" data-testid="password-sign-in" onSubmit={(e) => {
+                e.preventDefault(); const f = new FormData(e.currentTarget);
+                void fetch("/v1/session/password", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ identifier: f.get("identifier"), password: f.get("password") }) }).then((res) => {
+                  if (res.ok) window.location.assign("/"); else toast.error("Sign-in failed", "Username or password is incorrect.");
+                }).catch(() => toast.error("Sign-in failed", "The panel could not complete sign-in."));
+              }}>
+                <input name="identifier" required autoComplete="username" aria-label="Username or email" placeholder="Username or email" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 text-sm" />
+                <input name="password" type="password" required autoComplete="current-password" aria-label="Password" placeholder="Password" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 text-sm" />
+                <Button type="submit" variant="primary" size="lg" className="w-full" tooltip="Sign in with your username or email and password">Sign in with password</Button>
+              </form>
+            )}
             {s?.local_login !== false && (
               <form
                 className="grid gap-2"

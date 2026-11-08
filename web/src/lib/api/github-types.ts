@@ -11,4 +11,4 @@ export type GitHubInstallationRepos = {
 
 export type GitHubRepos = { installations: GitHubInstallationRepos[]; can_install: boolean };
 
-export type ImportRequest = { installation_id: number; repo_id: number; branch?: string };
+export type ImportRequest = { installation_id: number; repo_id: number; branch?: string; workspace_id?: string };

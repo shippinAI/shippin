@@ -1,48 +1,65 @@
-import { Plus } from "lucide-react";
+import { FolderGit2, Plus } from "lucide-react";
+import { useState } from "react";
+import { Form } from "react-aria-components";
 import { useNavigate } from "../../../lib/router/router";
+import { Badge } from "../../../lib/design/components/badge/badge";
 import { Button } from "../../../lib/design/components/button/button";
-import { Card, CardHeader } from "../../../lib/design/components/card/card";
-import { DataTable } from "../../../lib/design/components/data-table/data-table";
-import { EmptyState } from "../../../lib/design/components/empty-state/empty-state";
+import { Card } from "../../../lib/design/components/card/card";
+import { ConfirmDialog } from "../../../lib/design/components/dialog/confirm-dialog";
+import { ModalDialog } from "../../../lib/design/components/dialog/modal-dialog";
+import { TextField } from "../../../lib/design/components/field/text-field";
 import { Skeleton } from "../../../lib/design/components/skeleton/skeleton";
-import { useStateToasts } from "../../../lib/hooks/use-state-toasts";
 import { useTenant } from "../../../lib/hooks/use-tenant";
-import { useWorkspaces } from "../../../lib/hooks/use-workspaces";
+import { useText } from "../../../lib/ui-config/use-ui-config";
 import { PageHeader } from "../../../template/page-header";
-import { workspaceColumns } from "./workspace-columns";
+import { type OrganizationWorkspace, useDeleteOrganizationWorkspace, useOrganizationWorkspaces, useSaveOrganizationWorkspace } from "../use-organization-workspaces";
 
-export function WorkspacesPage() {
+export function OrganizationWorkspacesPage() {
   const { tenant } = useTenant();
-  const q = useWorkspaces(tenant?.tenant_id);
+  const tenantId = tenant?.tenant_id ?? "";
+  const q = useOrganizationWorkspaces(tenantId);
+  const save = useSaveOrganizationWorkspace(tenantId);
+  const remove = useDeleteOrganizationWorkspace(tenantId);
   const nav = useNavigate();
-  useStateToasts(q.isError ? undefined : q.data?.items);
-  const items = q.isError ? [] : q.data?.items ?? [];
-  const can = !q.isError && !!q.data?.can_manage && q.data.tenant_status === "active";
-  const why = !q.data?.can_manage ? "Needs org_owner or org_admin" : "Tenant isn't provisioned yet";
-  const createBtn = (
-    <Button variant="primary" size="sm" isDisabled={!can} tooltip={can ? "Create a new dev workspace" : why} onPress={() => nav(`/t/${tenant?.tenant_id}/workspaces/new`)}>
-      <Plus className="size-4" /> New workspace
-    </Button>
-  );
-  const running = items.filter((w) => w.state === "running").length;
-  return (
-    <>
-      <PageHeader eyebrow={tenant?.name} title="Workspaces" description="Isolated dev servers with a browser IDE, their own encrypted storage and a public HTTPS address." actions={createBtn} />
-      {q.isError && <p role="alert">Workspace inventory could not be loaded. <Button tooltip="Reload workspace inventory" onPress={() => void q.refetch()}>Retry</Button></p>}
-      {items.some((w) => w.observation && w.observation !== "observed") && <p role="status">Some workspace states could not be verified. Recorded state is not live health.</p>}
-      {!q.isError && <Card elevation={2} className="overflow-hidden">
-        <CardHeader title={`${items.length} workspace${items.length === 1 ? "" : "s"}`} description={q.data ? `${running} running` : "LoadingÃ¢â‚¬Â¦"} />
-        {q.isPending ? (
-          <div className="space-y-3 p-5">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-11" />)}</div>
-        ) : (
-          <DataTable
-            label="Workspaces"
-            columns={workspaceColumns(!!q.data?.can_manage)}
-            rows={items}
-            empty={<EmptyState title="No workspaces yet" description="Create a dev server and open it in your browser in about a minute." action={createBtn} />}
-          />
-        )}
-      </Card>}
-    </>
-  );
+  const text = useText();
+  const [editor, setEditor] = useState<OrganizationWorkspace | "new" | null>(null);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [deleting, setDeleting] = useState<OrganizationWorkspace>();
+  const edit = (value: OrganizationWorkspace | "new") => {
+    save.reset(); setEditor(value); setName(value === "new" ? "" : value.name); setDescription(value === "new" ? "" : value.description);
+  };
+  return <>
+    <PageHeader eyebrow={tenant?.name} title={text("spaces.title")} description={text("spaces.description")} />
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <p className="text-sm text-fg-muted">{text("spaces.access")}</p>
+      {tenant?.can_manage && tenant.roles.length > 0 && <Button variant="primary" tooltip={text("spaces.create")} onPress={() => edit("new")}><Plus className="size-4" />{text("spaces.create")}</Button>}
+    </div>
+    {q.isPending && <Skeleton className="h-40" />}
+    {q.isError && <p role="alert" className="text-danger">{q.error.message}</p>}
+    {remove.isError && <p role="alert" className="mb-4 text-danger">{remove.error.message}</p>}
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {q.data?.map((space) => <Card key={space.id} elevation={2} className="flex flex-col gap-4 p-5">
+        <div className="flex items-center gap-3"><FolderGit2 className="size-5 text-primary" /><h2 className="min-w-0 flex-1 truncate font-semibold">{space.name}</h2>{space.is_default && <Badge tone="primary">{text("spaces.default")}</Badge>}</div>
+        <p className="min-h-10 text-sm text-fg-muted">{space.description || text("spaces.emptyDescription")}</p>
+        <p className="text-sm text-fg-subtle">{text("spaces.projectCount", { count: space.projects })}</p>
+        <div className="mt-auto flex flex-wrap gap-2">
+          <Button variant="primary" size="sm" tooltip={text("spaces.open")} onPress={() => nav(`/t/${tenantId}/workspaces/${space.id}/projects`)}>{text("spaces.open")}</Button>
+          {tenant?.can_manage && tenant.roles.length > 0 && <>
+            <Button size="sm" tooltip={text("spaces.edit")} onPress={() => edit(space)}>{text("spaces.edit")}</Button>
+            {!space.is_default && space.projects === 0 && <Button variant="ghost" size="sm" tooltip={text("spaces.delete")} isDisabled={remove.isPending} onPress={() => setDeleting(space)}>{text("spaces.delete")}</Button>}
+          </>}
+        </div>
+      </Card>)}
+    </div>
+    <ModalDialog isOpen={editor !== null} onOpenChange={(open) => { if (!open && !save.isPending) setEditor(null); }} title={text(editor === "new" ? "spaces.create" : "spaces.edit")}>
+      <Form className="space-y-4 p-6" onSubmit={(e) => { e.preventDefault(); save.mutate({ id: editor && editor !== "new" ? editor.id : undefined, name, description }, { onSuccess: () => setEditor(null) }); }}>
+        <TextField label={text("spaces.name")} value={name} onChange={setName} isRequired maxLength={80} autoFocus />
+        <TextField label={text("spaces.details")} value={description} onChange={setDescription} maxLength={500} multiline />
+        {save.isError && <p role="alert" className="text-sm text-danger">{save.error.message}</p>}
+        <Button type="submit" variant="primary" tooltip={text("spaces.save")} isDisabled={save.isPending || !name.trim()}>{text("spaces.save")}</Button>
+      </Form>
+    </ModalDialog>
+    <ConfirmDialog isOpen={!!deleting} onOpenChange={(open) => { if (!open) setDeleting(undefined); }} title={text("spaces.delete")} body={text("spaces.deleteBody")} confirmLabel={text("spaces.delete")} typeToConfirm={deleting?.name} onConfirm={() => { if (deleting) remove.mutate(deleting.id); }} />
+  </>;
 }

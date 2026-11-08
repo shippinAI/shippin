@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound } from "lucide-react";
+import { KeyRound, LockKeyhole } from "lucide-react";
 import { Button } from "../../../lib/design/components/button/button";
 import { Card, CardHeader } from "../../../lib/design/components/card/card";
 import { toast } from "../../../lib/design/components/toast/toast-queue";
@@ -8,6 +8,7 @@ import { useMe } from "../../../lib/hooks/use-api";
 import { addPasskey, deletePasskey, listPasskeys, passkeyProblem } from "../../../lib/passkey";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { PageHeader } from "../../../template/page-header";
+import { apiSend } from "../../../lib/api/client";
 
 /** A person's own way of signing in. A passkey is also the second factor a staff role needs. */
 export function SecurityPage() {
@@ -42,6 +43,18 @@ export function SecurityPage() {
             ))}
           </ul>
         )}
+      </Card>
+      <Card className="mt-5 overflow-hidden" data-testid="password-management">
+        <CardHeader title="Password" description="Use a unique password of at least 12 characters. For accounts created before password sign-in was available, leave current password empty and use this signed-in session to set the first one." />
+        <form className="grid max-w-xl gap-3 p-5" onSubmit={(e) => {
+          e.preventDefault(); const form = e.currentTarget; const f = new FormData(form); const password = String(f.get("password") ?? "");
+          if (password !== String(f.get("confirm") ?? "")) { toast.error("Password not changed", "The new passwords do not match."); return; }
+          void apiSend("PUT", "/v1/directory/me/password", { current_password: f.get("current"), password }).then(() => { form.reset(); toast.success("Password updated", "You can now sign in with your username or email and password."); }).catch((err: unknown) => toast.error("Password not changed", err instanceof Error ? err.message : "The panel could not update the password."));
+        }}>
+          <input name="current" type="password" autoComplete="current-password" placeholder="Current password (if already set)" aria-label="Current password" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 text-sm" />
+          <div className="grid gap-3 sm:grid-cols-2"><input name="password" type="password" required minLength={12} maxLength={1024} autoComplete="new-password" placeholder="New password (12+ characters)" aria-label="New password" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 text-sm" /><input name="confirm" type="password" required minLength={12} autoComplete="new-password" placeholder="Confirm new password" aria-label="Confirm new password" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 text-sm" /></div>
+          <Button type="submit" variant="primary" className="w-fit" tooltip="Set or change the password for this local account"><LockKeyhole className="size-4" /> Set password</Button>
+        </form>
       </Card>
     </>
   );

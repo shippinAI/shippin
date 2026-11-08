@@ -8,10 +8,18 @@ const ToastRegionHost = lazy(() => import("../lib/design/components/toast/toast-
 /** Bridges RAC links to the router, sets the title, hosts toasts. */
 export function RootLayout() {
   const navigate = useNavigate();
-  const brand = usePublicSettings().data?.brand.name;
+  const settings = usePublicSettings().data;
+  const brand = settings?.brand.name;
+  const color = settings?.brand.color;
   useEffect(() => {
     if (brand) document.title = `${brand} Console`;
   }, [brand]);
+  useEffect(() => {
+    if (color && /^#[0-9a-fA-F]{6}$/.test(color)) {
+      document.documentElement.style.setProperty("--color-primary", color);
+      document.documentElement.style.setProperty("--color-primary-strong", color);
+    }
+  }, [color]);
   return (
     <RouterProvider navigate={navigate} useHref={useHref}>
       <Outlet />

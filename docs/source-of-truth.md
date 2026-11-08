@@ -14,6 +14,26 @@ reference import that is not served, kept until its remaining features are porte
 `Dockerfile` and `compose.yaml` own deployment.
 `install/primary-image/` owns the development image builder. `governance/` owns the
 local plan and journal tooling. Site values live in an uncommitted site file.
+
+`internal/orgs/` owns the explicit registry links between the internal Operations
+organization, its local identity organization and the system tenant, and between
+customer organizations and their tenants. Staff invitations and assignments use
+the internal identity link; they never infer customer membership from the owner's
+first organization. Existing customer memberships survive migration. The separate
+legacy staff assignment models still need reconciliation into scoped grants.
+
+`internal/projects/` owns organization workspace groups (`shippin_workspaces`) and
+the workspace-to-project relationship. `web/src/features/workspaces/` owns that
+grouping UI; `web/src/features/devspaces/` owns compute-instance UI. These are
+modules of the single panel. Existing compute `workspaces` table IDs and API/detail
+URLs remain compatible; they do not become grouping workspace IDs. Migration 066
+adds a default workspace to every tenant, preserves project/environment IDs, and
+enforces project workspace ancestry with a composite tenant foreign key.
+
+`internal/identity/` owns local password hashing and authentication limits.
+PostgreSQL remains the durable authority; configured Redis/Dragonfly stores only
+expiring shared counters. Runtime dependency URLs are bootstrap configuration,
+not customer service credentials or editable health-table values.
 See [the console import](merge-from-shippin-console.md). No candidate code is
 accepted merely by being present in another repository; review source provenance,
 ownership, dependencies and tests before adopting it.

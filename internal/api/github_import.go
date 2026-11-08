@@ -10,6 +10,7 @@ import (
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/hostd"
+	"shippin.cloud/console/internal/projects"
 )
 
 // projectNameRe is the legacy project name form (prompt-created projects).
@@ -19,6 +20,7 @@ type importIn struct {
 	InstallationID int64  `json:"installation_id"`
 	RepoID         int64  `json:"repo_id"`
 	Branch         string `json:"branch"`
+	WorkspaceID    string `json:"workspace_id"`
 }
 
 // githubImport clones a repository of THIS tenant's installation into the running devspace
@@ -42,6 +44,12 @@ func (a *API) importRepo(w http.ResponseWriter, r *http.Request, c *caller, t *t
 	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10)).Decode(&in) != nil || in.InstallationID == 0 || in.RepoID == 0 {
 		auth.Problem(w, http.StatusBadRequest, "Pick a repository.")
 		return
+	}
+	if in.WorkspaceID != "" {
+		if _, err := (&projects.Store{Pool: a.db.Pool}).OrganizationWorkspace(r.Context(), t.ID, in.WorkspaceID); err != nil {
+			auth.Problem(w, http.StatusNotFound, "Workspace not found.")
+			return
+		}
 	}
 	ins, err := a.db.Installations(r.Context(), t.ID)
 	if err != nil {
@@ -70,10 +78,10 @@ func (a *API) importRepo(w http.ResponseWriter, r *http.Request, c *caller, t *t
 		auth.Problem(w, http.StatusConflict, "Start your devspace first; the repository is cloned into it.")
 		return
 	}
-	res, err := a.cloneAndOwn(r.Context(), t.ID, ws, c.id.Sub, in.InstallationID, repo, branch)
+	res, err := a.cloneAndOwn(r.Context(), t.ID, ws, c.id.Sub, in.InstallationID, repo, branch, in.WorkspaceID)
 	if err != nil {
 		log.Printf("import %s: %v", repo.FullName, err)
-		auth.Problem(w, http.StatusBadGateway, "The repository couldn't be imported; nothing was kept. Try again.")
+		auth.Problem(w, http.StatusBadGateway, "The import could not complete. If cloning succeeded, the folder remains in your devspace for recovery.")
 		return
 	}
 	_ = a.store().AddAudit(r.Context(), db.AuditEntry{TenantID: t.ID, TenantName: t.Name, WorkspaceID: ws, Actor: c.id.Sub,

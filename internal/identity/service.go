@@ -9,6 +9,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/mail"
 	"net/url"
 	"os"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/orgs"
 )
 
 var (
@@ -29,6 +31,7 @@ var (
 	ErrConflict    = errors.New("account is already linked")
 	ErrNotFound    = errors.New("not found")
 	ErrScope       = errors.New("missing scope")
+	ErrSetupInput  = errors.New("provide a valid email, username, owner name and internal organization name")
 )
 
 // Sender delivers one plain message. SMTP and the disposable file sink both implement it.
@@ -85,25 +88,35 @@ type Service struct {
 	cfg     *config.Config
 	send    Sender
 	captcha Captcha
-	limit   *Limiter
+	limit   attemptLimiter
 	// passkeyLimit is apart from limit, which allows far fewer, because signing in is ordinary.
-	passkeyLimit *Limiter
-	now          func() time.Time
+	passkeyLimit  attemptLimiter
+	passwordLimit attemptLimiter
+	now           func() time.Time
 }
 
 func New(pool *pgxpool.Pool, cfg *config.Config, send Sender, captcha Captcha) *Service {
 	if captcha == nil {
 		captcha = NoneCaptcha{}
 	}
-	return &Service{db: pool, cfg: cfg, send: send, captcha: captcha, limit: NewLimiter(5, 10*time.Minute), passkeyLimit: NewLimiter(30, time.Minute), now: time.Now}
+	return &Service{db: pool, cfg: cfg, send: send, captcha: captcha, limit: NewLimiter(5, 10*time.Minute), passkeyLimit: NewLimiter(30, time.Minute), passwordLimit: NewLimiter(8, 10*time.Minute), now: time.Now}
 }
 
 type User struct {
 	ID            string
 	Email         string
 	Name          string
+	Username      string
 	Role          string
 	EmailVerified bool
+}
+
+// SetupInput contains the complete first-run configuration. The setup code is
+// the authorization to create the initial owner; all user and organization
+// credentials are chosen by that owner.
+type SetupInput struct {
+	Code, Username, Email, Name, Password, Organization string
+	Brand                                               config.Brand
 }
 
 func (s *Service) audit(ctx context.Context, actor, action string, detail any) {
@@ -143,27 +156,53 @@ func (s *Service) IssueSetup(ctx context.Context) (string, error) {
 }
 
 // RedeemSetup creates the owner, an org, and recovery codes. Codes are returned once.
-func (s *Service) RedeemSetup(ctx context.Context, code, email, name string) (User, []string, error) {
-	email = emailNorm(email)
-	if email == "" || code == "" {
-		return User{}, nil, ErrSetupUsed
+func (s *Service) RedeemSetup(ctx context.Context, in SetupInput) (User, []string, error) {
+	in.Email = emailNorm(in.Email)
+	in.Username = strings.ToLower(strings.TrimSpace(in.Username))
+	in.Name = strings.TrimSpace(in.Name)
+	in.Organization = strings.TrimSpace(in.Organization)
+	address, emailErr := mail.ParseAddress(in.Email)
+	if emailErr != nil || address.Address != in.Email || !validUsername(in.Username) || len(in.Name) < 1 || len(in.Name) > 120 || len(in.Organization) < 2 || len(in.Organization) > 120 {
+		return User{}, nil, ErrSetupInput
+	}
+	if err := validateBrand(in.Brand); err != nil {
+		return User{}, nil, err
 	}
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return User{}, nil, err
 	}
 	defer tx.Rollback(ctx)
+	// Serialize first-owner claims across concurrently issued setup codes.
+	if _, err := tx.Exec(ctx, `LOCK TABLE identity_users IN SHARE ROW EXCLUSIVE MODE`); err != nil {
+		return User{}, nil, err
+	}
+	var ownerExists bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM identity_users WHERE role='owner')`).Scan(&ownerExists); err != nil {
+		return User{}, nil, err
+	}
+	if ownerExists {
+		return User{}, nil, ErrOwnerExists
+	}
 	var id string
-	err = tx.QueryRow(ctx, `UPDATE identity_tokens SET used_at = now() WHERE kind = 'setup' AND hash = $1 AND used_at IS NULL AND expires_at > now() RETURNING id`, hashToken(code)).Scan(&id)
+	err = tx.QueryRow(ctx, `UPDATE identity_tokens SET used_at = now() WHERE kind = 'setup' AND hash = $1 AND used_at IS NULL AND expires_at > now() RETURNING id`, hashToken(in.Code)).Scan(&id)
 	if err != nil {
 		return User{}, nil, ErrSetupUsed
 	}
-	user, err := insertUser(ctx, tx, email, name, "owner", true)
+	passwordHash, err := hashPassword(in.Password)
 	if err != nil {
 		return User{}, nil, err
 	}
-	org := uuid.Must(uuid.NewV7()).String()
-	if _, err := tx.Exec(ctx, `INSERT INTO identity_orgs (id, name) VALUES ($1,$2)`, org, name+" org"); err != nil {
+	user, err := insertUser(ctx, tx, in.Email, in.Name, "owner", true)
+	if err != nil {
+		return User{}, nil, err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE identity_users SET username=$2,password_hash=$3 WHERE id=$1`, user.ID, in.Username, passwordHash); err != nil {
+		return User{}, nil, err
+	}
+	user.Username = in.Username
+	org, err := orgs.ConfigureInternal(ctx, tx, in.Organization)
+	if err != nil {
 		return User{}, nil, err
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO identity_members (org_id, user_id, role) VALUES ($1,$2,'owner')`, org, user.ID); err != nil {
@@ -171,6 +210,10 @@ func (s *Service) RedeemSetup(ctx context.Context, code, email, name string) (Us
 	}
 	codes, err := insertRecovery(ctx, tx, user.ID)
 	if err != nil {
+		return User{}, nil, err
+	}
+	brandJSON, _ := json.Marshal(in.Brand)
+	if _, err := tx.Exec(ctx, `INSERT INTO identity_settings (key,value) VALUES ('branding',$1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`, brandJSON); err != nil {
 		return User{}, nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -567,6 +610,9 @@ func HasScope(scopes []string, want string) bool {
 
 // SaveBranding stores the admin overlay.
 func (s *Service) SaveBranding(ctx context.Context, brand config.Brand) error {
+	if err := validateBrand(brand); err != nil {
+		return err
+	}
 	raw, _ := json.Marshal(brand)
 	_, err := s.db.Exec(ctx, `INSERT INTO identity_settings (key, value) VALUES ('branding', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, raw)
 	return err

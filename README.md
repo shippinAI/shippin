@@ -10,11 +10,12 @@ On a Debian or Ubuntu machine, one command installs it and prints where to go. R
 curl -fsSL https://raw.githubusercontent.com/shippinAI/shippin/main/install.sh | sudo bash
 ```
 
-Or with Docker, with nothing else and no configuration:
+Or with Docker and generated installation credentials:
 
 ```sh
 git clone https://github.com/shippinAI/shippin.git
 cd shippin
+python install/docker/configure.py
 docker compose up -d --build
 docker compose logs panel | grep setup_code
 ```
@@ -25,7 +26,7 @@ Open <https://localhost:8443/setup> and enter that code to create the owner. The
 
 Either way, everything about your installation lives in one file you keep, never in this repository. [docs/deploy.md](docs/deploy.md) covers TLS, names, tokens and upgrades.
 
-- **Containers:** copy [config/site.env.example](config/site.env.example) to `.env`, edit it, and run `docker compose up -d --build`.
+- **Containers:** configure `.env`, run `python install/docker/configure.py` to generate missing credentials, then `docker compose up -d --build` for the panel, PostgreSQL and Dragonfly.
 - **A Debian or Ubuntu machine:** copy it to `/etc/shippin/site.env`, edit it, and run `sudo ./install/panel/install.sh --site /etc/shippin/site.env`.
 
 The panel's top bar shows the build it is running, and tells you when a newer one has been pushed, with the exact command to take it.

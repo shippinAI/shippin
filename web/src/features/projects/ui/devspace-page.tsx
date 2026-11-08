@@ -39,6 +39,7 @@ export function DevspacePage() {
   useEffect(() => {
     // One click: arriving here with no devspace (or a stopped one) starts it.
     if (!project.data || project.data.id !== projectId || !env || !list.data || opened.current === projectId) return;
+    if (project.data.state !== "ready") return;
     if (!agent.isSuccess || (built && !ws)) return;
     if (ws && ws.state !== "stopped") return;
     opened.current = projectId;

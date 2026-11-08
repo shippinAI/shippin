@@ -17,7 +17,7 @@ const chip =
  * Describe it (M4, implementation-plan-3 "Prompt tab"): one box, Lovable/Bolt style. Shippin creates
  * the project and an AI devspace on your private server, then runs YOUR signed-in CLI there.
  */
-export function PromptProjectForm({ tenantId, options }: { tenantId: string; options: PromptOptions }) {
+export function PromptProjectForm({ tenantId, options, workspaceId }: { tenantId: string; options: PromptOptions; workspaceId: string }) {
   const nav = useNavigate();
   const create = useCreateFromPrompt(tenantId);
   const subs = useSubscriptions();
@@ -34,7 +34,7 @@ export function PromptProjectForm({ tenantId, options }: { tenantId: string; opt
       onSubmit={(e) => {
         e.preventDefault();
         create.mutate(
-          { prompt, provider, stack: stack === "auto" ? undefined : stack },
+          { prompt, provider, stack: stack === "auto" ? undefined : stack, workspace_id: workspaceId },
           {
             onSuccess: (p) => {
               localStorage.setItem(surfaceKey(p.project_id), "build");
@@ -59,7 +59,7 @@ export function PromptProjectForm({ tenantId, options }: { tenantId: string; opt
       {provider && !connected(provider) && (
         <p className="text-xs text-fg-subtle">You're not signed in to this one yet. Start anyway: the build waits and you can sign in from the devspace.</p>
       )}
-      <Button type="submit" variant="primary" size="sm" isDisabled={create.isPending || !provider || bytes === 0}
+      <Button type="submit" variant="primary" size="sm" isDisabled={create.isPending || !provider || bytes === 0 || !workspaceId}
         tooltip="Create the project and start building it in your devspace">
         <Sparkles className="size-4" /> Build it
       </Button>

@@ -4,7 +4,7 @@ import { Button } from "../../../lib/design/components/button/button";
 import { Select } from "../../../lib/design/components/select/select";
 import type { Project } from "../../../lib/api/project-types";
 import type { Workspace } from "../../../lib/api/types";
-import { StateBadge } from "../../workspaces/ui/state-badge";
+import { StateBadge } from "../../devspaces/ui/state-badge";
 import { AIStatusChip } from "./ai-status-chip";
 
 type Props = { project: Project; projects: Project[]; ws?: Workspace; onSwitch: (id: string) => void };

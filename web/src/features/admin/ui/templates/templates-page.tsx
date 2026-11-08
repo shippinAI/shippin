@@ -10,7 +10,7 @@ import { EmptyState } from "../../../../lib/design/components/empty-state/empty-
 import type { Template } from "../../../../lib/api/types";
 import { useAdminTemplates, useDeleteTemplate } from "../../../../lib/hooks/use-templates";
 import { PageHeader } from "../../../../template/page-header";
-import { TemplateIcon } from "../../../workspaces/ui/create/template-icon";
+import { TemplateIcon } from "../../../devspaces/ui/create/template-icon";
 import { QueryView } from "../query-view";
 import { TemplateForm } from "./template-form";
 

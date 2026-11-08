@@ -31,6 +31,7 @@ export const tenantNav: NavItem[] = [
   { id: "tenant.database", label: "Database", icon: Database, to: "database", hue: "var(--color-hue-data)", mobile: true, feature: "workspaces" },
   { id: "tenant.deployments", label: "Services", icon: Package, to: "deployments", hue: "var(--color-hue-data)", mobile: true, feature: "servers" },
   { id: "tenant.workspaces", label: "Workspaces", icon: Boxes, to: "workspaces", hue: "var(--color-hue-workspaces)", mobile: true, feature: "workspaces" },
+  { id: "tenant.devspaces", label: "Devspaces", icon: SquareTerminal, to: "devspaces", hue: "var(--color-hue-workspaces)", feature: "workspaces" },
   { id: "tenant.terminal", label: "Terminal", icon: SquareTerminal, to: "go/terminal", hue: "var(--color-hue-workspaces)", feature: "workspaces" },
   { id: "tenant.connect", label: "Connect accounts", icon: KeyRound, to: "go/connect", hue: "var(--color-hue-secrets)", feature: "workspaces" },
   { id: "tenant.publish", label: "Publish", icon: Globe, to: "go/publish", hue: "var(--color-hue-edge)", feature: "workspaces" },
@@ -64,7 +65,7 @@ export const accountNav: NavItem[] = [
 ];
 
 export const navSections = {
-  devspace: { id: "devspace", label: "Devspace" },
+  devspace: { id: "devspace", label: "Organization" },
   account: { id: "account", label: "Account" },
   infrastructure: { id: "infrastructure", label: "Infrastructure" },
   operator: { id: "operator", label: "Operator" },

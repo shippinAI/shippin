@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: ${SHIPPIN_POSTGRES_IMAGE:-postgres:16}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${SHIPPIN_DB_USER:-shippin}
+      POSTGRES_DB: ${SHIPPIN_DB_NAME:-shippin}
+      POSTGRES_PASSWORD: ${SHIPPIN_DB_PASSWORD:?Run python install/docker/configure.py first}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 30

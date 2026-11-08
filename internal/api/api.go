@@ -43,7 +43,8 @@ type API struct {
 	// notify queues e-mail notices; nil when mail is disabled.
 	notify *mail.Notifier
 	// directory is the local account service. Nil when the process has not wired it.
-	directory *identity.Service
+	directory   *identity.Service
+	cacheHealth func(context.Context) error
 	// Test-only overrides: recipient lookups and synchronous notices.
 	lookupManagers func(ctx context.Context, org string) ([]string, error)
 	orgOfUser      func(ctx context.Context, sub string) (string, error) // test seam for orgMember
@@ -113,6 +114,7 @@ func New(cfg *config.Config, flow *auth.Flow, d *db.DB) *API {
 
 func (a *API) Register(mux Router) {
 	mux.HandleFunc("GET /healthz", a.health)
+	mux.HandleFunc("GET /readyz", a.health)
 	mux.HandleFunc("GET /v1/health", a.health)
 	mux.HandleFunc("GET /v1/settings/public", a.publicSettings)
 	mux.HandleFunc("GET /v1/settings/ui", a.flow.Require(a.uiSettings))
@@ -178,9 +180,26 @@ func (a *API) Register(mux Router) {
 func (a *API) SetDirectory(s *identity.Service) { a.directory = s }
 
 func (a *API) health(w http.ResponseWriter, r *http.Request) {
-	dbOK := a.db.Pool.Ping(r.Context()) == nil
-	writeJSON(w, map[string]any{"status": "ok", "db": dbOK, "uptime_s": int(time.Since(a.started).Seconds())})
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+	dbOK := a.db.Pool.Ping(ctx) == nil
+	cache := "disabled"
+	if a.cacheHealth != nil {
+		cache = "up"
+		if a.cacheHealth(ctx) != nil {
+			cache = "down"
+		}
+	}
+	status := "ok"
+	if !dbOK || cache == "down" {
+		status = "unavailable"
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}
+	writeJSON(w, map[string]any{"status": status, "db": dbOK, "cache": cache, "uptime_s": int(time.Since(a.started).Seconds())})
 }
+
+func (a *API) SetCacheHealth(check func(context.Context) error) { a.cacheHealth = check }
 
 // publicSettings is unauthenticated branding for the sign-in page of the app on r's origin.
 func (a *API) publicSettings(w http.ResponseWriter, r *http.Request) {

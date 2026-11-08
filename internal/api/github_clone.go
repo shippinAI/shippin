@@ -26,7 +26,7 @@ func (a *API) runningDevspace(ctx context.Context, tenant, sub string) string {
 
 // cloneAndOwn picks the slug, clones into ~/code/<slug> with a read token for that repo only,
 // then runs createOwned (row + tuples + undo) and records the GitHub source.
-func (a *API) cloneAndOwn(ctx context.Context, tenant, ws, sub string, inst int64, repo *gh.Repo, branch string) (*ownedResult, error) {
+func (a *API) cloneAndOwn(ctx context.Context, tenant, ws, sub string, inst int64, repo *gh.Repo, branch, organizationWorkspace string) (*ownedResult, error) {
 	slug, err := a.freeSlug(ctx, tenant, repo.FullName)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (a *API) cloneAndOwn(ctx context.Context, tenant, ws, sub string, inst int6
 		GitToken: &hostclient.GitToken{Token: tok.Value, ExpiresAt: tok.ExpiresAt}}); err != nil {
 		return nil, errors.Join(errors.New("clone failed"), err)
 	}
-	res, err := a.createOwned(ctx, ownedReq{TenantID: tenant, WorkspaceID: ws, OwnerSub: sub, By: sub, Slug: slug, RequireDevspaceOwner: true,
+	res, err := a.createOwned(ctx, ownedReq{TenantID: tenant, WorkspaceID: ws, OrganizationWorkspaceID: organizationWorkspace, OwnerSub: sub, By: sub, Slug: slug, RequireDevspaceOwner: true,
 		Found: hostclient.Found{Name: slug, Path: path, Git: true, Remote: "https://github.com/" + repo.FullName + ".git"}})
 	if err != nil {
 		return nil, err // the clone stays in ~/code and shows up under Suggested, so a retry is one Adopt

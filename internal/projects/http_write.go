@@ -12,6 +12,7 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request, t, actor string
 	var in struct {
 		Name        string `json:"name"`
 		Environment string `json:"environment"`
+		WorkspaceID string `json:"workspace_id"`
 	}
 	if !decode(w, r, &in) {
 		return
@@ -23,7 +24,7 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request, t, actor string
 		auth.Problem(w, http.StatusBadRequest, "Use lowercase letters, digits and dashes, starting with a letter.")
 		return
 	}
-	id, err := h.S.CreateProject(r.Context(), t, in.Name, in.Environment, actor)
+	id, err := h.S.CreateProjectInWorkspace(r.Context(), t, in.WorkspaceID, in.Name, in.Environment, actor)
 	if err != nil {
 		writeErr(w, err, "A project with that name already exists.")
 		return
@@ -68,6 +69,10 @@ var errInUse = errors.New("in use")
 // writeErr maps store errors to problems; anything unexpected is a logged 500, never a 409.
 func writeErr(w http.ResponseWriter, err error, taken string) {
 	switch {
+	case errors.Is(err, ErrWorkspaceInput):
+		auth.Problem(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, ErrWorkspaceOccupied):
+		auth.Problem(w, http.StatusConflict, err.Error())
 	case errors.Is(err, ErrNameTaken):
 		auth.Problem(w, http.StatusConflict, taken)
 	case errors.Is(err, ErrNotFound):

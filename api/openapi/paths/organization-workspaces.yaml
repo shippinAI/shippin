@@ -1,0 +1,115 @@
+workspaces:
+  parameters:
+    - &tenant
+      name: tenantId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  get:
+    tags: [projects-runtime]
+    operationId: organizationWorkspacesList
+    summary: List organization workspace groups and project counts
+    description: Access inherits tenant membership. These groups are distinct from compute devspaces.
+    x-implementation-status: registered
+    security: [{consoleSession: []}, {nomen: []}]
+    responses:
+      '200':
+        description: Default workspace followed by additional workspaces.
+        content:
+          application/json:
+            schema:
+              type: array
+              items: &workspace
+                type: object
+                required: [id, name, description, is_default, projects, created_at, updated_at]
+                properties:
+                  id: {type: string, format: uuid}
+                  name: {type: string}
+                  description: {type: string}
+                  is_default: {type: boolean}
+                  projects: {type: integer, minimum: 0}
+                  created_at: {type: string, format: date-time}
+                  updated_at: {type: string, format: date-time}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+  post:
+    tags: [projects-runtime]
+    operationId: organizationWorkspaceCreate
+    summary: Create an additional workspace within an organization
+    description: Requires organization owner or admin. Name is unique ignoring case within the organization.
+    x-implementation-status: registered
+    security: [{consoleSession: []}, {nomen: []}]
+    requestBody: &input
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [name]
+            properties:
+              name: {type: string, minLength: 1, maxLength: 80}
+              description: {type: string, maxLength: 500}
+    responses:
+      '201':
+        description: Persisted workspace.
+        content:
+          application/json:
+            schema: *workspace
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+workspace:
+  parameters:
+    - *tenant
+    - &group
+      name: groupId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  get:
+    tags: [projects-runtime]
+    operationId: organizationWorkspaceGet
+    summary: Read a workspace within the caller's organization
+    x-implementation-status: registered
+    security: [{consoleSession: []}, {nomen: []}]
+    responses:
+      '200':
+        description: Persisted workspace.
+        content:
+          application/json:
+            schema: *workspace
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+  patch:
+    tags: [projects-runtime]
+    operationId: organizationWorkspaceUpdate
+    summary: Edit workspace name and description
+    description: Requires organization owner or admin. Does not change access or infrastructure placement.
+    x-implementation-status: registered
+    security: [{consoleSession: []}, {nomen: []}]
+    requestBody: *input
+    responses:
+      '200':
+        description: Updated workspace.
+        content:
+          application/json:
+            schema: *workspace
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+  delete:
+    tags: [projects-runtime]
+    operationId: organizationWorkspaceDelete
+    summary: Delete an empty non-default workspace
+    description: Requires organization owner or admin. Returns 409 if default or any project history remains.
+    x-implementation-status: registered
+    security: [{consoleSession: []}, {nomen: []}]
+    responses:
+      '204': {description: Deleted.}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+projects:
+  parameters: [*tenant, *group]
+  get:
+    tags: [projects-runtime]
+    operationId: organizationWorkspaceProjects
+    summary: List projects belonging to this organization workspace
+    x-implementation-status: registered
+    security: [{consoleSession: []}, {nomen: []}]
+    responses:
+      '200': {description: Project list, including workspace_id and existing environment/runtime fields.}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}

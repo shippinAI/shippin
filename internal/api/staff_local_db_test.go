@@ -87,7 +87,7 @@ func TestLocalStaffSecondFactor(t *testing.T) {
 	}
 }
 
-func TestLocalStaffInviteMakesAnAccountOnTheOwnersBoard(t *testing.T) {
+func TestLocalStaffInviteJoinsInternalOrgWithoutCustomerAccess(t *testing.T) {
 	_, d, _, _ := serverTestAPI(t, "org_owner")
 	ctx := context.Background()
 	s := localStaffFor(t, d)
@@ -113,8 +113,19 @@ func TestLocalStaffInviteMakesAnAccountOnTheOwnersBoard(t *testing.T) {
 	}
 	id, _ := localID(sub)
 	var got string
-	if err := d.Pool.QueryRow(ctx, `SELECT org_id::text FROM identity_members WHERE user_id = $1`, id).Scan(&got); err != nil || got != org {
-		t.Fatalf("what they ask for must reach the owner's board: %q %v", got, err)
+	if err := d.Pool.QueryRow(ctx, `SELECT org_id::text FROM identity_members WHERE user_id = $1`, id).Scan(&got); err != nil || got == org {
+		t.Fatalf("staff must not join the owner's customer organization: %q %v", got, err)
+	}
+	var internal string
+	if err := d.Pool.QueryRow(ctx, `SELECT identity_org_id::text FROM orgs WHERE type='operations'`).Scan(&internal); err != nil || got != internal {
+		t.Fatalf("staff must join the explicit internal organization: %q %v", got, err)
+	}
+	if err := s.SetRoles(ctx, sub, staffGrant{}, nil); err != nil {
+		t.Fatal(err)
+	}
+	var remaining int
+	if err := d.Pool.QueryRow(ctx, `SELECT count(*) FROM identity_members WHERE user_id=$1 AND org_id=$2`, id, internal).Scan(&remaining); err != nil || remaining != 0 {
+		t.Fatal("revoked staff membership remains", remaining, err)
 	}
 	if _, err := s.Invite(ctx, "grace@example.invalid", "Other", "Person"); err == nil {
 		t.Fatal("the same email twice must be refused")

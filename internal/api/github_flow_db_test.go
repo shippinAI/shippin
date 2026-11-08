@@ -77,7 +77,7 @@ func TestImportClonesThenOwns(t *testing.T) {
 	ctx := context.Background()
 	repo := &gh.Repo{ID: 11, FullName: "acme/Box_Work", DefaultBranch: "main"}
 	a.n2.tw = &fakeTW{err: errors.New("fga down")}
-	if _, err := a.cloneAndOwn(ctx, tid, ws, "395290028818825218", inst, repo, "main"); err == nil {
+	if _, err := a.cloneAndOwn(ctx, tid, ws, "395290028818825218", inst, repo, "main", ""); err == nil {
 		t.Fatal("tuple failure must fail the import")
 	}
 	if taken, _ := (&projects.Store{Pool: a.db.Pool}).SlugTaken(ctx, tid, "box-work"); taken {
@@ -85,7 +85,7 @@ func TestImportClonesThenOwns(t *testing.T) {
 	}
 	tw := &fakeTW{}
 	a.n2.tw = tw
-	res, err := a.cloneAndOwn(ctx, tid, ws, "395290028818825218", inst, repo, "main")
+	res, err := a.cloneAndOwn(ctx, tid, ws, "395290028818825218", inst, repo, "main", "")
 	if err != nil || res.Slug != "box-work" || len(tw.got) != 7 {
 		t.Fatalf("%+v %v tuples=%d", res, err, len(tw.got))
 	}

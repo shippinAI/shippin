@@ -157,10 +157,10 @@ func (s *localStaff) User(ctx context.Context, sub string) (*staffUser, error) {
 	return &u, nil
 }
 
-// joinOwnerOrg puts someone on the owner's org, so that the changes they ask for reach the owner's board.
-const joinOwnerOrg = `INSERT INTO identity_members (org_id, user_id, role)
-	SELECT m.org_id, $1, 'member' FROM identity_members m JOIN identity_users o ON o.id = m.user_id
-	WHERE o.role = 'owner' ORDER BY m.org_id LIMIT 1 ON CONFLICT DO NOTHING`
+// joinInternalOrg never derives staff membership from an owner's customer org.
+const joinInternalOrg = `INSERT INTO identity_members (org_id, user_id, role)
+	SELECT identity_org_id, $1, 'member' FROM orgs
+	WHERE type='operations' AND identity_org_id IS NOT NULL ON CONFLICT DO NOTHING`
 
 // Invite makes the account now, so that roles can be set before they first sign in. They claim it with
 // an invite link, or by signing in through an identity provider that vouches for the same email.
@@ -178,7 +178,10 @@ func (s *localStaff) Invite(ctx context.Context, email, given, family string) (s
 		id, strings.ToLower(email), strings.TrimSpace(given+" "+family)); err != nil {
 		return "", err
 	}
-	if _, err := tx.Exec(ctx, joinOwnerOrg, id); err != nil {
+	if tag, err := tx.Exec(ctx, joinInternalOrg, id); err != nil || tag.RowsAffected() != 1 {
+		if err == nil {
+			err = errors.New("staff: internal organization is not configured")
+		}
 		return "", err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -192,12 +195,32 @@ func (s *localStaff) SetRoles(ctx context.Context, user string, _ staffGrant, ro
 	if !ok {
 		return errors.New("staff: not an account on this panel")
 	}
-	if _, err := s.db.Pool.Exec(ctx, `INSERT INTO local_staff_roles (user_id, roles) VALUES ($1, $2)
+	tx, err := s.db.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `INSERT INTO local_staff_roles (user_id, roles) VALUES ($1, $2)
 		ON CONFLICT (user_id) DO UPDATE SET roles = $2, updated_at = now()`, id, append([]string{}, roles...)); err != nil {
 		return err
 	}
-	_, err := s.db.Pool.Exec(ctx, joinOwnerOrg, id)
-	return err
+	if len(roles) > 0 {
+		if _, err := tx.Exec(ctx, joinInternalOrg, id); err != nil {
+			return err
+		}
+		var member bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM identity_members m JOIN orgs o ON o.identity_org_id=m.org_id WHERE o.type='operations' AND m.user_id=$1)`, id).Scan(&member); err != nil {
+			return err
+		}
+		if !member {
+			return errors.New("staff: internal organization is not configured")
+		}
+	} else {
+		if _, err := tx.Exec(ctx, `DELETE FROM identity_members m USING orgs o,identity_users u WHERE o.type='operations' AND m.org_id=o.identity_org_id AND m.user_id=$1 AND u.id=m.user_id AND u.role<>'owner'`, id); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 // SetActive switches an account on or off. Off ends what it can do at the next request.

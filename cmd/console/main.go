@@ -42,7 +42,18 @@ func main() {
 	flow := auth.NewFlow(cfg, store)
 	mux := http.NewServeMux()
 	consoleAPI := api.New(cfg, flow, database)
-	consoleAPI.SetDirectory(identity.New(database.Pool, cfg, mailSender(cfg), captcha(cfg)))
+	directory := identity.New(database.Pool, cfg, mailSender(cfg), captcha(cfg))
+	if cfg.RedisURL != "" {
+		shared, err := identity.NewSharedLimits(ctx, cfg.RedisURL, cfg.RedisPrefix)
+		if err != nil {
+			log.Fatal("Dragonfly/Redis authentication limiter is unavailable; check its connection configuration")
+		}
+		defer shared.Close()
+		directory.UseSharedLimits(shared)
+		consoleAPI.SetCacheHealth(shared.Ping)
+		log.Print("authentication limits: shared Dragonfly/Redis store connected")
+	}
+	consoleAPI.SetDirectory(directory)
 	if msg := api.RetiredNotice(os.Getenv); msg != "" {
 		log.Print(msg)
 	}

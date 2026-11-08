@@ -4,9 +4,76 @@ setup:
     operationId: redeemSetupCode
     summary: Redeem the one-time setup code printed by shippin-console setup
     x-implementation-status: registered
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code, username, name, email, password, organization, brand]
+            properties:
+              code: {type: string}
+              username: {type: string, minLength: 3, maxLength: 32}
+              name: {type: string, minLength: 1, maxLength: 120}
+              email: {type: string, format: email}
+              password: {type: string, minLength: 12, maxLength: 1024, writeOnly: true}
+              organization: {type: string, minLength: 2, maxLength: 120}
+              brand:
+                type: object
+                required: [name]
+                properties:
+                  name: {type: string, maxLength: 80}
+                  short: {type: string, maxLength: 24}
+                  tagline: {type: string, maxLength: 160}
+                  logo_url: {type: string, format: uri}
+                  color: {type: string, pattern: '^#[0-9a-fA-F]{6}$'}
+                  privacy_url: {type: string, format: uri}
+                  terms_url: {type: string, format: uri}
     responses:
       "200": {description: Owner id, session, and one-time recovery codes.}
       "401": {$ref: ../components/responses.yaml#/Problem401}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+passwordLogin:
+  post:
+    tags: [identity]
+    operationId: signInWithPassword
+    summary: Start a local session with username or email and password
+    x-implementation-status: registered
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [identifier, password]
+            properties:
+              identifier: {type: string}
+              password: {type: string, writeOnly: true}
+    responses:
+      "200": {description: Local session started.}
+      "401": {$ref: ../components/responses.yaml#/Problem401}
+      default: {$ref: ../components/responses.yaml#/ProblemDefault}
+passwordChange:
+  put:
+    tags: [identity]
+    operationId: changeLocalPassword
+    summary: Set a first local password or change an existing password for the signed-in user
+    security: [{consoleSession: []}]
+    x-implementation-status: registered
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [password]
+            properties:
+              current_password: {type: string, writeOnly: true}
+              password: {type: string, minLength: 12, maxLength: 1024, writeOnly: true}
+    responses:
+      "200": {description: Password updated.}
+      "401": {$ref: ../components/responses.yaml#/Problem401}
+      "429": {$ref: ../components/responses.yaml#/Problem429}
       default: {$ref: ../components/responses.yaml#/ProblemDefault}
 magic:
   post:

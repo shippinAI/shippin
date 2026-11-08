@@ -356,7 +356,8 @@ fi
 if [ "$example" -eq 1 ]; then
   [ -n "$code" ] || { echo "the disposable install expected a setup code" >&2; exit 1; }
   base="${scheme}://${host}:${port}"
-  setup_json=$(curl -fsS "${curl_tls[@]}" -H 'content-type: application/json' -d "{\"code\":\"${code}\",\"email\":\"owner@example.invalid\",\"name\":\"Owner\"}" "$base/v1/setup")
+  example_password=$(openssl rand -hex 24)
+  setup_json=$(curl -fsS "${curl_tls[@]}" -H 'content-type: application/json' -d "{\"code\":\"${code}\",\"email\":\"owner@example.invalid\",\"name\":\"Owner\",\"username\":\"owner\",\"password\":\"${example_password}\",\"organization\":\"Example organization\",\"brand\":{\"name\":\"Shippin\"}}" "$base/v1/setup")
   printf '%s\n' "$setup_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["user_id"] and len(d["recovery_codes"])==8; print("setup_ok")'
   sid=$(printf '%s\n' "$setup_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["session"])')
   curl -fsS "${curl_tls[@]}" -H 'content-type: application/json' -d '{"email":"wait@example.invalid","name":"Wait","company":"Example"}' "$base/v1/waitlist" >/dev/null

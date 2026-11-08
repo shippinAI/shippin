@@ -28,10 +28,20 @@ func (a *API) opSystem(w http.ResponseWriter, r *http.Request, _ *caller) {
 		auth.Problem(w, http.StatusServiceUnavailable, "The audit log can't be checked right now.")
 		return
 	}
+	var organization struct {
+		ID            string `json:"id"`
+		Name          string `json:"name"`
+		IdentityOrgID string `json:"identity_org_id"`
+	}
+	if err := a.db.Pool.QueryRow(r.Context(), `SELECT id,name,identity_org_id::text FROM orgs WHERE type='operations' AND tenant_id=$1`, t.ID).Scan(&organization.ID, &organization.Name, &organization.IdentityOrgID); err != nil {
+		auth.Problem(w, http.StatusServiceUnavailable, "The internal organization ownership link is unavailable.")
+		return
+	}
 	writeJSON(w, map[string]any{
-		"tenant":     map[string]any{"id": t.ID, "name": t.Name, "status": t.Status, "created_at": t.CreatedAt},
-		"hosts":      len(hosts),
-		"audit":      chain,
-		"self_guest": selfGuest(),
+		"organization": organization,
+		"tenant":       map[string]any{"id": t.ID, "name": t.Name, "status": t.Status, "created_at": t.CreatedAt},
+		"hosts":        len(hosts),
+		"audit":        chain,
+		"self_guest":   selfGuest(),
 	})
 }

@@ -3,6 +3,7 @@ export type Environment = { id: string; name: string };
 
 export type Project = {
   id: string;
+  workspace_id: string;
   name: string;
   state: "pending" | "ready" | "error" | "deleting";
   placed: boolean;

@@ -32,7 +32,7 @@ func (s *Store) one(ctx context.Context, q string, args ...any) (json.RawMessage
 }
 
 // projectCols is the user-facing project view: the boundary is reported only as placed or not.
-const projectCols = `SELECT p.id, p.name, p.state, p.created_at, (p.boundary_id IS NOT NULL) AS placed,
+const projectCols = `SELECT p.id, p.workspace_id, p.name, p.state, p.created_at, (p.boundary_id IS NOT NULL) AS placed,
   (SELECT coalesce(json_agg(json_build_object('id',e.id,'name',e.name) ORDER BY e.created_at),'[]')
      FROM environments e WHERE e.project_id=p.id) AS environments,
   (SELECT count(*) FROM workspaces w WHERE w.project_id=p.id AND w.state<>'deleted') AS workspaces
@@ -54,11 +54,26 @@ func (s *Store) Project(ctx context.Context, tenant, id string) (json.RawMessage
 // ready only when that boundary is ready; on a planned/provisioning boundary, or with none yet,
 // it stays pending until MarkBoundaryReady/AdoptVM places it. A duplicate name is ErrNameTaken.
 func (s *Store) CreateProject(ctx context.Context, tenant, name, env, actor string) (string, error) {
+	return s.CreateProjectInWorkspace(ctx, tenant, "", name, env, actor)
+}
+
+func (s *Store) CreateProjectInWorkspace(ctx context.Context, tenant, workspace, name, env, actor string) (string, error) {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return "", err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	if workspace != "" && uuid.Validate(workspace) != nil {
+		return "", ErrNotFound
+	}
+	var group string
+	err = tx.QueryRow(ctx, `SELECT id::text FROM shippin_workspaces WHERE tenant_id=$1 AND (id=nullif($2,'')::uuid OR ($2='' AND is_default)) FOR KEY SHARE`, tenant, workspace).Scan(&group)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrNotFound
+	}
+	if err != nil {
+		return "", err
+	}
 	var b, bstate *string
 	err = tx.QueryRow(ctx, `SELECT b.id::text, b.state FROM boundaries b WHERE b.tenant_id=$1 AND b.state IN ('planned','provisioning','ready')
 	  ORDER BY (b.state='ready') DESC, (SELECT count(*) FROM projects p WHERE p.boundary_id=b.id), b.created_at LIMIT 1`, tenant).Scan(&b, &bstate)
@@ -71,8 +86,8 @@ func (s *Store) CreateProject(ctx context.Context, tenant, name, env, actor stri
 	if bstate != nil && *bstate == "ready" {
 		state = "ready"
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO projects(id,tenant_id,boundary_id,name,state,created_by) VALUES($1,$2,$3,$4,$5,$6)`,
-		id, tenant, b, name, state, actor); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO projects(id,tenant_id,boundary_id,name,state,created_by,workspace_id) VALUES($1,$2,$3,$4,$5,$6,$7)`,
+		id, tenant, b, name, state, actor, group); err != nil {
 		return "", uniqueViolation(err)
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO environments(id,project_id,tenant_id,name) VALUES($1,$2,$3,$4)`, eid, id, tenant, env); err != nil {

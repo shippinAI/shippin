@@ -20,6 +20,8 @@ func (a *API) registerDirectory(mux Router) {
 		return
 	}
 	mux.HandleFunc("POST /v1/setup", a.setupRedeem)
+	mux.HandleFunc("POST /v1/session/password", a.passwordLogin)
+	mux.HandleFunc("PUT /v1/directory/me/password", a.passwordChange)
 	mux.HandleFunc("POST /v1/session/magic", a.magicBegin)
 	mux.HandleFunc("POST /v1/session/magic/redeem", a.magicRedeem)
 	mux.HandleFunc("POST /v1/session/recovery", a.recoveryRedeem)
@@ -94,14 +96,26 @@ func (a *API) startSession(w http.ResponseWriter, r *http.Request, id string) {
 }
 
 func (a *API) setupRedeem(w http.ResponseWriter, r *http.Request) {
-	var in struct{ Code, Email, Name string }
-	if json.NewDecoder(r.Body).Decode(&in) != nil {
+	var in identity.SetupInput
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&in) != nil {
 		auth.Problem(w, http.StatusBadRequest, "Request body was not accepted.")
 		return
 	}
-	u, codes, err := a.directory.RedeemSetup(r.Context(), in.Code, in.Email, in.Name)
+	u, codes, err := a.directory.RedeemSetup(r.Context(), in)
 	if err != nil {
-		auth.Problem(w, http.StatusUnauthorized, "Setup code is not valid.")
+		switch {
+		case errors.Is(err, identity.ErrSetupUsed):
+			auth.Problem(w, http.StatusUnauthorized, "Setup code is not valid or has expired.")
+		case errors.Is(err, identity.ErrOwnerExists):
+			auth.Problem(w, http.StatusConflict, "This installation already has an owner. Sign in to continue.")
+		case errors.Is(err, identity.ErrSetupInput), errors.Is(err, identity.ErrPassword), errors.Is(err, identity.ErrBrand):
+			auth.Problem(w, http.StatusBadRequest, err.Error())
+		default:
+			log.Printf("setup transaction: %v", err)
+			auth.Problem(w, http.StatusServiceUnavailable, "Setup could not be saved. Try again.")
+		}
 		return
 	}
 	sid, err := a.flow.StartLocal(w, r, u.ID)
@@ -110,6 +124,52 @@ func (a *API) setupRedeem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]any{"user_id": u.ID, "session": sid, "recovery_codes": codes})
+}
+
+func (a *API) passwordLogin(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Identifier string `json:"identifier"`
+		Password   string `json:"password"`
+	}
+	if json.NewDecoder(r.Body).Decode(&in) != nil {
+		auth.Problem(w, http.StatusBadRequest, "Request body was not accepted.")
+		return
+	}
+	u, err := a.directory.AuthenticatePassword(r.Context(), in.Identifier, in.Password, clientIP(r))
+	if err != nil {
+		auth.Problem(w, http.StatusUnauthorized, "Username or password is incorrect.")
+		return
+	}
+	a.startSession(w, r, u.ID)
+}
+
+func (a *API) passwordChange(w http.ResponseWriter, r *http.Request) {
+	uid, ok := a.localUser(r)
+	if !ok {
+		auth.Problem(w, http.StatusUnauthorized, "Sign in to continue.")
+		return
+	}
+	var in struct {
+		Current  string `json:"current_password"`
+		Password string `json:"password"`
+	}
+	if json.NewDecoder(r.Body).Decode(&in) != nil {
+		auth.Problem(w, http.StatusBadRequest, "Request body was not accepted.")
+		return
+	}
+	if err := a.directory.SetPassword(r.Context(), uid, in.Current, in.Password, clientIP(r)); err != nil {
+		if errors.Is(err, identity.ErrRateLimited) {
+			auth.Problem(w, http.StatusTooManyRequests, "Wait before trying another password change.")
+			return
+		}
+		if errors.Is(err, identity.ErrNotFound) {
+			auth.Problem(w, http.StatusUnauthorized, "The current password was not accepted, or the account is unavailable.")
+			return
+		}
+		auth.Problem(w, http.StatusBadRequest, "Choose a password with at least 12 characters.")
+		return
+	}
+	writeJSON(w, map[string]string{"status": "updated"})
 }
 
 func (a *API) magicBegin(w http.ResponseWriter, r *http.Request) {

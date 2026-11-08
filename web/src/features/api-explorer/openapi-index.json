@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 164,
+  "operationCount": 172,
   "tags": [
     "agents-runtime",
     "audit",
@@ -722,10 +722,30 @@
       "implementationStatus": "registered"
     },
     {
+      "method": "PUT",
+      "path": "/directory/me/password",
+      "operationId": "changeLocalPassword",
+      "summary": "Set a first local password or change an existing password for the signed-in user",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
       "method": "POST",
       "path": "/session/magic",
       "operationId": "requestMagicLink",
       "summary": "Email a one-time sign-in link",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/session/password",
+      "operationId": "signInWithPassword",
+      "summary": "Start a local session with username or email and password",
       "tags": [
         "identity"
       ],
@@ -1120,6 +1140,66 @@
         "platform"
       ],
       "implementationStatus": "unknown"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/organization-workspaces",
+      "operationId": "organizationWorkspacesList",
+      "summary": "List organization workspace groups and project counts",
+      "tags": [
+        "projects-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/organization-workspaces",
+      "operationId": "organizationWorkspaceCreate",
+      "summary": "Create an additional workspace within an organization",
+      "tags": [
+        "projects-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/organization-workspaces/{groupId}",
+      "operationId": "organizationWorkspaceDelete",
+      "summary": "Delete an empty non-default workspace",
+      "tags": [
+        "projects-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/organization-workspaces/{groupId}",
+      "operationId": "organizationWorkspaceGet",
+      "summary": "Read a workspace within the caller's organization",
+      "tags": [
+        "projects-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "PATCH",
+      "path": "/tenants/{tenantId}/organization-workspaces/{groupId}",
+      "operationId": "organizationWorkspaceUpdate",
+      "summary": "Edit workspace name and description",
+      "tags": [
+        "projects-runtime"
+      ],
+      "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/organization-workspaces/{groupId}/projects",
+      "operationId": "organizationWorkspaceProjects",
+      "summary": "List projects belonging to this organization workspace",
+      "tags": [
+        "projects-runtime"
+      ],
+      "implementationStatus": "registered"
     },
     {
       "method": "GET",

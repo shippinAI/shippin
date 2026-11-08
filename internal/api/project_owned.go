@@ -13,6 +13,7 @@ import (
 // ownedReq is one project create, shared by tenant Adopt and the operator route.
 type ownedReq struct {
 	TenantID, WorkspaceID, OwnerSub, By string
+	OrganizationWorkspaceID             string
 	RequireDevspaceOwner                bool   // tenant adopt/import (the operator route links only when owner_sub owns it)
 	Slug                                string // preset (import picks it before cloning); else derived from Found.Path
 	Found                               hostclient.Found
@@ -46,7 +47,7 @@ func (a *API) createOwned(ctx context.Context, in ownedReq) (*ownedResult, error
 		}
 	}
 	c, err := st.CreateOperator(ctx, projects.OpProject{TenantID: in.TenantID, Slug: slug, OwnerSub: in.OwnerSub,
-		WorkspaceID: in.WorkspaceID, Placement: in.Placement, CostCenter: in.CostCenter, Limits: in.Limits,
+		WorkspaceID: in.WorkspaceID, OrganizationWorkspaceID: in.OrganizationWorkspaceID, Placement: in.Placement, CostCenter: in.CostCenter, Limits: in.Limits,
 		CreatedBy: in.By, SourcePath: in.Found.Path, SourceRemote: in.Found.Remote, RequireDevspaceOwner: in.RequireDevspaceOwner})
 	if err != nil {
 		return nil, err

@@ -18,7 +18,7 @@ export type Me = {
 };
 
 export type PublicSettings = {
-  brand: { name: string; short: string; tagline: string };
+  brand: { name: string; short: string; tagline: string; logo_url?: string; color?: string; privacy_url?: string; terms_url?: string };
   domain: string;
   governance_domains: string[];
   idp_host: string;

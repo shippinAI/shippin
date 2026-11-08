@@ -5,7 +5,7 @@ Tenant:
       required: [name, status, plan_id]
       properties:
         name: { $ref: common.yaml#/Label }
-        status: { type: string, enum: [provisioning, active, suspended, deleting, deleted], readOnly: true }
+        status: { type: string, enum: [draft, provisioning, active, suspended, deleting, deleted], readOnly: true }
         plan_id: { $ref: common.yaml#/Uuid }
         idp_org_id: { type: string, readOnly: true, description: 'Nomen organization id.' }
         labels: { $ref: common.yaml#/Labels }
@@ -22,19 +22,14 @@ Quota:
     used: { type: object, additionalProperties: { type: integer } }
 TenantCreate:
   type: object
+  additionalProperties: false
   required: [name]
-  description: 'Either owner (new org) or idp_org_id (map an existing Nomen org; v0.1 implements only this).'
+  description: 'Exactly one of owner_user_id (new local customer organization, draft until provisioned) or idp_org_id (existing external organization and provisioning). Requires tenants.lifecycle.'
   properties:
     name: { $ref: common.yaml#/Label }
     idp_org_id: { type: string, description: 'Existing Nomen org to map to a new tenant UUID (operator only).' }
+    owner_user_id: { type: string, format: uuid, description: 'Active local account that explicitly owns the new customer organization. Creates its default workspace without provisioning infrastructure.' }
     plan_id: { type: string, description: 'Plan id from /settings/plans (v0.1: plan key, e.g. founder).' }
-    owner:
-      type: object
-      description: First org owner. For self-signup, the caller.
-      properties:
-        email: { type: string, format: email }
-        display_name: { $ref: common.yaml#/Label }
-    labels: { $ref: common.yaml#/Labels }
 TenantUpdate:
   type: object
   properties:

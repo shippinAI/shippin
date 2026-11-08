@@ -1,4 +1,6 @@
 .ai/
+.env
+.env.*
 .cache/
 **/node_modules/
 **/dist/

@@ -6,6 +6,13 @@ multi-tenant isolation or managed database UI have been implemented.
 
 ## Product hierarchy
 
+The target hierarchy and authorization contract are now owned by
+[the product contract](objective.md): internal operator organization for staff,
+infrastructure and platform services; tenant organization -> workspace -> project
+-> environment -> deployments/resources. The descriptions below record the current
+implementation shape for migration planning. In particular, current compute
+`workspaces` must not be silently repurposed as tenant workspace groupings.
+
 - **Installation:** one deployed Shippin control plane and its infrastructure.
   An operator manages hosts, platform services and installation configuration.
 - **Tenant / organization:** the customer's authorization and data boundary.

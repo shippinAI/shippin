@@ -27,6 +27,7 @@ type Limits struct {
 // OpProject is an operator-created project, adopting an existing devspace (workspace).
 type OpProject struct {
 	TenantID, Slug, OwnerSub, WorkspaceID, Placement, CostCenter, CreatedBy string
+	OrganizationWorkspaceID                                                 string
 	SourcePath, SourceRemote                                                string // folder in the devspace; git remote
 	RequireDevspaceOwner                                                    bool   // tenant adopt/import: OwnerSub must own the devspace
 	Limits                                                                  Limits
@@ -66,6 +67,16 @@ func (s *Store) CreateOperator(ctx context.Context, in OpProject) (*Created, err
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	if in.OrganizationWorkspaceID != "" && uuid.Validate(in.OrganizationWorkspaceID) != nil {
+		return nil, ErrNotFound
+	}
+	var group string
+	if err := tx.QueryRow(ctx, `SELECT id::text FROM shippin_workspaces WHERE tenant_id=$1 AND (id=nullif($2,'')::uuid OR ($2='' AND is_default)) FOR KEY SHARE`, in.TenantID, in.OrganizationWorkspaceID).Scan(&group); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
 	out := &Created{PublicID: NewPublicID()}
 	if err := tx.QueryRow(ctx, `SELECT idp_org_id FROM tenants WHERE kind='customer' AND id=$1`, in.TenantID).Scan(&out.OrgID); err != nil || out.OrgID == "" {
 		if err == nil || errors.Is(err, pgx.ErrNoRows) {
@@ -88,9 +99,9 @@ func (s *Store) CreateOperator(ctx context.Context, in OpProject) (*Created, err
 	eid, _ := uuid.NewV7()
 	lim, _ := json.Marshal(in.Limits)
 	if _, err := tx.Exec(ctx, `INSERT INTO projects(id,tenant_id,boundary_id,name,state,created_by,public_id,org_id,slug,owner_sub,
-	    placement,limits,cost_center,source_path,source_remote,source_workspace_id) VALUES($1,$2,$3,$4,'ready',$5,$6,$7,$4,$8,$9,$10,$11,NULLIF($12,''),$13,$14)`,
+	    placement,limits,cost_center,source_path,source_remote,source_workspace_id,workspace_id) VALUES($1,$2,$3,$4,'ready',$5,$6,$7,$4,$8,$9,$10,$11,NULLIF($12,''),$13,$14,$15)`,
 		pid, in.TenantID, boundary, in.Slug, in.CreatedBy, out.PublicID, out.OrgID, in.OwnerSub, in.Placement, lim, in.CostCenter,
-		in.SourcePath, in.SourceRemote, in.WorkspaceID); err != nil {
+		in.SourcePath, in.SourceRemote, in.WorkspaceID, group); err != nil {
 		return nil, uniqueViolation(err)
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO environments(id,project_id,tenant_id,name) VALUES($1,$2,$3,'dev')`, eid, pid, in.TenantID); err != nil {

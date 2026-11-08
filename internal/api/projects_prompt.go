@@ -17,10 +17,11 @@ import (
 )
 
 type promptIn struct {
-	Prompt   string `json:"prompt"`
-	Stack    string `json:"stack"`
-	Provider string `json:"provider"`
-	Name     string `json:"name"`
+	Prompt      string `json:"prompt"`
+	Stack       string `json:"stack"`
+	Provider    string `json:"provider"`
+	Name        string `json:"name"`
+	WorkspaceID string `json:"workspace_id"`
 }
 
 // promptProject (M4, implementation-plan-3): POST /v1/tenants/{t}/projects/from-prompt creates a
@@ -85,7 +86,11 @@ func (a *API) createFromPrompt(w http.ResponseWriter, r *http.Request, c *caller
 		auth.Problem(w, http.StatusServiceUnavailable, "The project could not be saved.")
 		return
 	}
-	pid, err := st.CreateProject(r.Context(), t.ID, name, "dev", c.id.Sub)
+	pid, err := st.CreateProjectInWorkspace(r.Context(), t.ID, in.WorkspaceID, name, "dev", c.id.Sub)
+	if errors.Is(err, projects.ErrNotFound) {
+		auth.Problem(w, http.StatusNotFound, "Workspace not found.")
+		return
+	}
 	if errors.Is(err, projects.ErrNameTaken) {
 		auth.Problem(w, http.StatusConflict, "A project with that name already exists.")
 		return

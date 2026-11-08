@@ -29,7 +29,7 @@ func testService(t *testing.T) (*Service, *capture) {
 	if _, err := database.Pool.Exec(ctx, `TRUNCATE identity_users, identity_orgs, identity_tokens, identity_invites, identity_waitlist, identity_api_keys, identity_webhooks, identity_oauth_codes, identity_oauth_refresh, identity_audit, identity_settings, identity_links, identity_passkeys, identity_recovery, identity_members CASCADE`); err != nil {
 		t.Fatal(err)
 	}
-	cfg := &config.Config{Directory: config.Directory{Signup: "invite_only", ClientID: "shippin-panel", Redirects: []string{"https://console.example.invalid/cb"}, Origin: "https://console.example.invalid", RPID: "console.example.invalid", WebhookSkewSecond: 300}}
+	cfg := &config.Config{Directory: config.Directory{Signup: "invite_only", ClientID: "shippin-panel", Redirects: []string{"https://console.example.invalid/cb"}, Origin: "https://console.example.invalid", RPID: "console.example.invalid", WebhookSkewSecond: 300}, Onboarding: config.Onboarding{Plan: "starter"}}
 	cap := &capture{}
 	return New(database.Pool, cfg, cap, NoneCaptcha{}), cap
 }
@@ -52,12 +52,50 @@ func TestStoreBootstrapMagicInviteWaitlist(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	user, codes, err := s.RedeemSetup(ctx, code, "Owner@Example.invalid", "Owner")
-	if err != nil || user.Role != "owner" || len(codes) != 8 {
+	input := SetupInput{Code: code, Username: "owner", Email: "Owner@Example.invalid", Name: "Owner", Password: "a long test password", Organization: "Owner Works", Brand: config.Brand{Name: "Shippin", Short: "Ship", Tagline: "Build and ship"}}
+	invalid := input
+	invalid.Email = "not an email"
+	if _, _, err := s.RedeemSetup(ctx, invalid); !errors.Is(err, ErrSetupInput) {
+		t.Fatal("invalid email accepted", err)
+	}
+	invalid = input
+	invalid.Password = "short"
+	if _, _, err := s.RedeemSetup(ctx, invalid); !errors.Is(err, ErrPassword) {
+		t.Fatal("short password accepted", err)
+	}
+	invalid = input
+	invalid.Brand.LogoURL = "javascript:alert(1)"
+	if _, _, err := s.RedeemSetup(ctx, invalid); !errors.Is(err, ErrBrand) {
+		t.Fatal("invalid branding accepted", err)
+	}
+	user, codes, err := s.RedeemSetup(ctx, input)
+	if err != nil || user.Role != "owner" || user.Username != "owner" || len(codes) != 8 {
 		t.Fatal(err, user, len(codes))
 	}
-	if _, _, err := s.RedeemSetup(ctx, code, "other@example.invalid", "X"); err == nil {
+	if _, _, err := s.RedeemSetup(ctx, input); err == nil {
 		t.Fatal("setup code reused")
+	}
+	if _, err := s.AuthenticatePassword(ctx, "OWNER", "a long test password", "test"); err != nil {
+		t.Fatal("password login", err)
+	}
+	if _, err := s.AuthenticatePassword(ctx, "owner@example.invalid", "incorrect password", "test"); err == nil {
+		t.Fatal("incorrect password accepted")
+	}
+	if err := s.SetPassword(ctx, user.ID, "wrong password", "updated test password", "test"); err == nil {
+		t.Fatal("incorrect current password accepted")
+	}
+	if err := s.SetPassword(ctx, user.ID, "a long test password", "updated test password", "test"); err != nil {
+		t.Fatal("change password", err)
+	}
+	if _, err := s.AuthenticatePassword(ctx, "owner", "updated test password", "test"); err != nil {
+		t.Fatal("updated password did not work", err)
+	}
+	var tenantCount int
+	if err := s.db.QueryRow(ctx, `SELECT count(*) FROM tenants t JOIN orgs o ON o.tenant_id=t.id JOIN identity_members m ON m.org_id=o.identity_org_id WHERE m.user_id=$1 AND t.name=$2 AND t.kind='system' AND o.type='operations'`, user.ID, "Owner Works").Scan(&tenantCount); err != nil || tenantCount != 1 {
+		t.Fatal("internal organization ownership missing", tenantCount, err)
+	}
+	if err := s.db.QueryRow(ctx, `SELECT count(*) FROM tenants t JOIN identity_members m ON m.org_id::text=t.idp_org_id WHERE m.user_id=$1 AND t.kind='customer'`, user.ID).Scan(&tenantCount); err != nil || tenantCount != 0 {
+		t.Fatal("setup must not create customer access", tenantCount, err)
 	}
 	got, err := s.RedeemRecovery(ctx, "owner@example.invalid", codes[0])
 	if err != nil || got.ID != user.ID {

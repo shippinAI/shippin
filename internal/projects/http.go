@@ -27,6 +27,12 @@ const base = "/v1/tenants/{tenantId}/projects"
 
 func (h *Handler) Routes() []Route {
 	return []Route{
+		{"GET " + workspaceBase, h.listOrganizationWorkspaces},
+		{"POST " + workspaceBase, h.createOrganizationWorkspace},
+		{"GET " + workspaceBase + "/{groupId}", h.getOrganizationWorkspace},
+		{"PATCH " + workspaceBase + "/{groupId}", h.updateOrganizationWorkspace},
+		{"DELETE " + workspaceBase + "/{groupId}", h.deleteOrganizationWorkspace},
+		{"GET " + workspaceBase + "/{groupId}/projects", h.workspaceProjects},
 		{"GET " + base, h.list},
 		{"POST " + base, h.create},
 		{"GET " + base + "/{projectId}", h.get},
@@ -52,7 +58,9 @@ func (h *Handler) workspaces(w http.ResponseWriter, r *http.Request, t, _ string
 }
 
 func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
-	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(dst) != nil {
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(dst) != nil {
 		auth.Problem(w, http.StatusBadRequest, "The request body isn't valid JSON.")
 		return false
 	}
