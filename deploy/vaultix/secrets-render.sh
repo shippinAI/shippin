@@ -1,5 +1,5 @@
 #!/bin/bash
-# Render $VAULTIX_SECRETS_DIR from fresh random values (local) or from sops (Gold: SOPS_FILE set).
+# Render $VAULTIX_SECRETS_DIR from fresh random values (local) or from sops (a site: SOPS_FILE set).
 # Prints nothing secret. usage: secrets-render.sh   (reads .env)
 set -euo pipefail
 cd "$(dirname "$0")"; set -a; . ./.env; set +a

@@ -7,6 +7,7 @@ testMapping:
   post:
     tags: [compute-nodes]
     operationId: infraSystemIdentityMappingTest
+    x-shippin-feature: feature.idp_admin
     summary: Record a read-only AgentHub mapping check for a Shippin system
     description: Confirms the saved AgentHub machine and tenant mapping and records a redacted observation. It does not authorize or execute provider operations.
     x-source: shippin-platform/internal/api/infra_identity.go:infraTestSystemIdentity

@@ -11,7 +11,7 @@ export function TenantOnboardingCard({ tenantId, feature }: { tenantId: string; 
         <h2 className="text-[15px] font-semibold">Start with a workspace</h2>
         <p className="mt-1 text-[13px] text-fg-muted">
           {feature ? `${feature} runs inside a workspace. ` : ""}Your tenant has no workspaces yet. Create one to get a terminal,
-          connected AI CLIs, Clyffy's guides, one-click Publish and usage numbers.
+          connected AI CLIs, guides, one-click Publish and usage numbers.
         </p>
       </div>
       <LinkButton href={`/t/${tenantId}/workspaces/new`} size="sm" tooltip="Create your first workspace">

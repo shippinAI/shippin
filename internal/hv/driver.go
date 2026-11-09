@@ -26,15 +26,18 @@ var ErrGuestNotFound = errors.New("hv: guest not found")
 
 // GuestSpec is a guest to make. A driver uses what applies to it, and zero leaves its default.
 type GuestSpec struct {
-	Kind    string
-	Name    string
-	Image   string
-	Storage string
-	Network string
-	Memory  int // MiB
-	Cores   int
-	Disk    int // GiB
-	Start   bool
+	Kind  string
+	Name  string
+	Image string
+	// ImageServer and ImageProtocol name where Image comes from, when the host does not already have it.
+	ImageServer   string
+	ImageProtocol string
+	Storage       string
+	Network       string
+	Memory        int // MiB
+	Cores         int
+	Disk          int // GiB
+	Start         bool
 }
 
 // Image is something a guest can be made from.

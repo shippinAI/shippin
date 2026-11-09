@@ -75,17 +75,17 @@ Any member can read status and copy a command. Copy is audited as `apps.command_
 
 ## Deploy and roll back
 
-There is no database migration. Roll back the same way as any other console and hostd release: `deploy/console-rollback.sh` and `deploy/hostd-rollback.sh` (see the README). Rolling back removes the cards and the prepare action. It does not uninstall apps a member already installed, and it does not delete the VM desktop session.
+There is no database migration. Roll back the same way as any other console and hostd release.
 
-Do not deploy from this change. Deployment waits for the operator's approval. Do not run it on the gold control-plane host.
+Do not deploy from this change. Deployment waits for the operator's approval. Do not run it on the control-plane host.
 
 ## Sudo in the tenant VM
 
 Decided: org members have sudo in their org's tenant VM, the same way members have sudo on a VM in other multi-tenant clouds. The Claude and ChatGPT card commands, their Update buttons, and the `shippin` helper that runs those steps all use `sudo` where the vendor's apt instructions do. The helper states that members have sudo inside this tenant VM.
 
-Sudo is root inside that VM only. The per-tenant VM boundary is what protects other tenants and the host. hostd and the gold control-plane host stay staff-only. Desktop prerequisite packages stay a hostd action (VM-only, allowlisted) because they prepare the shared desktop session.
+Sudo is root inside that VM only. The per-tenant VM boundary is what protects other tenants and the host. hostd and the control-plane host stay staff-only. Desktop prerequisite packages stay a hostd action (VM-only, allowlisted) because they prepare the shared desktop session.
 
-Follow-up for `docs/design/identity-local-accounts.md` on branch `cursor/devspace-foundation-8c87` (PR #2, not edited here): that doc says members do not get sudo on the VM (sudo only inside their containers). Update it to say members get sudo in their tenant VM, with sudo scoped to that VM only, so the tenant VM isolation boundary and the hostd/gold host controls stay staff-only.
+Follow-up for `docs/design/identity-local-accounts.md` on branch `cursor/devspace-foundation-8c87` (PR #2, not edited here): that doc says members do not get sudo on the VM (sudo only inside their containers). Update it to say members get sudo in their tenant VM, with sudo scoped to that VM only, so the tenant VM isolation boundary and the hostd/the reference host host controls stay staff-only.
 
 ## Decisions still open
 

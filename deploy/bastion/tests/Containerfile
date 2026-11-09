@@ -1,5 +1,0 @@
-FROM docker.io/library/debian@sha256:c94f5ddd41327aa2d4a7cfba7889056c02936182fd76a513fec6160c97181fc0
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends systemd systemd-sysv python3 nftables iproute2 openssh-server curl && rm -rf /var/lib/apt/lists/*
-RUN mkdir -p /etc/nftables.d /etc/systemd/system/ssh.service.d /etc/systemd/system/bastion-web.service.d && systemctl disable ssh.socket && systemctl enable ssh.service
-STOPSIGNAL SIGRTMIN+3
-CMD ["/sbin/init"]

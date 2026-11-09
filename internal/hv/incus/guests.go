@@ -14,23 +14,19 @@ import (
 
 var guestName = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-]{0,62}$`)
 
-// publicImages is the image server Incus itself documents, so "images:debian/13" means what it means
-// on the command line. Images named this way come from configuration.
-const publicImages = "https://images.linuxcontainers.org"
-
-// imageSource turns an image id into what Incus wants: "images:<alias>" from the public server, or
-// "local:<fingerprint>" from this server.
-func imageSource(id string) (map[string]string, error) {
-	if alias, ok := strings.CutPrefix(id, "images:"); ok && alias != "" {
-		return map[string]string{"type": "image", "mode": "pull", "protocol": "simplestreams", "server": publicImages, "alias": alias}, nil
+// imageSource turns a chosen image into what Incus wants: an alias on the configured image server named
+// in the spec, or "local:<fingerprint>" from this server.
+func imageSource(s hv.GuestSpec) (map[string]string, error) {
+	if s.ImageServer != "" && s.Image != "" {
+		return map[string]string{"type": "image", "mode": "pull", "protocol": s.ImageProtocol, "server": s.ImageServer, "alias": s.Image}, nil
 	}
-	if fp, ok := strings.CutPrefix(id, "local:"); ok && fp != "" {
+	if fp, ok := strings.CutPrefix(s.Image, "local:"); ok && fp != "" {
 		return map[string]string{"type": "image", "fingerprint": fp}, nil
 	}
 	return nil, errors.New("incus: choose an image for this guest")
 }
 
-// Images lists what this server already has. Those it can fetch come from configuration.
+// Images lists what this server already has. Those it can fetch are named in configuration.
 func (c *Client) Images(ctx context.Context) ([]hv.Image, error) {
 	body, code, err := c.do(ctx, http.MethodGet, c.path("/1.0/images", "recursion", "1"), nil)
 	if err != nil {

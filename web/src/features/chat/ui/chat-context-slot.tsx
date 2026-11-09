@@ -7,7 +7,7 @@ import { useSurfaces } from "../../a2ui/use-surfaces";
 
 type Props = { ctx: ChatContext; onPrompt?: (text: string) => void };
 
-/** Route-specific UI inside ChatSurface, sent as an A2UI v0.9 surface from Clyffy: a context
+/** Route-specific UI inside ChatSurface, sent as an A2UI v0.9 surface from the assistant: a context
  * card plus one-tap prompts (prompts need an open session). */
 export function ChatContextSlot({ ctx, onPrompt }: Props) {
   const messages = useMemo(() => contextMessages(ctx, !!onPrompt), [ctx, onPrompt]);
@@ -16,7 +16,7 @@ export function ChatContextSlot({ ctx, onPrompt }: Props) {
   if (!s) return null;
   return (
     <div className="border-b border-line p-4">
-      <A2UISurface surface={s} label="Clyffy suggestions" onData={(p, v) => edit(s.id, p, v)}
+      <A2UISurface surface={s} label="Suggestions" onData={(p, v) => edit(s.id, p, v)}
         onAction={(a) => {
           if (a.name === "prompt" && onPrompt) onPrompt(String(a.context.text));
           if (a.name === "go") navigate(String(a.context.to));

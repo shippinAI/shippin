@@ -7,16 +7,16 @@ const intro: Record<ChatContext["kind"], string> = {
   publish: "Publishing snapshots this devspace and serves it at a public HTTPS address.",
   workspace: "Ask about this workspace: what's running, ports, previews.",
   chat: "",
-  general: "Hi, I'm Clyffy. Ask anything about Shippin.",
+  general: "Ask anything about this panel.",
 };
 
-/** Clyffy's per-route card as A2UI messages. No card on /chat itself (the rail is the extra). */
+/** The assistant's per-route card as A2UI messages. No card on /chat itself (the rail is the extra). */
 export function contextMessages(ctx: ChatContext, canPrompt: boolean): A2UIMessage[] {
   if (ctx.kind === "chat") return [];
   const s = `chat-context-${ctx.kind}`;
   const comps: A2UIComponent[] = [
     { id: "root", component: "Card", child: "col" },
-    { id: "head", component: "Text", text: "Clyffy", variant: "caption" },
+    { id: "head", component: "Text", text: "Assistant", variant: "caption" },
     { id: "intro", component: "Text", text: intro[ctx.kind] },
   ];
   const kids = ["head", "intro"];

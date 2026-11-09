@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -46,6 +47,34 @@ type UIProvider struct {
 	Fields      []UIField `json:"fields,omitempty"`
 	// Images are what a guest can be made from, beyond what the host already has.
 	Images []UIImage `json:"images,omitempty"`
+	// ImageRemotes are the servers those images come from. An image id "name:alias" asks the remote
+	// with that name for alias.
+	ImageRemotes []UIImageRemote `json:"image_remotes,omitempty"`
+}
+
+// UIImageRemote is one server images are fetched from.
+type UIImageRemote struct {
+	Name     string `json:"name"`
+	Server   string `json:"server"`
+	Protocol string `json:"protocol"`
+}
+
+// ImageRemote finds the configured server an image id refers to, and the alias to ask it for.
+func (u UI) ImageRemote(kind, image string) (UIImageRemote, string, bool) {
+	name, alias, found := strings.Cut(image, ":")
+	if !found || alias == "" {
+		return UIImageRemote{}, "", false
+	}
+	p, ok := u.Provider(kind)
+	if !ok {
+		return UIImageRemote{}, "", false
+	}
+	for _, r := range p.ImageRemotes {
+		if r.Name == name {
+			return r, alias, true
+		}
+	}
+	return UIImageRemote{}, "", false
 }
 
 // UIImage is one image this installation offers. The id is in the driver's own terms.
@@ -107,6 +136,11 @@ func (u UI) Check() error {
 		if err := uiString(p.Kind, p.Description, uiTextMax); err != nil {
 			return err
 		}
+		for _, r := range p.ImageRemotes {
+			if err := validImageRemote(p.Kind, r); err != nil {
+				return err
+			}
+		}
 		for _, f := range p.Fields {
 			if !uiIDRE.MatchString(f.Name) {
 				return fmt.Errorf("ui.providers.%s: %q is not a field name", p.Kind, f.Name)
@@ -117,6 +151,21 @@ func (u UI) Check() error {
 				}
 			}
 		}
+	}
+	return nil
+}
+
+// validImageRemote keeps a remote to https and a known protocol. "local" already means the host itself.
+func validImageRemote(kind string, r UIImageRemote) error {
+	if !uiIDRE.MatchString(r.Name) || r.Name == "local" {
+		return fmt.Errorf("ui.providers.%s: %q cannot name an image server", kind, r.Name)
+	}
+	u, err := url.Parse(r.Server)
+	if err != nil || u.Scheme != "https" || u.Host == "" {
+		return fmt.Errorf("ui.providers.%s: image server %q must be an https URL", kind, r.Name)
+	}
+	if !slices.Contains([]string{"simplestreams", "incus", "oci"}, r.Protocol) {
+		return fmt.Errorf("ui.providers.%s: image server %q has an unknown protocol %q", kind, r.Name, r.Protocol)
 	}
 	return nil
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Create one DNS-only A record <name>.<domain> -> PUBLIC_IP in the Cloudflare zone, if no record of
-# that name exists (never modifies or deletes). Exports the zone first. Runs on Gold; the zone
+# that name exists (never modifies or deletes). Exports the zone first. Runs on the host; the zone
 # token comes from sops (shippin_cloud_dns_token) and is never printed.
 #   PUBLIC_IP=<edge public IP> bash deploy/dns-a-record.sh ops     env: DOMAIN (required) BACKUP_DIR
 set -euo pipefail

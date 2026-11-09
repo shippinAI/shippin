@@ -13,7 +13,7 @@ import { SessionList } from "./session-list";
 type Props = { variant: ChatVariant; sessionId?: string | null };
 
 /** THE chat: the /chat route and the overlay both render this. The route decides the extras:
- * a session rail on /chat, page-specific prompts and an inline Clyffy surface elsewhere. */
+ * a session rail on /chat, page-specific prompts and an inline surface elsewhere. */
 export function ChatSurface({ variant, sessionId: routeId }: Props) {
   const { pathname } = useLocation();
   const store = useChatUI().sessionId;

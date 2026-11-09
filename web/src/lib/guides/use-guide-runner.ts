@@ -3,7 +3,7 @@ import type { TerminalBus } from "../terminal/terminal-bus";
 import type { Guide, StepStatus } from "./guide-types";
 
 /**
- * The controller a guide panel renders from. Everything is a plain method so a future Clyffy
+ * The controller a guide panel renders from. Everything is a plain method so a future assistant
  * API can drive the same panel: open(guideId), run(stepIndex), next(), back(), close().
  */
 export function useGuideRunner(guides: Guide[], bus: TerminalBus) {

@@ -2,13 +2,13 @@
 
 This is a migration and implementation plan. It does not describe a deployed
 feature. The product is a self-hosted Shippin installation with one panel, one
-system inventory and configurable human-in-the-loop behavior. Gold approvals
+system inventory and configurable human-in-the-loop behavior. change approval
 must not exist as a Shippin or AgentHub product feature, fixed policy, route,
 identity or default. AgentHub owns the configurable review policy and review
 records; the control plane owns the authoritative system inventory.
 
 > **Status (2026-11-05):** the console and its one `web/` panel are in this
-> repository. Gold signing, compiled approver defaults and the `HUB_OWNER_*`
+> repository. single-site signing, compiled approver defaults and the `HUB_OWNER_*`
 > bypass have been removed from Shippin main. The hypervisor-local board adapter
 > and `hv.Guard` have also been removed; generic hypervisor mutation routes remain
 > fail-closed except for single-guest start, stop, shutdown and reboot, which now
@@ -45,7 +45,7 @@ records; the control plane owns the authoritative system inventory.
 - AgentHub `server/internal/changepolicy/` already stores versioned policy,
   tickets, evidence and reviews. A review binds to a ticket hash. Its current
   preset contains installation-specific rules and a named principal, and
-  `server/internal/policyrules/eval.go` recognizes a Gold-specific runner.
+  `server/internal/policyrules/eval.go` recognizes a single-site runner.
 - The currently reviewed REST decision response is boolean plus a policy hash,
   version, decision ID and matched rule IDs. No match defaults to allow. The
   `ticket` policy check proves only that a ticket exists; it does not bind the
@@ -53,8 +53,8 @@ records; the control plane owns the authoritative system inventory.
   configured quorum. Shippin's adapter must verify exact ticket binding and the
   current policy's matched rule semantics; only AgentHub evaluates reviewer
   eligibility and configured quorum.
-- Historical console `web/src/features/gold-sign/`, `internal/goldsign/` and
-  `internal/api/goldsign_routes.go` implement separate Gold-specific screens,
+- Historical console the removed single-site signing code  and
+  the removed single-site signing code  implement separate single-site screens,
   storage, signing and routes. They are not the AgentHub policy authority and
   are not part of the current deployment review flow.
 
@@ -111,7 +111,7 @@ review requirement, named approver or special runner from a hostname or alias.
    control plane and a separate remote host; do not assume container hostname is
    host hostname.
 3. **Make human review policy data.** Reuse and adapt AgentHub's versioned
-   policy, ticket and review capabilities. Replace Gold-specific runner parsing,
+   policy, ticket and review capabilities. Replace single-site runner parsing,
    seeded identities, geographic rules and filesystem assumptions with generic,
    operator-configured policy and explicitly configured execution integrations.
    A new installation must not inherit a named person's policy. Preserve existing
@@ -120,7 +120,7 @@ review requirement, named approver or special runner from a hostname or alias.
    Test absent/invalid policy, version conflicts, stale reviews, unauthorized
    reviewers, provider failures and restart recovery.
 4. **Retire the legacy feature.** Inventory the console's routes, passkey and
-   verifier callers, jobs, tests, configuration and data. Remove Gold-specific
+   verifier callers, jobs, tests, configuration and data. Remove single-site
    product navigation, API and code only when their effects and historical data
    have a reviewed replacement or archival path. Never reinterpret an old signed
    envelope as a new AgentHub review. Preserve audit history and revoke or migrate
@@ -134,7 +134,7 @@ review requirement, named approver or special runner from a hostname or alias.
    destination is reachable in three or four actions from the relevant starting
    screen, including keyboard and mobile navigation. Direct links, unavailable
    services, authorization failures and policy version changes must behave
-   correctly. Do not create a Gold-specific destination or fixed host name.
+   correctly. Do not create a single-site destination or fixed host name.
 6. **Run and ship.** Build from a clean checkout, start an isolated self-hosted
    installation, enroll a disposable VM and exercise configuration, identity,
    review, restart, upgrade, backup/restore and rollback. Verify behavior against

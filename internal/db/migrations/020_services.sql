@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS service_bindings (
 );
 INSERT INTO catalog_services(id,label,description,kind,docs_url,required,config_schema,default_config) VALUES
  ('rrflow','rrflow','Reasoning engine: agent sessions, memory and a hash-chained decision log, on your own private server.',
-  'ai','gold-homebase/SHIPPIN-CLOUD/02c-rrflow.md',false,
+  'ai','',false,
   '{"type":"object","properties":{"memory_scope":{"type":"string","enum":["workspace"],"title":"Memory scope"}}}',
   '{"memory_scope":"workspace"}')
 ON CONFLICT (id) DO NOTHING;

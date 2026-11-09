@@ -99,7 +99,8 @@
       "tags": [
         "bridge-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.bridge"
     },
     {
       "method": "GET",
@@ -109,7 +110,8 @@
       "tags": [
         "bridge-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.bridge"
     },
     {
       "method": "POST",
@@ -119,7 +121,8 @@
       "tags": [
         "bridge-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.bridge"
     },
     {
       "method": "GET",
@@ -129,7 +132,8 @@
       "tags": [
         "bridge-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.bridge"
     },
     {
       "method": "POST",
@@ -139,7 +143,8 @@
       "tags": [
         "bridge-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.bridge"
     },
     {
       "method": "POST",
@@ -149,7 +154,8 @@
       "tags": [
         "bridge-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.bridge"
     },
     {
       "method": "GET",
@@ -159,7 +165,8 @@
       "tags": [
         "bridge-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.bridge"
     },
     {
       "method": "GET",
@@ -169,7 +176,8 @@
       "tags": [
         "bridge-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.bridge"
     },
     {
       "method": "DELETE",
@@ -179,7 +187,8 @@
       "tags": [
         "bridge-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.bridge"
     },
     {
       "method": "GET",
@@ -259,7 +268,8 @@
       "tags": [
         "chat-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.chat"
     },
     {
       "method": "GET",
@@ -269,7 +279,8 @@
       "tags": [
         "chat-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.chat"
     },
     {
       "method": "POST",
@@ -279,7 +290,8 @@
       "tags": [
         "chat-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.chat"
     },
     {
       "method": "GET",
@@ -289,7 +301,8 @@
       "tags": [
         "chat-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.chat"
     },
     {
       "method": "POST",
@@ -299,7 +312,8 @@
       "tags": [
         "chat-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.chat"
     },
     {
       "method": "GET",
@@ -309,7 +323,8 @@
       "tags": [
         "chat-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.chat"
     },
     {
       "method": "GET",
@@ -319,7 +334,8 @@
       "tags": [
         "chat-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.chat"
     },
     {
       "method": "POST",
@@ -329,7 +345,8 @@
       "tags": [
         "compute-enrollment"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.servers"
     },
     {
       "method": "POST",
@@ -339,7 +356,8 @@
       "tags": [
         "compute-nodes"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.idp_admin"
     },
     {
       "method": "POST",
@@ -349,7 +367,8 @@
       "tags": [
         "compute-nodes"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.servers"
     },
     {
       "method": "DELETE",
@@ -359,7 +378,8 @@
       "tags": [
         "compute-nodes"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.servers"
     },
     {
       "method": "GET",
@@ -369,7 +389,8 @@
       "tags": [
         "compute-nodes"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.servers"
     },
     {
       "method": "GET",
@@ -765,11 +786,12 @@
       "method": "GET",
       "path": "/tenants/{tenantId}/identity/agents",
       "operationId": "listAgents",
-      "summary": "List agent identities (Nomen service users)",
+      "summary": "List agent identities",
       "tags": [
         "identity"
       ],
-      "implementationStatus": "unknown"
+      "implementationStatus": "unknown",
+      "feature": "feature.idp_admin"
     },
     {
       "method": "POST",
@@ -779,27 +801,30 @@
       "tags": [
         "identity"
       ],
-      "implementationStatus": "unknown"
+      "implementationStatus": "unknown",
+      "feature": "feature.idp_admin"
     },
     {
       "method": "GET",
       "path": "/tenants/{tenantId}/identity/apps",
       "operationId": "listIdentityApps",
-      "summary": "List customer OIDC apps in the tenant's Nomen organization",
+      "summary": "List customer OIDC apps in the tenant's identity provider",
       "tags": [
         "identity"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.idp_admin"
     },
     {
       "method": "POST",
       "path": "/tenants/{tenantId}/identity/apps",
       "operationId": "createIdentityApp",
-      "summary": "Register an app; the client secret is stored in Vaultix, never returned in clear",
+      "summary": "Register an app; the client secret is kept in the secrets store, never returned in clear",
       "tags": [
         "identity"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.idp_admin"
     },
     {
       "method": "DELETE",
@@ -809,7 +834,8 @@
       "tags": [
         "identity"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.idp_admin"
     },
     {
       "method": "GET",
@@ -819,7 +845,8 @@
       "tags": [
         "identity"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.idp_admin"
     },
     {
       "method": "POST",
@@ -879,7 +906,8 @@
       "tags": [
         "managed-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.workspaces"
     },
     {
       "method": "POST",
@@ -889,7 +917,8 @@
       "tags": [
         "managed-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.workspaces"
     },
     {
       "method": "GET",
@@ -935,7 +964,7 @@
       "method": "GET",
       "path": "/tenants/{tenantId}/members",
       "operationId": "listMembers",
-      "summary": "List members (Nomen org users + roles)",
+      "summary": "List members and their roles",
       "tags": [
         "members"
       ],
@@ -945,7 +974,7 @@
       "method": "POST",
       "path": "/tenants/{tenantId}/members",
       "operationId": "inviteMember",
-      "summary": "Invite a member (Nomen user + OpenFGA tuples)",
+      "summary": "Invite a member",
       "tags": [
         "members"
       ],
@@ -1139,7 +1168,8 @@
       "tags": [
         "platform"
       ],
-      "implementationStatus": "unknown"
+      "implementationStatus": "unknown",
+      "feature": "feature.servers"
     },
     {
       "method": "GET",
@@ -1269,7 +1299,8 @@
       "tags": [
         "rrflow"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.workspaces"
     },
     {
       "method": "PUT",
@@ -1279,7 +1310,8 @@
       "tags": [
         "rrflow"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.workspaces"
     },
     {
       "method": "GET",
@@ -1289,7 +1321,8 @@
       "tags": [
         "rrflow"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.workspaces"
     },
     {
       "method": "POST",
@@ -1299,7 +1332,8 @@
       "tags": [
         "rrflow"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.workspaces"
     },
     {
       "method": "POST",
@@ -1309,17 +1343,19 @@
       "tags": [
         "rrflow"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.workspaces"
     },
     {
       "method": "GET",
       "path": "/tenants/{tenantId}/secrets/{env}",
       "operationId": "listSecrets",
-      "summary": "List secret metadata in an environment (Vaultix proxy; values never listed)",
+      "summary": "List secret metadata in an environment (values never listed)",
       "tags": [
         "secrets"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.secrets"
     },
     {
       "method": "POST",
@@ -1329,7 +1365,8 @@
       "tags": [
         "secrets"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.secrets"
     },
     {
       "method": "DELETE",
@@ -1339,7 +1376,8 @@
       "tags": [
         "secrets"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.secrets"
     },
     {
       "method": "GET",
@@ -1349,7 +1387,8 @@
       "tags": [
         "secrets"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.secrets"
     },
     {
       "method": "PUT",
@@ -1359,7 +1398,8 @@
       "tags": [
         "secrets"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "planned",
+      "feature": "feature.secrets"
     },
     {
       "method": "GET",
@@ -1459,7 +1499,8 @@
       "tags": [
         "subscriptions-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.ai"
     },
     {
       "method": "DELETE",
@@ -1489,7 +1530,8 @@
       "tags": [
         "subscriptions-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.ai"
     },
     {
       "method": "POST",
@@ -1499,7 +1541,8 @@
       "tags": [
         "subscriptions-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.ai"
     },
     {
       "method": "POST",
@@ -1509,7 +1552,8 @@
       "tags": [
         "subscriptions-runtime"
       ],
-      "implementationStatus": "registered"
+      "implementationStatus": "registered",
+      "feature": "feature.ai"
     },
     {
       "method": "POST",

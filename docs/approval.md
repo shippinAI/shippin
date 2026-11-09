@@ -116,7 +116,3 @@ AgentHub decisions.
   executor with negative-path and recovery evidence.
   Preserve existing task/audit records; do not reset dirty AgentHub worktrees.
 
-Historical Gold signing settings and routes were removed from Shippin main.
-`GOLDSIGN_DIR` and `GOLDSIGN_FACTS_DIR` are only detected to emit a migration
-notice; Shippin does not read those records. Keep any historical records under
-their existing owner until separately archived or verified.

@@ -1,7 +1,7 @@
 import { A2UI_VERSION, SHIPPIN_CATALOG, type A2UIComponent, type A2UIMessage } from "../a2ui/a2ui-types";
 import type { Guide, StepStatus } from "./guide-types";
 
-/** Clyffy's guides as A2UI v0.9 messages. The panel renders only these, so an agent can send the
+/** Guides as A2UI v0.9 messages. The panel renders only these, so an agent can send the
  * same JSON later. Actions: open{guide}, run{step}, next, goto{step}, link{to}. */
 const v = A2UI_VERSION;
 const create = (surfaceId: string): A2UIMessage => ({ version: v, createSurface: { surfaceId, catalogId: SHIPPIN_CATALOG } });

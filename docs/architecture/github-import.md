@@ -33,7 +33,7 @@ devspace without pasting a personal token.
 ## Security
 
 - No secret is stored in the database. App credentials come only from the environment
-  (`SHIPPIN_GITHUB_*` ← sops `github_*` via `deploy/console-container.sh`). The PEM key is passed as
+  (`SHIPPIN_GITHUB_*`, from the site's secret store). The PEM key is passed as
   one-line base64.
 - Webhooks are checked with HMAC-SHA256 (`X-Hub-Signature-256`, constant time), capped at 1 MiB and
   deduplicated by `X-GitHub-Delivery`.
@@ -55,7 +55,7 @@ devspace without pasting a personal token.
 | Where can it be installed | Any account |
 
 `create-app.sh <org>` writes a page that posts this manifest to GitHub. `convert-manifest.sh
-<code>` (run on Gold) swaps the one-time code for the credentials and writes them into sops,
+<code>` (run on the reference host) swaps the one-time code for the credentials and writes them into sops,
 printing only id/slug/owner. Then set `github.app_slug` to the printed slug.
 
 Manual fallback (no manifest): Org settings → Developer settings → GitHub Apps → New GitHub App, fill in

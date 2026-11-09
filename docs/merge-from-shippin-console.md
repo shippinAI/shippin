@@ -22,10 +22,10 @@ The public tree is the squashed, cleaned snapshot. A full history import was not
 
 ## Dropped
 
-- `cmd/gold-passkey-verify` and `cmd/gold-sign-export`. They run on the Gold host, read `/etc/gold-change`, and sync over a tailnet. They are not a generic install.
-- `deploy/gold-ailaunch`, `deploy/gold-hub2`, `deploy/gold-passkey`, `deploy/gold-vaultix`. Site change tickets and a tailnet URL.
+- the removed single-site signing code . They run on the the reference host host, read the removed single-site signing code and sync over a tailnet. They are not a generic install.
+- the removed single-site signing code . Site change tickets and a tailnet URL.
 - `deploy/screenshots`. Live-site capture scripts. The archive already omitted the PNG files.
-- `config/sparks.gold.json`. Replaced by `config/sparks.example.json` with generic node ids.
+- the removed single-site signing code . Replaced by `config/sparks.example.json` with generic node ids.
 - Screenshot binaries. They were not in the archive.
 
 ## Made generic

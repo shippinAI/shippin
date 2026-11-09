@@ -8,7 +8,7 @@ This file is the source of truth for tier **names** and for the numbers below. `
 `034_canonical_plans.sql`) are checked against the JSON block at the bottom. The check fails
 if they diverge.
 
-Gold's live hostd is not this file. Nothing here is deployed.
+The reference host's live hostd is not this file. Nothing here is deployed.
 
 ## Tiers
 
@@ -24,8 +24,8 @@ Mail numbers and the identity / Vaultix placement are the operator's. They are n
 Business mail has no mailbox count because the deployment is dedicated.
 
 `founder` is not in the public catalog. New sign-ups in `config/shippin.json` use `free`
-(`workspaces.default_plan` and `onboarding.plan`). Gold's live console config is a different
-file and still says founder until someone changes it. This repo does not change gold.
+(`workspaces.default_plan` and `onboarding.plan`). The reference host's live console config is a different
+file and still says founder until someone changes it. This repo does not change the reference host.
 
 ## Devspace size (proposal)
 
@@ -59,7 +59,7 @@ Catalog `workspaces` is `instances` on `free` and `instances - 1` on a VM tier. 
 
 Quota is the ZFS quota on `tank/tenants/<tenant>` and the Incus project limit on pool `p-<tenant>`.
 It is at least VM root + data, with headroom. Founder's 16 / 32 GiB / 300 GiB data / 450 GiB quota
-is the size gold's live founder plan already uses. The previous copy of `deploy/hostd.json` had
+is the size the reference host's live founder plan already uses. The previous copy of `deploy/hostd.json` had
 founder at data 150 / quota 200.
 
 Prices: `free` is $0. `pro` at 2900 is the number already in the catalog. `starter` at 900 and
@@ -84,9 +84,9 @@ on business and founder only (the old team numbers, not the old enterprise numbe
 
 ## Contradictions still in the tree
 
-- Gold's live hostd (probed 2026-10-22) has `free` and `founder` only, and founder's numbers
+- The reference host's live hostd (probed 2026-10-22) has `free` and `founder` only, and founder's numbers
   match the proposal above. It does not have starter, pro, or business. Do not copy this file
-  onto gold as part of this change.
+  onto the reference host as part of this change.
 - Migration `014_boundary_tiers.sql` still inserts `micro`, `single`, `dual`, `b1`–`b8`, and
   `custom`. `028` marks those rows, plus `team` and `enterprise`, inactive and not public.
   `tenants.plan` is plain text, so an old tenant can still be named `micro`.
@@ -94,7 +94,7 @@ on business and founder only (the old team numbers, not the old enterprise numbe
 - The inner Incus pool inside a tenant VM is named `default`. The bytes are the zvol `tvd-<tenant>`
   on pool `p-<tenant>`, dataset `tank/tenants/<tenant>`. See `docs/architecture/org-storage.md`.
 - The platform image cache under `state_dir/images` is a template cache, not tenant data.
-- `volume_shifted` stays false until gold's ZFS accepts `security.shifted`. Steps are in the
+- `volume_shiftedthe removed single-site signing code security.shifted`. Steps are in the
   storage doc.
 
 ```plans

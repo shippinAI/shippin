@@ -444,6 +444,9 @@
           { "id": "images:alpine/3.21", "label": "Alpine 3.21" },
           { "id": "images:rockylinux/9", "label": "Rocky Linux 9" }
         ],
+        "image_remotes": [
+          { "name": "images", "server": "https://images.linuxcontainers.org", "protocol": "simplestreams" }
+        ],
         "description": "Containers and virtual machines on Incus servers.",
         "fields": [
           {

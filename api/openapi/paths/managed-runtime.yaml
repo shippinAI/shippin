@@ -44,6 +44,7 @@ attachRRFlow:
   post:
     tags: [managed-runtime]
     operationId: attachRRFlowPost
+    x-shippin-feature: feature.workspaces
     summary: Attach rrflow to a project devspace
     description: Member manager and enabled tenant feature required. workspace_id may be omitted to select an existing
       project devspace. Returns recorded instance and nullable job; acceptance does not establish readiness.
@@ -94,6 +95,7 @@ rrflowState:
   get:
     tags: [managed-runtime]
     operationId: rrflowStateGet
+    x-shippin-feature: feature.workspaces
     summary: Read rrflow sessions, memory or decisions
     description: Tenant members only. kind is sessions, memory or decisions; unknown kind returns 404. Provider
       data is decoded into owned types before returning.

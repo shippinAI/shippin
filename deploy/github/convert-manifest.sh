@@ -2,7 +2,7 @@
 # Exchanges the one-time manifest code (valid 1 hour, single use) for the new App's credentials and
 # stores them in sops as github_app_id, github_client_id, github_client_secret, github_private_key
 # and github_webhook_secret. Prints only the App id, slug and owner, never a secret.
-# Usage on Gold: ./convert-manifest.sh <code>   (SECRETS_FILE overrides the sops file)
+# Usage on the host: ./convert-manifest.sh <code>   (SECRETS_FILE overrides the sops file)
 set -euo pipefail
 CODE=${1:?code from the redirect URL}; S=${SECRETS_FILE:-/var/lib/shippin/site/secrets/platform-core.sops.yaml}
 API=${GITHUB_API:-https://api.github.com}

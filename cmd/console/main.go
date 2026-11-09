@@ -54,9 +54,6 @@ func main() {
 		log.Print("authentication limits: shared Dragonfly/Redis store connected")
 	}
 	consoleAPI.SetDirectory(directory)
-	if msg := api.RetiredNotice(os.Getenv); msg != "" {
-		log.Print(msg)
-	}
 	consoleAPI.StartJobs(ctx)
 	consoleAPI.SeedTemplates(ctx)
 	consoleAPI.SyncStaff(ctx)

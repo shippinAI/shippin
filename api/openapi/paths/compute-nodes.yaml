@@ -2,6 +2,7 @@ nodes:
   get:
     tags: [compute-nodes]
     operationId: listComputeNodes
+    x-shippin-feature: feature.servers
     summary: List enrolled compute nodes and their readiness
     description: Requires operator compute read permission. Offline or unverified nodes are not schedulable.
     x-implementation-status: planned
@@ -23,6 +24,7 @@ enrollments:
   post:
     tags: [compute-nodes]
     operationId: createComputeEnrollment
+    x-shippin-feature: feature.servers
     summary: Create a short-lived, single-node enrollment bundle
     description: |
       Requires operator compute enrollment permission and an audit record. The primary must
@@ -68,6 +70,7 @@ enrollment:
   delete:
     tags: [compute-nodes]
     operationId: revokeComputeEnrollment
+    x-shippin-feature: feature.servers
     summary: Revoke an unused enrollment
     description: Requires operator compute enrollment permission and an audit record. Does not revoke an already enrolled node credential.
     x-implementation-status: planned
@@ -79,6 +82,7 @@ redeem:
   post:
     tags: [compute-enrollment]
     operationId: redeemComputeEnrollment
+    x-shippin-feature: feature.servers
     summary: Exchange an enrollment secret and node-generated CSR for node identity
     description: |
       No operator session is used. TLS is mandatory. Secret is bound to the enrollment,

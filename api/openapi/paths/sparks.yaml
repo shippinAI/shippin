@@ -2,6 +2,7 @@ sparks:
   get:
     tags: [platform]
     operationId: getTenantSparks
+    x-shippin-feature: feature.servers
     summary: Spark model API and management destinations for this tenant
     description: |
       Requires a signed-in tenant member with host.admin_tools. Temporary support

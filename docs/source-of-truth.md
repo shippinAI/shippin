@@ -90,9 +90,9 @@ and lifecycle operations must be implemented and verified independently.
 Shippin is self-hosted software for operators to install on their own infrastructure;
 it does not require a commercial hosted service. Server addresses, identities and
 human-review policy are installation configuration. AgentHub owns its policy
-documents, change tickets and reviews. The Gold signing routes and store imported from
+documents, change tickets and reviews. The single-site signing routes and store imported from
 the console have been removed; see [the approval policy](approval.md) for what became
-of a site's records. AgentHub's Gold-specific seed and runner assumptions live in
+of a site's records. AgentHub's single-site seed and runner assumptions live in
 AgentHub and must be retired there through a reviewed migration. Preserve historical
 records and verify their meaning without treating them as new AgentHub decisions.
 Shippin now has AgentHub-backed deployment review preparation and exact-action

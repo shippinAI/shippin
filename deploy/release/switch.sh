@@ -1,7 +1,7 @@
 #!/bin/bash
 # release/switch.sh DIR ID - point DIR/current at release ID and DIR/previous at the old current
 # (atomic rename of a temp symlink). `switch.sh DIR --rollback` swaps current and previous.
-# Prints "current=<id> previous=<id>". Runs on Gold's host and inside the console container.
+# Prints "current=<id> previous=<id>". Runs on the host and inside the console container.
 set -euo pipefail
 D=${1:?releases dir}; ID=${2:?release id or --rollback}
 link() { ln -sfn "$1" "$D/.$2.tmp" && mv -T "$D/.$2.tmp" "$D/$2"; }

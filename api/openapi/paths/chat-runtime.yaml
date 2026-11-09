@@ -3,6 +3,7 @@ chatConfig:
     tags:
     - chat-runtime
     operationId: chatConfigGet
+    x-shippin-feature: feature.chat
     summary: Read configured chat providers and UI catalog
     description: Requires enabled console chat and sign-in.
     x-source: shippin-console/internal/api/chat_routes.go:chatConfig
@@ -34,6 +35,7 @@ chatTips:
     tags:
     - chat-runtime
     operationId: chatTipsGet
+    x-shippin-feature: feature.chat
     summary: Read contextual chat tips
     description: Requires enabled console chat and sign-in. Matches configured route prefixes.
     x-source: shippin-console/internal/api/chat_routes.go:chatTips
@@ -63,6 +65,7 @@ chatSessions:
     tags:
     - chat-runtime
     operationId: chatSessionsGet
+    x-shippin-feature: feature.chat
     summary: List own chat sessions
     description: Returns sessions owned by the caller.
     x-source: shippin-console/internal/api/chat_routes.go:chatList
@@ -85,6 +88,7 @@ chatSessions:
     tags:
     - chat-runtime
     operationId: chatSessionsPost
+    x-shippin-feature: feature.chat
     summary: Create a server-backed chat session
     description: Checks workspace access and configured provider. project_id falls back to the workspace project
       when omitted.
@@ -128,6 +132,7 @@ chatSession:
     tags:
     - chat-runtime
     operationId: chatSessionGet
+    x-shippin-feature: feature.chat
     summary: Read own chat session and messages
     description: Owner-scoped session read; message history is returned from the chat store.
     x-source: shippin-console/internal/api/chat_send.go:chatGet
@@ -157,6 +162,7 @@ chatReady:
     tags:
     - chat-runtime
     operationId: chatReadyGet
+    x-shippin-feature: feature.chat
     summary: Check chat provider readiness
     description: Rechecks workspace access and runs the configured provider check through hostd. Returns readiness/connect
       guidance, not a credential.
@@ -194,6 +200,7 @@ chatMessages:
     tags:
     - chat-runtime
     operationId: chatMessagesPost
+    x-shippin-feature: feature.chat
     summary: Store a message and stream the reply
     description: Rechecks workspace access. Streams user, delta, done and error SSE events and stores the reply
       with validated UI blocks.

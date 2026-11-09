@@ -1,6 +1,6 @@
 #!/bin/bash
 # Real Let's Encrypt certs on the edge via ACME DNS-01 (Cloudflare) for the named platform hosts
-# and *.<ws base domain>. Usage on Gold: ./edge-acme-wildcard.sh /path/to/caddy-with-cloudflare
+# and *.<ws base domain>. Usage on the host: ./edge-acme-wildcard.sh /path/to/caddy-with-cloudflare
 # Token source of truth: sops key shippin_cloud_dns_token. It is written root-only (0600) to the edge
 # as an EnvironmentFile for caddy-api.service. Never printed. API mode is kept (config via :2019).
 set -euo pipefail

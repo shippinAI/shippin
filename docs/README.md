@@ -23,4 +23,4 @@ Start with the [README](../README.md) to run it, and [develop](development.md) t
 
 ## History
 
-[history/](history/) holds phase notes, reviews and plans that were true when written. They name sites and describe code that has since moved. Nothing there is current.
+[history/](history/) holds phase notes, reviews and plans that were true when written.

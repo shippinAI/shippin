@@ -5,7 +5,7 @@ Status: 2026-10-22. Every byte a tenant owns lives on that tenant's dataset
 provision sets `limits.disk.pool.<hidden>=0` for every pool in `hidden_pools` (the shipped file
 lists `platform`).
 
-Nothing here is deployed. Gold's live hostd is a different config.
+Nothing here is deployed. The reference host's live hostd is a different config.
 
 ## Where each byte goes
 
@@ -88,7 +88,7 @@ owner is correct in one container and `nobody` in the next. `security.shifted=tr
 Incus fix, and creating the volume with that property fails the whole AI home if this ZFS
 pool rejects it. That is not safe to flip from here.
 
-On gold, against a throwaway tenant (not founder):
+On the reference host, against a throwaway tenant (not founder):
 
 ```sh
 zfs get -H encryption,mountpoint,quota tank/tenants/<tenant>
@@ -106,5 +106,5 @@ Then:
 incus storage volume delete p-<tenant> shift-probe --project t-<tenant>
 ```
 
-Only after that probe succeeds should `ai.volume_shifted` become true on gold. `ownAIHome`
+Only after that probe succeeds should `ai.volume_shiftedthe removed single-site signing code ownAIHome`
 chowns the mount point, not the files inside it, so it is not a substitute.

@@ -148,19 +148,19 @@ func TestCreateGuestSendsWhatIncusExpects(t *testing.T) {
 	}))
 	defer srv.Close()
 	c := guestClient(t, srv)
-	g, err := c.CreateGuest(context.Background(), hv.GuestSpec{Kind: hv.KindCT, Name: "web-1", Image: "images:debian/13", Memory: 512, Cores: 2, Start: true})
+	g, err := c.CreateGuest(context.Background(), hv.GuestSpec{Kind: hv.KindCT, Name: "web-1", Image: "debian/13", ImageServer: "https://images.test", ImageProtocol: "simplestreams", Memory: 512, Cores: 2, Start: true})
 	if err != nil || !strings.EqualFold(g.Status, "running") {
 		t.Fatalf("%+v %v", g, err)
 	}
 	src := sent["source"].(map[string]any)
 	cfg := sent["config"].(map[string]any)
-	if sent["type"] != "container" || src["alias"] != "debian/13" || src["protocol"] != "simplestreams" || src["server"] != publicImages || cfg["limits.memory"] != "512MiB" || cfg["limits.cpu"] != "2" {
+	if sent["type"] != "container" || src["alias"] != "debian/13" || src["protocol"] != "simplestreams" || src["server"] != "https://images.test" || cfg["limits.memory"] != "512MiB" || cfg["limits.cpu"] != "2" {
 		t.Fatalf("%+v", sent)
 	}
 	for name, spec := range map[string]hv.GuestSpec{
-		"a bad name":    {Kind: hv.KindCT, Name: "1 bad", Image: "images:debian/13"},
-		"no image":      {Kind: hv.KindCT, Name: "ok"},
-		"another image": {Kind: hv.KindCT, Name: "ok", Image: "docker:nginx"},
+		"a bad name": {Kind: hv.KindCT, Name: "1 bad", Image: "local:abc"},
+		"no image":   {Kind: hv.KindCT, Name: "ok"},
+		"no server":  {Kind: hv.KindCT, Name: "ok", Image: "debian/13"},
 	} {
 		if _, err := c.CreateGuest(context.Background(), spec); err == nil {
 			t.Errorf("%s must be refused before anything is sent", name)
@@ -191,7 +191,7 @@ func TestAGuestThatWillNotStartIsStillSaidToExist(t *testing.T) {
 	}))
 	defer srv.Close()
 	c := guestClient(t, srv)
-	_, err := c.CreateGuest(context.Background(), hv.GuestSpec{Kind: hv.KindCT, Name: "web-1", Image: "images:alpine/3.21", Start: true})
+	_, err := c.CreateGuest(context.Background(), hv.GuestSpec{Kind: hv.KindCT, Name: "web-1", Image: "alpine/3.21", ImageServer: "https://images.test", ImageProtocol: "simplestreams", Start: true})
 	if err == nil || !strings.Contains(err.Error(), "web-1 was created but did not start") || !strings.Contains(err.Error(), "exit status 1") {
 		t.Fatalf("%v", err)
 	}

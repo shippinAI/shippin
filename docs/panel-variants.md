@@ -5,7 +5,7 @@ This repository owns the Shippin panel. There is one: `web/`, served by `cmd/con
 | Variant | Last commit compared | What it is | Result |
 | --- | --- | --- | --- |
 | `shippinAI/shippin-console` `origin/main` | `e35ab81` | The source snapshot recorded by the platform import | **Already represented in this repository.** No merge is pending from this remote tip. The local source checkout is older and has untracked `deploy/bastion/` work; preserve it and review separately. |
-| `shippin-console` `feat/spark-endpoints-gold`, `backup/recovery-worktree-20261030` | `f8649df`, `a51b493` | Workspace and job lifecycle hardening, with tests | **Absorbed.** 56 of 62 files are byte-identical here. The other 6 are newer here. |
+| `shippin-console` `spark-endpoints branch`, `backup/recovery-worktree-20261030` | `f8649df`, `a51b493` | Workspace and job lifecycle hardening, with tests | **Absorbed.** 56 of 62 files are byte-identical here. The other 6 are newer here. |
 | `shippin-console` `backup/cloud-console-alternatives-20261030` | `9511e38` | The same snapshot plus six changes to docs and a release script | **Superseded.** The script and docs are site-specific notes. |
 | `panel/` in this repository | removed | A static API workbench, a second React app | **Absorbed.** The workbench is now **Provider panel > API explorer**. Its hypervisor list was replaced by Hosts & nodes. |
 | `shippinAI/shippin-cloud` `panel/` | `49475d3` | An earlier copy of that workbench | **Superseded.** Older than the copy this repository already had. |
@@ -25,7 +25,7 @@ Not this panel, so they stay separate:
 | `shippinAI/wc`, `netbirdio/dashboard` | A NetBird dashboard. |
 | `EonsofStupid/shippincloud`, `devforge-shippin` | Forks of Apache CloudStack and Eclipse Theia. |
 | `EonsofStupid/shippin-host-console` | Empty. |
-| `shippinAI/gold-homebase` | Notes and tooling for one installation. Private, and it stays that way. |
+| a private repository | Notes and tooling for one installation. Private, and it stays that way. |
 
 ## How anything comes in
 

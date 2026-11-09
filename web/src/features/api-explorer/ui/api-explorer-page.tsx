@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { useMe } from "../../../lib/hooks/use-api";
 import { Badge } from "../../../lib/design/components/badge/badge";
 import { Button } from "../../../lib/design/components/button/button";
 import { Card, CardHeader } from "../../../lib/design/components/card/card";
 import { TextField } from "../../../lib/design/components/field/text-field";
 import { PageHeader } from "../../../template/page-header";
-import { bodyError, hasBody, matchOperations, pathParameters, resolvePath, type ApiOperation, type OperationIndex } from "../operations";
+import { availableOperations, bodyError, hasBody, matchOperations, pathParameters, resolvePath, type ApiOperation, type OperationIndex } from "../operations";
 
 type Result = { method: string; url: string; status: number; statusText: string; body: string };
 
@@ -35,7 +36,8 @@ export function ApiExplorerPage() {
     void import("../openapi-index.json").then((m) => setIndex(m.default as OperationIndex));
   }, []);
 
-  const matches = useMemo(() => matchOperations(index?.operations ?? [], query), [index, query]);
+  const caps = useMe().data?.capabilities;
+  const matches = useMemo(() => matchOperations(availableOperations(index?.operations ?? [], caps ?? {}), query), [index, caps, query]);
   const selected: ApiOperation | undefined = matches.find((o) => o.operationId === operationId) ?? matches[0];
   const names = selected ? pathParameters(selected.path) : [];
 

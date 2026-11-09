@@ -1,7 +1,7 @@
 # Local accounts from Nomen
 
 Status: design only, 2026-10-22. Decision owner: the operator Hall.
-No code, no migration, and no gold change ships with this document. The next migration number
+No code, no migration, and no host change ships with this document. The next migration number
 in this repo would be `029`. That file is not added.
 
 This turns the Nomen/Zitadel research (SSH user certificates, hostd-assigned uids, systemd user
@@ -32,7 +32,7 @@ A third key, the offline emergency CA, is held by the operator and is not one of
 
 Staff access to a tenant VM uses the platform CA. A tenant owner or admin does not get sudo on
 the VM. A member gets sudo only inside a container they belong to. That sudo is container root
-through the unprivileged idmap. It is not root on the VM and not root on gold.
+through the unprivileged idmap. It is not root on the VM and not root on the reference host.
 
 ## 2. Decisions applied
 
@@ -140,7 +140,7 @@ It is not a staff login, not a tenant member, and it has no uid in a tenant VM. 
 the offline emergency key.
 
 Usernames are unique per org. The email local-part may be offered as a suggestion. It is stored
-only when it matches the username rule. The gold host's `login.defs` is not used for these
+only when it matches the username rule. The the reference host host's `login.defs` is not used for these
 accounts. hostd is the only allocator.
 
 ## 5. Certificate policy
@@ -181,13 +181,13 @@ hostd is the source of truth. The table is `(iss, sub, org_id) -> (uid, username
 | gid | equal to uid (private group, group name = username) |
 | Reuse | never. A tombstone row holds the uid after archive and after wipe |
 | Exhaustion | fail closed. The org gets no more accounts |
-| Where the range is written | Inside that org's VM and its containers. Not in gold's `/etc/passwd` |
+| Where the range is written | Inside that org's VM and its containers. Not in the reference host's `/etc/passwd` |
 
 Each org starts at 10000. uid 10000 in wiredfront and uid 10000 in another org are different
 people. They never share a VM (starter and above are one VM per org) and they never share a
-volume (`docs/architecture/org-storage.md`). Free-tier containers run on gold, in project
+volume (`docs/architecture/org-storage.md`). Free-tier containers run on the reference host, in project
 `t-<tenant>`, still isolated from other tenants. Their user records live inside the container,
-not as gold host accounts.
+not as host accounts.
 
 Why this range: systemd dynamic users are 61184–65519, and an isolated container idmap is a
 window of `security.idmap.size` (Incus default 65536) starting at a base at or above 65536.
@@ -404,7 +404,7 @@ step-ca. If the operator instead wants a sealed duplicate of the platform key, t
 design (one key, two copies) and the trust rules below change.
 
 - the operator holds the private key. No second holder is named. Where it lives is his call. Proposal:
-  an encrypted hardware token in his possession, not on gold, not in the repo, not in hostd config.
+  an encrypted hardware token in his possession, not on the reference host, not in the repo, not in hostd config.
 - The public key is installed in `TrustedUserCAKeys` on the jump host and on tenant VMs, beside
   the platform CA. Containers do not trust it.
 - Use: write the reason first (same justification minimum as break-glass). When a second staff
@@ -417,7 +417,7 @@ design (one key, two copies) and the trust rules below change.
   page cannot fire at signing time. A paper log when the token is taken out is part of the
   procedure. Customer notice uses the same banner as break-glass, dated from acceptance.
 - Revoking the CA itself: remove the public key from every jump host and VM, and publish a KRL
-  for anything it already signed. That rotation is a later gold change with a drill. It is not
+  for anything it already signed. That rotation is a later host change with a drill. It is not
   this document's deploy.
 
 Compromise of this one offline key bypasses Nomen for VM root. The limits are the short
@@ -647,17 +647,17 @@ sequenceDiagram
   VM->>VM: Containers never trusted this CA
 ```
 
-## 14. Unverified, needs a gold or fork probe
+## 14. Unverified, needs a host or fork probe
 
-Nothing in this list was checked on gold. Do not flip a flag because this document describes the
+Nothing in this list was checked on the reference host. Do not flip a flag because this document describes the
 desired end state.
 
 | Item | Why it matters | What to run or read |
 |---|---|---|
 | `security.shifted` on the **inner** btrfs pool, Incus 6.0.6 inside the tenant VM | Shared org volumes between isolated containers. Distinct from the host ZFS probe already written in `docs/architecture/org-storage.md`. | On a throwaway tenant, inside the guest: create a 1 GiB custom volume on pool `default` with `security.shifted=true`, attach it to two `security.idmap.isolated=true` containers, confirm uid 10000 in each sees the files as itself. Quote the error if create fails. Delete the volume. Leave `ai.volume_shifted` false. |
-| Host ZFS `security.shifted` on `p-<tenant>` | Same property for free-tier containers that live on gold, and for `~/.ai` if it stays a host volume. | The commands already in `docs/architecture/org-storage.md`. |
+| Host ZFS `security.shifted` on `p-<tenant>the removed single-site signing code ~/.ai` if it stays a host volume. | The commands already in `docs/architecture/org-storage.md`. |
 | `/run/host/userdb` inside an Incus container | Whether one user record on the VM appears in every container without an explicit push. | On a throwaway container, see if `/run/host/userdb` is mounted and if `userdbctl` shows a record placed only on the VM. The design's explicit `incus exec` push does not wait on this. |
-| Debian 13 `userdbd` on the guest image | JSON records with `locked` and `notAfterUSec` need `userdbd`. The research man page is systemd 262. Gold's systemd may differ. The image today is the tenant VM image plus `shippin/dev-debian13-ai1` for workspaces. | `systemctl status userdbd` and `userdbctl user` inside the VM and inside a workspace container. If the unit is absent, phase 1 uses the `useradd` fallback. |
+| Debian 13 `userdbd` on the guest image | JSON records with `locked` and `notAfterUSec` need `userdbdthe removed single-site signing code shippin/dev-debian13-ai1` for workspaces. | `systemctl status userdbd` and `userdbctl user` inside the VM and inside a workspace container. If the unit is absent, phase 1 uses the `useradd` fallback. |
 | Nomen fork: Actions v2 | Webhook event names were not in the saved Zitadel page (`user.human` did not appear). | On the fork, list the event types for membership, role, deactivation, and delete, and the webhook signature. |
 | Nomen fork: token exchange | Public Zitadel docs describe RFC 8693, opaque access tokens, no refresh token from the exchange, confidential clients. The fork may differ. `agents.go` already commits to `act` and forbids the user's raw token. | Confirm the grant is enabled and that `act` survives. |
 | Nomen fork: device grant | The bridge already has its own device-code table (`022_bridge.sql`). That is not automatically the Nomen device grant. | Confirm whether the fork's device grant is on, and leave the bridge flow alone either way. |
@@ -668,7 +668,7 @@ desired end state.
 ## 15. Build phases
 
 No phase starts in this change. Each phase that writes code stays behind a flag defaulting off,
-the way `agent.session_manager` does. Gold is not a target of any phase until the operator says so.
+the way `agent.session_manager` does. The reference host is not a target of any phase until the operator says so.
 
 | Phase | Delivers | Waits on |
 |---|---|---|
@@ -696,7 +696,7 @@ These are inconsistent, unspecified, or only a proposal. They are not decided by
 8. **PIN versus SSH.** The PIN unlocks the keyring only. SSH certificates are issued without it. Say if the PIN must gate SSH too.
 9. **Break-glass second person.** Still open in `docs/architecture/staff-roles/questions.md`. `vm_root` inherits that gap. Also confirm customer notice for a root exec should keep today's banner, including `legal_hold` delay.
 10. **Bridge key id contains the email today.** New certificates omit it. The bridge CA is a leftover until someone changes `internal/api/bridge_cert.go`.
-11. **`security.shifted`.** The research baseline turns it on. The repo keeps it off until the gold probes pass. Shared homes cannot ship before that. Per-workspace homes can.
+11. **`security.shifted`.** The research baseline turns it on. The repo keeps it off until the host probes pass. Shared homes cannot ship before that. Per-workspace homes can.
 12. **AI Linux uid.** Proposal: no uid in v1; agents run as `dev` and authenticate to Vaultix with the AI identity.
 13. **PIN lockout numbers, Argon2 parameters, 60-second unlock ticket, 90-day machine-credential rotation.** All proposals.
 14. **Same person, two issuers.** Dedicated Nomen means a different `iss` and a different uid row for the same inbox. The staff context is the only place the console links them. Confirm that is the separation you want for `jessay@gmail.com` plus wiredfront.

@@ -52,7 +52,7 @@ come from the installation, and individual attachments need scoped authorization
 | Object storage | ShippinS3 | A separately scoped object-storage capability; S3 compatibility requires testing, not a name alone. |
 | Identity and secrets | Nomen / `nomen.sh`; Vaultix / `vaultix.cloud` | Identity and secret systems own their records and expose reviewed interfaces; the panel does not become a second identity or secrets store. |
 | Communication | Email; Chatmaton | Email delivery and conversation are distinct capabilities. Chatmaton owns its conversations and intent, not infrastructure inventory or other products' credentials. |
-| Agents and specialists | AgentHub, Clyffy and shippin.bot | AgentHub owns its task and event stream and its configurable change-policy and review records; Clyffy is an assistant/harness context; shippin.bot is the government-contract specialist. Their attachment, permissions and readiness require separate implementation. |
+| Agents and specialists | AgentHub and other agent services | AgentHub owns its task and event stream and its configurable change-policy and review records; Clyffy is an assistant/harness context; shippin.bot is the government-contract specialist. Their attachment, permissions and readiness require separate implementation. |
 | Surfaces | The panel | One panel. Branding and addresses are configured by each installation. |
 | Unresolved | OMA | Its meaning and ownership need clarification before assigning a capability. |
 

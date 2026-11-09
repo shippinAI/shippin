@@ -9,7 +9,7 @@ import (
 )
 
 // GitHub configures M3 import through the Shippin GitHub App. The App's credentials come only from
-// the environment (sops → console-container.sh → SHIPPIN_GITHUB_*), never from this file.
+// the environment (the site's secret store → SHIPPIN_GITHUB_*), never from this file.
 type GitHub struct {
 	Enabled bool   `json:"enabled"`
 	AppSlug string `json:"app_slug"`

@@ -1,7 +1,7 @@
 // Guided experiences, the terminal bus and expiry labels (jiti runs the TS).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { terminalGuides } from "../../features/clyffy/guides/all-guides";
+import { terminalGuides } from "../../features/guides/guides/all-guides";
 import { expiresIn } from "../expiry";
 import { TerminalBus } from "../terminal/terminal-bus";
 import { fillGuide } from "./guide-types";

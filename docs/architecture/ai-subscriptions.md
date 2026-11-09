@@ -37,7 +37,7 @@ Risk note: each vendor's own terms govern the user's use of their subscription i
 3. User opens it and runs the vendor command (`claude auth login`, `codex login --device-auth`,
    `grok login --device-auth`). Keep the CLI waiting. Open the provider URL in the user's local
    Chrome/Edge/regular browser and complete its own YubiKey/passkey challenge. The key stays
-   local; no USB forwarding to Gold is needed. A web page cannot force an embedded browser
+   local; no USB forwarding to the reference host is needed. A web page cannot force an embedded browser
    into a particular system browser, so provide a copyable sign-in address.
 4. If either browser session or device code expires, cancel the waiting CLI login and run it
    again for a fresh code/session. Never reuse an expired challenge URL or disable account security.
@@ -59,7 +59,7 @@ Risk note: each vendor's own terms govern the user's use of their subscription i
 
 ## Egress
 
-The CLIs need the hosts in `ai.egress_hosts` (Anthropic, OpenAI, xAI, npm). Gold's legacy tenant
+The CLIs need the hosts in `ai.egress_hosts` (Anthropic, OpenAI, xAI, npm). The reference host's legacy tenant
 bridges have no egress allow-list today, so nothing is enforced yet; when allow-lists land, they
 read this list.
 
@@ -92,13 +92,13 @@ References: [Codex device authentication](https://learn.chatgpt.com/docs/auth),
 
 - AI homes are keyed by tenant (boundary empty) because hostd places every workspace of a VM tenant
   in its tenant VM. When hostd places by boundary VM, key homes by boundary.
-- `volume_shifted` stays false. The gold check, and why a failed `security.shifted` create would
+- `volume_shiftedthe removed single-site signing code security.shifted` create would
   break every AI home, is in `docs/architecture/org-storage.md`. Without the shift, containers
   with isolated idmaps see the shared volume under different uids. `ownAIHome` chowns the mount
   point only.
 - `check` runs inline (one hostd status read, 45 s cap) rather than as an `ai.check` job.
 
-## Exact Gold handoff (2026-10-22)
+## Exact the reference host handoff (2026-10-22)
 
 This is a blocked handoff, not an approved execution ticket. Do not restart public sign-in to
 test the UI until the following items have evidence:
@@ -127,15 +127,15 @@ test the UI until the following items have evidence:
 5. Deploy the central hub at `devagotchi.com`, replacing its current landing-page redirect in
    the operator's Cloudflare account after staging verification. DNS authority is already working.
    The hub needs Nomen identity, tenant-scoped data, workspace/resource grants,
-   owner runner adapters and revocation. No hub container/route was found in Gold's platform
+   owner runner adapters and revocation. No hub container/route was found in the reference host's platform
    inventory. Current agent-hub code does not implement these hosted guarantees.
    Verified Cloudflare zone `7b8a176774301f13d5773f00d223c057`, account
    `ada34de5c97b755fd886372fc7b339a7`: apex A records are `207.207.210.36` and
    `207.207.210.50`; `www` and wildcard CNAME point to `uixie.porkbun.com`, all proxied.
    Preserve email MX/SPF and unrelated records. No DNS changes have been made.
-6. Pin the completed release hashes and Daybreak-reviewed checkset in a Gold ticket. Current
+6. Pin the completed release hashes and Daybreak-reviewed checkset in a change ticket. Current
    ruleset SHA is `ebe610e267ed08da2e7237cbcba2b57270b3ff4d8938beb14674b4e3b64da010`.
-   `/usr/local/sbin/gold-policy` requires exact-ticket the operator approval for system/network changes,
+   the host's change policy requires exact-ticket the operator approval for system/network changes,
    a fresh snapshot (maximum age 3600 seconds), topology, blast radius and documentation.
    Network changes also need verified independent recovery access and automatic rollback
    (10–300 seconds); health verification must finish within 60 seconds. Do not self-approve
@@ -168,7 +168,7 @@ Route IDs are tenant/account scoped, not hashed; hashing them was not a security
 Remaining real work includes authenticated backend transport, durable cleanup and cross-process
 lifecycle fencing, current membership checks for queued jobs, closing established sockets on
 revocation, activation/check generations, and status request throttling. Status remains advisory.
-These code requirements precede a deployable Gold ticket; the operator approval alone cannot fix them.
+These code requirements precede a deployable change ticket; the operator approval alone cannot fix them.
 
 ## Hardware-key sign-in and lifecycle follow-up (2026-10-22)
 
@@ -178,7 +178,7 @@ reported **Logged in using ChatGPT**. A separate invocation of `gpt-daybreak-blu
 `--cyber-access-program daybreak_blue` returned the expected `DAYBREAK_ACCESS_OK`, exit 0.
 Both API-key environment variables were unset; this exercised the operator's subscription identity.
 The same Spark identity performed the R4/R5/R6 source reviews. Provider credential contents were
-not read or copied to Gold, Shippin, a shared devspace, or the hub.
+not read or copied to the reference host, Shippin, a shared devspace, or the hub.
 
 R4 identified an early-start cleanup gap. The follow-up withdraws and confirms route absence
 before placement/instance discovery, requires a successful typed Incus inventory, verifies
@@ -199,7 +199,7 @@ now requires Incus' documented ASCII instance names, including start/end and len
 Windows and Linux ARM64 regression tests passed. No production deployment is implied.
 An additional actual Daybreak source pass confirmed that the inventory-grammar finding is closed.
 Source snapshots, hashes and actual Daybreak outputs are in
-`.run/daybreak-subscriptions-r{4,5,6}-*`; these are review evidence, not Gold approval or a claim
+`.run/daybreak-subscriptions-r{4,5,6}-*`; these are review evidence, not change approval or a claim
 that the hosted hub integration is operational.
 
 Spark 01 now has a persistent owner launcher at `/var/lib/shippin/operator/.local/bin/devagotchi-codex`.

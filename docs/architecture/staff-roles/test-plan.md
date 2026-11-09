@@ -26,6 +26,6 @@
 - Legal hold by non-Security → 403. Withheld > 30 days → 400.
 - Owner without grant → IDE 403 (no implicit access).
 
-## Live (throwaway identities, like `deploy/tests/access-live.sh`)
+## Live (throwaway identities)
 One Nomen test user per role in the operator org; script hits each route and diffs against the
 matrix. Never on the operator's dev tenant. Playwright: Team page invite/revoke/last-Owner guard screenshots.

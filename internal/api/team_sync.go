@@ -16,7 +16,9 @@ func (a *API) SyncStaff(ctx context.Context) {
 		log.Printf("staff seed: %v", err)
 	}
 	if a.cfg.Staff.TeamToken == "" {
-		log.Printf("staff: SHIPPIN_IDP_TEAM_TOKEN not set; staff roles grant nothing until it is")
+		if !a.localRoles() {
+			log.Printf("staff: an identity provider is set up without SHIPPIN_IDP_TEAM_TOKEN; staff roles grant nothing until it is")
+		}
 		return
 	}
 	roles, err := a.db.StaffRoles(ctx)

@@ -1,11 +1,11 @@
 #!/bin/bash
 # hostd-install.sh RELEASE_DIR - install shippin-hostd from a release (release/build.sh) as a
-# versioned release on Gold: $HOSTD_RELEASES/<id>/{shippin-hostd,rrflow-state,hostd.json,shippin-hostd.service},
+# versioned release on the host: $HOSTD_RELEASES/<id>/{shippin-hostd,rrflow-state,hostd.json,shippin-hostd.service},
 # with $HOSTD_BIN and $HOSTD_CONFIG symlinked through releases/current. The first run adopts the
 # installed binary + config as release 00000000000000-pre-versioned (rollback target).
 # Refuses a hostd.json that differs from the live one unless ACCEPT_CONFIG=1 (the diff is shown;
 # hostd.json holds no secrets). A failed health check rolls back automatically.
-# Env (defaults are Gold's paths): HOSTD_RELEASES, HOSTD_BIN, HOSTD_CONFIG, HOSTD_UNIT, SYSTEMCTL.
+# Env (defaults are the usual paths): HOSTD_RELEASES, HOSTD_BIN, HOSTD_CONFIG, HOSTD_UNIT, SYSTEMCTL.
 set -euo pipefail
 R=${1:?release dir}
 D=${HOSTD_RELEASES:-/usr/local/lib/shippin-hostd/releases}

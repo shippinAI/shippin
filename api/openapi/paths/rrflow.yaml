@@ -5,6 +5,7 @@ capabilities:
     x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
     tags: [rrflow]
     operationId: getCapabilities
+    x-shippin-feature: feature.workspaces
     summary: Effective rrflow capabilities at a scope (tenant, or a folder via folder_id)
     parameters: [ { $ref: ../components/parameters.yaml#/FolderFilter } ]
     responses:
@@ -22,6 +23,7 @@ capabilities:
     x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
     tags: [rrflow]
     operationId: putCapabilities
+    x-shippin-feature: feature.workspaces
     summary: Set toggles (fail-open only by org_owner, audited)
     parameters:
       - $ref: ../components/parameters.yaml#/FolderFilter
@@ -47,6 +49,7 @@ rulesets:
     x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
     tags: [rrflow]
     operationId: listRulesets
+    x-shippin-feature: feature.workspaces
     summary: List policy rulesets
     parameters:
       - $ref: ../components/parameters.yaml#/PageSize
@@ -66,6 +69,7 @@ rulesets:
     x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
     tags: [rrflow]
     operationId: createRuleset
+    x-shippin-feature: feature.workspaces
     summary: Create a ruleset (optionally from a starter pack)
     parameters: [ { $ref: ../components/parameters.yaml#/IdempotencyKey } ]
     requestBody:
@@ -90,6 +94,7 @@ versions:
     x-implementation-note: Retained design intent; this method is not registered in console baseline 2f5c422.
     tags: [rrflow]
     operationId: publishRulesetVersion
+    x-shippin-feature: feature.workspaces
     summary: Publish an immutable new version (dry_run=true tests against the last 7 days)
     parameters:
       - $ref: ../components/parameters.yaml#/IdempotencyKey

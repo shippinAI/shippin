@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { bodyError, hasBody, matchOperations, pathParameters, resolvePath, type ApiOperation } from "./operations";
+import { availableOperations, bodyError, hasBody, matchOperations, pathParameters, resolvePath, type ApiOperation } from "./operations";
 
 const op = (path: string, method = "GET", summary = "", tags = ["x"]): ApiOperation => ({ method, path, operationId: `${method}:${path}`, summary, tags, implementationStatus: "registered" });
 
@@ -27,3 +27,10 @@ assert.equal(bodyError('{"a":1}'), null);
 assert.match(bodyError("{a:1}") ?? "", /not valid JSON/);
 
 console.log("api-explorer operations ok");
+
+// A route the contract ties to a feature is offered only with it; an unknown capability counts as off.
+const featured: ApiOperation[] = [{ ...op("/me") }, { ...op("/chat/sessions"), feature: "feature.chat" }, { ...op("/x/secrets"), feature: "feature.secrets" }];
+const offered = (caps: Record<string, boolean>) => availableOperations(featured, caps).map((o) => o.path);
+assert.deepEqual(offered({}), ["/me"]);
+assert.deepEqual(offered({ "feature.chat": true }), ["/me", "/chat/sessions"]);
+assert.deepEqual(offered({ "feature.chat": false, "feature.secrets": true }), ["/me", "/x/secrets"]);

@@ -619,8 +619,12 @@ func (a *API) infraCreate(w http.ResponseWriter, r *http.Request, c *caller) {
 		infraErr(w, err)
 		return
 	}
+	guest := hv.GuestSpec{Kind: in.Kind, Name: in.Name, Image: in.Image, Storage: in.Storage, Network: in.Network, Memory: in.Memory, Cores: in.Cores, Disk: in.Disk, Start: in.Start}
+	if remote, alias, ok := a.uiConfig(r.Context()).ImageRemote(ep.Kind, in.Image); ok {
+		guest.Image, guest.ImageServer, guest.ImageProtocol = alias, remote.Server, remote.Protocol
+	}
 	g, err := a.tracked(r, c, r.PathValue("id"), in.Name, "create", func(ctx context.Context) (hv.Guest, error) {
-		return m.CreateGuest(ctx, hv.GuestSpec{Kind: in.Kind, Name: in.Name, Image: in.Image, Storage: in.Storage, Network: in.Network, Memory: in.Memory, Cores: in.Cores, Disk: in.Disk, Start: in.Start})
+		return m.CreateGuest(ctx, guest)
 	})
 	if err != nil {
 		infraErr(w, err)

@@ -1,5 +1,5 @@
 #!/bin/bash
-# One-time setup for workspaces on Gold: tenant key store, console DB role + session key (sops),
+# One-time setup for workspaces on the host: tenant key store, console DB role + session key (sops),
 # shippin-hostd service, and re-pointing the console proxy device to it. Prints no secrets.
 set -euo pipefail
 cd /var/lib/shippin/site; R=${1:?release dir}; P="--project platform"

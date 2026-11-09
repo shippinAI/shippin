@@ -8,14 +8,14 @@ import { useGuideRunner } from "../../../lib/guides/use-guide-runner";
 import { useWorkspaces } from "../../../lib/hooks/use-workspaces";
 import { useNavigate, useParams } from "../../../lib/router/router";
 import { TerminalBus } from "../../../lib/terminal/terminal-bus";
-import { terminalGuides } from "../../clyffy/guides/all-guides";
-import { ClyffyPanel } from "../../clyffy/ui/clyffy-panel";
+import { terminalGuides } from "../../guides/guides/all-guides";
+import { GuidePanel } from "../../guides/ui/guide-panel";
 import { AppCards } from "../../apps/ui/app-cards";
 import { TerminalPane } from "./terminal-pane";
 import { WezTermDialog } from "./wezterm-dialog";
 
 /** Workspace → Terminal: the workspace's Zellij session "shippin" in the browser (plain shell on
- * request), "Open in WezTerm" for a native terminal, and Clyffy's guides beside it. */
+ * request), "Open in WezTerm" for a native terminal, and guides beside it. */
 export function TerminalPage() {
   const { tenantId = "", workspaceId = "" } = useParams();
   const navigate = useNavigate();
@@ -52,7 +52,7 @@ export function TerminalPage() {
       </details>
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_340px] overflow-hidden">
         <TerminalPane key={session} tenantId={tenantId} workspaceId={workspaceId} bus={bus} mux={zellij ? "zellij" : "plain"} />
-        <ClyffyPanel runner={runner} onLink={navigate} />
+        <GuidePanel runner={runner} onLink={navigate} />
       </div>
       <WezTermDialog isOpen={wez} onOpenChange={setWez} workspace={ws?.name ?? workspaceId.slice(0, 8)} connect={ws?.connect} />
     </div>

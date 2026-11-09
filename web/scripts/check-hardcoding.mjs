@@ -7,8 +7,6 @@ import { fileURLToPath } from "node:url";
 
 const src = fileURLToPath(new URL("../src", import.meta.url));
 
-// Places the operator's estate has been named. Anywhere in the panel.
-const siteNames = /\b(Texas|Wisconsin|Virginia|Platinum|Gold)\b/;
 // The infrastructure pages learn every provider from the API. A provider's name in them means a
 // new driver would need a panel change, and would break a site that renamed it.
 const providerNames = /\b(incus|proxmox|pve|lxc|qemu)\b/i;
@@ -29,7 +27,6 @@ for (const file of walk(src)) {
   const lines = readFileSync(file, "utf8").split(/\r?\n/);
   lines.forEach((line, i) => {
     const at = `${rel}:${i + 1}`;
-    if (siteNames.test(line)) problems.push(`${at}: names a site: ${line.trim().slice(0, 100)}`);
     if (providerNames.test(line) && providerFree.some((re) => re.test(rel))) problems.push(`${at}: names a provider; it should come from the API: ${line.trim().slice(0, 100)}`);
   });
 }

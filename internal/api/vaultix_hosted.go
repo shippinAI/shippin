@@ -20,8 +20,11 @@ import (
 func (a *API) RegisterVaultixHosted(mux Router) {
 	v := a.cfg.Vaultix
 	opf, keyf := os.Getenv("VAULTIX_OPERATOR_FILE"), os.Getenv("VAULTIX_SEAL_KEY_FILE")
-	if !v.Enabled || opf == "" || keyf == "" || a.db == nil {
-		log.Printf("vaultix hosted: off (needs vaultix.enabled, VAULTIX_OPERATOR_FILE, VAULTIX_SEAL_KEY_FILE)")
+	if !v.Enabled {
+		return
+	}
+	if opf == "" || keyf == "" || a.db == nil {
+		log.Printf("vaultix hosted: off (needs VAULTIX_OPERATOR_FILE and VAULTIX_SEAL_KEY_FILE)")
 		return
 	}
 	var op struct{ Email, Password string }

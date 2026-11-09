@@ -139,7 +139,7 @@ func (c *Client) CreateGuest(ctx context.Context, s hv.GuestSpec) (hv.Guest, err
 	if !guestName.MatchString(s.Name) {
 		return hv.Guest{}, errors.New("incus: a guest name starts with a letter and uses letters, digits and dashes")
 	}
-	source, err := imageSource(s.Image)
+	source, err := imageSource(s)
 	if err != nil {
 		return hv.Guest{}, err
 	}

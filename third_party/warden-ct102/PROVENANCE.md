@@ -1,6 +1,6 @@
-# Wisconsin CT 102 warden panel (2026-08-27)
+# Warden panel from a Proxmox container (2026-08-27)
 
-This tree is the source that was running as `warden.service` on Wisconsin CT 102,
+This tree is the source that was running as `warden.service` in a Proxmox container,
 taken from `/var/lib/shippin/warden-src/warden` on 2026-10-31. It is shippin-mesh `main`
 `9caff3d` `warden/` plus the backups subsystem that exists in no git history.
 

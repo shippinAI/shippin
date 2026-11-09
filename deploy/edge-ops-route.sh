@@ -1,7 +1,7 @@
 #!/bin/bash
 # Route the operator app's origin (ops.<domain>, CONSOLE-IA) to the console on the edge, through
 # the Caddy admin API (API mode, persisted by --resume), and add the host to the ACME DNS-01
-# policy. Idempotent; the live config is saved first. Runs on Gold. Prints no secrets.
+# policy. Idempotent; the live config is saved first. Runs on the host. Prints no secrets.
 #   bash deploy/edge-ops-route.sh      env: DOMAIN (required) OPS_HOST (ops.$DOMAIN) CONSOLE_UPSTREAM (203.0.113.50:8080)
 set -euo pipefail
 D=${DOMAIN:?set DOMAIN}; H=${OPS_HOST:-ops.$D}; U=${CONSOLE_UPSTREAM:?set CONSOLE_UPSTREAM}

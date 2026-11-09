@@ -1,5 +1,5 @@
 /**
- * Guided experiences. A guide is plain data so Clyffy (or any API) can send one later; the
+ * Guided experiences. A guide is plain data so an agent (or any API) can send one later; the
  * components render whatever guide and step index they are given.
  */
 export type GuideLink = { label: string; to: string };

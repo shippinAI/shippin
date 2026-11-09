@@ -2,6 +2,7 @@ subscriptions:
   get:
     tags: [subscriptions-runtime]
     operationId: subscriptionsGet
+    x-shippin-feature: feature.ai
     summary: Read own subscription status
     description: Lists the caller own AI homes and connections only in tenants where they remain a member. Does
       not return credentials.
@@ -41,6 +42,7 @@ activate:
   post:
     tags: [subscriptions-runtime]
     operationId: activatePost
+    x-shippin-feature: feature.ai
     summary: Start own activation terminal
     description: AI-enabled member tenant only. Returns 202 with home, terminal URL and vendor login command. Job
       is optional when durable jobs are disabled; acceptance does not prove sign-in.
@@ -77,6 +79,7 @@ checkSubscription:
   post:
     tags: [subscriptions-runtime]
     operationId: checkSubscriptionPost
+    x-shippin-feature: feature.ai
     summary: Verify own provider sign-in
     description: Reads the isolated owner runner status; invalid/stale reports fail closed. May queue builds waiting
       for this sign-in; their execution remains blocked by the owner-runner integration.
@@ -109,6 +112,7 @@ disconnectSubscription:
   delete:
     tags: [subscriptions-runtime]
     operationId: disconnectSubscriptionDelete
+    x-shippin-feature: feature.ai
     summary: Disconnect own provider subscription
     description: Records disconnected status before vendor logout. Returns 200 if absent or signed out, 202 if the
       isolated terminal must start for logout.

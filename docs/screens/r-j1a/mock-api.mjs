@@ -1,9 +1,9 @@
-// Local-run mock of the console API for R-J1a screenshots (fixture data, not Gold).
+// Local-run mock of the console API for R-J1a screenshots (fixture data, not Edge).
 import http from "node:http";
 const T = "01aaaaaa-0000-7000-8000-000000000001", W = "01aaaaaa-0000-7000-8000-000000000002";
 let projects = [{ id: "p-notes-api", name: "notes-api", state: "ready", placed: true, created_at: "2026-10-19T00:00:00Z", environments: [{ id: "e0", name: "dev" }], workspaces: 1 }];
 let found = [
-  { name: "gold-homebase", path: "/home/dev/box-work/gold-homebase", git: true, remote: "https://github.com/example-org/gold-homebase.git", manifests: [] },
+  { name: "edge-homebase", path: "/home/dev/box-work/edge-homebase", git: true, remote: "https://github.com/example-org/edge-homebase.git", manifests: [] },
   { name: "guardrails", path: "/home/dev/box-work/guardrails", git: true, remote: "", manifests: ["go.mod"] },
   { name: "notes-site", path: "/home/dev/box-work/notes-site", git: false, manifests: ["package.json"] },
   { name: "notes-api", path: "/home/dev/box-work/projects/notes-api", git: true, remote: "", manifests: ["go.mod"], adopted: true, project_id: "p-notes-api" },
@@ -16,7 +16,7 @@ const routes = {
     items: [{ id: W, tenant_id: T, name: "dev", state: "running", ssh_port: 42001, previews: [] }] }),
   [`GET /v1/tenants/${T}/workspaces/${W}/discover`]: () => ({ items: found }),
   [`GET /v1/tenants/${T}/github/repos`]: () => ({ can_install: true, installations: [{ installation_id: 1, account_login: "example-org", suspended: false,
-    repos: [{ id: 11, full_name: "example-org/gold-homebase", private: true, default_branch: "main" }, { id: 12, full_name: "example-org/rrflow", private: true, default_branch: "main" }] }] }),
+    repos: [{ id: 11, full_name: "example-org/edge-homebase", private: true, default_branch: "main" }, { id: 12, full_name: "example-org/rrflow", private: true, default_branch: "main" }] }] }),
 };
 http.createServer((req, res) => {
   const k = `${req.method} ${req.url.split("?")[0]}`;

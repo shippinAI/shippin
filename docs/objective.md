@@ -104,7 +104,7 @@ NET-01: Cloudflare Tunnel, Tailscale and custom connectivity are UI-configured,
 scoped and verified against real routes. Inventory alone is not deployment.
 GOV-01: AgentHub owns configured human-review policy. Shippin records actual system,
 action, decision and provenance. Hostnames/aliases are data, with no site-specific
-Gold/Warden policy built into the product.
+policy built into the product.
 
 ## Delivery and proof
 

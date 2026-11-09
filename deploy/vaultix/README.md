@@ -13,4 +13,4 @@ console with Nomen (OIDC); the console provisions one Vaultix organization + wor
 
 Infisical Cloud import: console → Secrets → Import (a read-only machine identity on the Cloud project; one
 environment per run; nothing about it is stored). Local proof: `deploy/screenshots/vaultix-e2e.mjs` against
-`cmd/vaultix-demo` (`scripts/vaultix-demo/`), see the plan in gold-homebase `plans/2026-10-20-ai-launcher-vaultix-hosted.md`.
+`cmd/vaultix-demo` (`scripts/vaultix-demo/`).

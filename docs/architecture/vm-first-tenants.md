@@ -1,7 +1,7 @@
 # VM-first tenants
 
 Status: design + first implementation, 2026-10-16. Decision owner: the operator.
-Guesses and unverified points are marked **[guess]**; verified on Gold are marked **[verified]**.
+Guesses and unverified points are marked **[guess]**; verified on the reference host are marked **[verified]**.
 
 ## 1. Decision
 
@@ -13,14 +13,14 @@ an Incus daemon inside the VM. The VM, not the host kernel, becomes the tenant's
 Existing container workspaces keep running exactly as today ("**legacy direct**": container directly in
 `t-<uuid>` on the host). Nothing migrates without the operator's approval (section 11).
 
-Why: containers share the host kernel; a kernel bug or container escape on Gold reaches every tenant
+Why: containers share the host kernel; a kernel bug or container escape on the reference host reaches every tenant
 and the platform (console, Nomen, Postgres). With a VM per tenant an escape from a workspace lands in
 that tenant's own guest kernel. This is the standard pattern for multi-tenant dev platforms that let
 users run arbitrary code (Firecracker/microVM per tenant at Fly, Gitpod, Codespaces VMs; LXD/Incus docs
 recommend VMs for untrusted workloads). The cost is RAM/CPU overhead per tenant and slower first
 provisioning — acceptable for paid tenants, and the plan config controls sizes.
 
-## 2. KVM on Gold [verified 2026-10-16]
+## 2. KVM on the reference host [verified 2026-10-16]
 
 `/dev/kvm` present (root:kvm 0660), `kvm_intel` loaded, 192 vmx flags (96 threads), nested=Y,
 376 GiB RAM (≈345 free), tank 5.44 T (5.42 T free). A smoke VM had already run in the Incus build.
@@ -46,7 +46,7 @@ are signed). `migration.stateful` off.
 
 `shippin/tenant-vm`, built by `deploy/image/build-tenant-vm.sh` from the official `images:debian/13/cloud`
 VM image (copied once to the local image store as `shippin/debian13-cloud-vm`):
-- `incus-base` from Zabbly lts-6.0 (same 6.0.x line as Gold; key fingerprint pinned and checked in the
+- `incus-base` from Zabbly lts-6.0 (same 6.0.x line as the reference host; key fingerprint pinned and checked in the
   build). `incus-base` = daemon without the UI/extra clients.
 - `btrfs-progs`, `net.ipv4.ip_forward=1`, `/usr/local/sbin/shippin-tvm-init`.
 - **No** `core.https_address`: the inner API never listens on a network (section 7).
@@ -99,7 +99,7 @@ Choice: **routed inner subnet**, not a VM-side proxy.
   :3000 and :5173), a new daemon with its own auth, and SSH would need a jump. Routing is simpler and
   keeps the edge as the single policy point.
 - OVN peering forwards traffic for the NIC `ipv4.routes` subnet **[verified 2026-10-16]**: edge →
-  inner container ping and `:3000` 200 with no extra hub routes; Gold itself cannot reach the inner IP.
+  inner container ping and `:3000` 200 with no extra hub routes; the reference host itself cannot reach the inner IP.
 - MTU: the tenant OVN network is 1442. systemd-networkd in the Debian cloud image ignores the DHCP MTU
   by default, so the guest came up at 1500 and large packets stalled **[verified]**. The image sets
   `UseMTU=yes` and `shippin-tvm-init` pins `MTUBytes` to the network's `bridge.mtu`; the inner bridge
@@ -135,7 +135,7 @@ Choice: **`incus exec tvm-<t> -- incus …` through the Incus VM agent (virtio-v
   `POST /tenants/{t}/plan` does the same up to a tier. Shrinking is refused. CPU and memory are
   written onto the VM and not restarted (`restart_required` on the response). Low space is on
   `GET /tenants/{t}/storage` and `GET /tenants/{t}/vm`. Details: `docs/architecture/org-storage.md`.
-- Stop/start of the VM stops/starts workspaces that were running. On Incus 6.0 (what gold runs)
+- Stop/start of the VM stops/starts workspaces that were running. On Incus 6.0 (what the reference host runs)
   `boot.autostart` is left unset, which restores last power state; a stopped workspace stays
   stopped. Incus 6.21 added an explicit `last-state` value that 6.0 rejects, and `true` means
   always start. Do not set `true`. Activation containers (`u-<account>`) are started only by the API.
@@ -157,7 +157,7 @@ Choice: **`incus exec tvm-<t> -- incus …` through the Incus VM agent (virtio-v
   stays on the host project, no raw qemu config, no passthrough devices.
 - Consent/break-glass, forward-auth and audit are in the console and edge and do not change.
 - Remaining host attack surface per tenant: QEMU + virtio devices + vsock agent. Keep Incus/QEMU patched
-  (unattended-upgrades on Gold).
+  (unattended-upgrades on the reference host).
 
 ## 11. Migration of existing tenants
 
@@ -184,7 +184,7 @@ Choice: **`incus exec tvm-<t> -- incus …` through the Incus VM agent (virtio-v
 - Node/Vite workspace from github.com/RicardoValdovinos/vite-react-boilerplate inside the VM: IDE 302
   unauthenticated, 200 for the owner via edge; preview `5173--…` 302 / 200 with the Vite page; SSH via
   192.0.2.252:22002 lands in the nested container; egress OK; inner and VM Incus API unreachable.
-- `deploy/tests/access-live.sh` against the nested workspace: 37/37 (consent still blocks the admin).
+- The site's access test against the nested workspace: 37/37 (consent still blocks the admin).
 - VM stop → workspace row stopped; VM start → autostarted, row running, IDE/preview 200 again;
   workspace stop/start inside the VM OK.
 - Tenant delete removed workspace, edge route/ports, VM, data volume, project and pool (dataset kept).

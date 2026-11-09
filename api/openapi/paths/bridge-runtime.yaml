@@ -2,6 +2,7 @@ bridgeDevice:
   post:
     tags: [bridge-runtime]
     operationId: bridgeDevicePost
+    x-shippin-feature: feature.bridge
     summary: Start bridge device sign-in
     description: Unauthenticated start while bridge is enabled. Optional client_name; returns short-lived device/user
       codes. No-store.
@@ -36,6 +37,7 @@ bridgeToken:
   post:
     tags: [bridge-runtime]
     operationId: bridgeTokenPost
+    x-shippin-feature: feature.bridge
     summary: Redeem an approved device code once
     description: No console session required. Returns an account-bound bridge bearer token once; HTTP 400 uses an
       OAuth-style error object. No-store.
@@ -83,6 +85,7 @@ bridgeDecision:
   get:
     tags: [bridge-runtime]
     operationId: bridgeDecisionGet
+    x-shippin-feature: feature.bridge
     summary: Inspect pending bridge authorization
     description: Console sign-in required. Unknown/expired code returns 404.
     x-source: shippin-console/internal/api/bridge_device.go:bridgePending
@@ -103,6 +106,7 @@ bridgeDecision:
   post:
     tags: [bridge-runtime]
     operationId: bridgeDecisionPost
+    x-shippin-feature: feature.bridge
     summary: Approve or deny bridge sign-in
     description: Console identity is bound to the approved session; approval/denial is audited first. Missing approve
       defaults to false.
@@ -134,6 +138,7 @@ bridgeSessions:
   get:
     tags: [bridge-runtime]
     operationId: bridgeSessionsGet
+    x-shippin-feature: feature.bridge
     summary: List own bridge sessions
     description: Only the signed-in account sessions are returned.
     x-source: shippin-console/internal/api/bridge_session.go:bridgeSessions
@@ -162,6 +167,7 @@ bridgeRevoke:
   delete:
     tags: [bridge-runtime]
     operationId: bridgeRevokeDelete
+    x-shippin-feature: feature.bridge
     summary: Revoke own bridge session
     description: Audits first, revokes the session and closes its active relays.
     x-source: shippin-console/internal/api/bridge_session.go:bridgeRevoke
@@ -184,6 +190,7 @@ bridgeMe:
   get:
     tags: [bridge-runtime]
     operationId: bridgeMeGet
+    x-shippin-feature: feature.bridge
     summary: Read bridge account and reachable workspaces
     description: Requires a live unrevoked bridge bearer session. Membership is resolved from the identity snapshot
       captured at device approval; this is not a fresh Nomen membership read. Workspace fields use ID, Name, State,
@@ -216,6 +223,7 @@ bridgeCert:
   post:
     tags: [bridge-runtime]
     operationId: bridgeCertPost
+    x-shippin-feature: feature.bridge
     summary: Issue an audited workspace SSH certificate
     description: Bridge authorization and workspace-access checks apply. Signs only the supplied ephemeral public
       key for the configured short TTL.
@@ -255,6 +263,7 @@ bridgeRelay:
   get:
     tags: [bridge-runtime]
     operationId: bridgeRelayGet
+    x-shippin-feature: feature.bridge
     summary: Upgrade to the workspace SSH relay
     description: Requires bridge bearer and workspace access. Successful handshake is WebSocket binary SSH transport,
       not JSON.

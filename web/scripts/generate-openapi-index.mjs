@@ -44,6 +44,7 @@ function operationsOf(pathKey, item) {
         summary: op.summary ?? "",
         tags: Array.isArray(op.tags) ? op.tags : ["untagged"],
         implementationStatus: op["x-implementation-status"] ?? "unknown",
+        ...(op["x-shippin-feature"] ? { feature: op["x-shippin-feature"] } : {}),
       };
     });
 }

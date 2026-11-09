@@ -1,4 +1,4 @@
-/** A tiny pub/sub between whatever drives the terminal (guides, Clyffy) and the terminal view. */
+/** A tiny pub/sub between whatever drives the terminal (guides, an assistant) and the terminal view. */
 export type TerminalSink = (data: string) => void;
 
 export class TerminalBus {

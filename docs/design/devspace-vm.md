@@ -12,7 +12,7 @@ manager, reached from the browser through the console and the edge. A lovable-st
 the user's own subscriptions. Shared task state is `shippinAI/agent-hub` (section 6), one hub per
 org, not a new repo and not a new protocol.
 
-That is the target. It is not what gold runs, and it is not what phase 1 builds.
+That is the target. It is not what the reference host runs, and it is not what phase 1 builds.
 
 Claude Desktop, Codex desktop, and Grok desktop are **not installed** by this work and no placement
 is chosen. the operator wants one install of each, serving either the control plane or the tenant VM
@@ -20,15 +20,15 @@ is chosen. the operator wants one install of each, serving either the control pl
 open and does not design TLS certificates for those apps. SSH certificates for local Linux accounts
 are specified separately in `docs/design/identity-local-accounts.md` and are not built here.
 
-What gold runs today:
+What the reference host runs today:
 
 - One KVM VM per **tenant** (`tvm-<uuid>`), when the plan has a `vm` block and the tenant is
   `user.shippin.mode=vm`.
 - Devspaces are unprivileged Incus containers **inside** that VM (`w-<uuid>` in `pj-<uuid>`).
-- The free plan on gold has no `vm` block, so a free tenant gets a container on the host and no
+- The free plan on the reference host has no `vm` block, so a free tenant gets a container on the host and no
   `/dev/kvm`.
 - Claude Code, Codex, and the Grok CLI are in the workspace image (`shippin/dev-debian13-ai1`),
-  not in the tenant VM. The VM image has Incus and no tmux, node, or CLIs (gold probe, 2026-10-22).
+  not in the tenant VM. The VM image has Incus and no tmux, node, or CLIs (host probe, 2026-10-22).
 - One tmux session named `agent` is started on demand for one provider. Grok was not a provider.
 - Browser terminal is ttyd on `/_term/`, behind the same edge sign-in as the IDE.
 
@@ -39,8 +39,8 @@ Installing tmux in the tenant VM image now would boot empty windows.
 ## 2. Placement by tier
 
 Names and numbers live in `docs/plans.md`. Hostd, `deploy/hostd.json`, and the catalog seed match
-that file. Gold's live hostd does not: it still has `free` and `founder` only. Do not deploy this
-file to gold.
+that file. The reference host's live hostd does not: it still has `free` and `founder` only. Do not deploy this
+file to the reference host.
 
 | Tier | Devspace | KVM in the tenant VM | Cowork room (proposal) |
 |---|---|---|---|
@@ -91,7 +91,7 @@ What "persistent" and "resumable" mean, the same way Codespaces, Gitpod, and Cod
   edge `forward_auth`. The user switches windows inside the session.
 
 Flag: `agent.session_manager` in hostd.json. Default false, including the file in this repo.
-Gold's live file has no such key; the zero value is false, so this binary does not change a
+The reference host's live file has no such key; the zero value is false, so this binary does not change a
 running workspace until the key is set and hostd is restarted. When it is true, hostd installs
 the script and the unit at workspace create, start, restart, and agent start. The unit is what
 runs after a reboot, without hostd in the path.
@@ -121,9 +121,9 @@ Debian 13 meets the written "Debian 12 or later" bar. Anthropic does not name 13
 release. Do not bake the package into an image until it has been installed on a throwaway Debian
 13 VM.
 
-Gold's host has nested KVM (`kvm_intel nested=Y`). The running tenant VM has `/dev/kvm`. The probe
+The reference host's host has nested KVM (`kvm_intel nested=Y`). The running tenant VM has `/dev/kvm`. The probe
 did not check `/dev/vhost-vsock` or that `dev` is in group `kvm`. Both are Cowork requirements.
-That check is a gold action, not a code change.
+That check is a host action, not a code change.
 
 Cowork cannot run in a workspace container. Inner projects set `limits.virtual-machines=0`,
 `restricted.containers.nesting=block`, and `restricted.devices.unix-char=block`. The container
@@ -222,7 +222,7 @@ something reliable to call.
 
 ## 8. Subscription login
 
-Today, on gold: hostd connect plus `shippin-credwriter` writes vendor CLI credentials into
+Today, on the reference host: hostd connect plus `shippin-credwriter` writes vendor CLI credentials into
 `~/.ai` (mode `0600`, env file sourced by login shells). Claude, Codex, Grok, and GitHub are
 connect providers. Vendor logout argv is in config. The activation container `u-<account>` is
 ttyd plus tmux for the browser login. chatmaton (private repo `example-org/chatmaton`) is the
@@ -240,8 +240,8 @@ Each phase is shippable on its own. Later phases are not started because the fla
 | Phase | What | Gate |
 |---|---|---|
 | 0, this PR | Review, the listing and size fixes, this document. | Merged. Not deployed. |
-| 1, this PR, flag off | Session manager unit. Windows for every `agent.providers` entry. Grok added. Tests, including the boot script against a fake tmux. | the operator sets `agent.session_manager` true on a throwaway tenant. Not gold's founder VM. |
-| 2 | Devspace is the VM. New paid devspaces get `dvm-<id>` instead of a container in the tenant VM. Free stays a container. Image carries the CLIs, tmux, and the session unit. Migration of existing containers is a separate, explicit step. | C1 has a fix (inner firewall or equivalent) before two customers share a bridge. `volume_shifted` decided on gold (see `docs/architecture/org-storage.md`). |
+| 1, this PR, flag off | Session manager unit. Windows for every `agent.providers` entry. Grok added. Tests, including the boot script against a fake tmux. | the operator sets `agent.session_manager` true on a throwaway tenant. Not the reference host's founder VM. |
+| 2 | Devspace is the VM. New paid devspaces get `dvm-<id>` instead of a container in the tenant VM. Free stays a container. Image carries the CLIs, tmux, and the session unit. Migration of existing containers is a separate, explicit step. | C1 has a fix (inner firewall or equivalent) before two customers share a bridge. `volume_shiftedthe removed single-site signing code docs/architecture/org-storage.md`). |
 | 3 | One install of Claude Desktop, Codex desktop, and Grok desktop, after the operator picks control plane or tenant VM. Cowork's disk on the org data volume. No install before that, and no certificate work in that change. | Placement decided. `/dev/kvm` and `/dev/vhost-vsock` confirmed on the machine that will run QEMU. Apt key checked the way Zabbly's key is checked, if the install is apt. |
 | 4 | One `hub-server` per org from `shippinAI/agent-hub`, database on that org's dataset, MCP as in `docs/connect.md`. | Phase 1 flag has been on for a real workspace without the session unit failing closed. Desktop placement does not block this; the hub does not install a desktop. |
 | 5 | Builder UI on the existing agent routes. | Phase 1 providers, including Grok, resume from the UI. |
@@ -256,7 +256,7 @@ Each phase is shippable on its own. Later phases are not started because the fla
    lists what each needs from storage and plans. Do not install either to find out, and do not
    design certificates for it.
 3. When phase 2 starts. Until then, paid customers share one tenant VM and are exposed to C1.
-4. `volume_shifted` on gold's ZFS, with the probe in `docs/architecture/org-storage.md`, before
+4. `volume_shiftedthe removed single-site signing code docs/architecture/org-storage.md`, before
    any second workspace mounts the same AI home.
 5. Whether `/dev/vhost-vsock` exists on the machine that would run Cowork, and whether the desktop
    user is in group `kvm`. Do not install the package to find out.
@@ -267,4 +267,4 @@ Each phase is shippable on its own. Later phases are not started because the fla
 8. The live console build `f64b96c` is not in git. Recover it or accept that the next console
    deploy from `approve-p1-only` drops whatever that build added.
 9. Turn the session-manager flag on only for a throwaway tenant, after this PR is deployed.
-   Gold's founder VM is the wrong first boot.
+   The reference host's founder VM is the wrong first boot.

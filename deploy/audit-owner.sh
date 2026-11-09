@@ -2,7 +2,7 @@
 # Moves audit_log/access_grants (and their trigger function) to the NOLOGIN role
 # shippin_audit_owner; the console role keeps SELECT+INSERT (+UPDATE of grant status columns).
 # Then installs the audit hash chain (internal/db/audit_chain.sql) in the same transaction.
-# Idempotent; run on the Gold host after the console has applied migration 005 (and again after
+# Idempotent; run on the host after the console has applied migration 005 (and again after
 # any migration that recreates those tables). No password is involved: the owner can't log in,
 # and future changes to these tables go through this superuser path, not the app.
 #   bash deploy/audit-owner.sh [repo dir]      env: PG_INSTANCE=pg PG_PROJECT=platform APP_ROLE=console

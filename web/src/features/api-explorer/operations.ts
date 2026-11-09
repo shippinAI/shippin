@@ -5,6 +5,8 @@ export type ApiOperation = {
   summary: string;
   tags: string[];
   implementationStatus: string;
+  /** The capability this route needs to be offered; the API contract says which. */
+  feature?: string;
 };
 
 export type OperationIndex = { basePath: string; operationCount: number; tags: string[]; operations: ApiOperation[] };
@@ -25,6 +27,10 @@ export function resolvePath(path: string, values: Record<string, string>): strin
     }
     return encodeURIComponent(value);
   });
+}
+
+export function availableOperations(operations: ApiOperation[], caps: Record<string, boolean>): ApiOperation[] {
+  return operations.filter((o) => !o.feature || caps[o.feature] === true);
 }
 
 export function matchOperations(operations: ApiOperation[], query: string): ApiOperation[] {
