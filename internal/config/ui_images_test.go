@@ -67,3 +67,47 @@ func TestShippedImagesAllHaveAServer(t *testing.T) {
 		t.Fatal("no images were checked")
 	}
 }
+
+func TestSavingAnOverrideKeepsImagesItDoesNotMention(t *testing.T) {
+	remote := UIImageRemote{Name: "mirror", Server: "https://images.test", Protocol: "simplestreams"}
+	image := UIImage{ID: "mirror:debian/13", Label: "Debian 13"}
+	file := UI{Providers: []UIProvider{{Kind: "incus", Label: "From file", Images: []UIImage{image}, ImageRemotes: []UIImageRemote{remote}}}}
+
+	got, _ := file.Merge(UI{Providers: []UIProvider{{Kind: "incus", Label: "Renamed"}}}).Provider("incus")
+	if got.Label != "Renamed" || len(got.Images) != 1 || len(got.ImageRemotes) != 1 {
+		t.Fatalf("an override that only renames lost the images: %+v", got)
+	}
+	got, _ = file.Merge(UI{Providers: []UIProvider{{Kind: "incus", Images: []UIImage{}, ImageRemotes: []UIImageRemote{}}}}).Provider("incus")
+	if got.Images == nil || len(got.Images) != 0 || got.ImageRemotes == nil || len(got.ImageRemotes) != 0 {
+		t.Fatalf("an empty list must remove them: %+v", got)
+	}
+	var round UI
+	raw, _ := json.Marshal(file.Merge(UI{Providers: []UIProvider{{Kind: "incus", Images: []UIImage{}}}}))
+	if err := json.Unmarshal(raw, &round); err != nil {
+		t.Fatal(err)
+	}
+	if p, _ := round.Provider("incus"); p.Images == nil {
+		t.Fatalf("a cleared list must survive being sent to the panel and back: %s", raw)
+	}
+}
+
+func TestImagesAreBoundedAndUnique(t *testing.T) {
+	remote := UIImageRemote{Name: "m", Server: "https://images.test", Protocol: "simplestreams"}
+	ok := UIImage{ID: "m:debian/13", Label: "Debian 13", Kind: "ct"}
+	if err := (UI{Providers: []UIProvider{{Kind: "incus", Images: []UIImage{ok}, ImageRemotes: []UIImageRemote{remote}}}}).Check(); err != nil {
+		t.Fatal(err)
+	}
+	for name, p := range map[string]UIProvider{
+		"image without id":    {Kind: "incus", Images: []UIImage{{Label: "x"}}},
+		"image without label": {Kind: "incus", Images: []UIImage{{ID: "x"}}},
+		"unknown kind":        {Kind: "incus", Images: []UIImage{{ID: "x", Label: "x", Kind: "pod"}}},
+		"duplicate image":     {Kind: "incus", Images: []UIImage{ok, ok}},
+		"duplicate server":    {Kind: "incus", ImageRemotes: []UIImageRemote{remote, remote}},
+		"control character":   {Kind: "incus", Images: []UIImage{{ID: "a\nb", Label: "x"}}},
+		"oversized id":        {Kind: "incus", Images: []UIImage{{ID: strings.Repeat("a", 201), Label: "x"}}},
+	} {
+		if err := (UI{Providers: []UIProvider{p}}).Check(); err == nil {
+			t.Errorf("%s was accepted", name)
+		}
+	}
+}

@@ -9,7 +9,7 @@ export function Select({ label, options, value, onChange, isDisabled = false }: 
   return (
     <RacSelect selectedKey={value} onSelectionChange={(k: Key | null) => k !== null && onChange(String(k))} isDisabled={isDisabled} className="flex flex-col gap-1.5">
       <Label className="text-sm font-medium text-fg">{label}</Label>
-      <Button className="focus-ring flex h-9 cursor-default items-center justify-between rounded-lg border border-line-control bg-canvas/60 px-3 text-base text-fg data-hovered:border-line-strong">
+      <Button className="focus-ring flex h-9 cursor-default items-center justify-between rounded-lg border border-line-control bg-canvas/60 px-3 text-base text-fg data-hovered:border-fg-subtle">
         <SelectValue />
         <ChevronDown className="size-4 text-fg-subtle" />
       </Button>

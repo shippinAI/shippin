@@ -45,11 +45,12 @@ type UIProvider struct {
 	Description string    `json:"description,omitempty"`
 	Hidden      bool      `json:"hidden,omitempty"`
 	Fields      []UIField `json:"fields,omitempty"`
-	// Images are what a guest can be made from, beyond what the host already has.
-	Images []UIImage `json:"images,omitempty"`
+	// Images are what a guest can be made from, beyond what the host already has. In an override, null
+	// keeps the images from the file and an empty list removes them.
+	Images []UIImage `json:"images"`
 	// ImageRemotes are the servers those images come from. An image id "name:alias" asks the remote
-	// with that name for alias.
-	ImageRemotes []UIImageRemote `json:"image_remotes,omitempty"`
+	// with that name for alias. Null and empty behave as they do for Images.
+	ImageRemotes []UIImageRemote `json:"image_remotes"`
 }
 
 // UIImageRemote is one server images are fetched from.
@@ -99,8 +100,10 @@ var (
 )
 
 const (
-	uiLabelMax = 60
-	uiTextMax  = 400
+	uiLabelMax   = 60
+	uiTextMax    = 400
+	uiImageIDMax = 200
+	uiImagesMax  = 200
 )
 
 // Check bounds every value so a bad override cannot break the panel it would need to undo itself.
@@ -136,10 +139,8 @@ func (u UI) Check() error {
 		if err := uiString(p.Kind, p.Description, uiTextMax); err != nil {
 			return err
 		}
-		for _, r := range p.ImageRemotes {
-			if err := validImageRemote(p.Kind, r); err != nil {
-				return err
-			}
+		if err := validImages(p); err != nil {
+			return err
 		}
 		for _, f := range p.Fields {
 			if !uiIDRE.MatchString(f.Name) {
@@ -151,6 +152,43 @@ func (u UI) Check() error {
 				}
 			}
 		}
+	}
+	return nil
+}
+
+// validImages bounds a provider's images and image servers, whose names must be unique.
+func validImages(p UIProvider) error {
+	if len(p.Images) > uiImagesMax || len(p.ImageRemotes) > uiImagesMax {
+		return fmt.Errorf("ui.providers.%s: at most %d images and %d image servers", p.Kind, uiImagesMax, uiImagesMax)
+	}
+	remotes := map[string]bool{}
+	for _, r := range p.ImageRemotes {
+		if err := validImageRemote(p.Kind, r); err != nil {
+			return err
+		}
+		if remotes[r.Name] {
+			return fmt.Errorf("ui.providers.%s: image server %q is listed twice", p.Kind, r.Name)
+		}
+		remotes[r.Name] = true
+	}
+	ids := map[string]bool{}
+	for _, m := range p.Images {
+		if strings.TrimSpace(m.ID) == "" || strings.TrimSpace(m.Label) == "" {
+			return fmt.Errorf("ui.providers.%s: every image needs an id and a label", p.Kind)
+		}
+		if err := uiString(p.Kind+" image id", m.ID, uiImageIDMax); err != nil {
+			return err
+		}
+		if err := uiString(p.Kind+" image label", m.Label, uiLabelMax); err != nil {
+			return err
+		}
+		if m.Kind != "" && m.Kind != "vm" && m.Kind != "ct" {
+			return fmt.Errorf("ui.providers.%s: image %q has an unknown kind %q", p.Kind, m.ID, m.Kind)
+		}
+		if ids[m.ID] {
+			return fmt.Errorf("ui.providers.%s: image %q is listed twice", p.Kind, m.ID)
+		}
+		ids[m.ID] = true
 	}
 	return nil
 }
@@ -180,8 +218,9 @@ func uiString(where, s string, limit int) error {
 	return nil
 }
 
-// Merge returns u with over applied: text by key, navigation by id, providers by kind. Entries
-// in over replace the matching entry whole.
+// Merge returns u with over applied: text by key, navigation by id, providers by kind. Entries in over
+// replace the matching entry whole, except that a provider's images and image servers carry over when
+// the override does not mention them.
 func (u UI) Merge(over UI) UI {
 	out := UI{DefaultSite: u.DefaultSite}
 	if over.DefaultSite != "" {
@@ -199,7 +238,21 @@ func (u UI) Merge(over UI) UI {
 	navID := func(e UINavEntry) string { return e.ID }
 	out.Nav.Sections = mergeBy(u.Nav.Sections, over.Nav.Sections, navID)
 	out.Nav.Items = mergeBy(u.Nav.Items, over.Nav.Items, navID)
-	out.Providers = mergeBy(u.Providers, over.Providers, func(p UIProvider) string { return p.Kind })
+	providerKind := func(p UIProvider) string { return p.Kind }
+	providers := slices.Clone(over.Providers)
+	for i, p := range providers {
+		base, ok := u.Provider(p.Kind)
+		if !ok {
+			continue
+		}
+		if p.Images == nil {
+			providers[i].Images = base.Images
+		}
+		if p.ImageRemotes == nil {
+			providers[i].ImageRemotes = base.ImageRemotes
+		}
+	}
+	out.Providers = mergeBy(u.Providers, providers, providerKind)
 	return out
 }
 

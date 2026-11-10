@@ -9,7 +9,7 @@ type Props = Omit<TextFieldProps, "className"> & {
 } & Pick<InputProps, "min" | "max" | "step" | "type">;
 
 const control =
-  "w-full rounded-lg border border-line-control bg-canvas/60 px-3 text-base text-fg placeholder:text-fg-subtle outline-none transition-colors data-hovered:border-line-strong data-focused:border-primary data-focused:ring-2 data-focused:ring-primary/25 data-invalid:border-danger";
+  "w-full rounded-lg border border-line-control bg-canvas/60 px-3 text-base text-fg placeholder:text-fg-subtle outline-none transition-colors data-hovered:border-fg-subtle data-focused:border-primary data-focused:ring-2 data-focused:ring-primary/25 data-invalid:border-danger";
 
 /** Labeled text input or textarea with RAC validation messages. */
 export function TextField({ label, description, placeholder, multiline, mono, min, max, step, type = "text", ...rest }: Props) {

@@ -39,4 +39,17 @@ assert.deepEqual(compact.providers, [{ kind: "keep", label: "L", fields: [{ name
 assert.equal(compact.default_site, undefined);
 assert.equal((compact as { drivers?: unknown }).drivers, undefined, "driver facts are not stored as configuration");
 
+const remote = { name: " mirror ", server: " https://images.test ", protocol: "simplestreams" };
+const withImages = compactUi({ providers: [
+  { kind: "keeps", images: [{ id: " m:debian/13 ", label: " Debian ", kind: "ct" }, { id: " ", label: "" }], image_remotes: [remote, { name: "", server: "", protocol: "oci" }] },
+  { kind: "cleared", images: [], image_remotes: [] },
+  { kind: "inherits", label: "L", images: null, image_remotes: null },
+  { kind: "absent" },
+] });
+assert.deepEqual(withImages.providers, [
+  { kind: "keeps", fields: [], images: [{ id: "m:debian/13", label: "Debian", kind: "ct" }], image_remotes: [{ name: "mirror", server: "https://images.test", protocol: "simplestreams" }] },
+  { kind: "cleared", fields: [], images: [], image_remotes: [] },
+  { kind: "inherits", label: "L", fields: [] },
+], "a save keeps images, drops blank rows, stores a cleared list, and leaves null to the config file");
+
 console.log("ui-config model ok");

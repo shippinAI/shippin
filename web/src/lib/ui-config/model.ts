@@ -2,8 +2,19 @@ import { textDefaults, type TextKey } from "./text-keys";
 
 export type NavEntryConfig = { id: string; label?: string; hidden?: boolean; order?: number };
 export type ProviderFieldConfig = { name: string; label?: string; help?: string; placeholder?: string; default?: string };
-export type ProviderConfig = { kind: string; label?: string; description?: string; hidden?: boolean; fields?: ProviderFieldConfig[] };
-export type DriverSpec = { kind: string; fields: { name: string; required: boolean }[]; capabilities: string[]; verbs: string[] };
+export type ImageConfig = { id: string; label: string; kind?: string };
+export type ImageRemoteConfig = { name: string; server: string; protocol: string };
+export type ProviderConfig = {
+  kind: string;
+  label?: string;
+  description?: string;
+  hidden?: boolean;
+  fields?: ProviderFieldConfig[];
+  /** null or absent keeps the config file's list; an empty list removes it. */
+  images?: ImageConfig[] | null;
+  image_remotes?: ImageRemoteConfig[] | null;
+};
+export type DriverSpec = { kind: string; fields: { name: string; required: boolean }[]; capabilities: string[]; verbs: string[]; image_servers?: boolean };
 
 /** GET /v1/settings/ui: the config file with the ops override merged over it. */
 export type UiConfig = {
@@ -57,6 +68,12 @@ export function compactUi(draft: UiConfig): UiConfig {
           ...(f.default?.trim() ? { default: f.default.trim() } : {}),
         }))
         .filter((f) => Object.keys(f).length > 1),
+      ...(p.images
+        ? { images: p.images.map((m) => ({ id: m.id.trim(), label: m.label.trim(), ...(m.kind ? { kind: m.kind } : {}) })).filter((m) => m.id || m.label) }
+        : {}),
+      ...(p.image_remotes
+        ? { image_remotes: p.image_remotes.map((r) => ({ name: r.name.trim(), server: r.server.trim(), protocol: r.protocol })).filter((r) => r.name || r.server) }
+        : {}),
     }))
     .filter((p) => Object.keys(p).length > 2 || p.fields.length > 0);
   const text = Object.fromEntries(Object.entries(draft.text ?? {}).filter(([, v]) => v.trim()).map(([k, v]) => [k, v.trim()]));

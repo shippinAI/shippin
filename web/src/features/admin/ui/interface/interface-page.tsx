@@ -5,11 +5,12 @@ import { Badge } from "../../../../lib/design/components/badge/badge";
 import { Button } from "../../../../lib/design/components/button/button";
 import { Card, CardHeader } from "../../../../lib/design/components/card/card";
 import { TextField } from "../../../../lib/design/components/field/text-field";
+import { Select } from "../../../../lib/design/components/select/select";
 import { Switch } from "../../../../lib/design/components/switch/switch";
 import { Tabs } from "../../../../lib/design/components/tabs/tabs";
 import { useAdminAccess } from "../../../../lib/hooks/use-admin";
 import { usePlatformSettings, useSetPlatformSetting } from "../../../../lib/hooks/use-platform-settings";
-import { compactUi, type NavEntryConfig, type ProviderConfig, type ProviderFieldConfig, type UiConfig } from "../../../../lib/ui-config/model";
+import { compactUi, type ImageConfig, type ImageRemoteConfig, type NavEntryConfig, type ProviderConfig, type ProviderFieldConfig, type UiConfig } from "../../../../lib/ui-config/model";
 import { textDefaults, type TextKey } from "../../../../lib/ui-config/text-keys";
 import { uiConfigKey, useUiConfig } from "../../../../lib/ui-config/use-ui-config";
 import { adminNav } from "../../../../template/admin/admin-nav";
@@ -40,7 +41,57 @@ function NavRow({ id, fallback, entry, disabled, onChange }: { id: string; fallb
   );
 }
 
-function ProviderCardForm({ kind, fieldNames, entry, disabled, onChange }: { kind: string; fieldNames: string[]; entry?: ProviderConfig; disabled: boolean; onChange: (p: Partial<ProviderConfig>) => void }) {
+const imageKinds = [{ id: "any", label: "Any guest" }, { id: "vm", label: "Virtual machine" }, { id: "ct", label: "Container" }];
+const imageProtocols = [{ id: "simplestreams", label: "Simple Streams" }, { id: "incus", label: "Incus" }, { id: "oci", label: "OCI registry" }];
+const row = "grid items-end gap-3 rounded-lg border border-line p-3";
+
+/** The images a guest can be made from, and on drivers that fetch them, the servers they come from. */
+function ImageSettings({ kind, usesServers, entry, disabled, onChange }: { kind: string; usesServers: boolean; entry?: ProviderConfig; disabled: boolean; onChange: (p: Partial<ProviderConfig>) => void }) {
+  const images = entry?.images ?? [];
+  const remotes = entry?.image_remotes ?? [];
+  const setImage = (at: number, patch: Partial<ImageConfig>) => onChange({ images: images.map((m, i) => (i === at ? { ...m, ...patch } : m)) });
+  const setRemote = (at: number, patch: Partial<ImageRemoteConfig>) => onChange({ image_remotes: remotes.map((r, i) => (i === at ? { ...r, ...patch } : r)) });
+  return (
+    <div className="space-y-5 border-t border-line pt-4">
+      {usesServers && (
+        <section aria-label={`Image servers for ${kind}`} className="space-y-3">
+          <div>
+            <h4 className="text-base font-semibold text-fg">Image servers</h4>
+            <p className="text-sm text-fg-muted">Where this provider downloads images from. People can only choose a server listed here. HTTPS only.</p>
+          </div>
+          {remotes.map((r, i) => (
+            <div key={i} className={`${row} sm:grid-cols-[1fr_2fr_10rem_auto]`}>
+              <TextField label="Name" value={r.name} isDisabled={disabled} onChange={(name) => setRemote(i, { name })} />
+              <TextField label="Server URL" type="url" placeholder="https://images.example.org" value={r.server} isDisabled={disabled} onChange={(server) => setRemote(i, { server })} />
+              <Select label="Protocol" options={imageProtocols} value={r.protocol} isDisabled={disabled} onChange={(protocol) => setRemote(i, { protocol })} />
+              <Button variant="ghost" size="sm" isDisabled={disabled} tooltip={`Remove image server ${r.name || i + 1}`} onPress={() => onChange({ image_remotes: remotes.filter((_, n) => n !== i) })}>Remove</Button>
+            </div>
+          ))}
+          <Button size="sm" variant="secondary" isDisabled={disabled} tooltip="Add a server images can be downloaded from" onPress={() => onChange({ image_remotes: [...remotes, { name: "", server: "", protocol: "simplestreams" }] })}>Add image server</Button>
+        </section>
+      )}
+      <section aria-label={`Images for ${kind}`} className="space-y-3">
+        <div>
+          <h4 className="text-base font-semibold text-fg">Images</h4>
+          <p className="text-sm text-fg-muted">
+            {usesServers ? "What a new guest can be made from, beyond what the host already has. The id is a server name, a colon, then the image: images:debian/13." : "What a new guest can be made from, beyond what the host already has. The id is what the host calls the image."}
+          </p>
+        </div>
+        {images.map((m, i) => (
+          <div key={i} className={`${row} sm:grid-cols-[2fr_1fr_10rem_auto]`}>
+            <TextField label="Image id" mono value={m.id} isDisabled={disabled} onChange={(id) => setImage(i, { id })} />
+            <TextField label="Shown as" value={m.label} isDisabled={disabled} onChange={(label) => setImage(i, { label })} />
+            <Select label="Suits" options={imageKinds} value={m.kind || "any"} isDisabled={disabled} onChange={(v) => setImage(i, { kind: v === "any" ? "" : v })} />
+            <Button variant="ghost" size="sm" isDisabled={disabled} tooltip={`Remove image ${m.label || m.id || i + 1}`} onPress={() => onChange({ images: images.filter((_, n) => n !== i) })}>Remove</Button>
+          </div>
+        ))}
+        <Button size="sm" variant="secondary" isDisabled={disabled} tooltip="Add an image new guests can be made from" onPress={() => onChange({ images: [...images, { id: "", label: "" }] })}>Add image</Button>
+      </section>
+    </div>
+  );
+}
+
+function ProviderCardForm({ kind, fieldNames, usesServers, entry, disabled, onChange }: { kind: string; fieldNames: string[]; usesServers: boolean; entry?: ProviderConfig; disabled: boolean; onChange: (p: Partial<ProviderConfig>) => void }) {
   const fieldOf = (name: string) => entry?.fields?.find((f) => f.name === name);
   const setField = (name: string, patch: Partial<ProviderFieldConfig>) =>
     onChange({ fields: upsert(entry?.fields, (f) => f.name === name, patch, { name }) });
@@ -65,6 +116,7 @@ function ProviderCardForm({ kind, fieldNames, entry, disabled, onChange }: { kin
             );
           })}
         </ul>
+        <ImageSettings kind={kind} usesServers={usesServers} entry={entry} disabled={disabled} onChange={onChange} />
       </div>
     </Card>
   );
@@ -151,7 +203,7 @@ export function InterfacePage() {
                     onChange={(default_site) => setDraft((d) => ({ ...d, default_site }))} />
                 </Card>
                 {(draft.drivers ?? []).map((d) => (
-                  <ProviderCardForm key={d.kind} kind={d.kind} fieldNames={d.fields.map((f) => f.name)} disabled={disabled}
+                  <ProviderCardForm key={d.kind} kind={d.kind} fieldNames={d.fields.map((f) => f.name)} usesServers={!!d.image_servers} disabled={disabled}
                     entry={draft.providers?.find((p) => p.kind === d.kind)} onChange={(p) => setProvider(d.kind, p)} />
                 ))}
               </div>

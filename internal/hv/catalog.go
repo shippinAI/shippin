@@ -50,6 +50,8 @@ type Spec struct {
 	// CreateFields are the optional things a new guest can be given on this driver. "blank_vm" says a
 	// virtual machine needs no image.
 	CreateFields []string `json:"create_fields,omitempty"`
+	// ImageServers says this driver fetches images from servers named in configuration.
+	ImageServers bool `json:"image_servers,omitempty"`
 }
 
 // Specs lists the drivers that can be attached, in their default order.
@@ -69,6 +71,7 @@ func Specs() []Spec {
 			Capabilities: []string{CapLifecycle, CapSnapshot, CapSnapshotList, CapRollback, CapCreate, CapDelete, CapStorageInventory, CapTenantSecretExposurePolicy},
 			Verbs:        []string{"start", "stop", "shutdown", "reboot"},
 			CreateFields: []string{"memory", "cores"},
+			ImageServers: true,
 		},
 		{
 			Kind: "proxmox",
