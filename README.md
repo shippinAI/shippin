@@ -28,7 +28,7 @@ Open <https://localhost:8443/setup> and enter that code to create the owner. The
 
 Your installation's values never go in this repository. The goal is that a small bootstrap file holds only database addresses and keys, and everything else is set in the panel; until the [roadmap](docs/roadmap.md)'s settings stage is done, some settings still live in that file. [docs/deploy.md](docs/deploy.md) covers TLS, names, tokens and upgrades.
 
-- **Containers:** configure `.env`, run `python install/docker/configure.py` to generate missing credentials, then `docker compose up -d --build` for the panel, PostgreSQL and Dragonfly.
+- **Containers:** configure `.env`, run `python install/docker/configure.py` to generate missing credentials, then `docker compose up -d --build` for the panel, PostgreSQL, ClickHouse and Dragonfly.
 - **A Debian or Ubuntu machine:** copy it to `/etc/shippin/site.env`, edit it, and run `sudo ./install/panel/install.sh --site /etc/shippin/site.env`.
 
 The panel's top bar shows the build it is running, and tells you when a newer one has been pushed, with the exact command to take it.

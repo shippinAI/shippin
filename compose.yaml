@@ -1,5 +1,5 @@
-# One installation: panel + PostgreSQL + Dragonfly. Dependency definitions belong
-# to install/docker. Existing db and state volume names are preserved on upgrade.
+# One installation: panel + PostgreSQL + ClickHouse + Dragonfly. Dependency definitions
+# belong to install/docker. Existing volume names are preserved on upgrade.
 # python install/docker/configure.py
 # docker compose up -d --build
 name: shippin-platform
@@ -9,6 +9,10 @@ services:
     extends:
       file: install/docker/postgres.compose.yaml
       service: postgres
+  clickhouse:
+    extends:
+      file: install/docker/clickhouse.compose.yaml
+      service: clickhouse
   dragonfly:
     extends:
       file: install/docker/dragonfly.compose.yaml
@@ -20,6 +24,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      clickhouse:
+        condition: service_healthy
       dragonfly:
         condition: service_healthy
     env_file:
@@ -27,6 +33,7 @@ services:
         required: false
     environment:
       SHIPPIN_DATABASE_URL: ${SHIPPIN_DATABASE_URL:-postgres://${SHIPPIN_DB_USER:-shippin}:${SHIPPIN_DB_PASSWORD}@db:5432/${SHIPPIN_DB_NAME:-shippin}?sslmode=disable}
+      SHIPPIN_CLICKHOUSE_URL: ${SHIPPIN_CLICKHOUSE_URL:-http://${SHIPPIN_CLICKHOUSE_USER:-shippin}:${SHIPPIN_CLICKHOUSE_PASSWORD}@clickhouse:8123/${SHIPPIN_CLICKHOUSE_DB:-shippin}}
       SHIPPIN_REDIS_URL: ${SHIPPIN_REDIS_URL:-redis://:${SHIPPIN_DRAGONFLY_PASSWORD}@dragonfly:6379/0}
       SHIPPIN_REDIS_PREFIX: ${SHIPPIN_REDIS_PREFIX:-shippin:}
       SHIPPIN_LISTEN: :8443
@@ -39,5 +46,6 @@ services:
 
 volumes:
   db:
+  clickhouse:
   dragonfly:
   state:

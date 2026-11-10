@@ -157,6 +157,7 @@ type Config struct {
 	Catalog           Catalog           `json:"catalog"`
 	DatabaseURL       string            `json:"-"`
 	RedisURL          string            `json:"-"`
+	ClickHouseURL     string            `json:"-"` // bootstrap: metrics and events store (CORE-01)
 	RedisPrefix       string            `json:"-"`
 	SessionKey        string            `json:"-"`
 	Listen            string            `json:"-"`
@@ -200,6 +201,7 @@ func Load() (*Config, error) {
 	}
 	c.DatabaseURL = os.Getenv("SHIPPIN_DATABASE_URL")
 	c.RedisURL = os.Getenv("SHIPPIN_REDIS_URL")
+	c.ClickHouseURL = os.Getenv("SHIPPIN_CLICKHOUSE_URL")
 	c.RedisPrefix = env("SHIPPIN_REDIS_PREFIX", "shippin:")
 	c.SessionKey = os.Getenv("SHIPPIN_SESSION_KEY")
 	c.IDPServiceToken = os.Getenv("SHIPPIN_IDP_SERVICE_TOKEN")

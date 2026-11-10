@@ -9,7 +9,7 @@ target = root / ".env"
 existing = target.read_text(encoding="utf-8") if target.exists() else ""
 keys = {line.split("=", 1)[0].strip() for line in existing.splitlines() if "=" in line and not line.lstrip().startswith("#")}
 new = []
-for key in ("SHIPPIN_DB_PASSWORD", "SHIPPIN_DRAGONFLY_PASSWORD"):
+for key in ("SHIPPIN_DB_PASSWORD", "SHIPPIN_CLICKHOUSE_PASSWORD", "SHIPPIN_DRAGONFLY_PASSWORD"):
     if key not in keys and not os.environ.get(key):
         new.append(f"{key}={secrets.token_hex(32)}")
 if new:

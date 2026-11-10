@@ -11,6 +11,7 @@ import (
 
 	"shippin.cloud/console/internal/agentruns"
 	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/clickhouse"
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/deployments"
@@ -45,6 +46,8 @@ type API struct {
 	// directory is the local account service. Nil when the process has not wired it.
 	directory   *identity.Service
 	cacheHealth func(context.Context) error
+	// ch is ClickHouse, the metrics and events store; nil when the install has none configured.
+	ch *clickhouse.Client
 	// Test-only overrides: recipient lookups and synchronous notices.
 	lookupManagers func(ctx context.Context, org string) ([]string, error)
 	orgOfUser      func(ctx context.Context, sub string) (string, error) // test seam for orgMember
@@ -190,16 +193,27 @@ func (a *API) health(w http.ResponseWriter, r *http.Request) {
 			cache = "down"
 		}
 	}
+	// ClickHouse holds history, not state: when it is down the panel still works and says so.
+	ch := "disabled"
+	if a.ch != nil {
+		ch = "up"
+		if a.ch.Ping(ctx) != nil {
+			ch = "down"
+		}
+	}
 	status := "ok"
 	if !dbOK || cache == "down" {
 		status = "unavailable"
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
-	writeJSON(w, map[string]any{"status": status, "db": dbOK, "cache": cache, "uptime_s": int(time.Since(a.started).Seconds())})
+	writeJSON(w, map[string]any{"status": status, "db": dbOK, "cache": cache, "clickhouse": ch, "uptime_s": int(time.Since(a.started).Seconds())})
 }
 
 func (a *API) SetCacheHealth(check func(context.Context) error) { a.cacheHealth = check }
+
+// SetClickHouse gives the API the metrics and events store.
+func (a *API) SetClickHouse(c *clickhouse.Client) { a.ch = c }
 
 // publicSettings is unauthenticated branding for the sign-in page of the app on r's origin.
 func (a *API) publicSettings(w http.ResponseWriter, r *http.Request) {

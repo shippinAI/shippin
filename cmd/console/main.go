@@ -12,6 +12,7 @@ import (
 
 	"shippin.cloud/console/internal/api"
 	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/clickhouse"
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/identity"
@@ -52,6 +53,11 @@ func main() {
 		directory.UseSharedLimits(shared)
 		consoleAPI.SetCacheHealth(shared.Ping)
 		log.Print("authentication limits: shared Dragonfly/Redis store connected")
+	}
+	if cfg.ClickHouseURL != "" {
+		consoleAPI.SetClickHouse(openClickHouse(ctx, cfg.ClickHouseURL))
+	} else {
+		log.Print("clickhouse: not configured; metrics history is unavailable (set SHIPPIN_CLICKHOUSE_URL)")
 	}
 	consoleAPI.SetDirectory(directory)
 	consoleAPI.StartJobs(ctx)
@@ -124,6 +130,27 @@ func startMail(ctx context.Context, cfg *config.Config, d *db.DB, a *api.API) {
 	a.SetNotifier(&mail.Notifier{R: r, Q: d, Brand: cfg.Brand.Name, Footer: footer})
 	go mail.NewWorker(d, t, cfg.Mail).Run(ctx)
 	log.Printf("mail: notices via %s:%d (%s) from %s", cfg.Mail.Host, cfg.Mail.Port, cfg.Mail.TLS, cfg.Mail.From)
+}
+
+// openClickHouse connects to the metrics and events store and applies its migrations. ClickHouse may still be
+// starting, so it retries for a minute; after that the panel runs without history and /healthz says so.
+func openClickHouse(ctx context.Context, raw string) *clickhouse.Client {
+	c, err := clickhouse.Open(raw)
+	if err != nil {
+		log.Fatalf("SHIPPIN_CLICKHOUSE_URL: %v", err)
+	}
+	for attempt := 1; ; attempt++ {
+		applied, err := c.Migrate(ctx)
+		if err == nil {
+			log.Printf("clickhouse: database %s ready, %d migration(s) applied", c.Database(), len(applied))
+			return c
+		}
+		if attempt == 12 {
+			log.Printf("clickhouse: %v; continuing without metrics history", err)
+			return c
+		}
+		time.Sleep(5 * time.Second)
+	}
 }
 
 func runSetup() {

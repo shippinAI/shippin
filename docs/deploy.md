@@ -20,15 +20,15 @@ docker compose up -d --build
 docker compose logs panel | grep setup_code
 ```
 
-With generated credentials and no other settings it serves `https://localhost:8443` with a generated certificate. PostgreSQL and authenticated Dragonfly are private services in the same Compose project, with no database ports published. `install/docker/postgres.compose.yaml` and `install/docker/dragonfly.compose.yaml` own those definitions; root `compose.yaml` assembles the installation. PostgreSQL holds platform data, encrypted sessions and durable jobs. Dragonfly holds expiring shared password/passkey/public-form rate-limit counters. Its snapshot volume does not replace PostgreSQL backups. The platform health page reports live connectivity for both. Loss of a configured Dragonfly connection denies limited authentication attempts and returns HTTP 503 from `/readyz` and `/healthz`.
+With generated credentials and no other settings it serves `https://localhost:8443` with a generated certificate. PostgreSQL, ClickHouse and authenticated Dragonfly are private services in the same Compose project, with no database ports published. `install/docker/postgres.compose.yaml`, `clickhouse.compose.yaml` and `dragonfly.compose.yaml` own those definitions; root `compose.yaml` assembles the installation. PostgreSQL holds platform data, encrypted sessions and durable jobs. ClickHouse holds time series and events, starting with host and guest metrics; if it is down the panel keeps working, `/healthz` reports `"clickhouse":"down"`, and history is unavailable. Dragonfly holds expiring shared password/passkey/public-form rate-limit counters. Its snapshot volume does not replace PostgreSQL backups. The platform health page reports live connectivity for both. Loss of a configured Dragonfly connection denies limited authentication attempts and returns HTTP 503 from `/readyz` and `/healthz`.
 
-For a real site, configure the hostname, bind address and TLS. State lives in `db`, `state` and `dragonfly` volumes. Keep the same Compose project name on upgrade; older installations created as `shippin` must continue using `docker compose -p shippin` to retain their volumes. The current default project name is `shippin-platform`.
+For a real site, configure the hostname, bind address and TLS. State lives in `db`, `clickhouse`, `state` and `dragonfly` volumes. Keep the same Compose project name on upgrade; older installations created as `shippin` must continue using `docker compose -p shippin` to retain their volumes. The current default project name is `shippin-platform`.
 
-For hosted dependencies, set `SHIPPIN_DATABASE_URL` and/or `SHIPPIN_REDIS_URL` in `.env` (use PostgreSQL TLS settings and `rediss://` where required). Explicit URLs override the bundled defaults. Start only the selected services: `docker compose up -d --no-deps panel` for both external, or include `db` or `dragonfly` when that dependency is bundled. Run the credential initializer before Compose even for unused local definitions. Use a unique `SHIPPIN_REDIS_PREFIX` per installation when sharing an external Redis database. Connection credentials are bootstrap configuration; the live health table does not edit or migrate databases. Tenant-managed PostgreSQL, Dragonfly and ClickHouse deployment, backups and upgrades are separate unfinished capabilities.
+For hosted dependencies, set `SHIPPIN_DATABASE_URL`, `SHIPPIN_CLICKHOUSE_URL` (`http(s)://user:password@host:port/database`) and/or `SHIPPIN_REDIS_URL` in `.env` (use PostgreSQL TLS settings, `https://` and `rediss://` where required). Explicit URLs override the bundled defaults. Start only the selected services: `docker compose up -d --no-deps panel` for both external, or include `db`, `clickhouse` or `dragonfly` when that dependency is bundled. Run the credential initializer before Compose even for unused local definitions. Use a unique `SHIPPIN_REDIS_PREFIX` per installation when sharing an external Redis database. Connection credentials are bootstrap configuration; the live health table does not edit or migrate databases. Tenant-managed PostgreSQL, Dragonfly and ClickHouse deployment, backups and upgrades are separate unfinished capabilities.
 
-Images and capacity are configurable through `SHIPPIN_POSTGRES_IMAGE`, `SHIPPIN_DRAGONFLY_IMAGE`, `SHIPPIN_DRAGONFLY_MAXMEMORY` and `SHIPPIN_DRAGONFLY_THREADS`. This Docker path includes Dragonfly; the systemd installer still uses process-local limits unless `SHIPPIN_REDIS_URL` is configured.
+Images and capacity are configurable through `SHIPPIN_POSTGRES_IMAGE`, `SHIPPIN_CLICKHOUSE_IMAGE`, `SHIPPIN_DRAGONFLY_IMAGE`, `SHIPPIN_DRAGONFLY_MAXMEMORY` and `SHIPPIN_DRAGONFLY_THREADS`. This Docker path includes Dragonfly; the systemd installer still uses process-local limits unless `SHIPPIN_REDIS_URL` is configured.
 
-To upgrade, run `git pull --ff-only && docker compose up -d --build`. The panel's top bar shows when a newer build exists, and this command.
+To upgrade, run `git pull --ff-only && python install/docker/configure.py && docker compose up -d --build`. The credential step adds anything a new version needs, such as ClickHouse's password, and leaves existing values alone. The panel's top bar shows when a newer build exists, and this command.
 
 Before upgrading, back up PostgreSQL and the `state` volume (including the session
 encryption key), and retain the current image. Migrations 064–066 add password
@@ -51,7 +51,7 @@ Add each Incus or Proxmox connection under **Infrastructure → Hosts & nodes**.
 
 ## On a Debian or Ubuntu machine
 
-One command installs the panel on a fresh Debian or Ubuntu machine (Debian 13 is tested). It installs Postgres, fetches the Go and Node.js toolchains the build needs when the machine does not already have new enough ones, builds the control plane and the web UI, writes a root-only env file, starts the process, checks `GET /healthz`, and prints the one-time setup code for the first owner.
+One command installs the panel on a fresh Debian or Ubuntu machine (Debian 13 is tested). It installs PostgreSQL and ClickHouse, fetches the Go and Node.js toolchains the build needs when the machine does not already have new enough ones, builds the control plane and the web UI, writes a root-only env file, starts the process, checks `GET /healthz`, and prints the one-time setup code for the first owner.
 
 ```sh
 sudo apt-get install -y git
@@ -164,6 +164,7 @@ sudo ./install/panel/install.sh --example
 | `SHIPPIN_CAPTCHA_PROVIDER` | no | `none` or `turnstile`. Sets `directory.captcha.provider` |
 | `SHIPPIN_SERVERS_ENABLED` | no | `1` turns on server enrollment (`servers.enabled`) |
 | `SHIPPIN_DATABASE_URL` | no | Postgres URL. Empty means the installer creates a local database |
+| `SHIPPIN_CLICKHOUSE_URL` | no | `http(s)://user:password@host:port/database`. Empty means the installer installs ClickHouse from its signed LTS repository and creates a local database, loopback only, with its own user. Keeps its password across re-runs |
 | `SHIPPIN_SELF_GUEST` | no | The guest this panel runs on, as a hypervisor names it. Bulk stop always skips it and a single stop asks first. Empty uses the machine's hostname |
 | `SHIPPIN_SESSION_KEY` | no | 64 hex characters. Empty means the installer generates one and keeps it across re-runs. It signs sessions and seals secrets saved in the panel: changing it signs everyone out and those secrets must be entered again |
 | `SHIPPIN_SMTP_PASSWORD` | only if mail is enabled in JSON | Named by `mail.password_env` |

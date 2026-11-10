@@ -167,6 +167,88 @@ SQL
     || runuser -u postgres -- createdb -O shippin shippin
   SHIPPIN_DATABASE_URL="postgres://shippin:${db_pass}@127.0.0.1:5432/shippin?sslmode=disable"
 fi
+
+# ClickHouse holds metrics and events (CORE-01). It comes from ClickHouse's signed LTS apt repository, and
+# the signing key is checked against its fingerprint before apt trusts it. The panel gets a user that can
+# only reach its own database; the built-in passwordless admin is locked. A site that brings its own
+# ClickHouse sets SHIPPIN_CLICKHOUSE_URL, and nothing is installed.
+clickhouse_signer_fingerprint=3A9EA1193A97B548BE1457D48919F6BD2B48D754
+if [ -z "${SHIPPIN_CLICKHOUSE_URL:-}" ]; then
+  if ! command -v clickhouse-server >/dev/null 2>&1; then
+    apt-get install -y -qq gnupg >/dev/null
+    key=$(mktemp)
+    curl -fsSL --retry 3 -o "$key" https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key
+    fingerprint=$(gpg --show-keys --with-colons "$key" 2>/dev/null | awk -F: '$1 == "fpr" {print $10; exit}')
+    if [ "$fingerprint" != "$clickhouse_signer_fingerprint" ]; then
+      echo "ClickHouse's signing key has fingerprint ${fingerprint:-none}, expected $clickhouse_signer_fingerprint" >&2
+      rm -f "$key"
+      exit 1
+    fi
+    gpg --dearmor < "$key" > /usr/share/keyrings/clickhouse-keyring.gpg
+    rm -f "$key"
+    echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg arch=$(dpkg --print-architecture)] https://packages.clickhouse.com/deb lts main" \
+      > /etc/apt/sources.list.d/clickhouse.list
+    apt-get update -qq
+    apt-get install -y -qq clickhouse-server clickhouse-client >/dev/null
+  fi
+  # A re-run keeps the password, or the panel loses its history store until the next restart.
+  ch_pass=$(sed -n 's|^SHIPPIN_CLICKHOUSE_URL=http://shippin:\([0-9a-f]*\)@127\.0\.0\.1:8123/shippin$|\1|p' /etc/shippin/console.env 2>/dev/null | tail -n1 || true)
+  if [ -z "$ch_pass" ]; then ch_pass=$(openssl rand -hex 24); fi
+  users_d=/etc/clickhouse-server/users.d
+  install -d -m 0750 -g clickhouse "$users_d"
+  (umask 027 && cat > "$users_d/shippin.xml" <<XML
+<clickhouse>
+  <users>
+    <shippin>
+      <password_sha256_hex>$(printf '%s' "$ch_pass" | sha256sum | cut -d' ' -f1)</password_sha256_hex>
+      <networks><ip>::1</ip><ip>127.0.0.1</ip></networks>
+      <profile>default</profile>
+      <quota>default</quota>
+      <grants><query>GRANT ALL ON shippin.*</query></grants>
+    </shippin>
+  </users>
+</clickhouse>
+XML
+  )
+  # Lock the package's passwordless default user, unless an administrator already gave it a password.
+  if [ ! -f "$users_d/default-password.xml" ] && [ ! -f "$users_d/default-locked.xml" ]; then
+    (umask 027 && cat > "$users_d/default-locked.xml" <<XML
+<clickhouse>
+  <users>
+    <default>
+      <password remove="remove"/>
+      <password_sha256_hex>$(openssl rand -hex 32 | sha256sum | cut -d' ' -f1)</password_sha256_hex>
+      <networks replace="replace"><ip>::1</ip><ip>127.0.0.1</ip></networks>
+    </default>
+  </users>
+</clickhouse>
+XML
+    )
+  fi
+  chgrp clickhouse "$users_d"/*.xml
+  if [ -d /run/systemd/system ]; then
+    systemctl enable clickhouse-server.service >/dev/null 2>&1
+    systemctl restart clickhouse-server.service
+  elif ! curl -fsS http://127.0.0.1:8123/ping >/dev/null 2>&1; then
+    install -d -o clickhouse -g clickhouse /run/clickhouse-server
+    runuser -u clickhouse -- clickhouse-server --config-file=/etc/clickhouse-server/config.xml \
+      --pid-file=/run/clickhouse-server/clickhouse-server.pid --daemon
+  fi
+  for _ in $(seq 1 60); do curl -fsS http://127.0.0.1:8123/ping >/dev/null 2>&1 && break; sleep 1; done
+  # The password goes to curl on stdin, never on a command line.
+  ch_ok=0
+  for _ in $(seq 1 30); do
+    if printf 'header = "X-ClickHouse-User: shippin"\nheader = "X-ClickHouse-Key: %s"\n' "$ch_pass" \
+      | curl -fsS -K - --data-binary 'CREATE DATABASE IF NOT EXISTS shippin' http://127.0.0.1:8123/ >/dev/null; then
+      ch_ok=1
+      break
+    fi
+    sleep 1
+  done
+  [ "$ch_ok" -eq 1 ] || { echo "ClickHouse did not accept the panel's user" >&2; exit 1; }
+  SHIPPIN_CLICKHOUSE_URL="http://shippin:${ch_pass}@127.0.0.1:8123/shippin"
+  echo "ClickHouse ready: $(clickhouse-server --version 2>/dev/null | head -n1)"
+fi
 # The session key signs sessions and seals secrets saved in the panel, so a re-run must keep it: a new
 # key signs everyone out and leaves every saved host secret unreadable.
 if [ -z "${SHIPPIN_SESSION_KEY:-}" ] && [ -f /etc/shippin/console.env ]; then
@@ -232,6 +314,7 @@ SHIPPIN_SITE_FILE=${site}
 SHIPPIN_STATIC=${root}/web/dist
 SHIPPIN_LISTEN=${SHIPPIN_LISTEN}
 SHIPPIN_DATABASE_URL=${SHIPPIN_DATABASE_URL}
+SHIPPIN_CLICKHOUSE_URL=${SHIPPIN_CLICKHOUSE_URL}
 SHIPPIN_SESSION_KEY=${SHIPPIN_SESSION_KEY}
 SHIPPIN_OIDC_CLIENT_ID=${SHIPPIN_OIDC_CLIENT_ID:-}
 SHIPPIN_OPS_OIDC_CLIENT_ID=${SHIPPIN_OPS_OIDC_CLIENT_ID:-}
@@ -264,7 +347,7 @@ if [ -d /run/systemd/system ] && [ "$example" -eq 0 ]; then
   cat > /etc/systemd/system/shippin-console.service <<'UNIT'
 [Unit]
 Description=Shippin panel
-After=network.target postgresql.service
+After=network.target postgresql.service clickhouse-server.service
 
 [Service]
 EnvironmentFile=/etc/shippin/console.env
@@ -314,7 +397,7 @@ ok=0
 for _ in $(seq 1 60); do
   if body=$(curl -fsS "${curl_tls[@]}" "$url" 2>/dev/null); then
     printf '%s\n' "$body"
-    printf '%s\n' "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("status")=="ok" and d.get("db") is True'
+    printf '%s\n' "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("status")=="ok" and d.get("db") is True and d.get("clickhouse")=="up", d'
     ok=1
     break
   fi

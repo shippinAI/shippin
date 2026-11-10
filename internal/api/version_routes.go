@@ -122,7 +122,7 @@ func updateCommand(cfg config.Updates, getenv func(string) string) string {
 	}
 	switch getenv("SHIPPIN_DEPLOY_METHOD") {
 	case "compose":
-		return "git pull --ff-only && docker compose up -d --build"
+		return "git pull --ff-only && python install/docker/configure.py && docker compose up -d --build"
 	case "installer":
 		if dir, site := getenv("SHIPPIN_SOURCE_DIR"), getenv("SHIPPIN_SITE_FILE"); dir != "" && site != "" {
 			return "cd " + dir + " && git pull --ff-only && sudo ./install/panel/install.sh --site " + site
