@@ -15,7 +15,7 @@ export function QueryView({ isPending, error, onRetry, rows = 5, children }: Pro
     );
   if (error)
     return (
-      <div className="flex items-start gap-3 p-5 text-sm">
+      <div className="flex items-start gap-3 p-5 text-base">
         <AlertTriangle className="mt-0.5 size-4 shrink-0 text-danger" />
         <div className="flex-1">
           <div className="font-medium text-fg">Couldn't load this section</div>

@@ -28,14 +28,14 @@ export function GrantsPanel({ team, canWrite }: { team: Team; canWrite: boolean 
   const cols: ColumnDef<Row>[] = [
     { id: "who", label: "Member", isRowHeader: true, render: (g) => <span className="font-medium text-fg">{who(g.subject)}</span> },
     { id: "perm", label: "Permission", render: (g) => <div><Badge tone="info">{g.permission}</Badge><div className="mt-1 text-xs text-fg-muted">{label(g.permission)}</div></div> },
-    { id: "reason", label: "Reason", render: (g) => <span className="text-[13px] text-fg-muted">{g.reason}</span> },
+    { id: "reason", label: "Reason", render: (g) => <span className="text-sm text-fg-muted">{g.reason}</span> },
     { id: "by", label: "Granted", width: "200px", render: (g) => <span className="text-xs text-fg-subtle">{who(g.granted_by)} · {new Date(g.granted_at).toLocaleString()}</span> },
     { id: "x", label: "", width: "56px", render: (g) => canWrite && <IconButton icon={Trash2} label={`Revoke ${g.permission} from ${who(g.subject)}`} onPress={() => setTarget(g)} /> },
   ];
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-5 py-4">
-        <p className="text-[13px] text-fg-muted">Catalog and customer permissions are deny by default: Owners hold them; anyone else only through a grant listed here.</p>
+        <p className="text-sm text-fg-muted">Catalog and customer permissions are deny by default: Owners hold them; anyone else only through a grant listed here.</p>
         {canWrite && <Button variant="primary" size="sm" tooltip="Grant one permission to one member" isDisabled={!q.data} onPress={() => setGranting(true)}><KeyRound className="size-4" /> Grant</Button>}
       </div>
       <QueryView isPending={q.isPending} error={q.error} onRetry={() => void q.refetch()} rows={3}>

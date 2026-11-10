@@ -20,11 +20,11 @@ export function DomainsTab({ ws, canManage }: { ws: Workspace; canManage: boolea
   const valid = hostRe.test(h) && !domains.includes(h);
   const commit = (next: string[]) => { setDomains(next); save.mutate({ domains: next }); };
   const item = (d: string, builtIn: boolean) => (
-    <div key={d} className="flex items-center gap-3 border-b border-line px-5 py-3 text-sm">
+    <div key={d} className="flex items-center gap-3 border-b border-line px-5 py-3 text-base">
       <Globe className="size-4 text-fg-subtle" />
-      <span className="flex-1 font-mono text-[13px] text-fg">{d}</span>
+      <span className="flex-1 font-mono text-sm text-fg">{d}</span>
       <Badge tone="success"><Lock className="size-3" /> HTTPS</Badge>
-      {builtIn ? <span className="w-8 text-[11.5px] text-fg-subtle">Default</span> : (
+      {builtIn ? <span className="w-8 text-xs text-fg-subtle">Default</span> : (
         <IconButton icon={Trash2} label={`Remove ${d}`} isDisabled={!canManage || save.isPending} onPress={() => commit(domains.filter((x) => x !== d))} />
       )}
     </div>

@@ -22,7 +22,7 @@ export function Tabs({ tabs, label, defaultTab, selected, onSelect }: Props) {
           <Tab
             key={t.id}
             id={t.id}
-            className="focus-ring relative -mb-px cursor-default border-b-2 border-transparent pb-3 text-sm text-fg-muted outline-none transition-colors data-hovered:text-fg data-selected:border-primary data-selected:text-fg"
+            className="focus-ring relative -mb-px cursor-default border-b-2 border-transparent pb-3 text-base text-fg-muted outline-none transition-colors data-hovered:text-fg data-selected:border-primary data-selected:text-fg"
           >
             {t.label}
           </Tab>

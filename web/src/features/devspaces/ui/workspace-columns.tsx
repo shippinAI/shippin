@@ -7,7 +7,7 @@ import { OpenButton } from "./open-button";
 import { StateBadge } from "./state-badge";
 import { WorkspaceMenu } from "./workspace-menu";
 
-const mono = "font-mono text-[12.5px]";
+const mono = "font-mono text-sm";
 
 export function workspaceColumns(canManage: boolean): ColumnDef<Workspace>[] {
   return [
@@ -22,7 +22,7 @@ export function workspaceColumns(canManage: boolean): ColumnDef<Workspace>[] {
           </span>
           <span>
             <span className="block font-medium text-fg">{w.name}</span>
-            <span className="block text-[11.5px] text-fg-subtle">{w.host}</span>
+            <span className="block text-xs text-fg-subtle">{w.host}</span>
           </span>
         </Link>
       ),

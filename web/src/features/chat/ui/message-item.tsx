@@ -13,7 +13,7 @@ export function MessageItem({ m, onPrompt, onCopy, fresh, streaming }: Props) {
       <Icon className={`mt-1 size-4 shrink-0 ${tint}`} aria-hidden />
       <div className="min-w-0 flex-1">
         <p className="sr-only">{m.role === "user" ? "You" : m.role === "error" ? "Problem" : "Assistant"}</p>
-        {m.content && <p className="whitespace-pre-wrap break-words text-sm text-fg">{m.content}{streaming && <span className="animate-pulse motion-reduce:animate-none">▍</span>}</p>}
+        {m.content && <p className="whitespace-pre-wrap break-words text-base text-fg">{m.content}{streaming && <span className="animate-pulse motion-reduce:animate-none">▍</span>}</p>}
         {!!m.ui?.length && <A2UIRenderer blocks={m.ui} onPrompt={onPrompt} onCopy={onCopy} fresh={fresh} />}
       </div>
     </li>

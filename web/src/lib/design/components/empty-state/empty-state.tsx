@@ -7,8 +7,8 @@ export function EmptyState({ title, description, illustration, action }: Props) 
   return (
     <div className="flex flex-col items-center px-6 py-14 text-center">
       <div className="mb-5">{illustration ?? <DefaultArt />}</div>
-      <h3 className="text-[15px] font-semibold text-fg">{title}</h3>
-      <p className="mt-1.5 max-w-sm text-sm text-fg-muted">{description}</p>
+      <h3 className="text-lg font-semibold text-fg">{title}</h3>
+      <p className="mt-1.5 max-w-sm text-base text-fg-muted">{description}</p>
       {action && <div className="mt-5">{action}</div>}
     </div>
   );

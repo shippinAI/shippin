@@ -10,8 +10,8 @@ function Fact({ label, value, wide }: { label: string; value?: string; wide?: bo
   if (!value) return null;
   return (
     <div className={wide ? "sm:col-span-2" : undefined}>
-      <dt className="text-[12px] text-fg-subtle">{label}</dt>
-      <dd className="mt-0.5 break-words text-sm text-fg">{value}</dd>
+      <dt className="text-xs text-fg-subtle">{label}</dt>
+      <dd className="mt-0.5 break-words text-base text-fg">{value}</dd>
     </div>
   );
 }
@@ -35,7 +35,7 @@ export function NodeFacts({ node }: { node: InfraNode }) {
       </dl>
       {memory !== null && (
         <div className="mt-4">
-          <div className="flex justify-between text-[12px] text-fg-subtle">
+          <div className="flex justify-between text-xs text-fg-subtle">
             <span>{t("infra.fact.memory")}</span>
             <span className="tabular-nums">{formatBytes(d!.mem_used_bytes ?? 0)} / {formatBytes(d!.mem_total_bytes ?? 0)}</span>
           </div>
@@ -46,7 +46,7 @@ export function NodeFacts({ node }: { node: InfraNode }) {
       )}
       {d?.members && d.members.length > 0 && (
         <div className="mt-4" data-testid="native-cluster">
-          <p className="text-[12px] text-fg-subtle">{d.cluster ? t("infra.fact.clusterNamed", { name: d.cluster }) : t("infra.fact.cluster")}</p>
+          <p className="text-xs text-fg-subtle">{d.cluster ? t("infra.fact.clusterNamed", { name: d.cluster }) : t("infra.fact.cluster")}</p>
           <ul className="mt-1 flex flex-wrap gap-2">
             {d.members.map((m) => (
               <li key={m.name}>
@@ -58,33 +58,33 @@ export function NodeFacts({ node }: { node: InfraNode }) {
       )}
       {d?.quorate !== undefined && (
         <div className="mt-4" data-testid="cluster-quorum">
-          <span className="text-[12px] text-fg-subtle">{t("infra.fact.quorum")}: </span>
+          <span className="text-xs text-fg-subtle">{t("infra.fact.quorum")}: </span>
           <Badge tone={d.quorate ? "success" : "danger"}><StatusDot health={d.quorate ? "up" : "down"} /> {t(d.quorate ? "infra.fact.quorate" : "infra.fact.notQuorate")}</Badge>
         </div>
       )}
       {d?.replication_status_available !== undefined && (
         <section className="mt-5" data-testid="replication-jobs" aria-label={t("infra.fact.replication")}>
-          <h3 className="text-sm font-medium text-fg">{t("infra.fact.replication")}</h3>
-          {!d.replication_status_available ? <p className="mt-2 text-sm text-fg-muted">{t("infra.fact.replicationUnavailable")}</p> : d.replication_jobs?.length ? (
-            <ul className="mt-2 divide-y divide-border rounded-md border border-border">
-              {d.replication_jobs.map((job) => <li key={job.id} className="grid gap-1 px-3 py-2 text-sm sm:grid-cols-2">
+          <h3 className="text-base font-medium text-fg">{t("infra.fact.replication")}</h3>
+          {!d.replication_status_available ? <p className="mt-2 text-base text-fg-muted">{t("infra.fact.replicationUnavailable")}</p> : d.replication_jobs?.length ? (
+            <ul className="mt-2 divide-y divide-line rounded-md border border-line">
+              {d.replication_jobs.map((job) => <li key={job.id} className="grid gap-1 px-3 py-2 text-base sm:grid-cols-2">
                 <span className="font-mono text-fg">{job.id} · {t("infra.fact.guest")} {job.guest}</span>
                 <span className="text-fg-muted">{job.target ? `${t("infra.fact.target")}: ${job.target}` : ""}{job.schedule ? ` · ${job.schedule}` : ""}{job.running ? ` · ${t("infra.fact.running")}` : ""}</span>
                 {job.fail_count ? <span className="text-danger">{t("infra.fact.replicationFailures", { count: job.fail_count })}{job.error ? ` · ${job.error}` : ""}</span> : null}
               </li>)}
             </ul>
-          ) : <p className="mt-2 text-sm text-fg-muted">{t("infra.fact.noReplicationJobs")}</p>}
+          ) : <p className="mt-2 text-base text-fg-muted">{t("infra.fact.noReplicationJobs")}</p>}
         </section>
       )}
       {d?.disks && d.disks.length > 0 && (
         <div className="mt-5" data-testid="node-disks">
-          <h3 className="text-sm font-medium text-fg">{t("infra.fact.disks")}</h3>
-          <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+          <h3 className="text-base font-medium text-fg">{t("infra.fact.disks")}</h3>
+          <ul className="mt-2 divide-y divide-line rounded-md border border-line">
             {d.disks.map((disk) => (
-              <li key={disk.path} className="grid gap-2 px-3 py-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                <div className="min-w-0"><dt className="text-[12px] text-fg-subtle">{t("infra.fact.diskModel")}</dt><dd className="break-words text-fg">{disk.model || disk.path}</dd>{disk.model && <dd className="break-words text-xs text-fg-muted">{disk.path}</dd>}</div>
-                <div><dt className="text-[12px] text-fg-subtle">{t("infra.fact.diskCapacity")}</dt><dd className="text-fg">{formatBytes(disk.size_bytes)}</dd></div>
-                <div><dt className="text-[12px] text-fg-subtle">{t("infra.fact.diskUsage")}</dt><dd className="text-fg">{disk.used || "—"}</dd></div>
+              <li key={disk.path} className="grid gap-2 px-3 py-2 text-base sm:grid-cols-2 lg:grid-cols-4">
+                <div className="min-w-0"><dt className="text-xs text-fg-subtle">{t("infra.fact.diskModel")}</dt><dd className="break-words text-fg">{disk.model || disk.path}</dd>{disk.model && <dd className="break-words text-xs text-fg-muted">{disk.path}</dd>}</div>
+                <div><dt className="text-xs text-fg-subtle">{t("infra.fact.diskCapacity")}</dt><dd className="text-fg">{formatBytes(disk.size_bytes)}</dd></div>
+                <div><dt className="text-xs text-fg-subtle">{t("infra.fact.diskUsage")}</dt><dd className="text-fg">{disk.used || "—"}</dd></div>
                 <div className="flex gap-3 text-xs text-fg-muted">
                   <span>{t("infra.fact.diskMounted")}: {t(disk.mounted ? "infra.fact.yes" : "infra.fact.no")}</span>
                   <span>{t("infra.fact.diskGPT")}: {t(disk.gpt ? "infra.fact.yes" : "infra.fact.no")}</span>

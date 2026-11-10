@@ -66,7 +66,7 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
         <TextField label="System defaults" multiline mono value={defaults} onChange={setDefaults} description={obj(defaults) ? undefined : "Must be a JSON object"} />
         <section className="grid gap-3 rounded-lg border border-line p-4" aria-label="Deployment source">
           <div>
-            <h3 className="text-sm font-semibold text-fg">Deployment source</h3>
+            <h3 className="text-base font-semibold text-fg">Deployment source</h3>
             <p className="mt-1 text-xs text-fg-muted">Pin a repository commit or OCI image digest. This saves source metadata; it does not mean a service has been deployed.</p>
           </div>
           <Select label="Source type" options={[
@@ -88,12 +88,12 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
             </>}
             <TextField label="Credential reference (optional)" mono value={source.credential_ref} onChange={updateSourceField("credential_ref")} autoComplete="off"
               description="Use vaultix://<environment>/<folder>/<key> for the deployment tenant's Vaultix project, or a SOPS file reference. Secret values are never accepted here." />
-            {!sourceValid && <p role="alert" className="text-sm text-danger">Use an HTTPS repository pinned to a full commit, or an OCI image pinned by digest. Credentials must be references.</p>}
+            {!sourceValid && <p role="alert" className="text-base text-danger">Use an HTTPS repository pinned to a full commit, or an OCI image pinned by digest. Credentials must be references.</p>}
           </>}
         </section>
         {source.kind !== "none" && <section className="grid gap-3 rounded-lg border border-line p-4" aria-label="Runtime compatibility">
           <div>
-            <h3 className="text-sm font-semibold text-fg">Runtime compatibility</h3>
+            <h3 className="text-base font-semibold text-fg">Runtime compatibility</h3>
             <p className="mt-1 text-xs text-fg-muted">A pinned source alone is metadata. The current Incus declaration identifies provider compatibility; it does not enable deployment.</p>
           </div>
           <Select label="Runtime declaration" options={[
@@ -110,7 +110,7 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
               <RuntimeRecipeForm value={runtimeRecipe} onChange={setRuntimeRecipe} showEnvironment={runtimeVersion === 3} />
             </>}
           </>}
-          {!runtimeValid && <p role="alert" className="text-sm text-danger">Enter a valid runtime recipe for the selected OCI source. Version 2 requires bounded resources, storage, network ports, and a matching health check; version 3 also validates its config bindings.</p>}
+          {!runtimeValid && <p role="alert" className="text-base text-danger">Enter a valid runtime recipe for the selected OCI source. Version 2 requires bounded resources, storage, network ports, and a matching health check; version 3 also validates its config bindings.</p>}
         </section>}
         <div className="flex gap-6">
           <Switch isSelected={s.required} onChange={set("required")} tooltip="Required services are locked on for every plan">Required</Switch>

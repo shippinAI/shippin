@@ -10,14 +10,14 @@ export function Stepper({ steps, current }: { steps: string[]; current: number }
           <span
             className={cn(
               "flex size-6 items-center justify-center rounded-full border text-xs font-semibold tabular-nums",
-              i < current && "border-primary bg-primary text-white",
+              i < current && "border-primary bg-primary text-primary-fg",
               i === current && "border-primary text-primary",
               i > current && "border-line-strong text-fg-subtle",
             )}
           >
             {i < current ? <Check className="size-3.5" strokeWidth={2.5} /> : i + 1}
           </span>
-          <span className={cn("text-sm", i === current ? "font-medium text-fg" : "text-fg-muted")}>{s}</span>
+          <span className={cn("text-base", i === current ? "font-medium text-fg" : "text-fg-muted")}>{s}</span>
           {i < steps.length - 1 && <span className="h-px w-10 bg-line-strong" />}
         </li>
       ))}

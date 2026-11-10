@@ -21,7 +21,7 @@ export function WorkspaceMenu({ ws, canManage }: { ws: Workspace; canManage: boo
         label={`Actions for ${ws.name}`}
         trigger={
           <Tooltip content={why}>
-            <Button aria-label={`Actions for ${ws.name}`} isDisabled={locked} className="focus-ring inline-flex size-8 cursor-default items-center justify-center rounded-[var(--radius-control)] border border-line bg-raised text-fg-muted data-hovered:text-fg data-disabled:opacity-40">
+            <Button aria-label={`Actions for ${ws.name}`} isDisabled={locked} className="focus-ring inline-flex size-8 cursor-default items-center justify-center rounded-lg border border-line bg-raised text-fg-muted data-hovered:text-fg data-disabled:opacity-40">
               <MoreHorizontal className="size-4" />
             </Button>
           </Tooltip>

@@ -4,7 +4,7 @@ import { createElement } from "react";
 export function CopyCommand({ command }: { command: string }) {
   return createElement(
     "pre",
-    { className: "max-h-40 w-full overflow-auto whitespace-pre-wrap rounded border border-line bg-canvas p-2 font-mono text-[12px] leading-snug text-fg" },
+    { className: "max-h-40 w-full overflow-auto whitespace-pre-wrap rounded-sm border border-line bg-canvas p-2 font-mono text-xs leading-snug text-fg" },
     command,
   );
 }

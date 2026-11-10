@@ -13,11 +13,11 @@ export function PlatformSettingsPage() {
   return (
     <>
       <PageHeader title="Platform settings" description="Overrides of selected config keys. Every change needs a reason and is audited." />
-      {q.isError && <p role="alert" className="text-sm text-danger">{q.error.message}</p>}
+      {q.isError && <p role="alert" className="text-base text-danger">{q.error.message}</p>}
       {q.data && (
         <Card>
           <CardHeader title="Settings" description="Reset returns a key to the value in the config file." />
-          <ul className="divide-y divide-border" aria-label="Platform settings">
+          <ul className="divide-y divide-line" aria-label="Platform settings">
             {q.data.items.filter((s) => s.kind !== "json" && s.kind !== "array").map((s) => <PlatformSettingRow key={s.key} s={s} canWrite={canWrite} />)}
           </ul>
           <PlatformServiceRegistry canWrite={canWrite} />

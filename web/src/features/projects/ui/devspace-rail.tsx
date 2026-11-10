@@ -34,7 +34,7 @@ export function DevspaceRail({ value, onChange }: { value: Surface; onChange: (s
         <Tooltip key={id} content={hint}>
           <ToggleButton
             id={id}
-            className="focus-ring flex cursor-default flex-col items-center gap-1 rounded-lg py-2 text-[11px] text-fg-muted outline-none data-hovered:bg-raised data-hovered:text-fg data-selected:bg-primary/12 data-selected:text-primary"
+            className="focus-ring flex cursor-default flex-col items-center gap-1 rounded-lg py-2 text-2xs text-fg-muted outline-none data-hovered:bg-raised data-hovered:text-fg data-selected:bg-primary/12 data-selected:text-primary"
           >
             <Icon className="size-5" />
             {label}

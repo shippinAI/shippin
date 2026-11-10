@@ -14,8 +14,8 @@ export function OpsServersPage() {
   const cols: ColumnDef<Server>[] = [
     { id: "name", label: "Server", isRowHeader: true, render: (s) => (
       <span className="flex items-center gap-2 font-medium text-fg"><ServerIcon className="size-4 text-hue-edge" aria-hidden />{s.label}
-        <span className="font-mono text-[12px] text-fg-subtle">{s.slug}</span></span>) },
-    { id: "site", label: "Site", render: (s) => <span className="font-mono text-[12.5px]">{s.site}</span> },
+        <span className="font-mono text-xs text-fg-subtle">{s.slug}</span></span>) },
+    { id: "site", label: "Site", render: (s) => <span className="font-mono text-sm">{s.site}</span> },
     { id: "state", label: "Status", render: (s) => <ServerStateBadge state={s.state} /> },
     { id: "seen", label: "Last heartbeat", render: (s) => (s.last_seen_at ? timeAgo(s.last_seen_at) : "Never") },
   ];

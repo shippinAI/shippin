@@ -14,7 +14,7 @@ export function PermissionPicker({ catalog, value, onChange, isDisabled }: Props
         const n = ps.filter((p) => value.includes(p.key)).length;
         return (
           <div key={s} className="rounded-lg border border-line bg-canvas/30 p-2">
-            <Label className="flex items-center justify-between px-2 pb-1 text-[12px] font-semibold tracking-wide text-fg-subtle uppercase">
+            <Label className="flex items-center justify-between px-2 pb-1 text-xs font-semibold tracking-wide text-fg-subtle uppercase">
               {s} <span className="font-normal tabular-nums normal-case">{n}/{ps.length}</span>
             </Label>
             {ps.map((p) => (

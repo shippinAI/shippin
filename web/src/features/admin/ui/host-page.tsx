@@ -33,17 +33,17 @@ export function HostPage() {
               <Card className="overflow-hidden">
                 <CardHeader title="ZFS pools" description="zpool list" />
                 <div className="divide-y divide-line">
-                  {s.zfs_pools.length === 0 && <div className="px-5 py-4 text-sm text-fg-subtle">No pools reported.</div>}
+                  {s.zfs_pools.length === 0 && <div className="px-5 py-4 text-base text-fg-subtle">No pools reported.</div>}
                   {s.zfs_pools.map((p) => (
                     <div key={p.name} className="px-5 py-4">
-                      <div className="flex items-center gap-3 text-sm">
+                      <div className="flex items-center gap-3 text-base">
                         <HardDrive className="size-4 text-fg-subtle" />
                         <span className="font-mono font-medium text-fg">{p.name}</span>
                         <StatusBadge status={p.health === "ONLINE" ? "active" : p.health} />
                         <span className="ml-auto text-fg-muted tabular-nums">{formatBytes(p.alloc)} / {formatBytes(p.size)}</span>
                       </div>
                       <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-raised" role="meter" aria-label={`${p.name} usage`} aria-valuenow={Math.round(pct(p.alloc, p.size))}>
-                        <div className="h-full rounded-full bg-[var(--color-hue-data)]" style={{ width: `${pct(p.alloc, p.size)}%` }} />
+                        <div className="h-full rounded-full bg-hue-data" style={{ width: `${pct(p.alloc, p.size)}%` }} />
                       </div>
                       <div className="mt-1.5 text-xs text-fg-subtle">{pct(p.alloc, p.size).toFixed(1)}% used · {formatBytes(p.free)} free</div>
                     </div>

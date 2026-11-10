@@ -22,7 +22,7 @@ export function TenantVMCard({ tenant: t }: { tenant: AdminTenant }) {
   const busy = act.isPending || t.status === "deleted";
   return (
     <section className="mx-5 mt-2 rounded-lg border border-line bg-raised/50 px-4 py-3" aria-label="Tenant VM">
-      <div className="flex items-center gap-2 text-[13px] font-medium text-fg">
+      <div className="flex items-center gap-2 text-sm font-medium text-fg">
         <Server className="size-4 text-fg-subtle" strokeWidth={1.75} />
         Tenant VM
         {v && <span className="ml-auto">{v.mode === "vm" ? <StatusBadge status={v.status} /> : <StatusBadge status="Legacy direct" />}</span>}
@@ -37,14 +37,14 @@ export function TenantVMCard({ tenant: t }: { tenant: AdminTenant }) {
       )}
       {v?.mode === "vm" && (
         <div className="mt-3 space-y-3">
-          <div className="grid grid-cols-2 gap-x-5 gap-y-1 font-mono text-[12px] text-fg-muted">
+          <div className="grid grid-cols-2 gap-x-5 gap-y-1 font-mono text-xs text-fg-muted">
             <span>{v.name}</span>
             <span className="text-right">{v.ipv4 || "—"} · inner {v.inner_subnet || "—"}</span>
           </div>
           <VMMeter label="vCPU" text={`${v.cpu_limit || "—"} vCPU`} />
           <VMMeter label="Memory" used={v.memory_used_bytes} total={v.memory_total_bytes || sizeBytes(v.memory_limit)} text={`${formatBytes(v.memory_used_bytes)} / ${v.memory_limit || "—"}`} />
           <VMMeter label="Workspace storage" used={v.data_used_bytes} total={v.data_total_bytes || sizeBytes(v.data_size)} text={`${formatBytes(v.data_used_bytes)} / ${v.data_size || "—"}`} />
-          <p className="text-[11.5px] text-fg-subtle">Root disk {v.root_size || "—"} · encrypted tenant pool</p>
+          <p className="text-xs text-fg-subtle">Root disk {v.root_size || "—"} · encrypted tenant pool</p>
           <VMContainers items={v.containers ?? []} />
           <TenantAppsPrep id={t.id} />
           <div className="flex gap-2">

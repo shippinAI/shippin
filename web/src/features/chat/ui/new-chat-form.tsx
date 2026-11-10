@@ -22,11 +22,11 @@ export function NewChatForm({ onCreated }: { onCreated: (id: string) => void }) 
   const create = useCreateChat();
   return (
     <div className="space-y-3 p-4">
-      <p className="text-sm text-fg-muted">Chat runs your own AI CLI inside your workspace, signed in with your own subscription.</p>
+      <p className="text-base text-fg-muted">Chat runs your own AI CLI inside your workspace, signed in with your own subscription.</p>
       <Select label="Workspace" value={ws} onChange={setWs} options={workspaces.map((w) => ({ id: w.id, label: w.name }))} />
       <Select label="AI" value={prov} onChange={setProv} options={providers.map((p) => ({ id: p.id, label: p.name }))} />
-      {workspaces.length === 0 && <p className="text-sm text-fg-muted">Start a workspace first; chat answers from inside it.</p>}
-      {create.error && <p role="alert" className="text-sm text-danger">{create.error.message}</p>}
+      {workspaces.length === 0 && <p className="text-base text-fg-muted">Start a workspace first; chat answers from inside it.</p>}
+      {create.error && <p role="alert" className="text-base text-danger">{create.error.message}</p>}
       <Button variant="primary" tooltip="Start a new conversation" isDisabled={!ws || !prov || create.isPending}
         onPress={() => create.mutate({ workspace_id: ws, provider: prov }, { onSuccess: (s) => onCreated(s.id) })}>
         Start chat

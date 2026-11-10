@@ -21,7 +21,7 @@ export function WezTermDialog({ isOpen, onOpenChange, workspace, connect }: Prop
   return (
     <ModalDialog isOpen={isOpen} onOpenChange={onOpenChange} title="Open in WezTerm"
       description="Use your own WezTerm with this workspace. The connection uses your SSH key and joins the same Zellij session as this page.">
-      <div className="space-y-4 px-6 py-5 text-[13px] text-fg-muted">
+      <div className="space-y-4 px-6 py-5 text-sm text-fg-muted">
         {!connect ? (
           <p role="alert" className="text-warning">This workspace has no SSH address yet. Start it, then try again.</p>
         ) : (

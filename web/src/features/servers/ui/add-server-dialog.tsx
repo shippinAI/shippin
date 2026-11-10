@@ -42,7 +42,7 @@ export function AddServerDialog({ tenantId, isOpen, onOpenChange }: Props) {
               <TextField label="Site" value={site} onChange={(v) => setSite(v.toLowerCase())} placeholder="main" mono />
             </div>
             <HelpPopover title="Sites and enrollment">
-              <p className="text-[13px] text-fg-muted">A site is where the machine lives (for example <code>main</code>). After you add it you get a
+              <p className="text-sm text-fg-muted">A site is where the machine lives (for example <code>main</code>). After you add it you get a
                 one-time token. hostd trades it for its own credential and then sends a heartbeat on a fixed interval. A server that misses
                 several heartbeats shows as <em>Stale</em>. Planned sites are listed but never contacted.</p>
             </HelpPopover>

@@ -12,15 +12,15 @@ import { UpdateStatus } from "../features/updates/update-status";
 // Loaded after first paint so the header stays inside the initial JS budget.
 const OrgSwitcher = lazy(() => import("../features/orgs/ui/org-switcher").then((m) => ({ default: m.OrgSwitcher })));
 
-/** Aero-glass top bar (one of the few glass surfaces allowed by 02d). */
+/** Top bar: an opaque surface that stays put while the page scrolls. */
 export function Topbar({ crumb }: { crumb: string }) {
   const caps = useCurrentUser().data?.capabilities;
   const qc = useQueryClient();
   const s = usePublicSettings().data;
   return (
-    <div className="glass sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-line px-4 sm:gap-3 sm:px-8">
+    <div className="bg-surface sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-line px-4 sm:gap-3 sm:px-8">
       <MobileNav />
-      <div className="min-w-0 flex-1 truncate text-[13px] text-fg-subtle">
+      <div className="min-w-0 flex-1 truncate text-sm text-fg-subtle">
         <span className="hidden sm:inline">{s?.domain}</span>
         <span className="mx-2 hidden sm:inline">/</span>
         <span className="text-fg">{crumb}</span>

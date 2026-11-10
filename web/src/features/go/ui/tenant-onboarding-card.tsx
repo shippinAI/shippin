@@ -8,8 +8,8 @@ export function TenantOnboardingCard({ tenantId, feature }: { tenantId: string; 
     <Card className="flex items-start gap-4 px-6 py-5">
       <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-raised"><Boxes className="size-5" strokeWidth={1.75} /></span>
       <div className="flex-1">
-        <h2 className="text-[15px] font-semibold">Start with a workspace</h2>
-        <p className="mt-1 text-[13px] text-fg-muted">
+        <h2 className="text-lg font-semibold">Start with a workspace</h2>
+        <p className="mt-1 text-sm text-fg-muted">
           {feature ? `${feature} runs inside a workspace. ` : ""}Your tenant has no workspaces yet. Create one to get a terminal,
           connected AI CLIs, guides, one-click Publish and usage numbers.
         </p>

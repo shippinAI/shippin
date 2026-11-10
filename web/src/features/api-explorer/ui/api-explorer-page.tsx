@@ -65,15 +65,15 @@ export function ApiExplorerPage() {
       <Card className="mb-6 p-5">
         <div className="space-y-4">
           <TextField label="Find an operation" value={query} onChange={setQuery} placeholder="method, path, tag or summary" />
-          <label className="flex flex-col gap-1.5 text-[13px] font-medium text-fg">
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-fg">
             Operation ({matches.length} of {index?.operationCount ?? 0})
-            <select aria-label="Operation" className="h-9 rounded-md border border-line bg-canvas px-2 font-mono text-[12.5px] font-normal" value={selected?.operationId ?? ""}
+            <select aria-label="Operation" className="h-9 rounded-md border border-line bg-canvas px-2 font-mono text-sm font-normal" value={selected?.operationId ?? ""}
               onChange={(e) => { setOperationId(e.target.value); setParams({}); setBody(""); setError(""); }}>
               {matches.map((o) => <option key={o.operationId} value={o.operationId}>{o.method} {o.path}</option>)}
             </select>
           </label>
           {selected && (
-            <p className="flex flex-wrap items-center gap-2 text-sm text-fg-muted">
+            <p className="flex flex-wrap items-center gap-2 text-base text-fg-muted">
               <Badge tone={selected.implementationStatus === "registered" ? "success" : "neutral"}>{selected.implementationStatus}</Badge>
               {selected.summary || selected.operationId}
             </p>
@@ -86,7 +86,7 @@ export function ApiExplorerPage() {
           {selected && hasBody(selected.method) && (
             <TextField label="Request body (JSON)" multiline mono value={body} onChange={setBody} />
           )}
-          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+          {error && <p role="alert" className="text-base text-danger">{error}</p>}
           <Button variant="primary" size="sm" isDisabled={!selected || busy} tooltip="Send this request now, as you" onPress={() => void run()}>
             {busy ? "Sending…" : "Send request"}
           </Button>
@@ -95,7 +95,7 @@ export function ApiExplorerPage() {
       <Card className="overflow-hidden">
         <CardHeader title="Response" description={result ? `${result.method} ${result.url}` : "Nothing sent yet."}
           actions={result ? <Badge tone={result.status < 300 ? "success" : result.status < 500 ? "warning" : "danger"}>{result.status} {result.statusText}</Badge> : undefined} />
-        {result && <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-all px-5 pb-5 font-mono text-[12px] text-fg-muted">{result.body || "(empty response body)"}</pre>}
+        {result && <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-all px-5 pb-5 font-mono text-xs text-fg-muted">{result.body || "(empty response body)"}</pre>}
       </Card>
     </>
   );

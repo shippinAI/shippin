@@ -1,6 +1,7 @@
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef, useState } from "react";
 import type { TerminalBus } from "../../../lib/terminal/terminal-bus";
+import { tokenValue } from "../../../lib/design/token-value";
 
 type Mux = "zellij" | "plain";
 type Props = { tenantId: string; workspaceId: string; bus: TerminalBus; mux?: Mux };
@@ -27,7 +28,7 @@ export function TerminalPane({ tenantId, workspaceId, bus, mux = "zellij" }: Pro
     const cols = Math.max(40, Math.floor(el.clientWidth / cell.w));
     const rows = Math.max(10, Math.floor(el.clientHeight / cell.h));
     const term = new Terminal({ cols, rows, cursorBlink: true, fontSize: 13, fontFamily: "var(--font-mono), monospace",
-      theme: { background: "#0b0d12" } });
+      theme: { background: tokenValue("--color-terminal") } });
     term.open(el);
     const ws = new WebSocket(terminalSocketURL(window.location, tenantId, workspaceId, rows, cols, mux));
     ws.binaryType = "arraybuffer";
@@ -42,10 +43,10 @@ export function TerminalPane({ tenantId, workspaceId, bus, mux = "zellij" }: Pro
     return () => { gone = true; stop(); };
   }, [tenantId, workspaceId, bus, mux]);
   return (
-    <div className="relative h-full min-h-0 overflow-hidden bg-[#0b0d12]">
+    <div className="relative h-full min-h-0 overflow-hidden bg-terminal">
       <div ref={host} className="absolute inset-0 p-2" aria-label="Workspace terminal" role="region" />
       {state !== "open" && (
-        <p className="absolute right-3 top-2 rounded bg-surface-2 px-2 py-0.5 text-xs text-fg-muted" aria-live="polite">
+        <p className="absolute right-3 top-2 rounded-sm bg-raised px-2 py-0.5 text-xs text-fg-muted" aria-live="polite">
           {state === "connecting" ? "Connecting…" : "Disconnected"}
         </p>
       )}

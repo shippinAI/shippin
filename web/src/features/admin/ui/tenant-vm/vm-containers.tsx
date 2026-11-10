@@ -11,7 +11,7 @@ export function VMContainers({ items }: { items: VMContainer[] }) {
   return (
     <ul className="divide-y divide-line rounded-lg border border-line" aria-label="Nested workspace containers">
       {items.map((c) => (
-        <li key={c.name} className="flex items-center gap-3 px-3 py-2 text-[12.5px]">
+        <li key={c.name} className="flex items-center gap-3 px-3 py-2 text-sm">
           <Box className="size-3.5 shrink-0 text-fg-subtle" strokeWidth={1.75} />
           <span className="min-w-0 flex-1 truncate font-mono text-fg" title={c.name}>{c.name}</span>
           <span className="font-mono text-fg-muted tabular-nums">{c.ipv4 || "—"}</span>

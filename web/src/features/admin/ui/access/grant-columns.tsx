@@ -16,7 +16,7 @@ export const grantColumns = (me: string, end: (g: Grant) => void, busy: boolean)
   },
   { id: "status", label: "Status", width: "190px", render: (g) => <GrantStatusBadge grant={g} /> },
   { id: "who", label: "Admin", render: (g) => <span className="text-fg">{g.requester_name}</span> },
-  { id: "reason", label: "Reason", render: (g) => <span className="line-clamp-2 text-[12.5px]" title={g.reason}>{g.category ? `[${g.category}] ` : ""}{g.reason}</span> },
+  { id: "reason", label: "Reason", render: (g) => <span className="line-clamp-2 text-sm" title={g.reason}>{g.category ? `[${g.category}] ` : ""}{g.reason}</span> },
   {
     id: "when", label: "Window", width: "170px", render: (g) => (
       <span className="text-xs">

@@ -27,7 +27,7 @@ export function SetupChecklist({ tenantId, scope }: { tenantId: string; scope: "
           </Button>
         )}
       />
-      <ul className="divide-y divide-border" aria-label="Setup checks">
+      <ul className="divide-y divide-line" aria-label="Setup checks">
         {checks.map((c) => {
           const I = icon[c.state];
           return (
@@ -35,14 +35,14 @@ export function SetupChecklist({ tenantId, scope }: { tenantId: string; scope: "
               <I className={`mt-0.5 size-4 shrink-0 ${color[c.state]}`} aria-hidden />
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-fg">{c.label}</p>
-                {c.detail && <p className="text-sm text-fg-muted">{c.detail}</p>}
+                {c.detail && <p className="text-base text-fg-muted">{c.detail}</p>}
               </div>
               <Badge tone={c.state === "ok" ? "success" : c.state === "error" ? "danger" : c.state === "todo" ? "warning" : "neutral"}>{label[c.state]}</Badge>
             </li>
           );
         })}
       </ul>
-      {fix.isError && <p role="alert" className="px-4 pb-3 text-sm text-danger">{fix.error.message}</p>}
+      {fix.isError && <p role="alert" className="px-4 pb-3 text-base text-danger">{fix.error.message}</p>}
     </Card>
   );
 }

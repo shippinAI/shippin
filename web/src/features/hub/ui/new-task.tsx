@@ -14,8 +14,8 @@ export function NewTask() {
   return (
     <DialogTrigger>
       <Button variant="primary" tooltip="Put a task on the board"><Plus className="size-4" aria-hidden /> New task</Button>
-      <ModalOverlay isDismissable className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4 backdrop-blur-sm">
-        <Modal className="w-full max-w-md rounded-2xl border border-line bg-surface p-5 shadow-[var(--shadow-e3)]">
+      <ModalOverlay isDismissable className="fixed inset-0 z-50 grid place-items-center bg-scrim p-4">
+        <Modal className="w-full max-w-md rounded-2xl border border-line bg-surface p-5 shadow-e3">
           <Dialog className="outline-none">
             {({ close }) => (
               <form className="flex flex-col gap-3" onSubmit={(e) => {
@@ -25,7 +25,7 @@ export function NewTask() {
                   onError: (err) => toast.error("Could not add the task", err.message),
                 });
               }}>
-                <Heading slot="title" className="text-base font-semibold text-fg">New task</Heading>
+                <Heading slot="title" className="text-lg font-semibold text-fg">New task</Heading>
                 <TextField label="Title" value={title} onChange={setTitle} isRequired />
                 <TextField label="Details" multiline value={body} onChange={setBody} />
                 <div className="mt-1 flex justify-end gap-2">

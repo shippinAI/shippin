@@ -3,10 +3,10 @@ import type { RRDecision, RRMemory, RRSession } from "../../../lib/api/rrflow-ty
 import { Badge } from "../../../lib/design/components/badge/badge";
 import { useRRFlowState } from "../../../lib/hooks/use-rrflow";
 
-const tab = "focus-ring relative -mb-px cursor-default border-b-2 border-transparent pb-2 text-sm text-fg-muted outline-none data-hovered:text-fg data-selected:border-primary data-selected:text-fg";
-const row = "flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-line py-2 text-[13px]";
+const tab = "focus-ring relative -mb-px cursor-default border-b-2 border-transparent pb-2 text-base text-fg-muted outline-none data-hovered:text-fg data-selected:border-primary data-selected:text-fg";
+const row = "flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-line py-2 text-sm";
 const when = (s: string) => new Date(s).toLocaleString();
-const none = (what: string) => <p className="py-3 text-[13px] text-fg-subtle">No {what} yet.</p>;
+const none = (what: string) => <p className="py-3 text-sm text-fg-subtle">No {what} yet.</p>;
 
 type Props = { tenantId: string; projectId: string; serviceId: string };
 
@@ -44,7 +44,7 @@ export function RRFlowViews({ tenantId, projectId, serviceId }: Props) {
           <div key={d.id} className={row}>
             <span className="text-fg-subtle">#{d.seq}</span><span className="text-fg">{d.actor} · {d.action}</span>
             <span className="text-fg-muted">{d.resource}</span><Badge tone={d.effect === "allow" ? "success" : d.effect === "deny" ? "danger" : "warning"}>{d.effect}</Badge>
-            <span className="font-mono text-[11px] text-fg-subtle">{d.hash.slice(0, 12)}</span>
+            <span className="font-mono text-2xs text-fg-subtle">{d.hash.slice(0, 12)}</span>
           </div>
         )) : none("decisions")}
       </TabPanel>

@@ -44,7 +44,7 @@ export function ChatSurface({ variant, sessionId: routeId }: Props) {
       )}
       <section className="flex min-h-0 flex-1 flex-col">
         <div className="flex items-center gap-1 border-b border-line px-2 py-1">
-          <span className="flex-1 truncate px-2 text-[12px] text-fg-subtle">{ctx.label ? `Context: ${ctx.label}` : ""}</span>
+          <span className="flex-1 truncate px-2 text-xs text-fg-subtle">{ctx.label ? `Context: ${ctx.label}` : ""}</span>
           {!ctx.sessions && <IconButton icon={Plus} label="New chat" onPress={() => open(null)} />}
           <IconButton icon={ctx.swap === "expand" ? Maximize2 : Minimize2} label={ctx.swap === "expand" ? "Open full page" : "Pop into overlay"} onPress={swap} />
         </div>

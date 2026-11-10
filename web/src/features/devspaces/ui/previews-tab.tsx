@@ -27,11 +27,11 @@ export function PreviewsTab({ ws, canEdit }: { ws: Workspace; canEdit: boolean }
         <ul className="divide-y divide-line">
           {ws.preview_urls.map((p) => (
             <li key={p.port} className="flex items-center gap-4 px-5 py-3">
-              <span className="w-16 font-mono text-[13px] text-fg">:{p.port}</span>
+              <span className="w-16 font-mono text-sm text-fg">:{p.port}</span>
               <span className={`inline-flex items-center gap-1.5 text-xs ${live.has(p.port) ? "text-success" : "text-fg-subtle"}`}>
                 <RadioIcon className="size-3.5" /> {live.has(p.port) ? "Listening" : "Not listening"}
               </span>
-              <a href={p.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-primary hover:underline">{p.url}</a>
+              <a href={p.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate font-mono text-sm text-primary hover:underline">{p.url}</a>
               <Switch
                 isSelected={p.public}
                 isDisabled={off}

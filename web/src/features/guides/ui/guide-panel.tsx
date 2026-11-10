@@ -31,7 +31,7 @@ export function GuidePanel({ runner, onLink }: Props) {
           <Button variant="ghost" size="sm" aria-label="All guides" tooltip="Back to all guides" onPress={runner.close}><ChevronLeft className="size-4" /></Button>
         )}
         <Sparkles className="size-4 text-hue-ai" aria-hidden />
-        <h2 className="truncate text-sm font-semibold text-fg">{guide ? guide.title : "Guide"}</h2>
+        <h2 className="truncate text-base font-semibold text-fg">{guide ? guide.title : "Guide"}</h2>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {surface && <A2UISurface surface={surface} onAction={onAction} onData={(p, v) => edit(surface.id, p, v)} label={guide ? guide.title : "Guides"} />}

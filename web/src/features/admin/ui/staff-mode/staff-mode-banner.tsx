@@ -14,7 +14,7 @@ export function StaffModeBanner() {
     return <Navigate to={`/admin/staff-mode?rd=${encodeURIComponent(loc.pathname)}`} replace />;
   if (!s) return null;
   return (
-    <div role="status" className="relative z-10 flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-8 py-2 text-[13px] text-warning">
+    <div role="status" className="relative z-10 flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-8 py-2 text-sm text-warning">
       <ShieldCheck className="size-4 shrink-0" />
       <span className="truncate">Staff mode until {new Date(s.expires_at).toLocaleTimeString()} · {s.reason}</span>
       <Button size="sm" variant="secondary" className="ml-auto shrink-0" tooltip="Leave staff mode (audited) and go back to the tenant" isDisabled={exit.isPending} onPress={() => exit.mutate()}>

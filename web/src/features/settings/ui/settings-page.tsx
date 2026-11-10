@@ -33,7 +33,7 @@ export function SettingsPage() {
         <Card>
           <CardHeader title="Identity & infrastructure" description="Your tenant is an org in the identity provider with its own isolated project." />
           <CopyField label="OIDC issuer" value={s.idp_issuer} mono />
-          <CopyField label="Organization ID" value={s.idp_org_id} mono hint={`${idp} org mapped to this tenant`} />
+          <CopyField label="Organization ID" value={s.idp_org_id} mono hint={`The organization in ${idp} mapped to this tenant`} />
           <CopyField label="Incus project" value={s.incus_project} mono />
           <CopyField label="SSH address" value={s.ssh_ip} mono hint="Shared by your workspaces" />
         </Card>
@@ -48,7 +48,7 @@ export function SettingsPage() {
             {s.governance_domains.map((d) => (
               <li key={d} className="flex items-center gap-3 px-5 py-3.5">
                 <Globe className="size-4 text-hue-network" />
-                <span className="flex-1 font-mono text-[13px]">{d}</span>
+                <span className="flex-1 font-mono text-sm">{d}</span>
                 {d === s.default_domain && <Badge tone="primary">Default</Badge>}
                 <Badge tone="success"><ShieldCheck className="size-3" /> Governed</Badge>
               </li>

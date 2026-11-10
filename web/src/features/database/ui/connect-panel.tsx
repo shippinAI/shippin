@@ -21,8 +21,8 @@ export function ConnectPanel({ info, loading }: { info?: DbInfo; loading: boolea
       </Card>
       <div className="space-y-4">
         <Card className="p-5">
-          <h3 className="text-sm font-semibold text-fg">Before you paste this</h3>
-          <ul className="mt-2 space-y-2 text-[13px] leading-relaxed text-fg-muted">
+          <h3 className="text-base font-semibold text-fg">Before you paste this</h3>
+          <ul className="mt-2 space-y-2 text-sm leading-relaxed text-fg-muted">
             {info.hints.map((h) => <li key={h}>{h}</li>)}
             <li>{info.login_ready ? "This console can sign in as the role above." : "The console does not have the role password yet. Hostd keeps it in sops until a pooler is connected."}</li>
           </ul>

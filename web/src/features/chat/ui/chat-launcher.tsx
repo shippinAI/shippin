@@ -14,7 +14,7 @@ export function ChatLauncher() {
   return (
     <>
       <Button aria-label="Open chat" onPress={() => chatUI.openOverlay()}
-        className="fixed bottom-5 right-5 z-40 flex size-12 items-center justify-center rounded-full bg-primary text-white shadow-[var(--shadow-e3)] outline-none data-focus-visible:ring-2 data-focus-visible:ring-primary/40">
+        className="fixed bottom-5 right-5 z-40 flex size-12 items-center justify-center rounded-full bg-primary text-primary-fg shadow-e3 outline-none data-focus-visible:ring-2 data-focus-visible:ring-primary/40">
         <MessageCircle className="size-5" aria-hidden />
       </Button>
       {open && <Suspense fallback={null}><ChatOverlay /></Suspense>}

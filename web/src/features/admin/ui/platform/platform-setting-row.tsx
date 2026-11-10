@@ -18,8 +18,8 @@ export function PlatformSettingRow({ s, canWrite }: { s: PlatformSetting; canWri
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-medium text-fg">{s.label}</p>
-          <p className="text-sm text-fg-muted">{s.help}</p>
-          <p className="mt-1 font-mono text-[12px] text-fg-subtle">{s.key} · config file: {String(s.config_value) || "(empty)"}</p>
+          <p className="text-base text-fg-muted">{s.help}</p>
+          <p className="mt-1 font-mono text-xs text-fg-subtle">{s.key} · config file: {String(s.config_value) || "(empty)"}</p>
         </div>
         <Badge tone={s.overridden ? "warning" : "neutral"}>{s.overridden ? "Overridden" : "From config"}</Badge>
       </div>

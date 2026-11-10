@@ -25,7 +25,7 @@ export function AccessGrantsCard({ tenantId }: { tenantId: string }) {
         ) : (
           <ul className="divide-y divide-line">
             {[...active, ...history].map((g) => (
-              <li key={g.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3.5 text-[13px]">
+              <li key={g.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3.5 text-sm">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 font-medium text-fg">{g.requester_name} <GrantStatusBadge grant={g} /></div>
                   <div className="mt-0.5 truncate text-fg-muted" title={g.reason}>

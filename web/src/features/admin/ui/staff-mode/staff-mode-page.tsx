@@ -25,7 +25,7 @@ export function StaffModePage() {
         <CardHeader title="Enter staff mode" description={`You're switching into the provider panel for ${mode?.minutes ?? 60} minutes. You may be asked to sign in again; the reason and the tenant you came from go in the audit log.`} />
         <div className="space-y-4 px-4 pb-4">
           <TextField label="Reason" multiline autoFocus value={reason} onChange={setReason} placeholder="e.g. Support ticket 1234: tenant can't start workspaces" description="8 to 300 characters." />
-          {enter.isError && <p role="alert" className="text-sm text-danger">{enter.error.message}</p>}
+          {enter.isError && <p role="alert" className="text-base text-danger">{enter.error.message}</p>}
           <div className="flex justify-end">
             <Button variant="primary" isDisabled={!valid || enter.isPending} tooltip={valid ? "Record the reason and open the panel" : "Give a reason first"}
               onPress={() => enter.mutate({ reason: reason.trim(), from_tenant: from }, { onSuccess: () => nav(target) })}>

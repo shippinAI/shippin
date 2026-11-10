@@ -29,7 +29,7 @@ export function TeamPage() {
         <StatCard label="MFA missing" value={staff?.filter((m) => m.kind === "human" && !m.mfa).length} icon={ShieldAlert} hue="var(--color-danger)" hint="Their staff permissions are off" />
         <StatCard label="Idle" value={staff?.filter((m) => m.idle).length} icon={ShieldCheck} hue="var(--color-fg-muted)" hint={t ? `No console activity in ${t.settings.idle_days} days` : undefined} />
       </div>
-      {t?.errors.length ? <div className="mb-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2 text-[13px] text-warning">{t.errors.join(" · ")}</div> : null}
+      {t?.errors.length ? <div className="mb-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2 text-sm text-warning">{t.errors.join(" · ")}</div> : null}
       <QueryView isPending={q.isPending} error={q.error} onRetry={() => void q.refetch()} rows={4}>
         {() => t && (
           <>

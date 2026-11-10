@@ -3,7 +3,7 @@ import type { AdminTenant } from "../../../lib/api/admin-types";
 import { timeAgo } from "../../../lib/format";
 import { StatusBadge } from "./status-badge";
 
-const mono = "font-mono text-[12px]";
+const mono = "font-mono text-xs";
 
 export const tenantColumns: ColumnDef<AdminTenant>[] = [
   {

@@ -38,10 +38,10 @@ export function RoleEditor({ team, role, canEdit, onClose }: Props) {
         </>
       )}>
       <div className="space-y-4 px-6 py-5">
-        {create && <TextField label="Key" mono value={f.key} onChange={set("key")} description={`${idp} role key, e.g. staff.oncall. Can't change later.`} />}
+        {create && <TextField label="Key" mono value={f.key} onChange={set("key")} description={`Role key in ${idp}, e.g. staff.oncall. Can't change later.`} />}
         <TextField label="Name" value={f.name} onChange={set("name")} isDisabled={!canEdit} />
         <TextField label="Description" value={f.description} onChange={set("description")} isDisabled={!canEdit} />
-        {held && <p className="text-[12px] text-warning">You hold this role: you can remove permissions but not add any.</p>}
+        {held && <p className="text-xs text-warning">You hold this role: you can remove permissions but not add any.</p>}
         <PermissionPicker catalog={team.catalog} value={perms} onChange={setPerms} isDisabled={!canEdit} />
         {canEdit && <TextField label="Reason" multiline value={f.reason} onChange={set("reason")} description="Required; kept in the audit log." />}
       </div>

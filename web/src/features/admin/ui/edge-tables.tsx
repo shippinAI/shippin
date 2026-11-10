@@ -2,7 +2,7 @@ import { Badge } from "../../../lib/design/components/badge/badge";
 import type { ColumnDef } from "../../../lib/design/components/data-table/data-table";
 import type { CertInfo, EdgePort, EdgeRoute } from "../../../lib/api/admin-types";
 
-const mono = "font-mono text-[12px]";
+const mono = "font-mono text-xs";
 type Row<T> = T & { id: string };
 
 export const routeColumns: ColumnDef<Row<EdgeRoute>>[] = [

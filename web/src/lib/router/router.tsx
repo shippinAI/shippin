@@ -50,5 +50,5 @@ export function Navigate({ to, replace }: { to: string; replace?: boolean }) {
 }
 
 function NotFound() {
-  return <div className="flex h-full items-center justify-center text-sm text-fg-muted">Page not found.</div>;
+  return <div className="flex h-full items-center justify-center text-base text-fg-muted">Page not found.</div>;
 }

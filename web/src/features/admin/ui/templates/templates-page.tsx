@@ -22,12 +22,12 @@ export function TemplatesPage() {
   const cols: ColumnDef<Template>[] = [
     { id: "name", label: "Template", isRowHeader: true, render: (t) => (
       <div className="flex items-center gap-3"><TemplateIcon icon={t.icon} size={30} />
-        <div><div className="font-medium text-fg">{t.name}</div><div className="font-mono text-[11.5px] text-fg-subtle">{t.slug}</div></div></div>
+        <div><div className="font-medium text-fg">{t.name}</div><div className="font-mono text-xs text-fg-subtle">{t.slug}</div></div></div>
     ) },
-    { id: "image", label: "Image", render: (t) => <span className="font-mono text-[12px]">{t.image}</span> },
+    { id: "image", label: "Image", render: (t) => <span className="font-mono text-xs">{t.image}</span> },
     { id: "tool", label: "Toolchain", render: (t) => <span className="text-xs">{t.toolchain.join(", ")}</span> },
     { id: "size", label: "Default size", width: "150px", render: (t) => `${t.cpu} vCPU · ${t.memory_gib}/${t.disk_gib} GiB` },
-    { id: "ports", label: "Ports", width: "90px", render: (t) => <span className="font-mono text-[12px]">{t.ports.join(", ") || "—"}</span> },
+    { id: "ports", label: "Ports", width: "90px", render: (t) => <span className="font-mono text-xs">{t.ports.join(", ") || "—"}</span> },
     { id: "on", label: "Gallery", width: "100px", render: (t) => <Badge tone={t.enabled ? "success" : "neutral"}>{t.enabled ? "Shown" : "Hidden"}</Badge> },
     { id: "act", label: "", width: "84px", render: (t) => (
       <div className="flex justify-end gap-0.5">

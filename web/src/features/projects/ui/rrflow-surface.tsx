@@ -25,7 +25,7 @@ export function RRFlowSurface({ tenantId, projectId, ws }: Props) {
     <div className="space-y-4 p-5">
       <div className="flex flex-wrap items-center gap-3">
         <Brain className="size-5 text-primary" />
-        <h2 className="text-sm font-medium text-fg">rrflow state</h2>
+        <h2 className="text-base font-medium text-fg">rrflow state</h2>
         {inst && <Badge tone={inst.state === "ready" ? "success" : inst.state === "error" ? "danger" : "info"}>{inst.state}</Badge>}
         {bound && <Badge tone={bound.state === "bound" ? "success" : bound.state === "error" ? "danger" : "neutral"}>{bound.state === "bound" ? "attached to this devspace" : bound.state}</Badge>}
         {(!inst || !bound || bound.state === "error" || inst.state === "error") && (
@@ -35,9 +35,9 @@ export function RRFlowSurface({ tenantId, projectId, ws }: Props) {
           </Button>
         )}
       </div>
-      {(inst?.error || bound?.error) && <p className="text-[13px] text-danger">{inst?.error || bound?.error}</p>}
+      {(inst?.error || bound?.error) && <p className="text-sm text-danger">{inst?.error || bound?.error}</p>}
       {!inst && (
-        <p className="max-w-prose text-[13px] text-fg-muted">
+        <p className="max-w-prose text-sm text-fg-muted">
           rrflow keeps your agents' sessions, what they've learned about this project, and every decision in a tamper-evident log. It runs on your own private server; nothing leaves it.
         </p>
       )}

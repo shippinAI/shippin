@@ -19,8 +19,8 @@ export function ServiceMatrix({ plans, canEdit }: { plans: Plan[]; canEdit: bool
     <QueryView isPending={svcs.isPending || cells.isPending} error={svcs.error ?? cells.error} onRetry={() => { void svcs.refetch(); void cells.refetch(); }}>
       {() => (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead><tr className="text-left text-[11.5px] tracking-wide text-fg-subtle uppercase">
+          <table className="w-full min-w-180 text-base">
+            <thead><tr className="text-left text-xs tracking-wide text-fg-subtle uppercase">
               <th className="px-5 py-2.5 font-medium">Service</th>
               {plans.map((p) => <th key={p.id} className="px-3 py-2.5 font-medium">{p.label}</th>)}
             </tr></thead>
@@ -28,7 +28,7 @@ export function ServiceMatrix({ plans, canEdit }: { plans: Plan[]; canEdit: bool
               {(svcs.data?.items ?? []).map((s) => (
                 <tr key={s.id} className="border-t border-line align-top">
                   <th scope="row" className="px-5 py-3 text-left font-medium text-fg">{s.label}
-                    {s.required && <div className="text-[11px] font-normal text-fg-subtle">required</div>}</th>
+                    {s.required && <div className="text-2xs font-normal text-fg-subtle">required</div>}</th>
                   {plans.map((p) => {
                     const c = find(p.id, s.id);
                     return (
@@ -39,7 +39,7 @@ export function ServiceMatrix({ plans, canEdit }: { plans: Plan[]; canEdit: bool
                             {c?.enabled ? <Check className="size-4 text-success" /> : <Minus className="size-4 text-fg-subtle" />}
                             <span className="text-xs text-fg-muted">{c ? c.lock : "not included"}</span>
                           </div>
-                          {c && <div className="mt-1 text-[11px] text-fg-subtle">{brief(c.limits) || "no limits"}</div>}
+                          {c && <div className="mt-1 text-2xs text-fg-subtle">{brief(c.limits) || "no limits"}</div>}
                         </Button>
                       </td>
                     );

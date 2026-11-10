@@ -1,32 +1,57 @@
-/* Shippin design tokens (Flat Vector 2.0, 02d). OKLCH, dark-first. */
+/* Shippin design tokens: Flat Vector 2.0, OKLCH, dark.
+   The only source of colour, type, radius, shadow, motion, widths and breakpoints.
+   Tailwind's defaults in these namespaces are switched off, so anything not named here draws nothing.
+   Rules and accessibility targets: docs/design-system.md. Spacing and sizes use Tailwind's 4 px grid. */
 @theme {
+  --color-*: initial;
+  --font-*: initial;
+  --text-*: initial;
+  --font-weight-*: initial;
+  --tracking-*: initial;
+  --leading-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --text-shadow-*: initial;
+  --blur-*: initial;
+  --breakpoint-*: initial;
+  --container-*: initial;
+  --ease-*: initial;
+  --animate-*: initial;
+
   --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Surfaces (elevation 0-5) */
+  /* Surfaces, from the page up */
   --color-canvas: oklch(0.145 0.012 265);
   --color-surface: oklch(0.175 0.014 265);
   --color-raised: oklch(0.205 0.016 265);
   --color-overlay: oklch(0.235 0.018 265);
+  --color-scrim: oklch(0.1 0.01 265 / 0.72);
+  --color-terminal: #0b0d12; /* xterm reads this at runtime and parses only sRGB */
   --color-line: oklch(0.29 0.016 265);
   --color-line-strong: oklch(0.36 0.018 265);
+  --color-line-control: oklch(0.52 0.016 265); /* edges that identify inputs, selects, checkboxes and switches: 3:1 on every surface (WCAG 1.4.11) */
 
   /* Text */
   --color-fg: oklch(0.96 0.005 265);
   --color-fg-muted: oklch(0.74 0.012 265);
-  --color-fg-subtle: oklch(0.58 0.014 265);
+  --color-fg-subtle: oklch(0.64 0.014 265);
 
-  /* Semantic */
+  /* Meaning. *-strong is a filled background; on-strong is text on it. */
   --color-primary: oklch(0.74 0.14 235);
   --color-primary-strong: oklch(0.66 0.16 250);
   --color-primary-fg: oklch(0.16 0.03 250);
   --color-success: oklch(0.76 0.16 155);
   --color-warning: oklch(0.82 0.15 80);
   --color-danger: oklch(0.68 0.2 25);
+  --color-danger-strong: oklch(0.42 0.16 25);
   --color-info: oklch(0.74 0.12 220);
   --color-focus: oklch(0.78 0.14 235);
+  --color-on-strong: oklch(0.98 0.005 265);
 
-  /* Categorical module hues */
+  /* Modules and chart series */
   --color-hue-workspaces: oklch(0.74 0.14 235);
   --color-hue-secrets: oklch(0.78 0.14 75);
   --color-hue-identity: oklch(0.72 0.16 295);
@@ -36,11 +61,85 @@
   --color-hue-data: oklch(0.74 0.13 200);
   --color-hue-edge: oklch(0.76 0.15 45);
 
-  --radius-card: 0.875rem;
-  --radius-control: 0.5rem;
+  /* Type: body is base (14 px); dense tables and lists use sm */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.375rem;
+  --text-lg: 1rem;
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 2.25rem;
 
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.02em;
+  --tracking-wider: 0.06em;
+
+  /* Shape: controls lg, cards xl, dialogs 2xl */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+
+  /* Elevation: a hairline highlight and a soft shadow, nothing more */
   --shadow-e1: 0 1px 0 0 oklch(1 0 0 / 0.04) inset, 0 1px 2px oklch(0.05 0.02 265 / 0.5);
   --shadow-e2: 0 1px 0 0 oklch(1 0 0 / 0.05) inset, 0 6px 16px -6px oklch(0.05 0.03 265 / 0.6);
   --shadow-e3: 0 1px 0 0 oklch(1 0 0 / 0.06) inset, 0 16px 40px -12px oklch(0.04 0.04 265 / 0.7);
-  --shadow-glow: 0 0 0 1px oklch(0.74 0.14 235 / 0.35), 0 8px 30px -8px oklch(0.66 0.16 250 / 0.55);
+
+  /* Motion: short and functional; components add motion-reduce:animate-none */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --animate-enter: enter 150ms var(--ease-out);
+  --animate-exit: exit 100ms var(--ease-in-out) forwards;
+  --animate-spin: spin 1s linear infinite;
+  --animate-pulse: pulse 2s var(--ease-in-out) infinite;
+  --animate-ping: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+
+  @keyframes enter { from { opacity: 0; transform: translateY(2px) scale(0.99); } }
+  @keyframes exit { to { opacity: 0; transform: translateY(2px) scale(0.99); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 50% { opacity: 0.5; } }
+  @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+
+  /* Widths */
+  --container-xs: 20rem;
+  --container-sm: 24rem;
+  --container-md: 28rem;
+  --container-lg: 32rem;
+  --container-xl: 36rem;
+  --container-2xl: 42rem;
+  --container-3xl: 48rem;
+  --container-4xl: 56rem;
+  --container-5xl: 64rem;
+  --container-6xl: 72rem;
+  --container-7xl: 80rem;
+  --container-page: 87.5rem;
+  --container-prose: 65ch;
+
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+  --breakpoint-2xl: 96rem;
 }

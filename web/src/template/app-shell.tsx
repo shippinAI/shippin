@@ -34,7 +34,6 @@ export function AppShell() {
     <div className="flex h-full">
       <Sidebar />
       <div className="relative flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(60%_100%_at_30%_0%,oklch(0.66_0.16_250/0.12),transparent)]" />
         <Topbar crumb={crumb} />
         <main className={`relative mx-auto w-full ${pathname === "/hub" ? "max-w-none" : "max-w-6xl"} px-4 py-6 sm:px-8 sm:py-9`}>
           <AccessBanner />

@@ -32,11 +32,11 @@ export function SecurityPage() {
       <Card className="overflow-hidden" data-testid="passkeys">
         <CardHeader title={t("security.passkeys")} description={t("security.passkeysHelp")}
           actions={<Button size="sm" variant="primary" isDisabled={add.isPending || !me} tooltip={t("security.addTooltip")} onPress={() => add.mutate()}><KeyRound className="size-4" /> {t("security.add")}</Button>} />
-        {add.isError && <p role="alert" data-testid="passkey-error" className="px-5 pt-4 text-sm text-danger">{passkeyProblem(add.error)}</p>}
-        {items.length === 0 ? <p className="p-5 text-sm text-fg-muted">{t("security.none")}</p> : (
+        {add.isError && <p role="alert" data-testid="passkey-error" className="px-5 pt-4 text-base text-danger">{passkeyProblem(add.error)}</p>}
+        {items.length === 0 ? <p className="p-5 text-base text-fg-muted">{t("security.none")}</p> : (
           <ul className="divide-y divide-line">
             {items.map((k) => (
-              <li key={k.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm" data-testid="passkey">
+              <li key={k.id} className="flex items-center justify-between gap-3 px-5 py-3 text-base" data-testid="passkey">
                 <span className="text-fg">{t("security.addedAgo", { when: timeAgo(k.created_at) })}</span>
                 <Button size="sm" variant="ghost" tooltip={t("security.removeTooltip")} isDisabled={remove.isPending} onPress={() => remove.mutate(k.id)}>{t("security.remove")}</Button>
               </li>
@@ -51,8 +51,8 @@ export function SecurityPage() {
           if (password !== String(f.get("confirm") ?? "")) { toast.error("Password not changed", "The new passwords do not match."); return; }
           void apiSend("PUT", "/v1/directory/me/password", { current_password: f.get("current"), password }).then(() => { form.reset(); toast.success("Password updated", "You can now sign in with your username or email and password."); }).catch((err: unknown) => toast.error("Password not changed", err instanceof Error ? err.message : "The panel could not update the password."));
         }}>
-          <input name="current" type="password" autoComplete="current-password" placeholder="Current password (if already set)" aria-label="Current password" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 text-sm" />
-          <div className="grid gap-3 sm:grid-cols-2"><input name="password" type="password" required minLength={12} maxLength={1024} autoComplete="new-password" placeholder="New password (12+ characters)" aria-label="New password" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 text-sm" /><input name="confirm" type="password" required minLength={12} autoComplete="new-password" placeholder="Confirm new password" aria-label="Confirm new password" className="rounded-[var(--radius-control)] border border-line bg-bg px-3 py-2 text-sm" /></div>
+          <input name="current" type="password" autoComplete="current-password" placeholder="Current password (if already set)" aria-label="Current password" className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base" />
+          <div className="grid gap-3 sm:grid-cols-2"><input name="password" type="password" required minLength={12} maxLength={1024} autoComplete="new-password" placeholder="New password (12+ characters)" aria-label="New password" className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base" /><input name="confirm" type="password" required minLength={12} autoComplete="new-password" placeholder="Confirm new password" aria-label="Confirm new password" className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base" /></div>
           <Button type="submit" variant="primary" className="w-fit" tooltip="Set or change the password for this local account"><LockKeyhole className="size-4" /> Set password</Button>
         </form>
       </Card>

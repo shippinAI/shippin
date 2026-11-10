@@ -4,7 +4,7 @@ import type { AdminApp, AdminIdP, AdminUser } from "../../../lib/api/admin-types
 import { timeAgo } from "../../../lib/format";
 import { StatusBadge } from "./status-badge";
 
-const mono = "font-mono text-[12px]";
+const mono = "font-mono text-xs";
 const short = (s: string, p: string) => s.replace(p, "").toLowerCase().replaceAll("_", " ");
 
 export const userColumns: ColumnDef<AdminUser>[] = [

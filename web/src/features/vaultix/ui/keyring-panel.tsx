@@ -18,8 +18,8 @@ export function KeyringPanel({ account, env }: { account: VaultixAccount; env: s
   ].join("\n");
   return (
     <aside aria-label="Keyring" className="rounded-2xl border border-line bg-raised/60 p-4">
-      <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold"><KeyRound className="size-4" aria-hidden /> vaultix-keyring</h2>
-      <p className="mb-3 text-[13px] text-fg-muted">
+      <h2 className="mb-1 flex items-center gap-2 text-base font-semibold"><KeyRound className="size-4" aria-hidden /> vaultix-keyring</h2>
+      <p className="mb-3 text-sm text-fg-muted">
         Keeps an encrypted copy on your machine, creates missing secrets on push and pulls updates before each new session.
       </p>
       <Button variant={account.keyring_connected ? "ghost" : "primary"} isDisabled={mint.isPending}

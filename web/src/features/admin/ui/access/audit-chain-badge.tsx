@@ -20,7 +20,7 @@ export function AuditChainBadge({ chain }: { chain?: AuditChain }) {
         Chain verified · {chain.rows} entries
       </Badge>
       {chain.head && (
-        <code className="hidden font-mono text-[11px] text-fg-muted md:inline" title={`Head hash ${chain.head}`}>
+        <code className="hidden font-mono text-2xs text-fg-muted md:inline" title={`Head hash ${chain.head}`}>
           {chain.head.slice(0, 12)}…
         </code>
       )}

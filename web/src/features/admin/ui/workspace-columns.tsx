@@ -4,7 +4,7 @@ import type { ColumnDef } from "../../../lib/design/components/data-table/data-t
 import type { AdminWorkspace } from "../../../lib/api/admin-types";
 import { StatusBadge } from "./status-badge";
 
-const mono = "font-mono text-[12px]";
+const mono = "font-mono text-xs";
 export type AdminWsAct = "start" | "stop" | "delete" | "request" | "breakglass";
 type Act = (w: AdminWorkspace, a: AdminWsAct) => void;
 

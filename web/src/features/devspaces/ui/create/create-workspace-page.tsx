@@ -48,7 +48,7 @@ export function CreateWorkspacePage() {
       <Stepper steps={steps} current={step} />
       <Card className="p-6">
         {q.isPending && <div className="grid gap-3 sm:grid-cols-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-40" />)}</div>}
-        {q.error && <p className="text-sm text-danger">Templates couldn't load: {q.error.message}</p>}
+        {q.error && <p className="text-base text-danger">Templates couldn't load: {q.error.message}</p>}
         {q.data && step === 0 && <TemplateGallery templates={q.data.items} value={tplId} onChange={(id) => { setTpl(id); if (!name) setName(q.data.items.find((t) => t.id === id)?.slug.split("-")[0] ?? "dev"); }} />}
         {tpl && step === 1 && <DetailsStep tpl={tpl} name={name} setName={setName} repo={repo} setRepo={setRepo} hosts={hosts} />}
         {tpl && step === 2 && <SizePicker sizes={sizes} value={size || def} onChange={setSize} recommended={def} />}

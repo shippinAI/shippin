@@ -41,7 +41,7 @@ export function UpdateStatus() {
           {label}
         </Button>
       }>
-      <div className="space-y-2 text-[13px]" data-testid="update-details">
+      <div className="space-y-2 text-sm" data-testid="update-details">
         <p className="text-fg-muted">{t("update.running")} <code className="font-mono">{data.short || t("update.unstamped")}</code>{data.running.modified ? ` ${t("update.modified")}` : ""}</p>
         {u?.error && <p className="text-warning">{u.error}</p>}
         {!u && <p className="text-fg-muted">{t("update.disabled")}</p>}
@@ -53,7 +53,7 @@ export function UpdateStatus() {
             {u!.latest_date && <p className="text-fg-subtle">{new Date(u!.latest_date).toLocaleString()}</p>}
             {u!.compare_url && <a className="text-primary underline" href={u!.compare_url} target="_blank" rel="noreferrer">{t("update.changes")}</a>}
             {data.command
-              ? <><p className="pt-1 text-fg-muted">{t("update.howTo")}</p><pre className="whitespace-pre-wrap break-all rounded-md bg-canvas p-2 font-mono text-[12px] text-fg">{data.command}</pre></>
+              ? <><p className="pt-1 text-fg-muted">{t("update.howTo")}</p><pre className="whitespace-pre-wrap break-all rounded-md bg-canvas p-2 font-mono text-xs text-fg">{data.command}</pre></>
               : <p className="pt-1 text-fg-muted">{t("update.howToUnknown")}</p>}
           </>
         )}

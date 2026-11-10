@@ -18,10 +18,10 @@ export function TeamPage() {
   return (
     <>
       <PageHeader eyebrow={tenant?.name} title="Team" description="Who can use this tenant, what they may do, and how they're grouped." />
-      {q.isError && <p role="alert" className="text-sm text-danger">{q.error.message}</p>}
+      {q.isError && <p role="alert" className="text-base text-danger">{q.error.message}</p>}
       {d && (
         <div className="space-y-6">
-          {(d.errors?.length ?? 0) > 0 && <p role="alert" className="text-sm text-warning">{(d.errors ?? []).join(" ")}</p>}
+          {(d.errors?.length ?? 0) > 0 && <p role="alert" className="text-base text-warning">{(d.errors ?? []).join(" ")}</p>}
           <MembersCard tenantId={id} team={d} actions={d.can_manage && (
             <Button size="sm" variant="primary" tooltip="Invite someone by e-mail" onPress={() => setInviting(true)}><UserPlus className="size-4" /> Invite</Button>
           )} />

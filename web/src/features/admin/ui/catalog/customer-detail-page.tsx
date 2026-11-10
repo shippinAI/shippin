@@ -24,7 +24,7 @@ export function CustomerDetailPage() {
   const c = q.data;
   return (
     <>
-      <Link href="/admin/customers" className="focus-ring mb-4 inline-flex items-center gap-1.5 rounded text-[13px] text-fg-muted hover:text-fg">
+      <Link href="/admin/customers" className="focus-ring mb-4 inline-flex items-center gap-1.5 rounded-sm text-sm text-fg-muted hover:text-fg">
         <ArrowLeft className="size-3.5" /> Customers
       </Link>
       <QueryView isPending={q.isPending} error={q.error} onRetry={() => void q.refetch()}>

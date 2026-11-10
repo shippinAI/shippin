@@ -31,9 +31,9 @@ export function TerminalPage() {
   );
   const runner = useGuideRunner(guides, bus);
   return (
-    <div className="-m-6 flex h-[calc(100vh-56px)] min-h-0 flex-col">
+    <div className="-m-6 flex h-[calc(100vh-3.5rem)] min-h-0 flex-col">
       <div className="flex items-center gap-2 border-b border-line px-4 py-2">
-        <h1 className="text-sm font-semibold text-fg">Terminal</h1>
+        <h1 className="text-base font-semibold text-fg">Terminal</h1>
         <HelpPopover title="Zellij basics" placement="bottom">
           <p>This terminal opens the workspace's <strong className="text-fg">Zellij</strong> session <span className="font-mono">shippin</span>. Closing the tab keeps it running; come back and you're where you left off.</p>
           <p><span className="font-mono text-fg">Ctrl p</span> then <span className="font-mono text-fg">n</span>: new pane · <span className="font-mono text-fg">Ctrl t</span> then <span className="font-mono text-fg">n</span>: new tab · <span className="font-mono text-fg">Ctrl o</span> then <span className="font-mono text-fg">d</span>: detach. The bar at the bottom shows the keys.</p>
@@ -46,7 +46,7 @@ export function TerminalPage() {
         <Button size="sm" variant="ghost" onPress={() => setSession((n) => n + 1)} tooltip={zellij ? "Reconnect to the Zellij session" : "Open a fresh shell"}><RotateCw className="size-4" /> {zellij ? "Reconnect" : "New session"}</Button>
       </div>
       <details open className="max-h-72 overflow-auto border-b border-line px-4 py-2">
-        <summary className="cursor-pointer text-sm font-medium text-fg">Install an app</summary>
+        <summary className="cursor-pointer text-base font-medium text-fg">Install an app</summary>
         <p className="mt-1 text-xs text-fg-muted">Copy a command and paste it into this terminal. It installs the app and starts the vendor sign-in, on your account.</p>
         <div className="mt-2"><AppCards tenantId={tenantId} /></div>
       </details>

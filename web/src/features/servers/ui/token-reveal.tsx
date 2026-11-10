@@ -21,17 +21,17 @@ export function TokenReveal({ token, onDone }: Props) {
   const until = new Date(token.expires_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   return (
     <div className="space-y-4 px-6 py-5">
-      <div className="flex gap-2 rounded-[var(--radius-control)] border border-warning/30 bg-warning/10 p-3 text-[13px] text-fg">
+      <div className="flex gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-fg">
         <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
         <p>This token is shown <strong>once</strong>. It works one time, until {until}. Shippin keeps only a hash of it.</p>
       </div>
-      <div className="flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-canvas/60 py-1 pr-1 pl-3">
-        <code aria-label="Enrollment token" className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-fg select-all">{token.token}</code>
+      <div className="flex items-center gap-2 rounded-lg border border-line bg-canvas/60 py-1 pr-1 pl-3">
+        <code aria-label="Enrollment token" className="min-w-0 flex-1 truncate font-mono text-sm text-fg select-all">{token.token}</code>
         <Button variant="secondary" size="sm" aria-label="Copy token" tooltip={copied ? "Copied" : "Copy the token to the clipboard"} onPress={copy}>
           {copied ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}{copied ? "Copied" : "Copy"}
         </Button>
       </div>
-      <ol className="list-decimal space-y-1 pl-5 text-[13px] text-fg-muted">
+      <ol className="list-decimal space-y-1 pl-5 text-sm text-fg-muted">
         <li>On the server, write the token to the file named by <code className="font-mono">enroll.token_file</code> in hostd.json.</li>
         <li>Restart hostd. It enrolls, deletes the token file and starts sending heartbeats.</li>
         <li>This page turns the server <em>Active</em> on the first heartbeat.</li>

@@ -30,7 +30,7 @@ export const instanceColumns: ColumnDef<InstanceRow>[] = [
       </Badge>
     ),
   },
-  { id: "ipv4", label: "IPv4", render: (i) => <span className="font-mono text-[12.5px]">{i.ipv4 || "—"}</span> },
+  { id: "ipv4", label: "IPv4", render: (i) => <span className="font-mono text-sm">{i.ipv4 || "—"}</span> },
   { id: "image", label: "Image", render: (i) => <span className="capitalize">{i.image.trim() || "—"}</span> },
   { id: "mem", label: "Memory", render: (i) => <span className="tabular-nums">{formatBytes(i.memory_bytes)}</span> },
   { id: "procs", label: "Procs", render: (i) => <span className="tabular-nums">{i.processes || "—"}</span> },

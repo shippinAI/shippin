@@ -13,7 +13,7 @@ import { PowerReviewDialog } from "../../infrastructure/ui/power-review-dialog";
 
 const columns: ColumnDef<Guest>[] = [
   { id: "name", label: "Name", isRowHeader: true, render: (g) => <span className="font-medium text-fg">{g.name || g.id}</span> },
-  { id: "id", label: "ID", render: (g) => <span className="font-mono text-[12.5px]">{g.id}</span> },
+  { id: "id", label: "ID", render: (g) => <span className="font-mono text-sm">{g.id}</span> },
   { id: "kind", label: "Kind", render: (g) => <span className="capitalize">{g.kind === "ct" ? "Container" : "Virtual machine"}</span> },
   {
     id: "status",
@@ -58,7 +58,7 @@ export function ServerGuestsPage() {
       </Card>
       {guest && (
         <Card className="mb-6 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-fg">{guest.name || guest.id}</h2>
+          <h2 className="mb-3 text-base font-semibold text-fg">{guest.name || guest.id}</h2>
           <div className="mb-4 flex flex-wrap gap-2">
             {(["start", "stop", "shutdown", "reboot"] as const).map((verb) => (
               <Button key={verb} size="sm" variant="secondary" tooltip={`${verb} ${guest.id} after AgentHub review.`} isDisabled={!!powerChange}
@@ -74,7 +74,7 @@ export function ServerGuestsPage() {
               Snapshot
             </Button>
           </div>
-          <ul className="space-y-2 text-sm">
+          <ul className="space-y-2 text-base">
             {(snaps.data?.items ?? []).map((name) => (
               <li key={name} className="flex items-center justify-between gap-3">
                 <span className="font-mono">{name}</span>
@@ -86,13 +86,13 @@ export function ServerGuestsPage() {
       )}
       {guest && powerChange && <PowerReviewDialog base={base} guest={guest.id} verb={powerChange} confirmSelf={!!guest.self && powerChange !== "start"} onClose={() => setPowerChange(null)} onExecuted={() => { void guests.refetch(); }} />}
       <Card className="p-5">
-        <h2 className="mb-3 text-sm font-semibold text-fg">Task</h2>
+        <h2 className="mb-3 text-base font-semibold text-fg">Task</h2>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); setLookup(upid); }}>
           <TextField label="Task id" value={upid} onChange={setUpid} description="Paste a task id from an error or from the operator. The page refreshes until it stops." />
           <Button type="submit" size="sm" variant="secondary" tooltip="Read this task" isDisabled={!upid}>Look up</Button>
         </form>
-        {task.data && <pre className="mt-4 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-[12px] text-fg-muted">{task.data.status}{task.data.done ? " · done" : ""}{"\n"}{(task.data.log ?? []).join("\n")}</pre>}
-        {task.isError && <p className="mt-3 text-sm text-danger">{task.error.message}</p>}
+        {task.data && <pre className="mt-4 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-xs text-fg-muted">{task.data.status}{task.data.done ? " · done" : ""}{"\n"}{(task.data.log ?? []).join("\n")}</pre>}
+        {task.isError && <p className="mt-3 text-base text-danger">{task.error.message}</p>}
       </Card>
     </>
   );

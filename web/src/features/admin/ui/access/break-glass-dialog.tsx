@@ -33,7 +33,7 @@ export function BreakGlassDialog({ target, onClose }: { target?: Target; onClose
       description={<>Immediate {bg.duration} access to <span className="text-fg">{target.tenantName}</span> without the customer's approval. For emergencies only: it's logged in red, and the customer is told.</>}
     >
       <div className="space-y-4 px-6 py-5">
-        <div className="flex gap-3 rounded-lg border border-danger/35 bg-danger/10 px-3.5 py-3 text-[12.5px] text-fg-muted">
+        <div className="flex gap-3 rounded-lg border border-danger/35 bg-danger/10 px-3.5 py-3 text-sm text-fg-muted">
           <Siren className="mt-0.5 size-4 shrink-0 text-danger" />
           <span>You'll be asked to sign in again if you haven't in the last {bg.reauth_minutes} minutes. Every open and action while active is audited as break-glass.</span>
         </div>

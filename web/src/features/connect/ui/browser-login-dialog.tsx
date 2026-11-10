@@ -26,10 +26,10 @@ export function BrowserLoginDialog({ tenantId, workspaceId, provider, onClose }:
     <ModalDialog isOpen={!!provider} onOpenChange={(o) => !o && onClose()} title={`Sign in to ${provider?.label ?? ""}`}
       description={provider?.browser_note}>
       <div className="space-y-4 px-6 py-5" aria-live="polite">
-        {!st || st.state === "starting" ? <p className="text-[13px] text-fg-muted">Starting the sign-in inside your workspace…</p> : null}
+        {!st || st.state === "starting" ? <p className="text-sm text-fg-muted">Starting the sign-in inside your workspace…</p> : null}
         {st?.state === "waiting" && (
           <>
-            {st.user_code && <div className="rounded-[var(--radius-card)] border border-line"><CopyField label="Your code" value={st.user_code} mono /></div>}
+            {st.user_code && <div className="rounded-xl border border-line"><CopyField label="Your code" value={st.user_code} mono /></div>}
             {st.verification_url && (
               <Button variant="primary" tooltip="Opens the vendor's page in a new tab; enter the code there" onPress={() => window.open(st.verification_url, "_blank", "noopener")}>
                 <ExternalLink className="size-4" /> Open {new URL(st.verification_url).host}
@@ -43,7 +43,7 @@ export function BrowserLoginDialog({ tenantId, workspaceId, provider, onClose }:
             )}
           </>
         )}
-        {st && ended[st.state] && <p className="text-[13px] text-fg">{ended[st.state]}</p>}
+        {st && ended[st.state] && <p className="text-sm text-fg">{ended[st.state]}</p>}
         <div className="flex justify-end"><Button variant="ghost" tooltip="The sign-in keeps waiting until it times out" onPress={onClose}>Close</Button></div>
       </div>
     </ModalDialog>

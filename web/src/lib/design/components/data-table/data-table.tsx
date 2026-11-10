@@ -16,14 +16,14 @@ type Props<T extends { id: string }> = {
 /** Accessible data table (RAC) with keyboard row navigation. */
 export function DataTable<T extends { id: string }>({ label, columns, rows, empty, onRowAction, dense }: Props<T>) {
   return (
-    <Table aria-label={label} onRowAction={onRowAction ? (k) => onRowAction(String(k)) : undefined} className="w-full border-separate border-spacing-0 text-sm">
+    <Table aria-label={label} onRowAction={onRowAction ? (k) => onRowAction(String(k)) : undefined} className="w-full border-separate border-spacing-0 text-base">
       <TableHeader columns={columns}>
         {(c) => (
           <Column
             id={c.id}
             isRowHeader={c.isRowHeader}
             style={{ width: c.width }}
-            className={`border-b border-line bg-surface text-left ${dense ? "px-4 py-2" : "px-5 py-2.5"} text-[11.5px] font-medium tracking-wide text-fg-subtle uppercase`}
+            className={`border-b border-line bg-surface text-left ${dense ? "px-4 py-2" : "px-5 py-2.5"} text-xs font-medium tracking-wide text-fg-subtle uppercase`}
           >
             {c.label}
           </Column>
@@ -37,7 +37,7 @@ export function DataTable<T extends { id: string }>({ label, columns, rows, empt
             className="focus-ring group cursor-default outline-none data-[href]:cursor-pointer data-hovered:bg-raised/60 data-focus-visible:bg-raised"
           >
             {(c) => (
-              <Cell className={`border-b border-line text-fg-muted group-last:border-b-0 ${dense ? "px-4 py-2 text-[13px]" : "px-5 py-3"}`}>{c.render(row)}</Cell>
+              <Cell className={`border-b border-line text-fg-muted group-last:border-b-0 ${dense ? "px-4 py-2 text-sm" : "px-5 py-3"}`}>{c.render(row)}</Cell>
             )}
           </Row>
         )}

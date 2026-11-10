@@ -19,12 +19,12 @@ export function ProviderCard({ c, running, onBrowser, onToken, onDisconnect }: P
     <Card elevation={2} className="flex flex-col gap-4 p-5" >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-fg">{c.label}</h3>
+          <h3 className="text-base font-semibold text-fg">{c.label}</h3>
           <p className="text-xs text-fg-subtle">{c.vendor}</p>
         </div>
         <ConnectionBadge c={c} />
       </div>
-      <p className="text-[13px] text-fg-muted">{c.browser_note}</p>
+      <p className="text-sm text-fg-muted">{c.browser_note}</p>
       {c.stored_in_vaultix && <p className="text-xs text-fg-subtle">A token is saved in Vaultix and added on every start.</p>}
       <div className="mt-auto flex flex-wrap gap-2">
         {connected ? (

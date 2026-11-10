@@ -18,10 +18,10 @@ export function WorkspaceSwitch() {
   const go = (path: string) => (base ? window.location.assign(base + path) : nav(path));
   const home = base + (own[0] ? `/t/${own[0].tenant_id}/workspaces` : "/");
   return (
-    <div className="mx-3 mb-2 flex items-stretch overflow-hidden rounded-lg border border-line bg-raised/60 shadow-[var(--shadow-e1)]">
+    <div className="mx-3 mb-2 flex items-stretch overflow-hidden rounded-lg border border-line bg-raised/60 shadow-e1">
       <Link
         href={home}
-        className="focus-ring flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-[13px] font-medium text-fg data-hovered:bg-overlay"
+        className="focus-ring flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-sm font-medium text-fg data-hovered:bg-overlay"
       >
         <ArrowLeft className="size-3.5 shrink-0" />
         <span className="truncate">Back to my workspace</span>
@@ -37,7 +37,7 @@ export function WorkspaceSwitch() {
         >
           {own.map((t, i) => (
             <MenuItem key={t.tenant_id} id={t.tenant_id} textValue={t.name} onAction={() => go(`/t/${t.tenant_id}/workspaces`)}>
-              <span className="flex size-6 items-center justify-center rounded bg-overlay text-[10px] font-semibold">{initials(t.name)}</span>
+              <span className="flex size-6 items-center justify-center rounded-sm bg-overlay text-2xs font-semibold">{initials(t.name)}</span>
               <span className="flex-1 truncate">{t.name}</span>
               {i === 0 && <Check className="size-4 text-primary" />}
             </MenuItem>

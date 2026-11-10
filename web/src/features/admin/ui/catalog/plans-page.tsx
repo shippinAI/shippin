@@ -36,10 +36,10 @@ export function PlansPage() {
               {plans.map((p) => (
                 <Card key={p.id} className="p-5">
                   <div className="flex items-start justify-between gap-2">
-                    <div><div className="font-semibold text-fg">{p.label}</div><div className="font-mono text-[11.5px] text-fg-subtle">{p.id}</div></div>
+                    <div><div className="font-semibold text-fg">{p.label}</div><div className="font-mono text-xs text-fg-subtle">{p.id}</div></div>
                     {write && <IconButton icon={Pencil} label={`Edit ${p.label}`} onPress={() => setEdit(p)} />}
                   </div>
-                  <p className="mt-2 text-[13px] text-fg-muted">{p.description}</p>
+                  <p className="mt-2 text-sm text-fg-muted">{p.description}</p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {p.price_cents !== undefined && <Badge tone="primary">{price(p.price_cents)}</Badge>}
                     {!p.public && <Badge>sales only</Badge>}

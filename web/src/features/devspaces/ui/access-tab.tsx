@@ -18,13 +18,13 @@ export function AccessTab({ ws }: { ws: Workspace }) {
               <CodeBlock label="~/.ssh/config" code={c.ssh_config} />
             </>
           ) : (
-            <p className="text-sm text-fg-muted">Available once the workspace is running.</p>
+            <p className="text-base text-fg-muted">Available once the workspace is running.</p>
           )}
         </div>
       </Card>
       <Card>
         <CardHeader title="SSH keys" description={`${ws.ssh_key_count} key${ws.ssh_key_count === 1 ? "" : "s"} installed`} />
-        <div className="space-y-4 p-5 text-sm text-fg-muted">
+        <div className="space-y-4 p-5 text-base text-fg-muted">
           <p>Keys come from your account and are added to every workspace you own, including running ones.</p>
           <LinkButton href="/account/ssh-keys" variant="secondary" size="sm" tooltip="Add or remove SSH keys">
             <KeyRound className="size-4" /> Manage SSH keys

@@ -5,8 +5,8 @@ import { useIdpName } from "../../../lib/hooks/use-idp-name";
 function Section({ title, empty, children }: { title: string; empty: boolean; children: React.ReactNode }) {
   return (
     <div className="mx-5 mt-2 rounded-lg border border-line bg-raised/50 px-4 py-3">
-      <div className="text-[13px] font-medium text-fg">{title}</div>
-      {empty ? <p className="mt-1 text-xs text-fg-subtle">None.</p> : <ul className="mt-2 space-y-1.5 text-[13px]">{children}</ul>}
+      <div className="text-sm font-medium text-fg">{title}</div>
+      {empty ? <p className="mt-1 text-xs text-fg-subtle">None.</p> : <ul className="mt-2 space-y-1.5 text-sm">{children}</ul>}
     </div>
   );
 }
@@ -21,11 +21,11 @@ export function TenantPeople({ tenantId }: { tenantId: string }) {
   return (
     <>
       {d.errors.length > 0 && <p role="alert" className="mx-5 mt-2 text-xs text-warning">{d.errors.join("; ")}</p>}
-      <Section title={`${idp} org members (${d.members.length})`} empty={d.members.length === 0}>
+      <Section title={`Organization members in ${idp} (${d.members.length})`} empty={d.members.length === 0}>
         {d.members.map((m) => (
           <li key={m.user_id} className="flex justify-between gap-3">
             <span className="truncate">{m.name || m.user_id} <span className="text-fg-subtle">{m.email}</span></span>
-            <span className="shrink-0 font-mono text-[11px] text-fg-muted">{m.roles.join(", ")}</span>
+            <span className="shrink-0 font-mono text-2xs text-fg-muted">{m.roles.join(", ")}</span>
           </li>
         ))}
       </Section>

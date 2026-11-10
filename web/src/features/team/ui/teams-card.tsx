@@ -23,7 +23,7 @@ export function TeamsCard({ tenantId, team }: { tenantId: string; team: TenantTe
             onPress={() => w.createTeam.mutate({ name, description: "" }, { onSuccess: () => setName("") })}>Create</Button>
         </div>
       )}
-      <ul className="divide-y divide-border" aria-label="Teams">
+      <ul className="divide-y divide-line" aria-label="Teams">
         {team.teams.map((t) => {
           const outside = team.members.filter((m) => !t.members.some((x) => x.user_id === m.user_id));
           return (
@@ -36,7 +36,7 @@ export function TeamsCard({ tenantId, team }: { tenantId: string; team: TenantTe
               </div>
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {t.members.map((m) => (
-                  <span key={m.user_id} className="inline-flex items-center gap-1 rounded-full bg-overlay px-2 py-0.5 text-[12px]">
+                  <span key={m.user_id} className="inline-flex items-center gap-1 rounded-full bg-overlay px-2 py-0.5 text-xs">
                     {label(m.user_id)}{m.role === "maintainer" ? " · maintainer" : ""}
                     {team.can_manage && (
                       <Button tooltip="Remove from team" size="sm" variant="ghost" aria-label={`Remove ${label(m.user_id)} from ${t.name}`} className="focus-ring rounded-full text-fg-subtle data-hovered:text-fg" onPress={() => w.removeFromTeam.mutate({ team: t.id, user: m.user_id })}><X className="size-3" /></Button>

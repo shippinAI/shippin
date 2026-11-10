@@ -10,7 +10,7 @@ type Term = keyof typeof glossary;
 export function TermTip({ term, children }: { term: Term; children?: ReactNode }) {
   return (
     <Tooltip content={glossary[term]}>
-      <Button aria-label={`What is ${term.replace("_", " ")}?`} className="focus-ring inline-flex cursor-help items-center gap-1 rounded text-fg-subtle data-hovered:text-fg">
+      <Button aria-label={`What is ${term.replace("_", " ")}?`} className="focus-ring inline-flex cursor-help items-center gap-1 rounded-sm text-fg-subtle data-hovered:text-fg">
         {children}
         <Info className="size-3.5" />
       </Button>

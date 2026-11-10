@@ -17,7 +17,7 @@ export function SSHKeysPage() {
   const [target, setTarget] = useState<SSHKey | null>(null);
   const cols: ColumnDef<SSHKey>[] = [
     { id: "name", label: "Name", isRowHeader: true, render: (k) => <span className="flex items-center gap-2 font-medium text-fg"><KeyRound className="size-4 text-hue-secrets" />{k.name}</span> },
-    { id: "fp", label: "Fingerprint", render: (k) => <span className="font-mono text-[12.5px]">{k.fingerprint}</span> },
+    { id: "fp", label: "Fingerprint", render: (k) => <span className="font-mono text-sm">{k.fingerprint}</span> },
     { id: "added", label: "Added", render: (k) => timeAgo(k.created_at) },
     { id: "x", label: "", width: "60px", render: (k) => <IconButton icon={Trash2} label={`Delete key ${k.name}`} onPress={() => setTarget(k)} /> },
   ];

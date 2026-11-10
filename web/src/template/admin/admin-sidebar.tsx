@@ -23,8 +23,8 @@ export function AdminSidebar() {
       <div className="flex h-14 items-center gap-2.5 px-5">
         <BrandMark size={24} />
         <div className="leading-tight">
-          <div className="text-[14px] font-semibold tracking-tight">{brand}</div>
-          <div className="flex items-center gap-1 text-[10.5px] font-medium tracking-wider text-warning uppercase">
+          <div className="text-base font-semibold tracking-tight">{brand}</div>
+          <div className="flex items-center gap-1 text-2xs font-medium tracking-wider text-warning uppercase">
             <ShieldCheck className="size-3" /> Provider
           </div>
         </div>

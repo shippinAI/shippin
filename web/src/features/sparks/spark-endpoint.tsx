@@ -16,7 +16,7 @@ export function SparkEndpoint({ endpoint, modelAPI = false }: { endpoint: Endpoi
   }
   return (
     <div className="border-t border-line pt-3">
-      <div className="flex items-center justify-between gap-3 text-sm">
+      <div className="flex items-center justify-between gap-3 text-base">
         <span className="font-medium">{endpoint.name}</span>
         <span className="text-xs text-fg-subtle">{published ? "Published" : "Not connected"}</span>
       </div>

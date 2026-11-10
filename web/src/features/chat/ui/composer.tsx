@@ -17,7 +17,7 @@ export function Composer({ onSend, isDisabled }: { onSend: (text: string) => voi
       <TextField aria-label="Message" value={text} onChange={setText} className="flex-1">
         <TextArea rows={2} placeholder="Ask your AI… (Enter to send)"
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-          className="w-full resize-none rounded-[var(--radius-control)] border border-line bg-canvas/60 px-3 py-2 text-sm text-fg outline-none data-focused:border-primary" />
+          className="w-full resize-none rounded-lg border border-line-control bg-canvas/60 px-3 py-2 text-base text-fg outline-none data-focused:border-primary" />
       </TextField>
       <IconButton icon={Send} label="Send message" type="submit" isDisabled={isDisabled || !text.trim()} />
     </Form>

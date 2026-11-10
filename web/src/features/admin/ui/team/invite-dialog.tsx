@@ -21,8 +21,8 @@ export function InviteDialog({ roles, local, onClose }: { roles: StaffRole[]; lo
       description={local ? "This makes their account. Give them the link it shows, or have them sign in through your identity provider with this e-mail." : "They get an e-mail from the identity provider to set a password, then must enroll MFA before any staff permission applies."}>
       {link.data ? (
         <div className="space-y-4 px-6 py-5" data-testid="invite-link">
-          <p className="text-sm text-fg-muted">Send them this link. It works once and lasts a week.</p>
-          <p className="break-all rounded-lg border border-line bg-canvas p-3 font-mono text-[12.5px] text-fg">{link.data.url}</p>
+          <p className="text-base text-fg-muted">Send them this link. It works once and lasts a week.</p>
+          <p className="break-all rounded-lg border border-line bg-canvas p-3 font-mono text-sm text-fg">{link.data.url}</p>
           <div className="flex justify-end gap-2 border-t border-line pt-4">
             <Button variant="secondary" tooltip="Copy the link" onPress={() => void navigator.clipboard?.writeText(link.data.url)}>Copy</Button>
             <Button variant="primary" tooltip="Close" onPress={onClose}>Done</Button>
@@ -36,7 +36,7 @@ export function InviteDialog({ roles, local, onClose }: { roles: StaffRole[]; lo
           <TextField label="Last name" isRequired value={f.last_name} onChange={set("last_name")} />
         </div>
         <CheckboxGroup value={picked} onChange={setPicked} className="space-y-0.5">
-          <Label className="text-[13px] font-medium text-fg">Roles (optional; you can add them later)</Label>
+          <Label className="text-sm font-medium text-fg">Roles (optional; you can add them later)</Label>
           {roles.map((r) => (
             <Checkbox key={r.key} value={r.key} description={r.description || r.key}>{r.name}</Checkbox>
           ))}

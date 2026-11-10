@@ -11,14 +11,14 @@ export function TenantAppsPrep({ id }: { id: string }) {
   const rows = q.data?.apps ?? [];
   return (
     <div className="border-t border-line pt-3">
-      <p className="text-[12px] font-medium text-fg">Desktop prerequisites</p>
-      <p className="mt-1 text-[11.5px] text-fg-subtle">
+      <p className="text-xs font-medium text-fg">Desktop prerequisites</p>
+      <p className="mt-1 text-xs text-fg-subtle">
         Members install Claude, Codex, and ChatGPT themselves and sign in with their own accounts. Signed-in: unknown.
         {q.data?.status_detail ? ` ${q.data.status_detail}` : ""}
       </p>
       {q.isError && <p className="mt-1 text-xs text-danger">Status unavailable.</p>}
       {rows.length > 0 && (
-        <ul className="mt-2 space-y-1 text-[12px] text-fg-muted">
+        <ul className="mt-2 space-y-1 text-xs text-fg-muted">
           {rows.map((a) => (
             <li key={a.id}>
               <span className="text-fg">{a.title}</span> — {a.status}

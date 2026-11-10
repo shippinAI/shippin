@@ -36,7 +36,7 @@ function useGuestColumns(): ColumnDef<Guest>[] {
         </>
       ),
     },
-    { id: "id", label: t("infra.guest.id"), render: (g) => <span className="font-mono text-[12.5px]">{g.id}</span> },
+    { id: "id", label: t("infra.guest.id"), render: (g) => <span className="font-mono text-sm">{g.id}</span> },
     { id: "kind", label: t("infra.guest.kind"), render: (g) => (g.kind === "ct" ? t("infra.guest.ct") : t("infra.guest.vm")) },
     {
       id: "status", label: t("infra.guest.status"),
@@ -136,7 +136,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
           {storage.isPending ? (
             <div className="space-y-3 p-5">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-9" />)}</div>
           ) : storage.isError ? (
-            <p role="alert" className="p-5 text-sm text-danger">{storage.error.message}</p>
+            <p role="alert" className="p-5 text-base text-danger">{storage.error.message}</p>
           ) : (storage.data?.items ?? []).length === 0 ? (
             <EmptyState title={t("infra.storage.title")} description={t("infra.storage.empty")} />
           ) : (
@@ -147,19 +147,19 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
                 const percent = measured ? Math.min(100, Math.max(0, (used / volume.total_bytes) * 100)) : 0;
                 const free = measured ? Math.max(0, volume.total_bytes - used) : 0;
                 return (
-                  <li key={`${volume.node}:${volume.name}`} className="grid gap-3 px-5 py-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                    <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.name")}</dt><dd className="font-medium text-fg">{volume.name}</dd></div>
-                    <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.type")}</dt><dd className="text-fg">{volume.type}</dd></div>
-                    <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.node")}</dt><dd className="text-fg">{volume.node || "—"}</dd></div>
-                    <div><dt className="text-[12px] text-fg-subtle">{t("infra.storage.content")}</dt><dd className="break-words text-fg">{volume.content || "—"}</dd></div>
+                  <li key={`${volume.node}:${volume.name}`} className="grid gap-3 px-5 py-3 text-base sm:grid-cols-2 lg:grid-cols-4">
+                    <div><dt className="text-xs text-fg-subtle">{t("infra.storage.name")}</dt><dd className="font-medium text-fg">{volume.name}</dd></div>
+                    <div><dt className="text-xs text-fg-subtle">{t("infra.storage.type")}</dt><dd className="text-fg">{volume.type}</dd></div>
+                    <div><dt className="text-xs text-fg-subtle">{t("infra.storage.node")}</dt><dd className="text-fg">{volume.node || "—"}</dd></div>
+                    <div><dt className="text-xs text-fg-subtle">{t("infra.storage.content")}</dt><dd className="break-words text-fg">{volume.content || "—"}</dd></div>
                     <div className="sm:col-span-2 lg:col-span-4">
                       {measured ? <>
-                        <div className="flex justify-between gap-3 text-[12px] text-fg-subtle">
+                        <div className="flex justify-between gap-3 text-xs text-fg-subtle">
                           <span>{t("infra.storage.capacity")}: {formatBytes(used)} / {formatBytes(volume.total_bytes)}</span>
                           <span>{t("infra.storage.free")}: {formatBytes(free)}</span>
                         </div>
                         <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-raised"><div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} /></div>
-                      </> : <p className="text-[12px] text-fg-muted">{t("infra.storage.unknownCapacity")}</p>}
+                      </> : <p className="text-xs text-fg-muted">{t("infra.storage.unknownCapacity")}</p>}
                     </div>
                   </li>
                 );
@@ -170,7 +170,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
       )}
       {guest && (can("lifecycle") || can("snapshot") || can("snapshot_list")) && (
         <Card className="mb-6 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-fg">{guest.name || guest.id}</h2>
+          <h2 className="mb-3 text-base font-semibold text-fg">{guest.name || guest.id}</h2>
           {guest.metrics && (
             <dl className="mb-4 grid gap-3 rounded-lg border border-line bg-canvas/40 p-3 text-xs sm:grid-cols-2 lg:grid-cols-4" data-testid="guest-metrics">
               <div><dt className="text-fg-subtle">CPU</dt><dd className="mt-1 font-medium text-fg">{(guest.metrics.cpu_fraction * 100).toFixed(1)}%{guest.metrics.cpu_count ? ` · ${guest.metrics.cpu_count} vCPU` : ""}</dd></div>
@@ -206,7 +206,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
                   {t("infra.delete.action")}
                 </Button>
               )}
-              {guestBusy && <p className="basis-full text-[13px] text-fg-muted" data-testid="guest-busy">{t("infra.guest.busy")}</p>}
+              {guestBusy && <p className="basis-full text-sm text-fg-muted" data-testid="guest-busy">{t("infra.guest.busy")}</p>}
             </div>
           )}
           {can("snapshot") && may("infra.guests.snapshot") && (
@@ -222,7 +222,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
             </div>
           )}
           {can("snapshot_list") && (
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2 text-base">
               {(snaps.data?.items ?? []).map((name) => (
                 <li key={name} className="flex items-center justify-between gap-3">
                   <span className="font-mono">{name}</span>
@@ -256,18 +256,18 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
           )}
           {can("tasks") && (
             <Card className="p-5">
-              <h2 className="mb-3 text-sm font-semibold text-fg">{t("infra.task.title")}</h2>
+              <h2 className="mb-3 text-base font-semibold text-fg">{t("infra.task.title")}</h2>
               <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); setLookup(upid); }}>
                 <TextField label={t("infra.task.id")} value={upid} onChange={setUpid} description={t("infra.task.help")} />
                 <Button type="submit" size="sm" variant="secondary" tooltip={t("infra.task.lookupTooltip")} isDisabled={!upid}>{t("infra.task.lookup")}</Button>
               </form>
               {task.data && (
-                <div className="mt-4 text-sm">
+                <div className="mt-4 text-base">
                   <p className="text-fg">{task.data.status}{task.data.exitstatus ? ` · ${task.data.exitstatus}` : ""}{task.data.done ? ` · ${t("infra.task.done")}` : ""}</p>
-                  <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-[12px] text-fg-muted">{(task.data.log ?? []).join("\n")}</pre>
+                  <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-xs text-fg-muted">{(task.data.log ?? []).join("\n")}</pre>
                 </div>
               )}
-              {task.isError && <p className="mt-3 text-sm text-danger">{task.error.message}</p>}
+              {task.isError && <p className="mt-3 text-base text-danger">{task.error.message}</p>}
             </Card>
           )}
         </div>
@@ -292,7 +292,7 @@ export function ProviderTab({ provider, onEdit }: { provider: InfraProvider; onE
           <Select label={t("infra.provider.host")} value={node.id} onChange={setPicked} options={provider.nodes.map((n) => ({ id: n.id, label: n.label }))} />
         </div>
       )}
-      {node.error && <p role="alert" className="mb-6 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">{node.error}</p>}
+      {node.error && <p role="alert" className="mb-6 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">{node.error}</p>}
       {node.online && <NodeFacts node={node} />}
       {node.source === "api" && <SystemIdentityForm serverId={node.id} />}
       {node.source === "agent" ? <AgentGuests node={node} /> : <ApiGuests key={node.id} provider={provider} node={node} onEdit={onEdit} />}

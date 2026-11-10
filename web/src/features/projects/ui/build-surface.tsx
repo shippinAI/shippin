@@ -25,15 +25,15 @@ export function BuildSurface({ tenantId, projectId, view, ws, ready, onSignIn }:
     <div className="flex h-full min-h-0 flex-col gap-4 p-5">
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div className="space-y-3">
-          <p className="text-[13px] text-fg-muted">“{run.prompt_preview}”</p>
+          <p className="text-sm text-fg-muted">“{run.prompt_preview}”</p>
           <BuildSteps state={run.state} label={label} />
-          {run.error && <p className="text-[13px] text-danger">{run.error}</p>}
+          {run.error && <p className="text-sm text-danger">{run.error}</p>}
         </div>
         <div className="space-y-3">
           {run.state === "waiting_ai" && view.mine && !view.connected && <BuildSignIn tenantId={tenantId} provider={run.provider} />}
-          {run.state === "waiting_ai" && !view.mine && <p className="text-[13px] text-fg-muted">Waiting for the person who started this build to sign in.</p>}
+          {run.state === "waiting_ai" && !view.mine && <p className="text-sm text-fg-muted">Waiting for the person who started this build to sign in.</p>}
           {live && (
-            <p className="text-[13px] text-fg-muted" aria-live="polite">
+            <p className="text-sm text-fg-muted" aria-live="polite">
               {live.exited ? `${label} finished (exit ${live.exit_code}).` : live.session ? `${label} is working.` : "Agent not running."}{" "}
               {live.files_changed > 0 && `${live.files_changed} file${live.files_changed === 1 ? "" : "s"} changed.`}
             </p>
@@ -47,7 +47,7 @@ export function BuildSurface({ tenantId, projectId, view, ws, ready, onSignIn }:
           )}
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-hidden rounded-[var(--radius-card)] border border-line bg-canvas">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-line bg-canvas">
         {view.term_url && ready && (run.state === "running" || run.state === "exited" || run.state === "starting") ? (
           <iframe title={`${label} live terminal`} src={view.term_url} className="size-full border-0" allow="clipboard-read; clipboard-write" />
         ) : ws?.state === "running" && !ready ? (

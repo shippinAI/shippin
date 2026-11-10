@@ -23,9 +23,9 @@ export function A2UIInput({ c, scope }: { c: A2UIComponent; scope: string }) {
   const sel = Array.isArray(cur) ? String(cur[0] ?? "") : String(cur ?? "");
   return (
     <RadioGroup value={sel} onChange={(v) => onData(abs, [v])} className="flex flex-col gap-1.5">
-      {label && <Label className="text-[13px] font-medium text-fg">{label}</Label>}
+      {label && <Label className="text-sm font-medium text-fg">{label}</Label>}
       {c.options.map((o) => (
-        <Radio key={o.value} value={o.value} className="group flex items-center gap-2 text-[13px] text-fg-muted outline-none data-selected:text-fg">
+        <Radio key={o.value} value={o.value} className="group flex items-center gap-2 text-sm text-fg-muted outline-none data-selected:text-fg">
           <span className="size-3.5 rounded-full border border-line-strong group-data-selected:border-4 group-data-selected:border-primary group-data-focus-visible:ring-2 group-data-focus-visible:ring-primary/40" />
           {o.label}
         </Radio>

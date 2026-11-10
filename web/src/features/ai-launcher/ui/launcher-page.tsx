@@ -19,7 +19,7 @@ export function LauncherPage() {
     <main className="flex h-dvh flex-col gap-3 bg-canvas p-4 text-fg">
       <header className="flex flex-wrap items-center gap-2">
         <Bot className="size-5 text-primary" aria-hidden />
-        <h1 className="mr-4 text-[17px] font-semibold tracking-tight">AI launcher</h1>
+        <h1 className="mr-4 text-lg font-semibold tracking-tight">AI launcher</h1>
         {sessions.map((s) => (
           <div key={s.id} className="flex items-center gap-1 rounded-xl border border-line bg-raised/60 p-1 pl-2">
             <Badge tone={s.running ? "success" : "neutral"}>{s.running ? "running" : "stopped"}</Badge>
@@ -34,7 +34,7 @@ export function LauncherPage() {
         ))}
         {list.isError && <span role="alert" className="text-danger">Launcher unavailable: {list.error.message}</span>}
       </header>
-      <p className="text-[13px] text-fg-muted">
+      <p className="text-sm text-fg-muted">
         Sign in inside the tool with your own subscription (its normal login). Closing this tab or losing the network only
         detaches: the session keeps running and reopens here.
       </p>

@@ -26,6 +26,7 @@ step "panel (install)" web npm ci --no-audit --no-fund
 step "panel (test)" web npm test
 step "panel (build)" web npm run build
 step "panel (budget)" web npm run budget
+step "panel (tokens)" web npm run tokens
 step "governance (install)" governance npm ci --no-audit --no-fund
 step "governance (test)" governance npm test
 step "docs (links)" . node scripts/check-docs.mjs

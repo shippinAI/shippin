@@ -25,7 +25,7 @@ export function GitHubImportForm({ tenantId, active, workspaceId }: { tenantId: 
     </Button>
   );
   if (q.data && installs.length === 0)
-    return <div className="space-y-3 p-5 pt-0"><p className="text-[13px] text-fg-muted">Connect GitHub to import a repository. You choose exactly which repositories Shippin can see.</p>{install}</div>;
+    return <div className="space-y-3 p-5 pt-0"><p className="text-sm text-fg-muted">Connect GitHub to import a repository. You choose exactly which repositories Shippin can see.</p>{install}</div>;
   return (
     <Form className="space-y-4 p-5 pt-0" onSubmit={(e) => {
       e.preventDefault();
@@ -33,7 +33,7 @@ export function GitHubImportForm({ tenantId, active, workspaceId }: { tenantId: 
       imp.mutate({ installation_id: picked.installation, repo_id: picked.repo.id, branch: branch || undefined, workspace_id: workspaceId }, { onSuccess: () => setPicked(undefined) });
     }}>
       <GitHubRepoPicker installations={installs} value={picked} onChange={(p) => { setPicked(p); setName(slug(p.repo.full_name.split("/")[1] ?? "")); setBranch(""); }} />
-      {name && <p className="text-[13px] text-fg-muted">Becomes project <span className="font-mono text-fg">{name}</span>, named after the repository.</p>}
+      {name && <p className="text-sm text-fg-muted">Becomes project <span className="font-mono text-fg">{name}</span>, named after the repository.</p>}
       <TextField label="Branch" placeholder={picked?.repo.default_branch ?? "main"} value={branch} onChange={setBranch} maxLength={200} description="Leave empty for the default branch." />
       <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" variant="primary" size="sm" isDisabled={!picked || imp.isPending || !workspaceId} tooltip="Create the project and clone the repository into its devspace">

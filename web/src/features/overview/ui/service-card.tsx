@@ -22,7 +22,7 @@ export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Inst
   const k = kinds[probe.kind.toLowerCase()] ?? { icon: Server, hue: "var(--color-primary)" };
   const Icon = k.icon;
   return (
-    <div data-testid="service-card" className="group relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-e1)] transition-shadow hover:shadow-[var(--shadow-e2)]">
+    <div data-testid="service-card" className="group relative overflow-hidden rounded-xl border border-line bg-surface p-5 shadow-e1 transition-shadow hover:shadow-e2">
       <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${k.hue}, transparent)` }} />
       <div className="flex items-start justify-between">
         <span className="flex size-10 items-center justify-center rounded-xl" style={{ background: `color-mix(in oklch, ${k.hue} 16%, transparent)` }}>
@@ -39,7 +39,7 @@ export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Inst
           </Focusable>
         </Tooltip>
       </div>
-      <div className="mt-4 text-[15px] font-semibold">{probe.alias || probe.name}</div>
+      <div className="mt-4 text-lg font-semibold">{probe.alias || probe.name}</div>
       <div className="text-xs text-fg-subtle capitalize">{probe.kind}</div>
       <dl className="mt-4 flex gap-6 border-t border-line pt-3.5 text-xs">
         <Stat label="Latency" value={probe.latency_ms === undefined ? "—" : `${probe.latency_ms} ms`} />
@@ -79,7 +79,7 @@ function Stat({ label, value, mono }: { label: string; value: string; mono?: boo
   return (
     <div className="min-w-0">
       <dt className="text-fg-subtle">{label}</dt>
-      <dd className={`mt-0.5 truncate text-fg ${mono ? "font-mono text-[11px]" : ""}`}>{value}</dd>
+      <dd className={`mt-0.5 truncate text-fg ${mono ? "font-mono text-2xs" : ""}`}>{value}</dd>
     </div>
   );
 }

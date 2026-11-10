@@ -12,7 +12,7 @@ export function MembersCard({ tenantId, team, actions }: { tenantId: string; tea
   return (
     <Card>
       <CardHeader title={`Members (${team.members.length})`} description="People in this tenant's organization and their role." actions={actions} />
-      <ul className="divide-y divide-border" aria-label="Members">
+      <ul className="divide-y divide-line" aria-label="Members">
         {team.members.map((m) => {
           const ownerLocked = m.roles.includes(team.owner_role) && !team.is_owner;
           const editable = team.can_manage && !ownerLocked;
@@ -20,7 +20,7 @@ export function MembersCard({ tenantId, team, actions }: { tenantId: string; tea
             <li key={m.user_id} className="flex items-center gap-3 px-4 py-2.5">
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-fg">{m.name || m.email || m.user_id}</p>
-                <p className="truncate text-sm text-fg-muted">{m.email}</p>
+                <p className="truncate text-base text-fg-muted">{m.email}</p>
               </div>
               {editable ? (
                 <div className="w-48">
@@ -28,7 +28,7 @@ export function MembersCard({ tenantId, team, actions }: { tenantId: string; tea
                     value={m.roles[0] ?? ""} onChange={(r) => w.setRoles.mutate({ user: m.user_id, roles: [r] })} />
                 </div>
               ) : (
-                <span className="font-mono text-[12px] text-fg-muted">{m.roles.join(", ")}</span>
+                <span className="font-mono text-xs text-fg-muted">{m.roles.join(", ")}</span>
               )}
               {editable && (
                 <Button size="sm" variant="ghost" aria-label={`Remove ${m.name || m.email}`} tooltip="Remove from this tenant (audited)" isDisabled={w.remove.isPending} onPress={() => w.remove.mutate(m.user_id)}>

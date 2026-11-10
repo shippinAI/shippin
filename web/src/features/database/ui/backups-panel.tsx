@@ -29,8 +29,8 @@ export function BackupsPanel({ tenantId }: { tenantId: string }) {
             {items.map((b) => (
               <li key={b.id} className="flex items-center justify-between gap-3 border-b border-line px-5 py-3 last:border-b-0">
                 <div>
-                  <div className="text-sm text-fg">{b.note || "Backup request"}</div>
-                  <div className="mt-1 text-[12px] text-fg-subtle">{b.created_at ? timeAgo(b.created_at) : ""}</div>
+                  <div className="text-base text-fg">{b.note || "Backup request"}</div>
+                  <div className="mt-1 text-xs text-fg-subtle">{b.created_at ? timeAgo(b.created_at) : ""}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge tone="warning">{b.status === "pending_backend" ? "Not copied yet" : b.status}</Badge>

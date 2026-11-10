@@ -14,12 +14,12 @@ export function memberColumns(roles: StaffRole[]): ColumnDef<TeamMember>[] {
       id: "name", label: "Member", isRowHeader: true, width: "30%",
       render: (m) => (
         <div className="flex items-center gap-3">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-raised text-[12px] font-semibold text-fg">{initials(m.name)}</span>
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-raised text-xs font-semibold text-fg">{initials(m.name)}</span>
           <div className="min-w-0">
             <div className="truncate font-medium text-fg">
-              {m.name} {m.self && <span className="ml-1 text-[11px] font-normal text-fg-subtle">(you)</span>}
+              {m.name} {m.self && <span className="ml-1 text-2xs font-normal text-fg-subtle">(you)</span>}
             </div>
-            <div className="truncate text-[12px] text-fg-subtle">{m.email || m.login}</div>
+            <div className="truncate text-xs text-fg-subtle">{m.email || m.login}</div>
           </div>
         </div>
       ),
@@ -39,7 +39,7 @@ export function memberColumns(roles: StaffRole[]): ColumnDef<TeamMember>[] {
       render: (m) => (
         <span className={m.idle ? "text-warning" : ""}>
           {m.last_seen ? timeAgo(m.last_seen) : m.roles.length ? "Never" : "—"}
-          {m.idle && <span className="ml-1.5 text-[11px]">idle</span>}
+          {m.idle && <span className="ml-1.5 text-2xs">idle</span>}
         </span>
       ),
     },

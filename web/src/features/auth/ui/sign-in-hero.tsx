@@ -1,40 +1,29 @@
-import { Boxes, Fingerprint, KeyRound } from "lucide-react";
+import { Boxes, Fingerprint, Server } from "lucide-react";
 
-const tiles = [
-  { icon: Boxes, label: "Workspaces", sub: "Incus · ZFS", hue: "var(--color-hue-workspaces)", pos: "top-[22%] left-[14%]" },
-  { icon: Fingerprint, label: "Identity", sub: "OIDC · orgs", hue: "var(--color-hue-identity)", pos: "top-[44%] left-[46%]" },
-  { icon: KeyRound, label: "Secrets", sub: "per-env vaults", hue: "var(--color-hue-secrets)", pos: "top-[66%] left-[20%]" },
+const modules = [
+  { icon: Server, label: "Infrastructure", sub: "Incus and Proxmox hosts, their guests and capacity", hue: "text-hue-network" },
+  { icon: Boxes, label: "Tenants", sub: "Organizations, their workspaces and projects", hue: "text-hue-workspaces" },
+  { icon: Fingerprint, label: "Access", sub: "Accounts, passkeys, roles and OIDC sign-in", hue: "text-hue-identity" },
 ];
 
-/** Flat-vector hero: layered module cards on a grid with tinted glows. */
+/** Beside the sign-in form on wide screens: what this panel manages, then the installation's tagline. */
 export function SignInHero({ tagline }: { tagline: string }) {
   return (
-    <div className="relative hidden overflow-hidden border-r border-line bg-surface lg:block">
-      <div className="grid-bg absolute inset-0" />
-      <div className="absolute -top-40 -left-32 size-[520px] rounded-full bg-primary-strong/25 blur-3xl" />
-      <div className="absolute -right-24 bottom-[-120px] size-[440px] rounded-full bg-hue-identity/20 blur-3xl" />
-      <svg className="absolute inset-0 size-full" aria-hidden>
-        <path d="M180 230 C 320 260, 360 330, 420 390" stroke="var(--color-line-strong)" strokeDasharray="4 6" fill="none" />
-        <path d="M420 430 C 360 500, 300 520, 230 560" stroke="var(--color-line-strong)" strokeDasharray="4 6" fill="none" />
-      </svg>
-      {tiles.map(({ icon: Icon, label, sub, hue, pos }) => (
-        <div
-          key={label}
-          className={`absolute ${pos} flex w-56 items-center gap-3 rounded-2xl border border-line-strong bg-raised/90 p-4 shadow-[var(--shadow-e3)]`}
-        >
-          <span className="flex size-10 items-center justify-center rounded-xl" style={{ background: `color-mix(in oklch, ${hue} 18%, transparent)` }}>
-            <Icon className="size-5" style={{ color: hue }} strokeWidth={1.75} />
-          </span>
-          <div>
-            <div className="text-sm font-semibold">{label}</div>
-            <div className="text-xs text-fg-subtle">{sub}</div>
-          </div>
-          <span className="ml-auto size-2 rounded-full bg-success shadow-[0_0_10px] shadow-success" />
-        </div>
-      ))}
-      <div className="absolute right-12 bottom-12 left-12">
-        <p className="max-w-md text-2xl leading-snug font-semibold tracking-tight text-fg">{tagline}</p>
-        <p className="mt-3 text-sm text-fg-muted">One console for every tenant: workspaces, identity, secrets and the platform beneath.</p>
+    <div className="hidden flex-col justify-between gap-12 border-r border-line bg-surface p-12 lg:flex">
+      <ul className="grid max-w-md gap-3" aria-label="What this panel manages">
+        {modules.map(({ icon: Icon, label, sub, hue }) => (
+          <li key={label} className="flex items-start gap-4 rounded-xl border border-line bg-raised p-4">
+            <Icon className={`mt-0.5 size-5 shrink-0 ${hue}`} strokeWidth={1.75} aria-hidden />
+            <div>
+              <p className="text-base font-semibold text-fg">{label}</p>
+              <p className="mt-0.5 text-sm text-fg-muted">{sub}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="max-w-md">
+        <p className="text-2xl leading-snug font-semibold tracking-tight text-fg">{tagline}</p>
+        <p className="mt-3 text-base text-fg-muted">One panel for your servers, the tenants that use them, and who can reach them.</p>
       </div>
     </div>
   );

@@ -53,13 +53,13 @@ export function DeploymentsPage() {
         tooltip={!requestableTargets.length ? "A configured assigned target is required" : "Request a service deployment"}
         onPress={() => setShowCreate(true)}><Plus className="size-4" /> Request deployment</Button>} />
 
-    <Card className="mb-4 border-info/30 bg-info/5 p-4 text-sm text-fg-muted">
+    <Card className="mb-4 border-info/30 bg-info/5 p-4 text-base text-fg-muted">
       Requests save a pinned service definition and desired configuration. This records intent only; it does not claim that a service is running. A configured AgentHub review and provider reconciler must complete the operation before observed state changes.
     </Card>
 
-    {!canManage && <Card className="mb-4 p-4 text-sm text-fg-muted">A tenant owner or admin can add, edit, or request removal of deployments.</Card>}
+    {!canManage && <Card className="mb-4 p-4 text-base text-fg-muted">A tenant owner or admin can add, edit, or request removal of deployments.</Card>}
     {canManage && (targets.isSuccess && !requestableTargets.length) && <Card className="mb-4 flex items-center justify-between gap-4 p-4">
-      <p className="text-sm text-fg-muted">No compatible target is assigned to this tenant.</p>
+      <p className="text-base text-fg-muted">No compatible target is assigned to this tenant.</p>
       <Button variant="secondary" size="sm" tooltip="Open the tenant server registry" onPress={() => navigate(`/t/${tenantId}/servers`)}><Server className="size-4" /> Manage servers</Button>
     </Card>}
 
@@ -68,7 +68,7 @@ export function DeploymentsPage() {
       onRetry={() => { void deployments.refetch(); void services.refetch(); void targets.refetch(); }}>
       {() => rows.length === 0 ? <Card className="p-10 text-center">
         <h2 className="font-semibold text-fg">No deployments yet</h2>
-        <p className="mx-auto mt-2 max-w-xl text-sm text-fg-muted">Active deployable services and compatible assigned targets appear here. Add a pinned service definition in the provider catalog, then assign a supported system to this tenant.</p>
+        <p className="mx-auto mt-2 max-w-xl text-base text-fg-muted">Active deployable services and compatible assigned targets appear here. Add a pinned service definition in the provider catalog, then assign a supported system to this tenant.</p>
         {canManage && <Button className="mt-4" variant="primary" isDisabled={!services.data?.items.length || !requestableTargets.length}
           tooltip="Record a deployment request from the active catalog" onPress={() => setShowCreate(true)}><Plus className="size-4" /> Request deployment</Button>}
       </Card> : <div className="grid gap-3">
@@ -84,7 +84,7 @@ export function DeploymentsPage() {
                   <Badge>desired {item.desired_state}</Badge>
                   <Badge tone="info">{item.target_provider_label ?? item.target_provider}</Badge>
                 </div>
-                <p className="mt-1 text-sm text-fg-muted">{target?.label ?? item.target_system_id} Â· generation {item.generation} Â· updated {new Date(item.updated_at).toLocaleString()}</p>
+                <p className="mt-1 text-base text-fg-muted">{target?.label ?? item.target_system_id} Â· generation {item.generation} Â· updated {new Date(item.updated_at).toLocaleString()}</p>
                 <p className="mt-1 truncate font-mono text-xs text-fg-subtle" title={serviceSource(item.source)}>{serviceSource(item.source)}</p>
               </div>
               <div className="flex items-center gap-1">
@@ -180,22 +180,22 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
           }} />
         <Select label="Target system" value={targetId} options={compatibleTargets.map((target) => ({ id: target.id,
           label: `${target.provider_label ?? target.provider} Â· ${target.label} Â· ${target.site}${target.state === "planned" ? " Â· connection unverified" : ""}` }))} onChange={(id) => { setTargetId(id); setStoragePool(""); setNetworkName(""); }} />
-        {compatibleTargets.length === 0 && <p className="text-sm text-fg-muted">No assigned target supports this service runtime declaration.</p>}
+        {compatibleTargets.length === 0 && <p className="text-base text-fg-muted">No assigned target supports this service runtime declaration.</p>}
         {storageRequired && <>
-          {selectedTarget?.state !== "active" ? <p className="text-sm text-warning">Connect and verify this target to discover its live storage pools.</p>
-            : targetStorage.isPending ? <p className="text-sm text-fg-muted">Loading storage pools from the selected target…</p>
-              : targetStorage.isError ? <p role="alert" className="text-sm text-danger">Storage pools could not be loaded: {targetStorage.error.message}</p>
-                : (targetStorage.data?.items.length ?? 0) === 0 ? <p className="text-sm text-warning">The target reports no storage pools.</p>
+          {selectedTarget?.state !== "active" ? <p className="text-base text-warning">Connect and verify this target to discover its live storage pools.</p>
+            : targetStorage.isPending ? <p className="text-base text-fg-muted">Loading storage pools from the selected target…</p>
+              : targetStorage.isError ? <p role="alert" className="text-base text-danger">Storage pools could not be loaded: {targetStorage.error.message}</p>
+                : (targetStorage.data?.items.length ?? 0) === 0 ? <p className="text-base text-warning">The target reports no storage pools.</p>
                   : <Select label="Incus storage pool" value={storagePool}
                     options={(targetStorage.data?.items ?? []).map((pool) => ({ id: pool.name, label: `${pool.name} · ${pool.type}` }))}
                     onChange={setStoragePool} />}
           <p className="text-xs text-fg-subtle">Pool choice is read from the selected target and saved with this deployment generation. It cannot be changed after creation until data migration is supported.</p>
         </>}
         {networkRequired && <>
-          {selectedTarget?.state !== "active" ? <p className="text-sm text-warning">Connect and verify this target to discover its managed networks.</p>
-            : targetNetworks.isPending ? <p className="text-sm text-fg-muted">Loading managed networks from the selected target…</p>
-              : targetNetworks.isError ? <p role="alert" className="text-sm text-danger">Managed networks could not be loaded: {targetNetworks.error.message}</p>
-                : (targetNetworks.data?.items.length ?? 0) === 0 ? <p className="text-sm text-warning">The target reports no selectable bridge or OVN networks.</p>
+          {selectedTarget?.state !== "active" ? <p className="text-base text-warning">Connect and verify this target to discover its managed networks.</p>
+            : targetNetworks.isPending ? <p className="text-base text-fg-muted">Loading managed networks from the selected target…</p>
+              : targetNetworks.isError ? <p role="alert" className="text-base text-danger">Managed networks could not be loaded: {targetNetworks.error.message}</p>
+                : (targetNetworks.data?.items.length ?? 0) === 0 ? <p className="text-base text-warning">The target reports no selectable bridge or OVN networks.</p>
                   : <Select label="Incus managed network" value={networkName}
                     options={(targetNetworks.data?.items ?? []).map((network) => ({ id: network.name, label: `${network.name} · ${network.type}` }))}
                     onChange={setNetworkName} />}
@@ -203,20 +203,20 @@ function DeploymentEditor({ tenantId, services, targets, deployment, onClose }: 
         </>}
       </>}
       {source && <div className="rounded-lg border border-line p-3">
-        <div className="text-sm font-medium text-fg">Pinned source</div>
+        <div className="text-base font-medium text-fg">Pinned source</div>
         <div className="mt-1 break-all font-mono text-xs text-fg-muted">{serviceSource(source)}</div>
         {service?.description && <div className="mt-2 text-xs text-fg-subtle">{service.description}</div>}
       </div>}
       {schema && valid
         ? <ServiceConfigForm key={deployment?.id ?? serviceId} schema={schema} value={configObject} onChange={(next) => setConfigText(JSON.stringify(next, null, 2))} onValidityChange={setSchemaValidity} />
-        : <p className="text-sm text-fg-muted">{valid ? "This service has no editable schema. Use the advanced JSON editor." : "Enter a valid JSON object in the advanced editor."}</p>}
+        : <p className="text-base text-fg-muted">{valid ? "This service has no editable schema. Use the advanced JSON editor." : "Enter a valid JSON object in the advanced editor."}</p>}
       <details className="rounded-lg border border-line p-3">
-        <summary className="cursor-pointer text-sm font-medium text-fg">Advanced JSON editor</summary>
+        <summary className="cursor-pointer text-base font-medium text-fg">Advanced JSON editor</summary>
         <TextField label="Configuration (JSON)" multiline mono value={configText} onChange={setConfigText}
           description={valid ? "The server validates these values against the pinned service schema when saved." : "Enter a valid JSON object."} />
       </details>
       {schema && <details className="rounded-lg border border-line p-3">
-        <summary className="cursor-pointer text-sm font-medium text-fg">Configuration schema and required fields</summary>
+        <summary className="cursor-pointer text-base font-medium text-fg">Configuration schema and required fields</summary>
         <p className="mt-2 text-xs text-fg-muted">Secret defaults are hidden. Vaultix references use vaultix://&lt;environment&gt;/&lt;folder&gt;/&lt;key&gt; and resolve inside this tenant's Vaultix project. SOPS references are stored but are not resolved by the deployment worker yet. Never enter secret values.</p>
         <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-canvas p-3 text-xs text-fg-muted">{JSON.stringify(schema, null, 2)}</pre>
       </details>}
@@ -238,11 +238,11 @@ function DeploymentReviewPanel({ tenantId, deployment, canManage }: { tenantId: 
   return <section className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-line p-3" aria-label="AgentHub review">
     {state === "pending_review" ? <>
       <CheckCircle2 className="size-4 text-info" />
-      <span className="text-sm text-fg">AgentHub ticket submitted</span>
+      <span className="text-base text-fg">AgentHub ticket submitted</span>
       <Badge tone="info">{review.data?.agenthub_status ?? "unavailable"}</Badge>
-    </> : state === "preparing" ? <span className="text-sm text-fg-muted">Preparing the AgentHub ticket…</span>
-      : state === "failed" ? <span role="alert" className="text-sm text-danger">AgentHub review request failed ({review.data?.review?.failure_code ?? "unknown"}).</span>
-        : <span className="text-sm text-fg-muted">No AgentHub review ticket for this generation.</span>}
+    </> : state === "preparing" ? <span className="text-base text-fg-muted">Preparing the AgentHub ticket…</span>
+      : state === "failed" ? <span role="alert" className="text-base text-danger">AgentHub review request failed ({review.data?.review?.failure_code ?? "unknown"}).</span>
+        : <span className="text-base text-fg-muted">No AgentHub review ticket for this generation.</span>}
     {canRequest && <Button variant="secondary" size="sm" tooltip="Create an AgentHub ticket for this exact generation. This does not execute it."
       onPress={() => prepare.mutate(deployment.generation)}>{state === "failed" ? "Retry review request" : "Request AgentHub review"}</Button>}
     {canAuthorize && <Button variant="secondary" size="sm" tooltip="Recheck the current ticket, policy, mapped system and quorum with AgentHub. This does not execute the deployment."
@@ -263,7 +263,7 @@ function DeploymentExecutionStatus({ tenantId, deployment }: { tenantId: string;
   const events = useDeploymentEvents(tenantId, deployment.id);
   const failure = currentGenerationFailure(events.data?.items ?? [], deployment.generation);
   if (!failure) return null;
-  return <div role="status" className="mt-3 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
+  return <div role="status" className="mt-3 rounded-md border border-warning/40 bg-warning/5 p-3 text-base">
     <p className="font-medium text-fg">Deployment generation {deployment.generation} is incomplete</p>
     <p className="mt-1 text-fg-muted">{deploymentFailureMessage(failure.failure_code)}</p>
     <p className="mt-1 text-xs text-fg-subtle">Recorded {new Date(failure.recorded_at).toLocaleString()}.</p>

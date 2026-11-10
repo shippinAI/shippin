@@ -12,11 +12,11 @@ function Row({ e }: { e: Effective }) {
   return (
     <Disclosure className="border-b border-line last:border-0">
       <Heading className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 py-2.5">
-        <RacButton slot="trigger" className="focus-ring group flex min-w-0 basis-full items-center gap-2 rounded text-left sm:basis-0 sm:flex-1">
+        <RacButton slot="trigger" className="focus-ring group flex min-w-0 basis-full items-center gap-2 rounded-sm text-left sm:basis-0 sm:flex-1">
           <ChevronRight className="size-3.5 shrink-0 text-fg-subtle transition-transform group-aria-expanded:rotate-90" />
-          <span className="truncate font-mono text-[12.5px] text-fg">{e.key}</span>
+          <span className="truncate font-mono text-sm text-fg">{e.key}</span>
         </RacButton>
-        <span className="max-w-full truncate font-mono text-[12.5px] text-primary">{show(e.value)}</span>
+        <span className="max-w-full truncate font-mono text-sm text-primary">{show(e.value)}</span>
         <LayerBadge layer={e.source} refId={e.ref} />
         <LockBadge lock={e.lock} />
         {e.flags.length > 0 && <Badge tone="warning">clamped</Badge>}
@@ -46,9 +46,9 @@ export function EffectiveConfigView({ tenantId }: { tenantId: string }) {
           <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3 text-xs text-fg-muted">
             Enabled services: {q.data.enabled_services.map((s) => <Badge key={s} tone="success">{s}</Badge>)}
           </div>
-          <div className="px-5 pt-3 text-[11.5px] font-medium tracking-wide text-fg-subtle uppercase">Services</div>
+          <div className="px-5 pt-3 text-xs font-medium tracking-wide text-fg-subtle uppercase">Services</div>
           {q.data.services.map((e) => <Row key={e.key} e={e} />)}
-          <div className="px-5 pt-3 text-[11.5px] font-medium tracking-wide text-fg-subtle uppercase">Settings</div>
+          <div className="px-5 pt-3 text-xs font-medium tracking-wide text-fg-subtle uppercase">Settings</div>
           {q.data.settings.map((e) => <Row key={e.key} e={e} />)}
         </>
       )}

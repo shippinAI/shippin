@@ -23,14 +23,14 @@ export function ProviderCards({ providers, onAdd }: Props) {
             <li key={p.kind} className="flex flex-col gap-3 bg-surface p-5" data-testid={`provider-${p.kind}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="text-sm font-semibold text-fg">{p.label}</h3>
-                  {p.description && <p className="mt-1 text-[13px] text-fg-muted">{p.description}</p>}
+                  <h3 className="text-base font-semibold text-fg">{p.label}</h3>
+                  {p.description && <p className="mt-1 text-sm text-fg-muted">{p.description}</p>}
                 </div>
                 <Badge tone={!added ? "neutral" : healthy ? "success" : "warning"}>
                   {added && <StatusDot health={healthy ? "up" : "unknown"} />} {added ? t("infra.provider.added") : t("infra.provider.notAdded")}
                 </Badge>
               </div>
-              <p className="flex-1 text-[13px] text-fg-subtle">
+              <p className="flex-1 text-sm text-fg-subtle">
                 {added
                   ? t("infra.provider.hosts", { online: p.totals.online, total: p.totals.nodes, running: p.totals.running, guests: p.totals.guests })
                   : t("infra.provider.none")}

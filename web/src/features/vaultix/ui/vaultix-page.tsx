@@ -23,7 +23,7 @@ export function VaultixPage() {
         actions={<div className="flex gap-2"><ImportDialog envs={envs} /><SecretEditor env={current} /></div>} />
       {account.isError && <p role="alert" className="mb-4 text-danger">Vaultix is unavailable: {account.error.message}</p>}
       {account.data && (
-        <div className="mb-5 flex flex-wrap items-center gap-2 text-sm">
+        <div className="mb-5 flex flex-wrap items-center gap-2 text-base">
           <Badge tone="success"><ShieldCheck className="size-3.5" aria-hidden /> Private workspace</Badge>
           <span className="text-fg-muted">{account.data.email}</span>
           <Badge tone={account.data.keyring_connected ? "primary" : "neutral"}>
@@ -37,7 +37,7 @@ export function VaultixPage() {
             <Tabs selectedKey={current} onSelectionChange={(k) => setEnv(String(k))}>
               <TabList aria-label="Environment" className="flex gap-1 rounded-xl bg-surface p-1">
                 {envs.map((e) => (
-                  <Tab key={e} id={e} className="cursor-default rounded-lg px-3 py-1.5 text-[13px] text-fg-muted outline-none selected:bg-raised selected:font-semibold selected:text-fg focus-visible:ring-2 focus-visible:ring-primary">
+                  <Tab key={e} id={e} className="cursor-default rounded-lg px-3 py-1.5 text-sm text-fg-muted outline-none selected:bg-raised selected:font-semibold selected:text-fg focus-visible:ring-2 focus-visible:ring-primary">
                     {e}
                   </Tab>
                 ))}
@@ -45,7 +45,7 @@ export function VaultixPage() {
             </Tabs>
             <SearchField value={filter} onChange={setFilter} className="flex flex-col gap-1">
               <Label className="sr-only">Filter secrets</Label>
-              <Input placeholder="Filter by name" className="h-8 w-56 rounded-lg border border-line bg-surface px-2.5 text-[13px] outline-none focus:border-primary" />
+              <Input placeholder="Filter by name" className="h-8 w-56 rounded-lg border border-line-control bg-surface px-2.5 text-sm outline-none focus:border-primary" />
             </SearchField>
           </div>
           {current && <SecretsTable env={current} filter={filter} />}

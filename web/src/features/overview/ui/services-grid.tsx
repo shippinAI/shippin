@@ -16,18 +16,18 @@ export function ServicesGrid() {
   return (
     <section>
       <div className="mb-3.5 flex items-baseline justify-between">
-        <h2 className="text-[15px] font-semibold">{t("services.title")}</h2>
+        <h2 className="text-lg font-semibold">{t("services.title")}</h2>
         <span className="text-xs text-fg-subtle">
           {q.data ? [t("services.live"), joined ? `${q.data.host} / ${q.data.project}` : "", t("services.checked", { when: timeAgo(q.data.checked_at) })].filter(Boolean).join(" · ") : t("services.checking")}
         </span>
       </div>
       {q.isError && (
-        <div className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-base text-danger">
           <AlertTriangle className="size-4" /> {q.error.message}
         </div>
       )}
       {q.data?.probes.some((p) => p.configured === false) && (
-        <p className="mb-3.5 text-[13px] text-fg-muted" data-testid="probes-not-set-up">{t("services.notSetUp")}</p>
+        <p className="mb-3.5 text-sm text-fg-muted" data-testid="probes-not-set-up">{t("services.notSetUp")}</p>
       )}
       {q.data?.probes.length === 0 && (
         <div data-testid="services-empty">
@@ -37,7 +37,7 @@ export function ServicesGrid() {
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {q.isPending &&
-          Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-[196px] rounded-[var(--radius-card)]" />)}
+          Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-49 rounded-xl" />)}
         {q.data?.probes.map((p) => (
           <ServiceCard key={p.name} probe={p} instance={q.data.instances.find((i) => i.name === p.instance)} />
         ))}

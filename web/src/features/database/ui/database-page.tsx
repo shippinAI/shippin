@@ -37,7 +37,7 @@ export function DatabasePage() {
           </Switch>
         }
       />
-      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-[var(--radius-card)] border border-line bg-surface px-4 py-3 text-[13px] text-fg-muted shadow-[var(--shadow-e1)]">
+      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-fg-muted shadow-e1">
         <Database className="size-4 text-hue-data" aria-hidden />
         {info.data ? (
           <span>
@@ -49,7 +49,7 @@ export function DatabasePage() {
         )}
       </div>
       {info.data && !info.data.login_ready && (
-        <div role="status" className="mb-6 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-[13px] text-fg">
+        <div role="status" className="mb-6 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-fg">
           This console can name the database, but it isn't signed in as your database role yet. Connection details still copy. Running a query needs a pooler login for that role — the password stays in the platform, not in the browser.
         </div>
       )}

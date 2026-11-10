@@ -47,9 +47,9 @@ export function TablesPanel({ tenantId, readOnly }: { tenantId: string; readOnly
           }
         />
         {tables.isPending && <div className="space-y-2 p-4">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-12" />)}</div>}
-        {tables.isError && <p className="px-5 py-4 text-[13px] text-fg-muted">{(tables.error as Error).message}</p>}
+        {tables.isError && <p className="px-5 py-4 text-sm text-fg-muted">{(tables.error as Error).message}</p>}
         <div className="border-b border-line px-4 py-3">
-          <div className="mb-2 text-[11.5px] font-medium tracking-wide text-fg-subtle uppercase">Start from a template</div>
+          <div className="mb-2 text-xs font-medium tracking-wide text-fg-subtle uppercase">Start from a template</div>
           <div className="flex flex-wrap gap-1.5">
             {(templates.data?.templates ?? []).map((tpl) => (
               <Button
@@ -65,7 +65,7 @@ export function TablesPanel({ tenantId, readOnly }: { tenantId: string; readOnly
             ))}
           </div>
         </div>
-        <ul className="max-h-[32rem] overflow-y-auto" aria-label="Tables">
+        <ul className="max-h-128 overflow-y-auto" aria-label="Tables">
           {items.map((t) => {
             const on = current?.schema === t.schema && current?.name === t.name;
             return (
@@ -76,8 +76,8 @@ export function TablesPanel({ tenantId, readOnly }: { tenantId: string; readOnly
                   className={`focus-ring flex w-full items-center justify-between gap-3 border-b border-line px-4 py-3 text-left last:border-b-0 ${on ? "bg-primary/10" : "hover:bg-raised/70"}`}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate font-mono text-[13px] text-fg">{t.name}</span>
-                    <span className="text-[11.5px] text-fg-subtle">{t.schema === "public" ? rowCountLabel(t) : t.schema}</span>
+                    <span className="block truncate font-mono text-sm text-fg">{t.name}</span>
+                    <span className="text-xs text-fg-subtle">{t.schema === "public" ? rowCountLabel(t) : t.schema}</span>
                   </span>
                   {t.platform && <Badge>Platform</Badge>}
                 </button>
@@ -105,9 +105,9 @@ export function TablesPanel({ tenantId, readOnly }: { tenantId: string; readOnly
                   return (
                     <div key={tpl.id} className="rounded-xl border border-line bg-canvas/40 p-4">
                       <Icon className="mb-3 size-5 text-hue-data" aria-hidden />
-                      <div className="text-sm font-medium text-fg">{tpl.title}</div>
-                      <p className="mt-1 text-[12.5px] leading-relaxed text-fg-muted">{tpl.description}</p>
-                      <p className="mt-2 text-[12px] text-fg-subtle">{tpl.hint}</p>
+                      <div className="text-base font-medium text-fg">{tpl.title}</div>
+                      <p className="mt-1 text-sm leading-relaxed text-fg-muted">{tpl.description}</p>
+                      <p className="mt-2 text-xs text-fg-subtle">{tpl.hint}</p>
                       <Button
                         className="mt-3"
                         size="sm"

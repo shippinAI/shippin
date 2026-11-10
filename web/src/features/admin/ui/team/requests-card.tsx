@@ -9,8 +9,8 @@ export function RequestsCard({ team, canWrite }: { team: Team; canWrite: boolean
   const decide = useDecideRequest();
   if (!team.requests.length) return null;
   return (
-    <div className="mb-5 overflow-hidden rounded-[var(--radius-card)] border border-warning/30 bg-warning/[0.06]">
-      <div className="flex items-center gap-2 border-b border-warning/20 px-5 py-3 text-[13px] font-medium text-warning">
+    <div className="mb-5 overflow-hidden rounded-xl border border-warning/30 bg-warning/6">
+      <div className="flex items-center gap-2 border-b border-warning/20 px-5 py-3 text-sm font-medium text-warning">
         <Hourglass className="size-4" /> {team.requests.length} change{team.requests.length === 1 ? "" : "s"} waiting for a second Owner
       </div>
       {team.requests.map((q) => {
@@ -19,8 +19,8 @@ export function RequestsCard({ team, canWrite }: { team: Team; canWrite: boolean
         const detail = (q.payload.roles ?? q.payload.permissions ?? []).join(", ");
         return (
           <div key={q.id} className="flex items-center gap-4 border-b border-line px-5 py-3 last:border-b-0">
-            <div className="min-w-0 flex-1 text-[13px]">
-              <div className="text-fg"><span className="font-medium">{q.requested_name}</span> wants to {what}{detail && <> → <span className="font-mono text-[12px]">{detail}</span></>}</div>
+            <div className="min-w-0 flex-1 text-sm">
+              <div className="text-fg"><span className="font-medium">{q.requested_name}</span> wants to {what}{detail && <> → <span className="font-mono text-xs">{detail}</span></>}</div>
               <div className="text-fg-subtle">{q.reason} · {timeAgo(q.created_at)}</div>
             </div>
             {canWrite && mine && <Button variant="ghost" size="sm" tooltip="Withdraw your request" onPress={() => decide.mutate({ id: q.id, decision: "cancel" })}>Cancel</Button>}

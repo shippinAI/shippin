@@ -7,7 +7,7 @@ import { useText } from "../../../lib/ui-config/use-ui-config";
 export function InternalOrganizationCard() {
   const t = useText();
   const { data, error } = useAdminSystem();
-  if (error) return <p role="alert" className="mb-5 text-sm text-danger">{error.message}</p>;
+  if (error) return <p role="alert" className="mb-5 text-base text-danger">{error.message}</p>;
   if (!data) return null;
   const { audit } = data;
   const auditWord = !audit.enabled ? t("system.audit.off") : audit.ok ? t("system.audit.protected", { rows: audit.rows }) : t("system.audit.broken", { at: audit.first_bad ?? 0 });
@@ -15,11 +15,11 @@ export function InternalOrganizationCard() {
   return (
     <Card className="mb-5 p-5" data-testid="system-tenant">
       <div className="mb-1 flex flex-wrap items-center gap-2">
-        <h2 className="text-sm font-semibold text-fg">{data.organization.name}</h2>
+        <h2 className="text-base font-semibold text-fg">{data.organization.name}</h2>
         <Badge tone="warning">{t("system.badge")}</Badge>
       </div>
-      <p className="max-w-3xl text-[13px] text-fg-muted">{t("system.body")}</p>
-      <dl className="mt-4 grid gap-4 text-[13px] sm:grid-cols-3">
+      <p className="max-w-3xl text-sm text-fg-muted">{t("system.body")}</p>
+      <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
         <div><dt className="text-fg-subtle">{t("system.hosts")}</dt><dd className="mt-0.5 text-fg">{data.hosts}</dd></div>
         <div><dt className="text-fg-subtle">{t("system.selfGuest")}</dt><dd className="mt-0.5 font-mono text-fg">{data.self_guest || t("system.selfGuest.unknown")}</dd></div>
         <div><dt className="text-fg-subtle">{t("system.audit")}</dt><dd className={`mt-0.5 ${auditTone}`} data-testid="system-audit">{auditWord}</dd></div>

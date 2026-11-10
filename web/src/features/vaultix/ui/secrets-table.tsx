@@ -14,7 +14,7 @@ export function SecretsTable({ env, filter }: { env: string; filter: string }) {
   const f = filter.trim().toLowerCase();
   const rows = list.data.secrets.filter((s) => !f || s.key.toLowerCase().includes(f)).sort((a, b) => a.key.localeCompare(b.key));
   const columns: ColumnDef<VaultixSecret>[] = [
-    { id: "key", label: "Name", isRowHeader: true, render: (s) => <span className="font-mono text-[12.5px]">{s.key}</span> },
+    { id: "key", label: "Name", isRowHeader: true, render: (s) => <span className="font-mono text-sm">{s.key}</span> },
     { id: "value", label: "Value", render: (s) => <SecretActions env={env} secretKey={s.key} /> },
     { id: "version", label: "Version", width: "6rem", render: (s) => <span className="text-fg-muted">v{s.version}</span> },
     { id: "updated", label: "Updated", width: "12rem", render: (s) => <span className="text-fg-muted">{ago(s.updated_at)}</span> },

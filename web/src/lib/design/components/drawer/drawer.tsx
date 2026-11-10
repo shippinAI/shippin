@@ -8,13 +8,13 @@ type Props = { isOpen: boolean; onOpenChange: (o: boolean) => void; title: React
 /** Right-side sheet (RAC Modal). Esc / outside click closes. */
 export function Drawer({ isOpen, onOpenChange, title, subtitle, children, footer }: Props) {
   return (
-    <ModalOverlay isOpen={isOpen} onOpenChange={onOpenChange} isDismissable className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-[1px]">
-      <Modal className="fixed inset-y-0 right-0 flex w-full max-w-[520px] flex-col border-l border-line-strong bg-surface shadow-[var(--shadow-e3)] outline-none data-entering:animate-in data-entering:slide-in-from-right">
+    <ModalOverlay isOpen={isOpen} onOpenChange={onOpenChange} isDismissable className="fixed inset-0 z-50 bg-scrim">
+      <Modal className="fixed inset-y-0 right-0 flex w-full max-w-130 flex-col border-l border-line-strong bg-surface shadow-e3 outline-none data-entering:animate-enter motion-reduce:animate-none">
         <Dialog className="flex h-full flex-col outline-none">
           <div className="flex items-start justify-between gap-3 border-b border-line px-6 py-4">
             <div className="min-w-0">
-              <Heading slot="title" className="truncate text-[17px] font-semibold tracking-tight">{title}</Heading>
-              {subtitle && <div className="mt-0.5 text-[13px] text-fg-muted">{subtitle}</div>}
+              <Heading slot="title" className="truncate text-lg font-semibold tracking-tight">{title}</Heading>
+              {subtitle && <div className="mt-0.5 text-sm text-fg-muted">{subtitle}</div>}
             </div>
             <IconButton icon={X} label="Close panel" onPress={() => onOpenChange(false)} />
           </div>

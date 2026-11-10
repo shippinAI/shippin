@@ -38,22 +38,22 @@ export function StopGuestsDialog({ serverId, guests, isOpen, onOpenChange }: Pro
   return (
     <ModalDialog isOpen={isOpen} onOpenChange={onOpenChange} title={t("infra.stop.title")} description={t("infra.stop.description")}>
       <div className="space-y-4 px-6 py-5">
-        {candidates.length === 0 && <p className="text-sm text-fg-muted">{t("infra.stop.none")}</p>}
+        {candidates.length === 0 && <p className="text-base text-fg-muted">{t("infra.stop.none")}</p>}
         <ul className="max-h-72 space-y-1 overflow-y-auto" data-testid="stop-list">
           {candidates.map((g) => (
             <li key={g.id}>
-              <label className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm ${g.self ? "text-fg-subtle" : "text-fg"}`}>
+              <label className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-base ${g.self ? "text-fg-subtle" : "text-fg"}`}>
                 <input type="checkbox" aria-label={g.name || g.id} checked={chosen.has(g.id)} disabled={g.self} onChange={(e) => toggle(g.id, e.target.checked)} />
                 <span className="font-medium">{g.name || g.id}</span>
-                <span className="font-mono text-[12px] text-fg-subtle">{g.id}</span>
-                {g.self && <span className="ml-auto text-[12px] text-warning">{t("infra.stop.self")}</span>}
+                <span className="font-mono text-xs text-fg-subtle">{g.id}</span>
+                {g.self && <span className="ml-auto text-xs text-warning">{t("infra.stop.self")}</span>}
               </label>
             </li>
           ))}
         </ul>
         <Switch isSelected={force} onChange={setForce} tooltip={t("infra.stop.forceTooltip")}>{t("infra.stop.force")}</Switch>
         <TextField label={t("infra.note.label")} description={t("infra.note.help")} value={note} onChange={setNote} />
-        {stop.error && <p role="alert" className="text-sm text-danger">{stop.error.message}</p>}
+        {stop.error && <p role="alert" className="text-base text-danger">{stop.error.message}</p>}
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={() => onOpenChange(false)}>{t("infra.dialog.cancel")}</Button>
           <Button variant="primary" isDisabled={ordered.length === 0 || stop.isPending || !noteOK(note)} tooltip={t("infra.stop.submitTooltip")}

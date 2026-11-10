@@ -20,7 +20,7 @@ export function IdentityPage() {
   const cols: ColumnDef<Agent>[] = [
     { id: "name", label: "Agent", isRowHeader: true, render: (a) => <span className="flex items-center gap-2 font-medium text-fg"><Bot className="size-4 text-hue-identity" />{a.name}</span> },
     { id: "ws", label: "Workspace", render: (a) => wsName(a.workspace_id) },
-    { id: "idp", label: "Service user", render: (a) => <span className="font-mono text-[12.5px]">{a.idp_user_id}</span> },
+    { id: "idp", label: "Service user", render: (a) => <span className="font-mono text-sm">{a.idp_user_id}</span> },
     { id: "tools", label: "Tool grants", render: (a) => (a.tool_grants.length ? a.tool_grants.join(", ") : "None yet") },
     { id: "created", label: "Created", render: (a) => timeAgo(a.created_at) },
   ];

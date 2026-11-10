@@ -23,8 +23,8 @@ function NoRoleYet({ needsFactor }: { needsFactor: boolean }) {
   return (
     <div className="flex h-full items-center justify-center p-10" data-testid="no-role">
       <div className="max-w-md text-center">
-        <h1 className="text-[22px] font-semibold tracking-tight">{t(needsFactor ? "welcome.factor.title" : "welcome.noRole.title")}</h1>
-        <p className="mt-2 text-sm text-fg-muted">{t(needsFactor ? "welcome.factor.body" : "welcome.noRole.body")}</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t(needsFactor ? "welcome.factor.title" : "welcome.noRole.title")}</h1>
+        <p className="mt-2 text-base text-fg-muted">{t(needsFactor ? "welcome.factor.body" : "welcome.noRole.body")}</p>
       </div>
     </div>
   );
@@ -57,17 +57,17 @@ function Onboarding() {
             <BrandMark size={36} />
             <span className="text-xl font-semibold tracking-tight">{s?.brand.name}</span>
           </div>
-          <h1 className="text-[28px] font-semibold tracking-tight">{first ? `Welcome, ${first}` : "Welcome"}</h1>
-          <p className="mt-2 text-sm text-fg-muted">
+          <h1 className="text-3xl font-semibold tracking-tight">{first ? `Welcome, ${first}` : "Welcome"}</h1>
+          <p className="mt-2 text-base text-fg-muted">
             {open ? "Create your organization to get started. It takes about a minute." : "Your account isn't part of an organization yet."}
           </p>
-          <div className="mt-8 rounded-[var(--radius-card)] border border-line bg-surface p-6 shadow-[var(--shadow-e2)]">
+          <div className="mt-8 rounded-xl border border-line bg-surface p-6 shadow-e2">
             {open ? (
               <Form onSubmit={(e) => { e.preventDefault(); if (valid) submit(); }} className="space-y-5">
                 <TextField label="Organization name" value={name} onChange={setName} autoFocus description="Shown to your teammates. You can change it later." />
                 <ul className="space-y-2.5">
                   {steps.map(({ icon: I, text }) => (
-                    <li key={text} className="flex items-center gap-2.5 text-[13px] text-fg-muted">
+                    <li key={text} className="flex items-center gap-2.5 text-sm text-fg-muted">
                       <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 ring-1 ring-primary/20">
                         {onboard.isPending ? <Loader2 className="size-3.5 animate-spin text-primary" /> : onboard.isSuccess ? <Check className="size-3.5 text-success" /> : <I className="size-3.5 text-primary" />}
                       </span>
@@ -80,7 +80,7 @@ function Onboarding() {
                 </Button>
               </Form>
             ) : (
-              <p className="text-sm text-fg-muted">Sign-up is invite-only right now. Ask your organization owner to invite {me?.email ?? "you"}.</p>
+              <p className="text-base text-fg-muted">Sign-up is invite-only right now. Ask your organization owner to invite {me?.email ?? "you"}.</p>
             )}
           </div>
           <div className="mt-6 flex items-center justify-between text-xs text-fg-subtle">

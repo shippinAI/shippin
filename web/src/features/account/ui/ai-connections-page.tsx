@@ -42,7 +42,7 @@ export function AIConnectionsPage() {
                 <li key={p.id} className="flex items-center gap-4 px-5 py-4">
                   <Bot className="size-5 text-hue-ai" aria-hidden />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13.5px] font-medium text-fg">{p.label}</div>
+                    <div className="text-sm font-medium text-fg">{p.label}</div>
                     <div className="text-xs text-fg-subtle">{p.vendor}{c?.checked_at ? ` · checked ${timeAgo(c.checked_at)}` : ""}</div>
                   </div>
                   <AIStatusBadge status={c?.status ?? "not_connected"} />

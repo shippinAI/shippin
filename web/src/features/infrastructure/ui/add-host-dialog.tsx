@@ -27,11 +27,11 @@ function TestOutcome({ result, onTrust }: { result: ConnectResult; onTrust: (pem
   const c = result.certificate;
   if (c) {
     return (
-      <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-[13px]" data-testid="trust-prompt">
+      <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm" data-testid="trust-prompt">
         <p className="font-medium text-warning">{t("infra.trust.title")}</p>
         <p className="text-fg-muted">{t("infra.trust.body")}</p>
         <dl className="space-y-1 text-fg-muted">
-          <div><dt className="inline font-medium text-fg">{t("infra.trust.fingerprint")} </dt><dd className="inline break-all font-mono text-[12px]">{c.fingerprint}</dd></div>
+          <div><dt className="inline font-medium text-fg">{t("infra.trust.fingerprint")} </dt><dd className="inline break-all font-mono text-xs">{c.fingerprint}</dd></div>
           <div><dt className="inline font-medium text-fg">{t("infra.trust.names")} </dt><dd className="inline">{c.names.join(", ")}</dd></div>
           <div><dt className="inline font-medium text-fg">{t("infra.trust.expires")} </dt><dd className="inline">{new Date(c.not_after).toLocaleDateString()}</dd></div>
         </dl>
@@ -41,13 +41,13 @@ function TestOutcome({ result, onTrust }: { result: ConnectResult; onTrust: (pem
   }
   if (result.ok) {
     return (
-      <p role="status" data-testid="test-ok" className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-[13px] text-success">
+      <p role="status" data-testid="test-ok" className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
         {result.detail ?? t("infra.dialog.testOk", { version: result.version ?? "" })}
         {result.nodes && result.nodes.length > 1 ? ` ${t("infra.dialog.testNodes", { nodes: result.nodes.join(", ") })}` : ""}
       </p>
     );
   }
-  return <p role="alert" className="break-words rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">{result.error}</p>;
+  return <p role="alert" className="break-words rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">{result.error}</p>;
 }
 
 /** The form comes entirely from the overview: which providers exist and what each one asks for. */
@@ -150,8 +150,8 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
   return (
     <ModalDialog isOpen={isOpen} onOpenChange={onOpenChange} title={editNode ? t("infra.dialog.editTitle", { label: editNode.label }) : t("infra.dialog.title")} description={t("infra.dialog.description")}>
       <div className="max-h-[75vh] space-y-4 overflow-y-auto px-6 py-5">
-        {editNode ? <p className="text-sm text-fg-muted">{provider?.label} · {editNode.slug}</p> : <Select label={t("infra.dialog.provider")} options={providers.map((p) => ({ id: p.kind, label: p.label }))} value={provider?.kind ?? ""} onChange={pick} />}
-        {provider?.description && <p className="text-[13px] text-fg-muted">{provider.description}</p>}
+        {editNode ? <p className="text-base text-fg-muted">{provider?.label} · {editNode.slug}</p> : <Select label={t("infra.dialog.provider")} options={providers.map((p) => ({ id: p.kind, label: p.label }))} value={provider?.kind ?? ""} onChange={pick} />}
+        {provider?.description && <p className="text-sm text-fg-muted">{provider.description}</p>}
         {targets.length > 1 && <Select label={t("infra.dialog.target")} options={targets} value={target} onChange={setTarget} />}
         {isNew && (
           <>
@@ -168,13 +168,13 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
         {provider?.tenant_secret_exposure_policy && <Checkbox isSelected={allowTenantSecrets} onChange={setAllowTenantSecrets}
           description={t("infra.dialog.tenantSecrets.help")}>{t("infra.dialog.tenantSecrets.label")}</Checkbox>}
         {advanced.length > 0 && <Disclosure title={t("infra.dialog.advanced")}><div className="space-y-4 p-4">{advanced.map(field)}</div></Disclosure>}
-        {trusted && <p className="text-[13px] text-fg-muted">{t("infra.trust.accepted")}</p>}
+        {trusted && <p className="text-sm text-fg-muted">{t("infra.trust.accepted")}</p>}
         <div ref={outcome} className="space-y-2 empty:hidden">
           {test.data && <TestOutcome result={test.data} onTrust={trust} />}
-          {test.isError && <p role="alert" className="text-[13px] text-danger">{test.error.message}</p>}
+          {test.isError && <p role="alert" className="text-sm text-danger">{test.error.message}</p>}
         </div>
         <TextField label={t("infra.note.label")} description={t("infra.note.help")} value={note} onChange={setNote} />
-        {add.isError && <p role="alert" data-testid="add-error" className="break-words text-[13px] text-danger">{add.error.message}</p>}
+        {add.isError && <p role="alert" data-testid="add-error" className="break-words text-sm text-danger">{add.error.message}</p>}
         <div className="flex flex-wrap justify-end gap-2 border-t border-line pt-4">
           <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={() => onOpenChange(false)}>{t("infra.dialog.cancel")}</Button>
           <Button variant="secondary" isDisabled={!filled || test.isPending} tooltip={t("infra.dialog.testTooltip")} onPress={() => runTest()}>

@@ -47,9 +47,9 @@ export function DevspacePage() {
   }, [projectId, project.data, env, list.data, ws, open, agent.isSuccess, built]);
 
   if (project.isPending) return <Skeleton className="h-[70vh]" />;
-  if (!project.data) return <p className="text-sm text-fg-muted">Project not found.</p>;
+  if (!project.data) return <p className="text-base text-fg-muted">Project not found.</p>;
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-[var(--shadow-e2)]">
+    <div className="flex h-[calc(100vh-7rem)] flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-e2">
       <DevspaceBar
         project={project.data}
         projects={projects.data ?? []}

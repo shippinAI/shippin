@@ -21,7 +21,7 @@ export function IdentityPage() {
   return (
     <>
       <PageHeader eyebrow="Provider" title="Users & sign-in" description={<>{idp} at <span className="font-mono">{d?.issuer ?? "…"}</span>. Read-only; secrets are never shown.</>} />
-      {d?.errors.length ? <div className="mb-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2 text-[13px] text-warning">{d.errors.join(" · ")}</div> : null}
+      {d?.errors.length ? <div className="mb-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2 text-sm text-warning">{d.errors.join(" · ")}</div> : null}
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Users" value={d ? d.users.filter((u) => u.kind === "human").length : undefined} icon={Users} hue="var(--color-hue-identity)" hint="Human accounts" />
         <StatCard label="Service accounts" value={d ? d.users.filter((u) => u.kind === "machine").length : undefined} icon={KeyRound} hue="var(--color-hue-secrets)" hint="Machine users" />

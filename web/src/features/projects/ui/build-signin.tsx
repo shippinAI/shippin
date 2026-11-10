@@ -17,9 +17,9 @@ export function BuildSignIn({ tenantId, provider }: { tenantId: string; provider
   const home = subs.data?.homes.find((h) => h.tenant_id === tenantId);
   if (!p) return null;
   return (
-    <div className="rounded-[var(--radius-card)] border border-warning/40 bg-warning/8 p-4">
-      <p className="text-sm font-medium text-fg">Sign in to {p.label} to start building</p>
-      <p className="mt-1 text-[13px] text-fg-muted">
+    <div className="rounded-xl border border-warning/40 bg-warning/8 p-4">
+      <p className="text-base font-medium text-fg">Sign in to {p.label} to start building</p>
+      <p className="mt-1 text-sm text-fg-muted">
         Your agent runs on your own {p.vendor ?? p.label} subscription. Sign in once; the build starts by itself afterwards.
       </p>
       <Button className="mt-3" size="sm" variant="primary" isDisabled={activate.isPending} tooltip="Opens your private sign-in terminal"

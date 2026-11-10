@@ -23,14 +23,14 @@ function FleetCard({ data, fleetId }: { data: InfraOverview; fleetId: string }) 
     <Card className="mb-6 overflow-hidden" data-testid="fleet">
       <CardHeader title={fleet.label} description={[fleet.description, t("infra.fleets.summary", { online: totals.online, nodes: totals.nodes, running: totals.running, guests: totals.guests })].filter(Boolean).join(" · ")}
         actions={may("infra.fleets.write") && <Button size="sm" variant="ghost" tooltip={t("infra.fleets.deleteTooltip")} isDisabled={remove.isPending} onPress={() => remove.mutate(fleetId)}>{t("infra.fleets.delete")}</Button>} />
-      {members.length === 0 ? <p className="p-5 text-sm text-fg-muted">{t("infra.fleets.noHosts")}</p> : (
+      {members.length === 0 ? <p className="p-5 text-base text-fg-muted">{t("infra.fleets.noHosts")}</p> : (
         <ul className="divide-y divide-line">
           {members.map(({ node, providerLabel }) => (
-            <li key={node.id} className="flex flex-wrap items-center gap-3 px-5 py-3 text-sm" data-testid="fleet-member">
+            <li key={node.id} className="flex flex-wrap items-center gap-3 px-5 py-3 text-base" data-testid="fleet-member">
               <span className="font-medium text-fg">{node.label}</span>
               <Badge tone="primary">{providerLabel}</Badge>
-              {node.version && <span className="font-mono text-[12.5px] text-fg-muted">{node.version}</span>}
-              {node.details?.cluster && <span className="text-[12.5px] text-fg-muted">{t("infra.fact.clusterNamed", { name: node.details.cluster })}</span>}
+              {node.version && <span className="font-mono text-sm text-fg-muted">{node.version}</span>}
+              {node.details?.cluster && <span className="text-sm text-fg-muted">{t("infra.fact.clusterNamed", { name: node.details.cluster })}</span>}
               <Badge tone={node.online ? "success" : "danger"}><StatusDot health={node.online ? "up" : "down"} /> {node.online ? t("infra.status.online") : t("infra.status.offline")}</Badge>
               <span className="tabular-nums text-fg-muted">{t("infra.fleets.memberGuests", { running: node.guests.running, total: node.guests.total })}</span>
               {may("infra.fleets.write") && <Button size="sm" variant="ghost" className="ml-auto" tooltip={t("infra.fleets.removeTooltip")} isDisabled={assign.isPending} onPress={() => assign.mutate({ serverId: node.id, fleetId: "" })}>{t("infra.fleets.remove")}</Button>}
@@ -40,9 +40,9 @@ function FleetCard({ data, fleetId }: { data: InfraOverview; fleetId: string }) 
       )}
       {free.length > 0 && may("infra.fleets.write") && (
         <div className="border-t border-line px-5 py-3">
-          <label className="flex flex-wrap items-center gap-2 text-[13px] text-fg-muted">
+          <label className="flex flex-wrap items-center gap-2 text-sm text-fg-muted">
             {t("infra.fleets.addHost")}
-            <select aria-label={t("infra.fleets.addHost")} className="h-8 rounded-md border border-line bg-canvas px-2 text-sm" value="" disabled={assign.isPending}
+            <select aria-label={t("infra.fleets.addHost")} className="h-8 rounded-md border border-line bg-canvas px-2 text-base" value="" disabled={assign.isPending}
               onChange={(e) => { if (e.target.value) assign.mutate({ serverId: e.target.value, fleetId }); }}>
               <option value="">{t("infra.fleets.chooseHost")}</option>
               {free.map(({ node, providerLabel }) => <option key={node.id} value={node.id}>{node.label} · {providerLabel}</option>)}
@@ -64,13 +64,13 @@ export function FleetsTab({ data }: { data: InfraOverview }) {
   const create = () => save.mutate({ label: label.trim(), description: description.trim() }, { onSuccess: () => { setLabel(""); setDescription(""); } });
   return (
     <>
-      <p className="mb-6 max-w-3xl text-sm text-fg-muted">{t("infra.fleets.explain")}</p>
+      <p className="mb-6 max-w-3xl text-base text-fg-muted">{t("infra.fleets.explain")}</p>
       {data.fleets.length === 0 && (
         <div className="mb-6"><EmptyState illustration={<Layers className="size-10 text-fg-subtle" />} title={t("infra.fleets.empty.title")} description={t("infra.fleets.empty.body")} /></div>
       )}
       {data.fleets.map((f) => <FleetCard key={f.id} data={data} fleetId={f.id} />)}
       {may("infra.fleets.write") && <Card className="p-5">
-        <h2 className="mb-3 text-sm font-semibold text-fg">{t("infra.fleets.new")}</h2>
+        <h2 className="mb-3 text-base font-semibold text-fg">{t("infra.fleets.new")}</h2>
         <form className="grid items-start gap-3 md:grid-cols-[1fr_2fr_auto]" onSubmit={(e) => { e.preventDefault(); if (label.trim()) create(); }}>
           <TextField label={t("infra.fleets.name")} value={label} onChange={setLabel} />
           <TextField label={t("infra.fleets.description")} value={description} onChange={setDescription} />

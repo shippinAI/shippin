@@ -33,12 +33,12 @@ export function DetailsStep({ tpl, name, setName, repo, setRepo, hosts }: Props)
           description="Public HTTPS clone for now. Cloned into ~/code, then the template's startup script runs."
           validate={(v) => (!v || repoRe.test(v.trim()) ? null : repoHint(hosts))}
         />
-        <div className="flex items-center gap-2 text-[13px] text-fg-muted">
+        <div className="flex items-center gap-2 text-sm text-fg-muted">
           <KeyRound className="size-4 text-hue-secrets" />
           {keys ? `${keys} SSH key${keys > 1 ? "s" : ""} from your account will be added.` : "No SSH keys yet. Add them under Account › SSH keys (optional)."}
         </div>
       </div>
-      <aside className="h-fit rounded-[var(--radius-card)] border border-line bg-raised/40 p-4 text-[13px]">
+      <aside className="h-fit rounded-xl border border-line bg-raised/40 p-4 text-sm">
         <div className="flex items-center gap-3">
           <TemplateIcon icon={tpl.icon} size={32} />
           <div className="font-medium text-fg">{tpl.name}</div>

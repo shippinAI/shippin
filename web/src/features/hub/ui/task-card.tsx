@@ -25,15 +25,15 @@ export function TaskCard({ task, isOwner }: { task: HubTask; isOwner: boolean })
   return (
     <article
       aria-label={task.title}
-      className={`group rounded-xl border bg-surface p-3.5 shadow-[var(--shadow-e1)] transition hover:shadow-[var(--shadow-e2)] ${waiting ? "border-warning/40 ring-1 ring-warning/20" : "border-line"}`}
+      className={`group rounded-xl border bg-surface p-3.5 shadow-e1 transition hover:shadow-e2 ${waiting ? "border-warning/40 ring-1 ring-warning/20" : "border-line"}`}
     >
-      <h3 className="text-[13.5px] leading-snug font-semibold text-fg">{task.title}</h3>
-      {task.body && <p className="mt-1 line-clamp-2 text-[12.5px] text-fg-muted">{task.body}</p>}
-      {task.progress && <p className="mt-2 rounded-md bg-raised px-2 py-1 text-[12px] text-fg-muted">{task.progress}</p>}
+      <h3 className="text-sm leading-snug font-semibold text-fg">{task.title}</h3>
+      {task.body && <p className="mt-1 line-clamp-2 text-sm text-fg-muted">{task.body}</p>}
+      {task.progress && <p className="mt-2 rounded-md bg-raised px-2 py-1 text-xs text-fg-muted">{task.progress}</p>}
       {waiting && task.approval_note && (
-        <p className="mt-2 rounded-md border border-warning/25 bg-warning/8 px-2 py-1 text-[12px] text-fg">{task.approval_note}</p>
+        <p className="mt-2 rounded-md border border-warning/25 bg-warning/8 px-2 py-1 text-xs text-fg">{task.approval_note}</p>
       )}
-      <footer className="mt-3 flex items-center justify-between gap-2 text-[11.5px] text-fg-subtle">
+      <footer className="mt-3 flex items-center justify-between gap-2 text-xs text-fg-subtle">
         <span className="inline-flex min-w-0 items-center gap-1 truncate">
           <Bot className="size-3.5 shrink-0" aria-hidden />
           {task.lease_owner || task.decided_by || task.created_by}

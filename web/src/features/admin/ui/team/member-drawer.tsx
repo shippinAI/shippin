@@ -58,8 +58,8 @@ export function MemberDrawer({ team, member, canWrite, onClose }: Props) {
           <Fact label="Current roles" value={<RoleChips keys={member.roles} roles={team.roles} />} />
         </div>
         <CheckboxGroup value={roles} onChange={setRoles} isDisabled={!canWrite} className="space-y-1">
-          <Label className="text-[13px] font-medium text-fg">Roles</Label>
-          {member.self && <p className="pb-1 text-[12px] text-warning">You can remove your own roles, but not add any; ask another Owner.</p>}
+          <Label className="text-sm font-medium text-fg">Roles</Label>
+          {member.self && <p className="pb-1 text-xs text-warning">You can remove your own roles, but not add any; ask another Owner.</p>}
           {team.roles.map((r) => (
             <Checkbox key={r.key} value={r.key} isDisabled={!canWrite || (member.self && !member.roles.includes(r.key))}
               description={`${r.description || r.key} · ${r.permissions.length} permissions`}>
@@ -70,7 +70,7 @@ export function MemberDrawer({ team, member, canWrite, onClose }: Props) {
         {canWrite && (
           <TextField label="Reason" multiline value={reason} onChange={setReason} placeholder="e.g. Joining the on-call rotation" description="Required; kept in the audit log with the change." />
         )}
-        {lastOwner && <p className="text-[12px] text-fg-subtle">This is the only active Owner. Make someone else an Owner before removing this role.</p>}
+        {lastOwner && <p className="text-xs text-fg-subtle">This is the only active Owner. Make someone else an Owner before removing this role.</p>}
       </div>
     </Drawer>
   );
@@ -79,8 +79,8 @@ export function MemberDrawer({ team, member, canWrite, onClose }: Props) {
 function Fact({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <div className="text-[11.5px] font-medium tracking-wide text-fg-subtle uppercase">{label}</div>
-      <div className="mt-1 text-[13px] text-fg">{value}</div>
+      <div className="text-xs font-medium tracking-wide text-fg-subtle uppercase">{label}</div>
+      <div className="mt-1 text-sm text-fg">{value}</div>
     </div>
   );
 }

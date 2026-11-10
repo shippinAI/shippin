@@ -49,7 +49,7 @@ export function PromptProjectForm({ tenantId, options, workspaceId }: { tenantId
         description={`${bytes.toLocaleString()} / ${options.max_bytes.toLocaleString()} bytes. Shippin passes this to your agent and keeps only a short preview.`}
         validate={() => (bytes > options.max_bytes ? "That's a bit long. Trim it a little." : null)} />
       <div className="flex flex-col gap-1.5">
-        <Label id="stack-label" className="text-[13px] font-medium text-fg">Stack</Label>
+        <Label id="stack-label" className="text-sm font-medium text-fg">Stack</Label>
         <ToggleButtonGroup aria-labelledby="stack-label" selectionMode="single" disallowEmptySelection selectedKeys={[stack]}
           onSelectionChange={(k: Set<Key>) => k.size && setStack(String([...k][0]))} className="flex flex-wrap gap-2">
           {stacks.map((s) => <ToggleButton key={s.template} id={s.template} className={chip}>{s.label}</ToggleButton>)}

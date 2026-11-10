@@ -46,9 +46,9 @@ export function RuntimeRecipeForm({ value, onChange, showEnvironment }: Props) {
         <TextField label="Container mount path" mono value={value.storage.mount_path} onChange={(v) => onChange((r) => ({ ...r, storage: { ...r.storage, mount_path: v } }))} />
       </div>
 
-      <section className="grid gap-3 rounded-md bg-canvas-subtle p-3" aria-label="Network configuration">
+      <section className="grid gap-3 rounded-md bg-raised p-3" aria-label="Network configuration">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-medium text-fg">Network ports</h4>
+          <h4 className="text-base font-medium text-fg">Network ports</h4>
           <Button tooltip="Add port" variant="secondary" isDisabled={value.network.ports.length >= 32} onPress={addPort}>Add port</Button>
         </div>
         <Select label="Exposure" options={[{ id: "private", label: "Private" }, { id: "edge", label: "Edge" }]} value={value.network.exposure} onChange={(v) => onChange((r) => ({ ...r, network: { ...r.network, exposure: v as CatalogRuntimeContractV3["network"]["exposure"] } }))} />
@@ -60,10 +60,10 @@ export function RuntimeRecipeForm({ value, onChange, showEnvironment }: Props) {
         </div>)}
       </section>
 
-      {showEnvironment && <section className="grid gap-3 rounded-md bg-canvas-subtle p-3" aria-label="Environment bindings">
+      {showEnvironment && <section className="grid gap-3 rounded-md bg-raised p-3" aria-label="Environment bindings">
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-medium text-fg">Container environment</h4>
+            <h4 className="text-base font-medium text-fg">Container environment</h4>
             <p className="text-xs text-fg-muted">Map config fields to OCI environment variable names. Secret fields must use tenant Vaultix references; values are never stored in this recipe.</p>
           </div>
           <Button tooltip="Add environment binding" variant="secondary" isDisabled={value.environment.length >= 16}
@@ -76,8 +76,8 @@ export function RuntimeRecipeForm({ value, onChange, showEnvironment }: Props) {
         </div>)}
       </section>}
 
-      <section className="grid gap-3 rounded-md bg-canvas-subtle p-3" aria-label="Health check configuration">
-        <h4 className="text-sm font-medium text-fg">Health check</h4>
+      <section className="grid gap-3 rounded-md bg-raised p-3" aria-label="Health check configuration">
+        <h4 className="text-base font-medium text-fg">Health check</h4>
         <div className="grid grid-cols-2 gap-3">
           <Select label="Check type" options={[{ id: "tcp", label: "TCP" }, { id: "http", label: "HTTP" }]} value={value.health.kind} onChange={(v) => onChange((r) => ({ ...r, health: { ...r.health, kind: v as "tcp" | "http", ...(v === "http" ? { path: r.health.path ?? "" } : { path: undefined }) } }))} />
           <TextField label="Health port" type="number" min={1} max={65535} step={1} value={String(value.health.port)} onChange={(v) => onChange((r) => ({ ...r, health: { ...r.health, port: Number(v) } }))} />
@@ -90,7 +90,7 @@ export function RuntimeRecipeForm({ value, onChange, showEnvironment }: Props) {
 
       <details className="text-xs text-fg-muted">
         <summary className="cursor-pointer">Review saved recipe</summary>
-        <pre className="mt-2 max-h-64 overflow-auto rounded bg-canvas-subtle p-3 font-mono text-[11px]">{JSON.stringify(value, null, 2)}</pre>
+        <pre className="mt-2 max-h-64 overflow-auto rounded-sm bg-raised p-3 font-mono text-2xs">{JSON.stringify(value, null, 2)}</pre>
       </details>
     </div>
   );

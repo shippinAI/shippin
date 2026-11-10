@@ -15,8 +15,8 @@ export function A2UIForm({ b, onPrompt }: { b: A2UIBlock; onPrompt: (text: strin
     onPrompt(text);
   };
   return (
-    <Form className="space-y-3 rounded-[var(--radius-card)] border border-line bg-canvas/40 p-3" onSubmit={(e) => { e.preventDefault(); submit(); }}>
-      {b.title && <p className="text-sm font-medium text-fg">{b.title}</p>}
+    <Form className="space-y-3 rounded-xl border border-line bg-canvas/40 p-3" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      {b.title && <p className="text-base font-medium text-fg">{b.title}</p>}
       {(b.fields ?? []).map((f) =>
         f.kind === "select" ? (
           <Select key={f.name} label={f.label} value={values[f.name] ?? ""} onChange={(v) => set(f.name, v)}

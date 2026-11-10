@@ -15,7 +15,7 @@ export function BuildSteps({ state, label }: { state: RunState; label: string })
         const now = i === at;
         const failed = now && state === "failed";
         return (
-          <li key={text} className={`flex items-center gap-2.5 text-sm ${done || now ? "text-fg" : "text-fg-subtle"}`}>
+          <li key={text} className={`flex items-center gap-2.5 text-base ${done || now ? "text-fg" : "text-fg-subtle"}`}>
             {done && <Check className="size-4 text-success" />}
             {now && !failed && <Loader2 className="size-4 animate-spin text-primary" />}
             {failed && <X className="size-4 text-danger" />}

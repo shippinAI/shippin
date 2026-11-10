@@ -43,10 +43,10 @@ export function PublishTab({ ws, canEdit }: { ws: Workspace; canEdit: boolean })
         </div>
         {site?.published && site.url && (
           <div className="flex flex-wrap items-center gap-3 border-t border-line px-5 py-3">
-            <a className="inline-flex items-center gap-1 font-mono text-[13px] text-primary underline" href={site.url} target="_blank" rel="noreferrer">
+            <a className="inline-flex items-center gap-1 font-mono text-sm text-primary underline" href={site.url} target="_blank" rel="noreferrer">
               {site.url} <ExternalLink className="size-3.5" />
             </a>
-            <span className="text-[12px] text-fg-muted">Release {site.current}{site.rrflow_recorded ? " · logged in rrflow" : ""}</span>
+            <span className="text-xs text-fg-muted">Release {site.current}{site.rrflow_recorded ? " · logged in rrflow" : ""}</span>
             <span className="flex-1" />
             <Button size="sm" variant="secondary" tooltip="Serve the previous release" isDisabled={off || !prev || !p}
               onPress={() => act.mutate({ action: "rollback", slug, port: p })}>
@@ -63,10 +63,10 @@ export function PublishTab({ ws, canEdit }: { ws: Workspace; canEdit: boolean })
         <CardHeader title="Releases" description="The last 10 releases are kept. Roll back to any of them." />
         <ul className="divide-y divide-line">
           {(site?.releases ?? []).map((r) => (
-            <li key={r.id} className="flex items-center gap-4 px-5 py-3 text-[13px]">
+            <li key={r.id} className="flex items-center gap-4 px-5 py-3 text-sm">
               <span className="font-mono text-fg">{r.id}</span>
               <span className="text-fg-muted">{timeAgo(r.at)}</span>
-              {r.id === site?.current && <span className="text-[12px] text-primary">live</span>}
+              {r.id === site?.current && <span className="text-xs text-primary">live</span>}
               <span className="flex-1" />
               {r.id !== site?.current && (
                 <Button size="sm" variant="ghost" tooltip={`Serve ${r.id}`} isDisabled={off || !p}
@@ -76,7 +76,7 @@ export function PublishTab({ ws, canEdit }: { ws: Workspace; canEdit: boolean })
               )}
             </li>
           ))}
-          {!site?.releases.length && <li className="px-5 py-3 text-[13px] text-fg-muted">{site?.note ?? "Nothing published yet."}</li>}
+          {!site?.releases.length && <li className="px-5 py-3 text-sm text-fg-muted">{site?.note ?? "Nothing published yet."}</li>}
         </ul>
       </Card>
     </div>

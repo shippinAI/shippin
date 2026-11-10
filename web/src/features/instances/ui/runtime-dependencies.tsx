@@ -16,6 +16,6 @@ export function RuntimeDependencies() {
   ];
   return <Card className="mb-5 overflow-hidden">
     <CardHeader title="Control plane dependencies" description="Live checks of the services this panel uses. Local or hosted connections are selected in installation configuration." />
-    <table className="w-full text-left text-sm"><thead><tr className="border-b border-line"><th className="px-5 py-3">Service</th><th className="px-5 py-3">Used for</th><th className="px-5 py-3">Connection</th></tr></thead><tbody>{rows.map((row) => <tr key={row.name} className="border-b border-line"><td className="px-5 py-3 font-medium">{row.name}</td><td className="px-5 py-3 text-fg-muted">{row.purpose}</td><td className="px-5 py-3">{row.status}</td></tr>)}</tbody></table>
+    <table className="w-full text-left text-base"><thead><tr className="border-b border-line"><th className="px-5 py-3">Service</th><th className="px-5 py-3">Used for</th><th className="px-5 py-3">Connection</th></tr></thead><tbody>{rows.map((row) => <tr key={row.name} className="border-b border-line"><td className="px-5 py-3 font-medium">{row.name}</td><td className="px-5 py-3 text-fg-muted">{row.purpose}</td><td className="px-5 py-3">{row.status}</td></tr>)}</tbody></table>
   </Card>;
 }

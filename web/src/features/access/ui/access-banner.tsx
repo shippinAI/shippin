@@ -25,7 +25,7 @@ export function AccessBanner() {
   }, [pending]);
   if (tenant?.access)
     return (
-      <div role="status" className="mb-6 flex items-center gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-[13px]">
+      <div role="status" className="mb-6 flex items-center gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
         {tenant.access.kind === "breakglass" ? <Siren className="size-4 text-danger" /> : <ShieldAlert className="size-4 text-warning" />}
         <span className="text-fg">
           You're viewing {tenant.name} through {tenant.access.kind === "breakglass" ? "break-glass" : "customer-approved"} access ({tenant.access.scope}), {untilLabel(tenant.access.expires_at)}. Every open and action is audited.
@@ -36,7 +36,7 @@ export function AccessBanner() {
   return (
     <div className="mb-6 space-y-3">
       {q.data?.notices.map((g) => (
-        <div key={g.id} role="alert" className="flex gap-3 rounded-xl border border-danger/35 bg-danger/10 px-4 py-3.5 text-[13px]">
+        <div key={g.id} role="alert" className="flex gap-3 rounded-xl border border-danger/35 bg-danger/10 px-4 py-3.5 text-sm">
           <Siren className="mt-0.5 size-4 shrink-0 text-danger" />
           <div className="min-w-0">
             <div className="font-semibold text-fg">Emergency access by Shippin admin {g.requester_name}</div>
@@ -48,10 +48,10 @@ export function AccessBanner() {
         </div>
       ))}
       {pending.map((g) => (
-        <div key={g.id} role="alert" className="flex flex-wrap items-center gap-4 rounded-xl border border-primary/35 bg-[linear-gradient(90deg,oklch(0.66_0.16_250/0.16),oklch(0.66_0.16_250/0.05))] px-4 py-3.5 shadow-[var(--shadow-e2)]">
+        <div key={g.id} role="alert" className="flex flex-wrap items-center gap-4 rounded-xl border border-primary/35 bg-primary/10 px-4 py-3.5 shadow-e2">
           <ShieldQuestion className="size-5 shrink-0 text-primary" />
-          <div className="min-w-0 flex-1 text-[13px]">
-            <div className="text-[14px] font-semibold text-fg">Admin {g.requester_name} is requesting access to your project space</div>
+          <div className="min-w-0 flex-1 text-sm">
+            <div className="text-base font-semibold text-fg">Admin {g.requester_name} is requesting access to your project space</div>
             <div className="mt-0.5 text-fg-muted">
               <span className="text-fg">{grantScope(g)}</span> · for {humanDuration(g.duration_s)} · “{g.reason}”
             </div>

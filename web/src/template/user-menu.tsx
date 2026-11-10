@@ -24,8 +24,8 @@ export function UserMenu({ area }: { area: "tenant" | "admin" }) {
         {initials(me?.display_name ?? "")}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-medium">{me?.display_name}</span>
-        <span className="block truncate text-[11px] text-fg-subtle">{me?.email}</span>
+        <span className="block truncate text-sm font-medium">{me?.display_name}</span>
+        <span className="block truncate text-2xs text-fg-subtle">{me?.email}</span>
       </span>
       <ChevronsUpDown className="size-3.5 text-fg-subtle" />
     </Button>

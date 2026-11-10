@@ -32,7 +32,7 @@ export function OrganizationWorkspacesPage() {
   return <>
     <PageHeader eyebrow={tenant?.name} title={text("spaces.title")} description={text("spaces.description")} />
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm text-fg-muted">{text("spaces.access")}</p>
+      <p className="text-base text-fg-muted">{text("spaces.access")}</p>
       {tenant?.can_manage && tenant.roles.length > 0 && <Button variant="primary" tooltip={text("spaces.create")} onPress={() => edit("new")}><Plus className="size-4" />{text("spaces.create")}</Button>}
     </div>
     {q.isPending && <Skeleton className="h-40" />}
@@ -41,8 +41,8 @@ export function OrganizationWorkspacesPage() {
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {q.data?.map((space) => <Card key={space.id} elevation={2} className="flex flex-col gap-4 p-5">
         <div className="flex items-center gap-3"><FolderGit2 className="size-5 text-primary" /><h2 className="min-w-0 flex-1 truncate font-semibold">{space.name}</h2>{space.is_default && <Badge tone="primary">{text("spaces.default")}</Badge>}</div>
-        <p className="min-h-10 text-sm text-fg-muted">{space.description || text("spaces.emptyDescription")}</p>
-        <p className="text-sm text-fg-subtle">{text("spaces.projectCount", { count: space.projects })}</p>
+        <p className="min-h-10 text-base text-fg-muted">{space.description || text("spaces.emptyDescription")}</p>
+        <p className="text-base text-fg-subtle">{text("spaces.projectCount", { count: space.projects })}</p>
         <div className="mt-auto flex flex-wrap gap-2">
           <Button variant="primary" size="sm" tooltip={text("spaces.open")} onPress={() => nav(`/t/${tenantId}/workspaces/${space.id}/projects`)}>{text("spaces.open")}</Button>
           {tenant?.can_manage && tenant.roles.length > 0 && <>
@@ -56,7 +56,7 @@ export function OrganizationWorkspacesPage() {
       <Form className="space-y-4 p-6" onSubmit={(e) => { e.preventDefault(); save.mutate({ id: editor && editor !== "new" ? editor.id : undefined, name, description }, { onSuccess: () => setEditor(null) }); }}>
         <TextField label={text("spaces.name")} value={name} onChange={setName} isRequired maxLength={80} autoFocus />
         <TextField label={text("spaces.details")} value={description} onChange={setDescription} maxLength={500} multiline />
-        {save.isError && <p role="alert" className="text-sm text-danger">{save.error.message}</p>}
+        {save.isError && <p role="alert" className="text-base text-danger">{save.error.message}</p>}
         <Button type="submit" variant="primary" tooltip={text("spaces.save")} isDisabled={save.isPending || !name.trim()}>{text("spaces.save")}</Button>
       </Form>
     </ModalDialog>

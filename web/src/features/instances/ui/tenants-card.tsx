@@ -13,9 +13,9 @@ export function TenantsCard() {
   const q = useAllTenants(true);
   const retry = useRetryProvision();
   const cols: ColumnDef<OperatorTenant>[] = [
-    { id: "name", label: "Tenant", isRowHeader: true, render: (t) => <span><span className="block font-medium text-fg">{t.name}</span><span className="font-mono text-[11.5px] text-fg-subtle">{t.id}</span></span> },
+    { id: "name", label: "Tenant", isRowHeader: true, render: (t) => <span><span className="block font-medium text-fg">{t.name}</span><span className="font-mono text-xs text-fg-subtle">{t.id}</span></span> },
     { id: "status", label: "Status", render: (t) => <Badge tone={tone(t.status)}>{t.status}</Badge> },
-    { id: "err", label: "Last error", render: (t) => <span className="line-clamp-2 font-mono text-[12px] text-danger" title={t.error}>{t.error || "—"}</span> },
+    { id: "err", label: "Last error", render: (t) => <span className="line-clamp-2 font-mono text-xs text-danger" title={t.error}>{t.error || "—"}</span> },
     { id: "created", label: "Created", render: (t) => timeAgo(t.created_at) },
     {
       id: "x", label: "", width: "120px",
@@ -29,7 +29,7 @@ export function TenantsCard() {
   return (
     <Card elevation={2} className="mt-8 overflow-hidden">
       <CardHeader title="Tenants" description="Provisioning status across the platform. Errors are shown to operators only." />
-      <DataTable label="Tenants" columns={cols} rows={q.data?.items ?? []} empty={<p className="p-5 text-sm text-fg-muted">No tenants yet.</p>} />
+      <DataTable label="Tenants" columns={cols} rows={q.data?.items ?? []} empty={<p className="p-5 text-base text-fg-muted">No tenants yet.</p>} />
     </Card>
   );
 }

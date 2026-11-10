@@ -9,7 +9,7 @@ import { certColumns, portColumns, routeColumns } from "./edge-tables";
 import { QueryView } from "./query-view";
 import { StatCard } from "./stat-card";
 
-const Err = ({ msg }: { msg?: string }) => (msg ? <div className="px-5 py-3 text-[13px] text-danger">{msg}</div> : null);
+const Err = ({ msg }: { msg?: string }) => (msg ? <div className="px-5 py-3 text-sm text-danger">{msg}</div> : null);
 
 export function EdgePage() {
   const q = useAdminEdge();

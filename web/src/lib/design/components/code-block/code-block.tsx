@@ -21,8 +21,8 @@ export function CodeBlock({ label, code }: Props) {
   return (
     <div>
       <div className="mb-1.5 text-xs font-medium text-fg-muted">{label}</div>
-      <div className="group relative rounded-[var(--radius-control)] border border-line bg-canvas/80">
-        <pre className="overflow-x-auto px-3.5 py-3 pr-12 font-mono text-[12.5px] leading-relaxed text-fg">{code}</pre>
+      <div className="group relative rounded-lg border border-line bg-canvas/80">
+        <pre className="overflow-x-auto px-3.5 py-3 pr-12 font-mono text-sm leading-relaxed text-fg">{code}</pre>
         <div className="absolute top-1.5 right-1.5">
           <IconButton icon={done ? Check : Copy} label={`Copy ${label.toLowerCase()}`} onPress={copy} />
         </div>

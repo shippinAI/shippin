@@ -5,7 +5,7 @@ import { useSearchParams } from "../../../lib/router/router";
 import { BrandMark } from "../../../template/brand-mark";
 import { RecoveryCodes } from "./recovery-codes";
 
-const field = "h-10 rounded-[var(--radius-control)] border border-line bg-canvas px-3 text-sm";
+const field = "h-10 rounded-lg border border-line-control bg-canvas px-3 text-base";
 
 /** Someone claims the account made for them, with a one-time link from whoever invited them. */
 export function InvitePage() {
@@ -25,10 +25,10 @@ export function InvitePage() {
         </div>
         {codes ? <RecoveryCodes codes={codes} /> : (
           <div>
-            <h1 className="text-[28px] font-semibold tracking-tight">Join this panel</h1>
-            <p className="mt-2 text-sm text-fg-muted">You were invited as <span className="font-mono text-fg">{email}</span>. The link works once.</p>
+            <h1 className="text-3xl font-semibold tracking-tight">Join this panel</h1>
+            <p className="mt-2 text-base text-fg-muted">You were invited as <span className="font-mono text-fg">{email}</span>. The link works once.</p>
             <form
-              className="mt-6 grid gap-2 rounded-[var(--radius-card)] border border-line bg-surface p-5"
+              className="mt-6 grid gap-2 rounded-xl border border-line bg-surface p-5"
               onSubmit={(e) => {
                 e.preventDefault();
                 const name = String(new FormData(e.currentTarget).get("name") ?? "").trim();
@@ -45,9 +45,9 @@ export function InvitePage() {
                   .finally(() => setBusy(false));
               }}
             >
-              <label className="text-[13px] text-fg-muted" htmlFor="invite-name">Your name</label>
+              <label className="text-sm text-fg-muted" htmlFor="invite-name">Your name</label>
               <input id="invite-name" name="name" autoComplete="name" className={field} />
-              {error && <p role="alert" className="text-[13px] text-danger">{error}</p>}
+              {error && <p role="alert" className="text-sm text-danger">{error}</p>}
               <Button type="submit" variant="primary" size="lg" className="mt-2 w-full" isDisabled={busy || !code || !email} tooltip="Claim this account and sign in">Join</Button>
             </form>
           </div>

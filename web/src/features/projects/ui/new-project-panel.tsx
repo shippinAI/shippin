@@ -9,7 +9,7 @@ import { Select } from "../../../lib/design/components/select/select";
 import { useOrganizationWorkspaces } from "../../workspaces/use-organization-workspaces";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 
-const tab = "focus-ring relative -mb-px cursor-default border-b-2 border-transparent pb-2.5 text-sm text-fg-muted outline-none data-hovered:text-fg data-selected:border-primary data-selected:text-fg";
+const tab = "focus-ring relative -mb-px cursor-default border-b-2 border-transparent pb-2.5 text-base text-fg-muted outline-none data-hovered:text-fg data-selected:border-primary data-selected:text-fg";
 
 /** New project: describe it (M4, the default when enabled), start blank, or import from GitHub (?source=github). */
 export function NewProjectPanel({ tenantId, workspaceId }: { tenantId: string; workspaceId?: string }) {

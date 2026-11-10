@@ -29,7 +29,7 @@ export function ChangeNoteDialog({ change, onClose }: { change: PendingChange | 
   return (
     <ModalDialog isOpen={change !== null} onOpenChange={(o) => { if (!o) onClose(); }} title={change?.title ?? ""} description={change?.description}>
       <form className="space-y-4 px-6 py-5" data-testid="change-note" onSubmit={(e) => { e.preventDefault(); submit(); }}>
-        {change?.warning && <p role="alert" className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-[13px] text-warning">{change.warning}</p>}
+        {change?.warning && <p role="alert" className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">{change.warning}</p>}
         <TextField label={t("infra.note.label")} description={t("infra.note.help")} value={note} onChange={setNote} autoFocus />
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={onClose}>{t("infra.dialog.cancel")}</Button>

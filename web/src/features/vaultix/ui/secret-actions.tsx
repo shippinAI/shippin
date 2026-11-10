@@ -33,7 +33,7 @@ export function SecretActions({ env, secretKey }: { env: string; secretKey: stri
   };
   return (
     <div className="flex items-center gap-1">
-      <code className="mr-2 max-w-[18rem] truncate rounded bg-surface px-2 py-0.5 font-mono text-[12px]" aria-live="polite">
+      <code className="mr-2 max-w-72 truncate rounded-sm bg-surface px-2 py-0.5 font-mono text-xs" aria-live="polite">
         {shown ?? "••••••••••••"}
       </code>
       <IconButton icon={shown === null ? Eye : EyeOff} label={shown === null ? `Reveal ${secretKey}` : `Hide ${secretKey}`} onPress={reveal} />

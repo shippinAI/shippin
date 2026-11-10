@@ -4,11 +4,11 @@ import { Button } from "../../../lib/design/components/button/button";
 export function RecoveryCodes({ codes }: { codes: string[] }) {
   return (
     <div>
-      <h1 className="text-[28px] font-semibold tracking-tight">Save your recovery codes</h1>
-      <p className="mt-2 text-sm text-fg-muted">
+      <h1 className="text-3xl font-semibold tracking-tight">Save your recovery codes</h1>
+      <p className="mt-2 text-base text-fg-muted">
         They are shown only this once. Each one signs you in a single time from the sign-in page; keep them somewhere safe.
       </p>
-      <ul className="mt-6 grid grid-cols-2 gap-2 rounded-[var(--radius-card)] border border-line bg-surface p-5 font-mono text-sm">
+      <ul className="mt-6 grid grid-cols-2 gap-2 rounded-xl border border-line bg-surface p-5 font-mono text-base">
         {codes.map((c) => (
           <li key={c}>{c}</li>
         ))}

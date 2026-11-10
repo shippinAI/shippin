@@ -21,7 +21,7 @@ export function SuggestedProjects({ tenantId }: { tenantId: string }) {
       <div className="px-5 pb-5">
         {q.isPending && <Skeleton className="h-16" />}
         {q.data && fresh.length === 0 && (
-          <p className="flex items-center gap-2 text-sm text-fg-subtle">
+          <p className="flex items-center gap-2 text-base text-fg-subtle">
             <FolderSearch className="size-4" /> {q.data.note ?? "No new project folders found."}
           </p>
         )}
@@ -35,7 +35,7 @@ export function SuggestedProjects({ tenantId }: { tenantId: string }) {
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-fg-subtle">Not on GitHub yet</p>
             {unsynced.map((f) => (
               <div key={f.path} className="flex items-center gap-3 py-2">
-                <span className="min-w-0 flex-1 truncate font-mono text-sm text-fg">{f.slug}</span>
+                <span className="min-w-0 flex-1 truncate font-mono text-base text-fg">{f.slug}</span>
                 <PublishFolder tenantId={tenantId} f={f} />
               </div>
             ))}

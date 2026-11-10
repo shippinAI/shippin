@@ -11,7 +11,7 @@ export function ChatPage() {
   return (
     <>
       <PageHeader eyebrow="AI" title="Automaton" description="Provider-agnostic chat: your own Claude or ChatGPT subscription, running in your workspace. Same conversations as the chat panel." />
-      <div className="h-[calc(100vh-220px)] min-h-[420px] overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
+      <div className="h-[calc(100vh-13.75rem)] min-h-105 overflow-hidden rounded-xl border border-line bg-surface">
         <ChatSurface variant="page" sessionId={param ?? null} />
       </div>
     </>

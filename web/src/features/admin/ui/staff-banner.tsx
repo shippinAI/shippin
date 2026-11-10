@@ -13,13 +13,15 @@ export function StaffBanner() {
   const legacy = s.mode === "enforce" && s.legacy_fallback;
   if (!mfa && !legacy) return null;
   return (
-    <div className="relative z-10 flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-8 py-2 text-[13px] text-warning">
+    <div className="relative z-10 flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-8 py-2 text-sm text-warning">
       <ShieldAlert className="size-4 shrink-0" />
       {mfa && s.local
         ? "Your staff roles are off until you add a passkey or sign in through an identity provider."
         : mfa
-        ? `Your staff roles are off until you enroll a second factor (passkey, security key or authenticator app) in your ${idp} account.`
-        : `You're signed in through the ${idp} instance-owner fallback, and every use is audited. Enroll MFA so your staff role applies directly.`}
+        ? `Your staff roles are off until you enroll a second factor (passkey, security key or authenticator app) in your account with ${idp}.`
+        : s.local
+        ? "You're using the installation owner's fallback access, and every use is audited. Add a passkey so your staff role applies directly."
+        : `You're signed in through the owner fallback of ${idp}, and every use is audited. Enroll MFA so your staff role applies directly.`}
       {account && <a href={account} target="_blank" rel="noreferrer" className="ml-auto shrink-0 font-medium underline underline-offset-2">Set up MFA</a>}
     </div>
   );

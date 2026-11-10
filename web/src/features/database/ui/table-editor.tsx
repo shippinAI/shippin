@@ -88,7 +88,7 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
         }
       />
       {table.platform && (
-        <p className="border-b border-line px-5 py-2.5 text-[12.5px] text-fg-muted">
+        <p className="border-b border-line px-5 py-2.5 text-sm text-fg-muted">
           This table holds references for secrets, identity, or DNS. Values of secrets are not stored here. Deleting a row asks you to confirm.
         </p>
       )}
@@ -135,15 +135,15 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
         </form>
       )}
       {page.isPending && <div className="p-4"><Skeleton className="h-40" /></div>}
-      {page.isError && <p className="px-5 py-4 text-[13px] text-fg-muted">{(page.error as Error).message}</p>}
+      {page.isError && <p className="px-5 py-4 text-sm text-fg-muted">{(page.error as Error).message}</p>}
       {page.data && (
         <div className="overflow-x-auto">
-          <table className="w-full border-separate border-spacing-0 text-sm" aria-label={`${table.name} rows`}>
+          <table className="w-full border-separate border-spacing-0 text-base" aria-label={`${table.name} rows`}>
             <thead>
               <tr>
                 {columns.map((c) => (
-                  <th key={c.name} className="border-b border-line bg-surface px-3 py-2 text-left text-[11.5px] font-medium tracking-wide text-fg-subtle uppercase">
-                    <button type="button" className="focus-ring inline-flex items-center gap-1 rounded" onClick={() => toggleSort(c.name)}>
+                  <th key={c.name} className="border-b border-line bg-surface px-3 py-2 text-left text-xs font-medium tracking-wide text-fg-subtle uppercase">
+                    <button type="button" className="focus-ring inline-flex items-center gap-1 rounded-sm" onClick={() => toggleSort(c.name)}>
                       {c.name}
                       {c.primary_key && <span className="text-primary normal-case">pk</span>}
                       {sort === c.name && <span aria-hidden>{dir === "asc" ? "↑" : "↓"}</span>}
@@ -156,7 +156,7 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-[13px] text-fg-muted">No rows on this page. Add one, or loosen the filter.</td>
+                  <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-sm text-fg-muted">No rows on this page. Add one, or loosen the filter.</td>
                 </tr>
               )}
               {rows.map((row, i) => {
@@ -166,12 +166,12 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
                     {columns.map((c) => {
                       const active = edit?.key === key && edit.column === c.name;
                       return (
-                        <td key={c.name} className="border-b border-line px-3 py-1.5 font-mono text-[12.5px] text-fg">
+                        <td key={c.name} className="border-b border-line px-3 py-1.5 font-mono text-sm text-fg">
                           {active ? (
                             <input
                               autoFocus
                               aria-label={`Edit ${c.name}`}
-                              className="focus-ring w-full min-w-32 rounded border border-primary bg-canvas px-2 py-1 text-[12.5px] outline-none"
+                              className="focus-ring w-full min-w-32 rounded-sm border border-primary bg-canvas px-2 py-1 text-sm outline-none"
                               value={edit.draft}
                               onChange={(e) => setEdit({ ...edit, draft: e.target.value })}
                               onBlur={() => commit(row, c, edit.draft)}
@@ -183,7 +183,7 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
                           ) : (
                             <button
                               type="button"
-                              className="focus-ring block w-full truncate rounded px-1 py-1 text-left"
+                              className="focus-ring block w-full truncate rounded-sm px-1 py-1 text-left"
                               title={pkCols.length ? "Click to edit" : "Add a primary key before editing"}
                               onClick={() => pkCols.length && !readOnly && setEdit({ key, column: c.name, draft: cellText(row[c.name]) })}
                             >
@@ -225,14 +225,14 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
           </div>
         </form>
       )}
-      <div className="flex items-center justify-between px-4 py-3 text-[12.5px] text-fg-subtle">
+      <div className="flex items-center justify-between px-4 py-3 text-sm text-fg-subtle">
         <span>{total === 0 ? "No rows" : `${offset + 1}–${Math.min(offset + limit, total)} of ${total.toLocaleString()}`}</span>
         <span className="flex gap-1">
           <IconButton icon={ChevronLeft} label="Previous page" isDisabled={offset === 0} onPress={() => setOffset(Math.max(0, offset - limit))} />
           <IconButton icon={ChevronRight} label="Next page" isDisabled={offset + limit >= total} onPress={() => setOffset(offset + limit)} />
         </span>
       </div>
-      {pkCols.length === 0 && <p className="border-t border-line px-5 py-3 text-[12.5px] text-fg-muted">This table has no primary key, so rows are read-only. Create tables with an id column when you want to edit them here.</p>}
+      {pkCols.length === 0 && <p className="border-t border-line px-5 py-3 text-sm text-fg-muted">This table has no primary key, so rows are read-only. Create tables with an id column when you want to edit them here.</p>}
       <ConfirmDialog
         isOpen={!!pendingDelete}
         onOpenChange={(o) => !o && setPendingDelete(null)}

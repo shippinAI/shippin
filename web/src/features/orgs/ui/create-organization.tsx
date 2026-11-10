@@ -44,7 +44,7 @@ export function CreateOrganization() {
         <Select label={text("organization.owner")} value={mine ? mode : "other"} onChange={setMode} options={[...(mine ? [{ id: "self", label: text("organization.self") }] : []), { id: "other", label: text("organization.other") }]} />
         {(mode === "other" || !mine) && <Select label={text("organization.ownerId")} value={owner} onChange={setOwner} options={(team.data?.members ?? []).filter((m) => m.id.startsWith("local:") && m.state === "active").map((m) => ({ id: m.id.slice(6), label: `${m.name} (${m.email})` }))} />}
         <p className="text-xs text-fg-muted">{text("organization.separation")}</p>
-        {(save.error || plans.error || ((mode === "other" || !mine) && team.error)) && <p role="alert" className="text-sm text-danger">{save.error?.message ?? plans.error?.message ?? team.error?.message}</p>}
+        {(save.error || plans.error || ((mode === "other" || !mine) && team.error)) && <p role="alert" className="text-base text-danger">{save.error?.message ?? plans.error?.message ?? team.error?.message}</p>}
         <Button type="submit" variant="primary" tooltip={text("organization.create")} isDisabled={save.isPending || !selectedPlan || !name.trim() || ((mode === "other" || !mine) && !owner)}>{text("organization.create")}</Button>
       </Form>
     </ModalDialog>

@@ -13,13 +13,13 @@ export function TenantSwitcher() {
   const nav = useNavigate();
   const trigger = (
     <Tooltip content="Switch tenant" placement="right">
-      <Button className="focus-ring flex w-full cursor-default items-center gap-2.5 rounded-lg border border-line bg-raised/70 p-2 text-left shadow-[var(--shadow-e1)] data-hovered:border-line-strong">
-        <span className="flex size-7 items-center justify-center rounded-md bg-gradient-to-br from-hue-identity to-primary-strong text-[11px] font-semibold text-white">
+      <Button className="focus-ring flex w-full cursor-default items-center gap-2.5 rounded-lg border border-line bg-raised/70 p-2 text-left shadow-e1 data-hovered:border-line-strong">
+        <span className="flex size-7 items-center justify-center rounded-md bg-primary text-2xs font-semibold text-primary-fg">
           {initials(tenant?.name ?? "")}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-medium">{tenant?.name ?? "No tenant"}</span>
-          <span className="block truncate text-[11px] text-fg-subtle">{tenant?.roles[0]?.replace("org_", "") ?? "—"}</span>
+          <span className="block truncate text-sm font-medium">{tenant?.name ?? "No tenant"}</span>
+          <span className="block truncate text-2xs text-fg-subtle">{tenant?.roles[0]?.replace("org_", "") ?? "—"}</span>
         </span>
         <ChevronsUpDown className="size-3.5 text-fg-subtle" />
       </Button>
@@ -37,7 +37,7 @@ export function TenantSwitcher() {
             toast.info(`Switched to ${t.name}`);
           }}
         >
-          <span className="flex size-6 items-center justify-center rounded bg-overlay text-[10px] font-semibold">{initials(t.name)}</span>
+          <span className="flex size-6 items-center justify-center rounded-sm bg-overlay text-2xs font-semibold">{initials(t.name)}</span>
           <span className="flex-1 truncate">{t.name}</span>
           {t.tenant_id === tenant?.tenant_id && <Check className="size-4 text-primary" />}
         </MenuItem>

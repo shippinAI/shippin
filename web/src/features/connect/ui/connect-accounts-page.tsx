@@ -38,7 +38,7 @@ export function ConnectAccountsPage() {
           </Button>
           )}
         </span>} />
-      {d && !d.running && <p className="mb-4 text-[13px] text-warning">Start the workspace to sign in with a browser. Saved tokens are added when it starts.</p>}
+      {d && !d.running && <p className="mb-4 text-sm text-warning">Start the workspace to sign in with a browser. Saved tokens are added when it starts.</p>}
       {q.isError ? (
         <EmptyState title="Not available" description={q.error.message} />
       ) : (

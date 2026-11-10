@@ -28,7 +28,7 @@ export function ServiceConfigForm({ schema, value, onChange, onValidityChange }:
   };
 
   return <div className="grid gap-3">
-    {schema.description && <p className="text-sm text-fg-muted">{schema.description}</p>}
+    {schema.description && <p className="text-base text-fg-muted">{schema.description}</p>}
     {Object.entries(properties).map(([key, property]) => <SchemaField key={key} name={key} path={key}
       schema={property} required={(schema.required ?? []).includes(key)} value={value[key]}
       onChange={(next) => update(key, next)} onValidityChange={(field, message) => setInvalidFields((current) => {
@@ -51,7 +51,7 @@ function SchemaField({ name, path, schema, required, value, onChange, onValidity
   if (schema.type === "object" || schema.properties) {
     const nested = isObject(value) ? value : {};
     return <fieldset className="grid gap-3 rounded-lg border border-line p-3">
-      <legend className="px-1 text-sm font-medium text-fg">{label}</legend>
+      <legend className="px-1 text-base font-medium text-fg">{label}</legend>
       {description && <p className="text-xs text-fg-muted">{description}</p>}
       {Object.entries(schema.properties ?? {}).map(([key, child]) => <SchemaField key={`${path}.${key}`} name={key}
         path={`${path}.${key}`} schema={child} required={(schema.required ?? []).includes(key)} value={nested[key]}

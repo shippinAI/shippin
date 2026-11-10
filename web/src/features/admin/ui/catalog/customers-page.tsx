@@ -26,7 +26,7 @@ export function CustomersPage() {
   const planLabel = (id: string) => plans.data?.items.find((p) => p.id === id)?.label ?? id;
   const cols: ColumnDef<Customer>[] = [
     { id: "name", label: "Customer", isRowHeader: true, render: (c) => (
-      <div><div className="font-medium text-fg">{c.name}</div><div className="font-mono text-[11.5px] text-fg-subtle">{c.id.slice(0, 13)}</div></div>
+      <div><div className="font-medium text-fg">{c.name}</div><div className="font-mono text-xs text-fg-subtle">{c.id.slice(0, 13)}</div></div>
     ) },
     { id: "plan", label: "Plan", width: "120px", render: (c) => <Badge tone="info">{planLabel(c.plan_id)}</Badge> },
     { id: "status", label: "Status", width: "130px", render: (c) => (

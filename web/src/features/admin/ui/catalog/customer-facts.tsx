@@ -9,7 +9,7 @@ export function CustomerFacts({ customer: c, intents }: { customer: Customer; in
     <div className="grid gap-4 lg:grid-cols-3">
       {c.contacts && <Card>
         <CardHeader title="Contacts" />
-        <ul className="divide-y divide-line text-sm">
+        <ul className="divide-y divide-line text-base">
           {c.contacts.length === 0 && <li className="px-5 py-3 text-fg-muted">No contacts yet. Edit the customer to add who to reach.</li>}
           {c.contacts.map((x) => (
             <li key={x.email + x.name} className="px-5 py-2.5">
@@ -21,18 +21,18 @@ export function CustomerFacts({ customer: c, intents }: { customer: Customer; in
       </Card>}
       {c.endpoints && <Card>
         <CardHeader title="Endpoints" />
-        <ul className="divide-y divide-line text-sm">
+        <ul className="divide-y divide-line text-base">
           {c.endpoints.length === 0 && <li className="px-5 py-3 text-fg-muted">No endpoints. Add LAN, tailnet or public hostnames.</li>}
           {c.endpoints.map((e) => (
             <li key={e.kind + e.host} className="flex items-center gap-2 px-5 py-2.5">
-              <Badge>{e.kind}</Badge><span className="truncate font-mono text-[12.5px]">{e.host}</span>
+              <Badge>{e.kind}</Badge><span className="truncate font-mono text-sm">{e.host}</span>
             </li>
           ))}
         </ul>
       </Card>}
       <Card>
         <CardHeader title={<span className="inline-flex items-center gap-1.5">Provision intents <TermTip term="provision_intent" /></span>} />
-        <ul className="divide-y divide-line text-sm">
+        <ul className="divide-y divide-line text-base">
           {intents.length === 0 && <li className="px-5 py-3 text-fg-muted">None yet. Record one when the config looks right.</li>}
           {intents.slice(0, 5).map((i) => (
             <li key={i.id} className="px-5 py-2.5">

@@ -4,8 +4,8 @@ import type { A2UIComponent, ChildList } from "../../lib/a2ui/a2ui-types";
 import { A2UIInput } from "./a2ui-input";
 import { useSurface } from "./a2ui-surface";
 
-const text = { h1: "text-xl font-semibold", h2: "text-lg font-semibold", h3: "text-[15px] font-semibold", h4: "text-[13.5px] font-semibold",
-  h5: "text-[13px] font-semibold", caption: "text-[11px] font-medium uppercase tracking-wide text-fg-subtle", body: "text-[13px] text-fg-muted" };
+const text = { h1: "text-xl font-semibold", h2: "text-xl font-semibold", h3: "text-lg font-semibold", h4: "text-sm font-semibold",
+  h5: "text-sm font-semibold", caption: "text-2xs font-medium uppercase tracking-wide text-fg-subtle", body: "text-sm text-fg-muted" };
 
 /** Expands a ChildList: static ids, or a template repeated over a data array (relative scope). */
 function children(list: ChildList, data: unknown, scope: string): { id: string; scope: string; key: string }[] {
@@ -28,9 +28,9 @@ export function A2UINode({ id, scope }: { id: string; scope: string }) {
       return c.variant?.startsWith("h") ? <p role="heading" aria-level={Number(c.variant[1])} className={`${cls} text-fg`}>{v}</p> : <p className={`whitespace-pre-line ${cls}`}>{v}</p>;
     }
     case "Code":
-      return <pre className="overflow-x-auto rounded-[var(--radius-control)] bg-canvas px-3 py-2 font-mono text-[12px] text-fg">{String(resolve(c.text, d, scope) ?? "")}</pre>;
+      return <pre className="overflow-x-auto rounded-lg bg-canvas px-3 py-2 font-mono text-xs text-fg">{String(resolve(c.text, d, scope) ?? "")}</pre>;
     case "Card":
-      return <div className="space-y-3 rounded-[var(--radius-card)] border border-line bg-surface-2 p-4"><A2UINode id={c.child} scope={scope} /></div>;
+      return <div className="space-y-3 rounded-xl border border-line bg-raised p-4"><A2UINode id={c.child} scope={scope} /></div>;
     case "Divider":
       return <hr className="border-line" />;
     case "Column":

@@ -28,8 +28,7 @@ export function AdminLayout() {
         <BreakGlassBanner />
         <StaffModeBanner />
         <StaffBanner />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-60 bg-[radial-gradient(60%_100%_at_30%_0%,oklch(0.75_0.15_70/0.08),transparent)]" />
-        <main className="relative w-full max-w-[1400px] px-4 py-5 md:px-8 md:py-7">
+        <main className="relative w-full max-w-page px-4 py-5 md:px-8 md:py-7">
           <Suspense fallback={null}>
             <Outlet />
           </Suspense>

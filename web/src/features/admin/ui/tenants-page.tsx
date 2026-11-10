@@ -32,7 +32,7 @@ export function TenantsPage() {
         <StatCard label="Failed" value={n("failed")} icon={AlertTriangle} hue="var(--color-danger)" hint="Need a retry" />
         <StatCard label="Workspaces" value={q.data ? all.reduce((s, t) => s + t.workspace_count, 0) : undefined} icon={Boxes} hue="var(--color-hue-workspaces)" hint="Across tenants" />
       </div>
-      {q.data?.warning && <div className="mb-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2 text-[13px] text-warning">{q.data.warning}</div>}
+      {q.data?.warning && <div className="mb-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2 text-sm text-warning">{q.data.warning}</div>}
       <Card className="overflow-hidden">
         <TableToolbar label="tenants" value={search} onChange={setSearch} count={rows.length} />
         <QueryView isPending={q.isPending} error={q.error} onRetry={() => void q.refetch()}>

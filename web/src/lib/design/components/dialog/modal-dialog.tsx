@@ -16,13 +16,13 @@ export function ModalDialog({ isOpen, onOpenChange, title, description, children
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       isDismissable
-      className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/70 p-6 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6"
     >
-      <Modal className="w-full max-w-lg rounded-2xl border border-line-strong bg-surface shadow-[var(--shadow-e3)] outline-none">
+      <Modal className="w-full max-w-lg rounded-2xl border border-line-strong bg-surface shadow-e3 outline-none">
         <Dialog className="outline-none">
           <div className="border-b border-line px-6 pt-5 pb-4">
-            <Heading slot="title" className="text-[17px] font-semibold tracking-tight">{title}</Heading>
-            {description && <p className="mt-1 text-[13px] text-fg-muted">{description}</p>}
+            <Heading slot="title" className="text-lg font-semibold tracking-tight">{title}</Heading>
+            {description && <p className="mt-1 text-sm text-fg-muted">{description}</p>}
           </div>
           {children}
         </Dialog>

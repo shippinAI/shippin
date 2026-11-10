@@ -3,9 +3,8 @@
 The panel's look is **Flat Vector 2.0**: flat surfaces, hairline borders, one
 accent, colour that means something, and dense, legible data. This page is the
 rule set for every screen in `web/` (UI-02, UI-03, PERF-01 in
-[What Shippin is](objective.md)). A token check in `web/` (`npm run tokens`),
-run by CI, enforces it once the token rewrite lands; until then about 500 raw
-values in the panel break these rules.
+[What Shippin is](objective.md)). `npm run tokens` in `web/` enforces it, and CI
+runs that check.
 
 ## Tokens are the only source of style
 
@@ -18,7 +17,7 @@ nothing. Spacing and sizes use the 4 px grid (`p-4` is 16 px).
 | Group | Tokens | Use |
 | --- | --- | --- |
 | Surfaces | `canvas`, `surface`, `raised`, `overlay`, `scrim` | Page, cards, controls on cards, menus and popovers, modal backdrop. |
-| Lines | `line`, `line-strong` | Borders and dividers. |
+| Lines | `line`, `line-strong`, `line-control` | Borders and dividers; `line-control` is the edge of an input, select, checkbox or switch, at 3:1 on every surface. |
 | Text | `fg`, `fg-muted`, `fg-subtle` | Primary text, secondary text, hints and metadata. |
 | Meaning | `primary`, `success`, `warning`, `danger`, `info`, `focus` | Actions, health and state. Never decoration. |
 | Modules | `hue-workspaces`, `hue-secrets`, `hue-identity`, `hue-network`, `hue-ai`, `hue-billing`, `hue-data`, `hue-edge` | Telling modules and chart series apart. |

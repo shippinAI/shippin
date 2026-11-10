@@ -20,7 +20,7 @@ export function ConfirmDialog({ isOpen, onOpenChange, title, body, confirmLabel,
   const ok = !typeToConfirm || typed === typeToConfirm;
   return (
     <ModalDialog isOpen={isOpen} onOpenChange={onOpenChange} title={title}>
-      <div className="space-y-4 px-6 py-5 text-sm text-fg-muted">
+      <div className="space-y-4 px-6 py-5 text-base text-fg-muted">
         {body}
         {typeToConfirm && (
           <TextField label={`Type ${typeToConfirm} to confirm`} value={typed} onChange={setTyped} autoFocus />

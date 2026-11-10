@@ -18,7 +18,7 @@ export function InviteMemberDialog({ tenantId, team, onClose }: { tenantId: stri
   const valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim()) && f.role !== "";
   return (
     <ModalDialog isOpen onOpenChange={(o) => !o && onClose()} title="Invite a member"
-      description={`They join this tenant's ${idp} organization. Someone without an account gets an e-mail to set one up.`}>
+      description={`They join this tenant's organization in ${idp}. Someone without an account gets an e-mail to set one up.`}>
       <div className="space-y-4 px-6 py-5">
         <TextField label="E-mail" type="email" isRequired value={f.email} onChange={set("email")} placeholder="name@company.com" autoFocus />
         <div className="grid grid-cols-2 gap-3">

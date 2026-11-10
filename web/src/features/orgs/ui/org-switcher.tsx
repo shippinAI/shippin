@@ -22,7 +22,7 @@ export function OrgSwitcher() {
           ops ? "border-warning/50 bg-warning/15 text-warning" : "border-line bg-raised text-fg")}>
         {ops ? <ShieldHalf className="size-3.5 shrink-0" aria-hidden /> : <Building2 className="size-3.5 shrink-0" aria-hidden />}
         <span className="truncate">{cur?.name ?? "Choose org"}</span>
-        {ops && <span className="hidden rounded bg-warning/25 px-1 text-[10px] uppercase sm:inline">staff</span>}
+        {ops && <span className="hidden rounded-sm bg-warning/25 px-1 text-2xs uppercase sm:inline">staff</span>}
         <ChevronsUpDown className="size-3.5 shrink-0 opacity-70" aria-hidden />
       </Button>}>
       {items.map((o) => (
@@ -30,7 +30,7 @@ export function OrgSwitcher() {
           {o.type === "operations" ? <ShieldHalf className="size-4 text-warning" aria-hidden /> : <Building2 className="size-4" aria-hidden />}
           <span className="flex-1">
             <span className="block text-fg">{o.name}</span>
-            <span className="block text-[11px] text-fg-subtle">{o.type === "operations" ? `Operations · ${o.roles.join(", ")}` : `Customer · ${o.roles.join(", ")}`}</span>
+            <span className="block text-2xs text-fg-subtle">{o.type === "operations" ? `Operations · ${o.roles.join(", ")}` : `Customer · ${o.roles.join(", ")}`}</span>
           </span>
           {cur?.id === o.id && <Check className="size-4" aria-label="current" />}
         </MenuItem>

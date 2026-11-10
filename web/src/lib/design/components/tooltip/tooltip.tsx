@@ -16,7 +16,7 @@ export function Tooltip({ content, children, placement = "top", delay = 400 }: P
       <RacTooltip
         placement={placement}
         offset={8}
-        className="glass z-50 max-w-64 rounded-md border border-line-strong px-2.5 py-1.5 text-xs text-fg shadow-[var(--shadow-e3)] data-entering:animate-in data-entering:fade-in data-[placement=top]:data-entering:slide-in-from-bottom-1"
+        className="bg-overlay z-50 max-w-64 rounded-md border border-line-strong px-2.5 py-1.5 text-xs text-fg shadow-e3 data-entering:animate-enter motion-reduce:animate-none"
       >
         <OverlayArrow>
           <svg width={8} height={8} viewBox="0 0 8 8" className="fill-overlay group-data-[placement=bottom]:rotate-180">

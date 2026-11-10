@@ -53,29 +53,29 @@ export function SqlPanel({ tenantId, readOnly }: { tenantId: string; readOnly: b
               onChange={(e) => setSql(e.target.value)}
               spellCheck={false}
               rows={8}
-              className="focus-ring w-full resize-y rounded-[var(--radius-control)] border border-line bg-canvas px-3 py-2 font-mono text-[12.5px] leading-relaxed text-fg outline-none"
+              className="focus-ring w-full resize-y rounded-lg border border-line bg-canvas px-3 py-2 font-mono text-sm leading-relaxed text-fg outline-none"
             />
-            {error && <p role="alert" className="mt-3 text-[13px] text-danger">{error}</p>}
-            {result?.truncated && <p className="mt-3 text-[12.5px] text-warning">Showing the first {result.row_count} rows. Add a tighter WHERE clause to see a different slice.</p>}
+            {error && <p role="alert" className="mt-3 text-sm text-danger">{error}</p>}
+            {result?.truncated && <p className="mt-3 text-sm text-warning">Showing the first {result.row_count} rows. Add a tighter WHERE clause to see a different slice.</p>}
           </div>
           {result && (
             <div className="overflow-x-auto border-t border-line">
-              <table className="w-full border-separate border-spacing-0 text-sm" aria-label="Query results">
+              <table className="w-full border-separate border-spacing-0 text-base" aria-label="Query results">
                 <thead>
                   <tr>
                     {(result.columns.length ? result.columns : ["result"]).map((c) => (
-                      <th key={c} className="border-b border-line bg-surface px-3 py-2 text-left text-[11.5px] font-medium tracking-wide text-fg-subtle uppercase">{c}</th>
+                      <th key={c} className="border-b border-line bg-surface px-3 py-2 text-left text-xs font-medium tracking-wide text-fg-subtle uppercase">{c}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {result.rows.length === 0 && (
-                    <tr><td className="px-4 py-6 text-[13px] text-fg-muted" colSpan={Math.max(1, result.columns.length)}>{result.kind === "read" ? "No rows." : `${result.row_count} affected.`}</td></tr>
+                    <tr><td className="px-4 py-6 text-sm text-fg-muted" colSpan={Math.max(1, result.columns.length)}>{result.kind === "read" ? "No rows." : `${result.row_count} affected.`}</td></tr>
                   )}
                   {result.rows.map((row, i) => (
                     <tr key={i}>
                       {row.map((cell, j) => (
-                        <td key={j} className="border-b border-line px-3 py-2 font-mono text-[12.5px] text-fg">{cell == null ? <span className="text-fg-subtle">null</span> : String(cell)}</td>
+                        <td key={j} className="border-b border-line px-3 py-2 font-mono text-sm text-fg">{cell == null ? <span className="text-fg-subtle">null</span> : String(cell)}</td>
                       ))}
                     </tr>
                   ))}
@@ -92,27 +92,27 @@ export function SqlPanel({ tenantId, readOnly }: { tenantId: string; readOnly: b
               <Sparkles className="size-3.5" /> Ask AI
             </Button>
             {ask.data && (
-              <div className="rounded-lg border border-line bg-canvas/50 px-3 py-2 text-[13px] text-fg-muted">
+              <div className="rounded-lg border border-line bg-canvas/50 px-3 py-2 text-sm text-fg-muted">
                 <Badge tone="info">{ask.data.status}</Badge>
                 <p className="mt-2">{ask.data.message}</p>
               </div>
             )}
-            {ask.isError && <p className="text-[13px] text-danger">{(ask.error as Error).message}</p>}
+            {ask.isError && <p className="text-sm text-danger">{(ask.error as Error).message}</p>}
           </form>
         </Card>
         <Disclosure title="SQL audit log">
           <ul className="max-h-72 overflow-y-auto">
-            {(audit.data?.entries ?? []).length === 0 && <li className="px-5 py-4 text-[13px] text-fg-muted">Statements you run show up here, including ones that were refused.</li>}
+            {(audit.data?.entries ?? []).length === 0 && <li className="px-5 py-4 text-sm text-fg-muted">Statements you run show up here, including ones that were refused.</li>}
             {(audit.data?.entries ?? []).map((e) => (
               <li key={e.id} className="border-b border-line px-5 py-3 last:border-b-0">
-                <div className="flex flex-wrap items-center gap-2 text-[12px] text-fg-subtle">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
                   <Badge tone={e.status === "ok" ? "success" : e.status === "rejected" ? "warning" : "danger"}>{e.status}</Badge>
                   <span>{e.action}</span>
                   <span>{e.actor_name}</span>
                   {e.created_at && <span>{timeAgo(e.created_at)}</span>}
                 </div>
-                <pre className="mt-1 overflow-x-auto font-mono text-[12px] text-fg">{e.statement}</pre>
-                {e.error && <p className="mt-1 text-[12px] text-fg-muted">{e.error}</p>}
+                <pre className="mt-1 overflow-x-auto font-mono text-xs text-fg">{e.statement}</pre>
+                {e.error && <p className="mt-1 text-xs text-fg-muted">{e.error}</p>}
               </li>
             ))}
           </ul>
@@ -127,11 +127,11 @@ export function SqlPanel({ tenantId, readOnly }: { tenantId: string; readOnly: b
         <ul>
           {(snippets.data?.snippets ?? []).map((s) => (
             <li key={s.id} className="flex items-center gap-1 border-b border-line last:border-b-0">
-              <button type="button" className="focus-ring min-w-0 flex-1 truncate px-4 py-2.5 text-left text-[13px] text-fg" onClick={() => setSql(s.sql)}>{s.name}</button>
+              <button type="button" className="focus-ring min-w-0 flex-1 truncate px-4 py-2.5 text-left text-sm text-fg" onClick={() => setSql(s.sql)}>{s.name}</button>
               <IconButton icon={Trash2} label={`Delete ${s.name}`} onPress={() => remove.mutate(s.id)} />
             </li>
           ))}
-          {snippets.data?.snippets.length === 0 && <li className="px-4 py-4 text-[12.5px] text-fg-subtle">Nothing saved yet.</li>}
+          {snippets.data?.snippets.length === 0 && <li className="px-4 py-4 text-sm text-fg-subtle">Nothing saved yet.</li>}
         </ul>
       </Card>
       <ConfirmDialog

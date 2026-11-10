@@ -48,7 +48,7 @@ export function CreateGuestCard({ base, provider, onCreate, busy }: { base: stri
   const kinds = [{ id: "ct", label: t("infra.guest.ct") }, { id: "vm", label: t("infra.guest.vm") }];
   return (
     <Card className="p-5" data-testid="create-guest">
-      <h2 className="mb-3 text-sm font-semibold text-fg">{t("infra.create.title")}</h2>
+      <h2 className="mb-3 text-base font-semibold text-fg">{t("infra.create.title")}</h2>
       <form className="space-y-3" onSubmit={(e) => {
         e.preventDefault();
         if (valid) onCreate({ kind, name, image, ...(has("storage") ? { storage } : {}), ...(has("network") ? { network } : {}), memory: size(memory), cores: size(cores), disk: size(disk), start });
@@ -58,14 +58,14 @@ export function CreateGuestCard({ base, provider, onCreate, busy }: { base: stri
         {options.length > 0 ? (
           <Select label={t("infra.create.image")} options={options.map((o) => ({ id: o.id, label: o.label }))} value={image} onChange={setImage} />
         ) : needsImage ? (
-          <p className="text-[13px] text-fg-muted" data-testid="no-images">{images.isError ? images.error.message : t("infra.create.noImages")}</p>
+          <p className="text-sm text-fg-muted" data-testid="no-images">{images.isError ? images.error.message : t("infra.create.noImages")}</p>
         ) : null}
         {has("storage") && (storageOptions.length > 0
           ? <Select label={t("infra.create.storage")} options={storageOptions.map((s) => ({ id: s.name, label: `${s.name} (${s.type})` }))} value={storage} onChange={setStorage} />
-          : <p className="text-[13px] text-fg-muted" data-testid="no-create-storage">{storageQuery.isPending ? t("infra.create.loadingStorage") : storageQuery.isError ? storageQuery.error.message : t("infra.create.noStorage", { content: storageContent })}</p>)}
+          : <p className="text-sm text-fg-muted" data-testid="no-create-storage">{storageQuery.isPending ? t("infra.create.loadingStorage") : storageQuery.isError ? storageQuery.error.message : t("infra.create.noStorage", { content: storageContent })}</p>)}
         {has("network") && (networkOptions.length > 0
           ? <Select label={t("infra.create.network")} options={networkOptions.map((n) => ({ id: n.name, label: n.name }))} value={network} onChange={setNetwork} />
-          : <p className="text-[13px] text-fg-muted" data-testid="no-create-network">{networkQuery.isPending ? t("infra.create.loadingNetworks") : networkQuery.isError ? networkQuery.error.message : t("infra.create.noNetwork")}</p>)}
+          : <p className="text-sm text-fg-muted" data-testid="no-create-network">{networkQuery.isPending ? t("infra.create.loadingNetworks") : networkQuery.isError ? networkQuery.error.message : t("infra.create.noNetwork")}</p>)}
         <div className="grid grid-cols-3 gap-3">
           {has("memory") && <TextField label={t("infra.create.memory")} value={memory} onChange={setMemory} placeholder={t("infra.create.default")} />}
           {has("cores") && <TextField label={t("infra.create.cores")} value={cores} onChange={setCores} placeholder={t("infra.create.default")} />}

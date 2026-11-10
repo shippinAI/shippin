@@ -6,7 +6,7 @@ export function VMMeter({ label, used, total, text }: Props) {
   const tone = pct === undefined ? "var(--color-hue-workspaces)" : pct > 90 ? "var(--color-danger)" : pct > 75 ? "var(--color-warning)" : "var(--color-hue-workspaces)";
   return (
     <div>
-      <div className="flex items-baseline justify-between text-[12px]">
+      <div className="flex items-baseline justify-between text-xs">
         <span className="text-fg-muted">{label}</span>
         <span className="font-mono text-fg tabular-nums">{text}</span>
       </div>

@@ -11,7 +11,7 @@ export function Menu({ trigger, children, label }: Props) {
       <Popover
         placement="bottom start"
         offset={6}
-        className="glass min-w-60 rounded-xl border border-line-strong p-1 shadow-[var(--shadow-e3)] outline-none"
+        className="bg-overlay min-w-60 rounded-xl border border-line-strong p-1 shadow-e3 outline-none"
       >
         <RacMenu aria-label={label} className="outline-none">
           {children}
@@ -25,7 +25,7 @@ export function MenuItem(props: MenuItemProps & { children: ReactNode }) {
   return (
     <RacMenuItem
       {...props}
-      className="flex cursor-default items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-fg-muted outline-none data-focused:bg-raised data-focused:text-fg data-disabled:opacity-50"
+      className="flex cursor-default items-center gap-2.5 rounded-lg px-2.5 py-2 text-base text-fg-muted outline-none data-focused:bg-raised data-focused:text-fg data-disabled:opacity-50"
     />
   );
 }

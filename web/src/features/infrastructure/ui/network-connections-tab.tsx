@@ -53,7 +53,7 @@ function IntegrationCard({ item, canWrite, onEdit }: { item: NetworkConnection; 
         <DataTable label={`${item.label} resources`} columns={resourceColumns} rows={q.data?.items ?? []}
           empty={<EmptyState title={q.isLoading ? "Loading inventory" : "No inventory captured"} description={q.error?.message ?? "Refresh this integration to read its current resources."} />} />
         <div className="mt-3 space-y-2">
-          {(q.data?.items ?? []).map((resource) => <div key={resource.id} className="flex flex-wrap items-center gap-2 rounded-md border border-line px-3 py-2 text-sm">
+          {(q.data?.items ?? []).map((resource) => <div key={resource.id} className="flex flex-wrap items-center gap-2 rounded-md border border-line px-3 py-2 text-base">
             <span className="min-w-36 flex-1 font-medium">{resource.name}</span>
             {resource.observed ? <Badge tone="success">Observed</Badge> : <Badge tone="warning">Not in latest inventory</Badge>}
             <Select label={`Shippin system for ${resource.name}`} options={[{ id: "", label: "No system attached" }, ...(registry.data?.items ?? []).map((server) => ({ id: server.id, label: `${server.label} · ${server.kind || "unconfigured"}` }))]}
@@ -127,10 +127,10 @@ function ConnectionForm({ initial, onClose }: { initial?: NetworkConnection; onC
           <TextField label="Bearer token (optional)" value={credential} onChange={setCredential} type="password" autoComplete="new-password"
             description={initial?.has_credential && !credential ? "A credential is already sealed. Leave blank to keep it." : "Sent only to this inventory endpoint and sealed at rest."} />
         </>}
-        {test.data?.ok && <p role="status" className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">Connection succeeded. {test.data.resource_count} resources found. Save to register it in Shippin.</p>}
-        {test.data?.error && <p role="alert" className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">{test.data.error}</p>}
-        {test.isError && <p role="alert" className="text-sm text-danger">{test.error.message}</p>}
-        {save.isError && <p role="alert" className="text-sm text-danger">{save.error.message}</p>}
+        {test.data?.ok && <p role="status" className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-base text-success">Connection succeeded. {test.data.resource_count} resources found. Save to register it in Shippin.</p>}
+        {test.data?.error && <p role="alert" className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-base text-danger">{test.data.error}</p>}
+        {test.isError && <p role="alert" className="text-base text-danger">{test.error.message}</p>}
+        {save.isError && <p role="alert" className="text-base text-danger">{save.error.message}</p>}
       </div>
     </Drawer>
   );
@@ -148,7 +148,7 @@ export function NetworkConnectionsTab() {
         {canWrite && <div className="px-5 pb-5"><Button variant="primary" size="sm" tooltip="Add Cloudflare Tunnel, Tailscale, or a custom inventory provider" onPress={() => setEditing(null)}><Plus className="size-4" /> Add integration</Button></div>}
       </Card>
       {q.isPending && <Card className="p-5">Loading network integrations…</Card>}
-      {q.isError && <Card className="p-5 text-sm text-danger">Could not load integrations: {q.error.message}</Card>}
+      {q.isError && <Card className="p-5 text-base text-danger">Could not load integrations: {q.error.message}</Card>}
       {q.data?.items.length === 0 && <Card><EmptyState title="No network integrations configured" description="Add a provider to capture tunnel or device resources in this installation." /></Card>}
       {q.data?.items.map((item) => <IntegrationCard key={item.id} item={item} canWrite={canWrite} onEdit={() => setEditing(item)} />)}
       {editing !== false && <ConnectionForm initial={editing || undefined} onClose={() => setEditing(false)} />}

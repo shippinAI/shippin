@@ -17,7 +17,7 @@ export function IconButton({ icon: Icon, label, className, ...rest }: Props) {
         {...rest}
         aria-label={label}
         className={cn(
-          "focus-ring inline-flex size-8 cursor-default items-center justify-center rounded-[var(--radius-control)] text-fg-muted transition-colors data-hovered:bg-raised data-hovered:text-fg data-pressed:bg-overlay data-disabled:opacity-40",
+          "focus-ring inline-flex size-8 cursor-default items-center justify-center rounded-lg text-fg-muted transition-colors data-hovered:bg-raised data-hovered:text-fg data-pressed:bg-overlay data-disabled:opacity-40",
           className,
         )}
       >

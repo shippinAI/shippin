@@ -60,24 +60,24 @@ export function PowerReviewDialog({ base, guest, verb, confirmSelf = false, onCl
       <div className="space-y-4 px-6 py-5">
         {!review ? <>
           <TextField label="Change note" description="Explain why this guest action is needed." value={note} onChange={setNote} autoFocus />
-          {confirmSelf && <label className="flex items-start gap-2 text-sm text-warning"><input type="checkbox" checked={selfConfirmed} onChange={(e) => setSelfConfirmed(e.currentTarget.checked)} />I understand this action can take down the Shippin control plane.</label>}
+          {confirmSelf && <label className="flex items-start gap-2 text-base text-warning"><input type="checkbox" checked={selfConfirmed} onChange={(e) => setSelfConfirmed(e.currentTarget.checked)} />I understand this action can take down the Shippin control plane.</label>}
           <Button variant="primary" tooltip="Create a review request in AgentHub" isDisabled={requesting || !noteOK(note) || (confirmSelf && !selfConfirmed)} onPress={() => void request()}>{requesting ? "Requesting review…" : "Request AgentHub review"}</Button>
         </> : <>
-          <dl className="grid gap-2 text-sm">
+          <dl className="grid gap-2 text-base">
             <div><dt className="text-fg-subtle">AgentHub ticket</dt><dd className="break-all font-mono text-fg">{review.agenthub_ticket_id}</dd></div>
             <div><dt className="text-fg-subtle">Review state</dt><dd className="text-fg">{status.data?.agenthub_status ?? review.state}</dd></div>
           </dl>
-          {review.expires_at && <p className="text-sm text-fg-muted">Shippin review window ends {new Date(review.expires_at).toLocaleString()}.</p>}
+          {review.expires_at && <p className="text-base text-fg-muted">Shippin review window ends {new Date(review.expires_at).toLocaleString()}.</p>}
           {agentHubStatus === "passed" && <Button variant="primary" tooltip="Recheck AgentHub and execute this exact action once" isDisabled={executing || !review.expires_at || Date.parse(review.expires_at) <= Date.now()} onPress={() => void execute()}>{executing ? "Executing…" : "Execute reviewed action"}</Button>}
-          {agentHubStatus === "expired" && <p role="alert" className="text-sm text-danger">This Shippin review window expired. Request a new AgentHub review before executing.</p>}
-          {agentHubStatus === "unavailable" && <p role="status" className="text-sm text-warning">AgentHub could not be reached. Execution stays disabled while this panel retries.</p>}
-          {agentHubStatus === "binding_mismatch" && <p role="alert" className="text-sm text-danger">The AgentHub ticket no longer matches this action. Request a new review.</p>}
-          {agentHubStatus === "stale" && <p role="alert" className="text-sm text-danger">The provider connection changed after review. Request a new review.</p>}
-          {agentHubStatus === "pending_review" && <p role="status" className="text-sm text-fg-muted">Waiting for an authorized reviewer in AgentHub. This panel checks again automatically.</p>}
-          {["denied", "rejected", "failed"].includes(agentHubStatus) && <p role="alert" className="text-sm text-danger">AgentHub did not approve this action. Request a new review if the action is still needed.</p>}
-          {status.isError && <p role="alert" className="text-sm text-warning">The current AgentHub ticket status could not be verified. Execution stays disabled while this panel retries.</p>}
+          {agentHubStatus === "expired" && <p role="alert" className="text-base text-danger">This Shippin review window expired. Request a new AgentHub review before executing.</p>}
+          {agentHubStatus === "unavailable" && <p role="status" className="text-base text-warning">AgentHub could not be reached. Execution stays disabled while this panel retries.</p>}
+          {agentHubStatus === "binding_mismatch" && <p role="alert" className="text-base text-danger">The AgentHub ticket no longer matches this action. Request a new review.</p>}
+          {agentHubStatus === "stale" && <p role="alert" className="text-base text-danger">The provider connection changed after review. Request a new review.</p>}
+          {agentHubStatus === "pending_review" && <p role="status" className="text-base text-fg-muted">Waiting for an authorized reviewer in AgentHub. This panel checks again automatically.</p>}
+          {["denied", "rejected", "failed"].includes(agentHubStatus) && <p role="alert" className="text-base text-danger">AgentHub did not approve this action. Request a new review if the action is still needed.</p>}
+          {status.isError && <p role="alert" className="text-base text-warning">The current AgentHub ticket status could not be verified. Execution stays disabled while this panel retries.</p>}
         </>}
-        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+        {error && <p role="alert" className="text-base text-danger">{error}</p>}
         <div className="flex justify-end border-t border-line pt-3"><Button variant="ghost" tooltip="Close review details" onPress={onClose}>Close</Button></div>
       </div>
     </ModalDialog>

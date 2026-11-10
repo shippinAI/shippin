@@ -22,7 +22,7 @@ export function GrantDialog({ team, perms, onClose }: { team: Team; perms: Perm[
           options={people.map((m) => ({ id: m.id, label: `${m.name || m.login} · ${m.email}` }))} />
         <Select label="Permission" value={permission} onChange={setPermission}
           options={perms.map((p) => ({ id: p.key, label: `${p.key} — ${p.label}` }))} />
-        {risky && <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-[13px] text-warning">High-risk permission: it changes customer data or what gets provisioned.</p>}
+        {risky && <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">High-risk permission: it changes customer data or what gets provisioned.</p>}
         <TextField label="Reason" description="Why this person needs it (5 to 300 characters; kept in the audit log)" value={reason} onChange={setReason} isRequired />
       </div>
       <div className="flex gap-2 border-t border-line px-6 py-4">

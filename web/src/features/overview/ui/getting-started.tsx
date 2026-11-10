@@ -13,7 +13,7 @@ export function GettingStarted({ steps }: { steps: Step[] }) {
         description={`${done} of ${steps.length} complete`}
         actions={
           <div className="h-1.5 w-28 overflow-hidden rounded-full bg-raised">
-            <div className="h-full rounded-full bg-gradient-to-r from-primary to-hue-identity" style={{ width: `${(done / steps.length) * 100}%` }} />
+            <div className="h-full rounded-full bg-primary" style={{ width: `${(done / steps.length) * 100}%` }} />
           </div>
         }
       />
@@ -26,8 +26,8 @@ export function GettingStarted({ steps }: { steps: Step[] }) {
               <Circle className="mt-0.5 size-4.5 shrink-0 text-fg-subtle" />
             )}
             <div>
-              <div className={`text-sm font-medium ${s.done ? "text-fg-muted line-through decoration-fg-subtle/50" : "text-fg"}`}>{s.title}</div>
-              <div className="mt-0.5 text-[13px] text-fg-subtle">{s.body}</div>
+              <div className={`text-base font-medium ${s.done ? "text-fg-muted line-through decoration-fg-subtle/50" : "text-fg"}`}>{s.title}</div>
+              <div className="mt-0.5 text-sm text-fg-subtle">{s.body}</div>
             </div>
           </li>
         ))}

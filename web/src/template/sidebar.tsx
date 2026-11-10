@@ -9,7 +9,7 @@ import { accountNav, allowedBy, infrastructureNav, navSections, operatorNav, ten
 import { TenantSwitcher } from "./tenant-switcher";
 import { UserMenu } from "./user-menu";
 
-const heading = "text-[11px] font-medium tracking-wider text-fg-subtle uppercase";
+const heading = "text-2xs font-medium tracking-wider text-fg-subtle uppercase";
 
 export function Sidebar() {
   const { tenant, tenants, isOperator } = useTenant();
@@ -33,7 +33,7 @@ export function Sidebar() {
     <aside className="hidden w-64 md:flex shrink-0 flex-col border-r border-line bg-surface/60">
       <div className="flex h-14 items-center gap-2.5 px-5">
         <BrandMark size={26} logoURL={settings?.brand.logo_url} />
-        <span className="text-[15px] font-semibold tracking-tight">{settings?.brand.name ?? ""}</span>
+        <span className="text-lg font-semibold tracking-tight">{settings?.brand.name ?? ""}</span>
       </div>
       {tenants.length > 0 && (
         <div className="px-3 pb-3">

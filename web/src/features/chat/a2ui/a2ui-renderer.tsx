@@ -21,15 +21,15 @@ export function A2UIRenderer({ blocks, onPrompt, onCopy, fresh }: Props) {
         switch (b.type) {
           case "card":
             return (
-              <div key={i} className="rounded-[var(--radius-card)] border border-line bg-canvas/40 p-3">
-                {b.title && <p className="text-sm font-medium text-fg">{b.title}</p>}
-                {b.body && <p className="mt-1 whitespace-pre-line text-sm text-fg-muted">{b.body}</p>}
+              <div key={i} className="rounded-xl border border-line bg-canvas/40 p-3">
+                {b.title && <p className="text-base font-medium text-fg">{b.title}</p>}
+                {b.body && <p className="mt-1 whitespace-pre-line text-base text-fg-muted">{b.body}</p>}
                 {!!b.items?.length && <div className="mt-3 flex flex-wrap gap-2">{b.items.map((it, j) => <A2UIAction key={j} b={it} onPrompt={onPrompt} onCopy={onCopy} />)}</div>}
               </div>
             );
           case "tip":
             return (
-              <div key={i} role="note" className="flex gap-2 rounded-[var(--radius-card)] border border-primary/25 bg-primary/5 p-3 text-sm">
+              <div key={i} role="note" className="flex gap-2 rounded-xl border border-primary/25 bg-primary/5 p-3 text-base">
                 <Lightbulb className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
                 <div><p className="font-medium text-fg">{b.title}</p>{b.body && <p className="text-fg-muted">{b.body}</p>}</div>
               </div>

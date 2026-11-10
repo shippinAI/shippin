@@ -36,7 +36,7 @@ export function PublishFolder({ tenantId, f }: { tenantId: string; f: FoundFolde
         <div className="space-y-4 p-6">
           {needLink && inst && (
             <>
-              <p className="text-[13px] text-fg-muted">
+              <p className="text-sm text-fg-muted">
                 {inst.account_login} is a personal account, where GitHub doesn't let Apps create repositories.{" "}
                 <a className="text-primary underline" target="_blank" rel="noreferrer" href={`https://github.com/new?name=${f.slug}&visibility=private`}>Create an empty repo named {f.slug}</a>, give Shippin access, then link it:
               </p>

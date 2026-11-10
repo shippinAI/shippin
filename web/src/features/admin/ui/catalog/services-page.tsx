@@ -30,10 +30,10 @@ export function ServicesPage() {
             {items.map((s) => (
               <Card key={s.id} className="flex flex-col p-5">
                 <div className="flex items-start justify-between gap-2">
-                  <div><div className="font-semibold text-fg">{s.label}</div><div className="font-mono text-[11.5px] text-fg-subtle">{s.id} · {s.kind}</div></div>
+                  <div><div className="font-semibold text-fg">{s.label}</div><div className="font-mono text-xs text-fg-subtle">{s.id} · {s.kind}</div></div>
                   {write && <IconButton icon={Pencil} label={`Edit ${s.label}`} onPress={() => setEdit(s)} />}
                 </div>
-                <p className="mt-2 text-[13px] text-fg-muted">{s.description}</p>
+                <p className="mt-2 text-sm text-fg-muted">{s.description}</p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {s.required && <Badge tone="danger">required on every plan</Badge>}
                   {!s.active && <Badge tone="warning">inactive</Badge>}
@@ -43,7 +43,7 @@ export function ServicesPage() {
                     <Badge key={k}>{v.title ?? k}: {JSON.stringify(s.default_config[k] ?? "—")}</Badge>
                   ))}
                 </div>
-                {s.docs_url && <div className="mt-auto pt-3 font-mono text-[11px] text-fg-subtle">{s.docs_url}</div>}
+                {s.docs_url && <div className="mt-auto pt-3 font-mono text-2xs text-fg-subtle">{s.docs_url}</div>}
               </Card>
             ))}
           </div>

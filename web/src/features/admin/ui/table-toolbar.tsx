@@ -12,9 +12,9 @@ export function TableToolbar({ label, value, onChange, count, actions }: Props) 
         <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-fg-subtle" />
         <Input
           placeholder={`Search ${label}…`}
-          className="h-8 w-full rounded-[var(--radius-control)] border border-line bg-canvas/60 pr-8 pl-8 text-[13px] text-fg outline-none placeholder:text-fg-subtle data-focused:border-primary data-focused:ring-2 data-focused:ring-primary/25 [&::-webkit-search-cancel-button]:hidden"
+          className="h-8 w-full rounded-lg border border-line-control bg-canvas/60 pr-8 pl-8 text-sm text-fg outline-none placeholder:text-fg-subtle data-focused:border-primary data-focused:ring-2 data-focused:ring-primary/25 [&::-webkit-search-cancel-button]:hidden"
         />
-        <RacButton aria-label="Clear search" className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded p-1 text-fg-subtle group-data-empty:hidden data-hovered:text-fg">
+        <RacButton aria-label="Clear search" className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-sm p-1 text-fg-subtle group-data-empty:hidden data-hovered:text-fg">
           <X className="size-3" />
         </RacButton>
       </SearchField>

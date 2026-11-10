@@ -8,12 +8,12 @@ type Props = { label: string; value?: ReactNode; hint?: ReactNode; icon: LucideI
 export function StatCard({ label, value, hint, icon: Icon, hue, pct }: Props) {
   const tone = pct === undefined ? hue : pct > 90 ? "var(--color-danger)" : pct > 75 ? "var(--color-warning)" : hue;
   return (
-    <div className="rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-[var(--shadow-e1)]">
-      <div className="flex items-center justify-between text-[12.5px] text-fg-muted">
+    <div className="rounded-xl border border-line bg-surface p-4 shadow-e1">
+      <div className="flex items-center justify-between text-sm text-fg-muted">
         {label}
         <Icon className="size-4" style={{ color: hue }} strokeWidth={1.75} />
       </div>
-      <div className="mt-2.5 text-[24px] leading-none font-semibold tracking-tight tabular-nums">
+      <div className="mt-2.5 text-2xl leading-none font-semibold tracking-tight tabular-nums">
         {value === undefined ? <Skeleton className="h-6 w-16" /> : value}
       </div>
       {pct !== undefined && (

@@ -101,7 +101,7 @@ export function InterfacePage() {
   return (
     <>
       <PageHeader title="Interface" description="What this installation calls things and what it shows. The config file stays the default; every change here needs a reason and is audited." />
-      {config.isError && <p role="alert" className="text-sm text-danger">{config.error.message}</p>}
+      {config.isError && <p role="alert" className="text-base text-danger">{config.error.message}</p>}
       <Card className="mb-6 p-5">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-64 flex-1"><TextField label="Reason (audited)" value={reason} isDisabled={disabled} onChange={setReason} placeholder="Why this change" /></div>
@@ -114,7 +114,7 @@ export function InterfacePage() {
           )}
           <Badge tone={setting?.overridden ? "warning" : "neutral"}>{setting?.overridden ? "Overridden" : "From config"}</Badge>
         </div>
-        {!canWrite && <p className="mt-3 text-sm text-fg-muted">You can view this page. Changing it needs the platform settings permission.</p>}
+        {!canWrite && <p className="mt-3 text-base text-fg-muted">You can view this page. Changing it needs the platform settings permission.</p>}
       </Card>
       <Tabs
         label="Interface sections"

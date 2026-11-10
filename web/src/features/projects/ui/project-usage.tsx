@@ -14,10 +14,10 @@ export function ProjectUsage({ tenantId, projects }: { tenantId: string; project
   return (
     <Card>
       <CardHeader title="Usage & cost" description={rows.length ? `About ${usd(total)}/month at current use.` : "Live CPU, memory, disk and traffic per project."} />
-      {q.isError && <p className="px-5 pb-4 text-[13px] text-fg-muted">Usage is not available right now.</p>}
+      {q.isError && <p className="px-5 pb-4 text-sm text-fg-muted">Usage is not available right now.</p>}
       <ul className="divide-y divide-line">
         {rows.map((p) => (
-          <li key={p.project_id || "shared"} className="px-5 py-3 text-[13px]">
+          <li key={p.project_id || "shared"} className="px-5 py-3 text-sm">
             <div className="flex items-center gap-2 font-medium text-fg">
               <Gauge className="size-4 text-fg-subtle" /> {name(p.project_id)}
               <span className="flex-1" />
