@@ -16,7 +16,7 @@ type AgentConfig struct {
 	// Session is the tmux session name the agent and its terminal share.
 	Session string `json:"session"`
 	// SessionManager boots that tmux server with one window per provider (phase 1). Default
-	// false: a workspace keeps today's single on-demand session. See docs/design/devspace-vm.md.
+	// false: a workspace keeps today's single on-demand session. See docs/reference/devspace-vm.md.
 	SessionManager bool `json:"session_manager"`
 	// PromptMaxBytes caps the prompt file (the console caps it too).
 	PromptMaxBytes int `json:"prompt_max_bytes"`

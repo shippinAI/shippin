@@ -2,7 +2,7 @@
 
 This document describes the planned primary-to-node workflow. The console has the token exchange and heartbeat (`internal/servers`). The rest of the current
 repository does not implement the issuer, node agent, installer or real node
-inventory. The existing [compute API draft](../api/openapi/paths/compute-nodes.yaml)
+inventory. The existing [compute API draft](../../api/openapi/paths/compute-nodes.yaml)
 is the contract starting point; implementation must update it and its tests together.
 
 ## Responsibilities

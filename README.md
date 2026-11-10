@@ -1,6 +1,8 @@
 # Shippin
 
-Shippin is a self-hosted infrastructure panel. One web panel for your Incus and Proxmox hosts, the workspaces and services on them, and who can reach them. This repository is all of it: the control plane, the panel, the host agent and the installer.
+Shippin is an open cloud panel for your own servers. Install it once, add your Incus and Proxmox hosts in the panel, and run a private cloud on them: a control plane for the people who run the infrastructure, and tenant organizations whose workspaces, projects, apps and databases run on it. Everything is set up and changed in the panel.
+
+This repository is the whole product: the control plane, the panel, the host agent and the installers. [What Shippin is](docs/objective.md) defines it; the [roadmap](docs/roadmap.md) says what works today.
 
 ## Try it
 
@@ -24,7 +26,7 @@ Open <https://localhost:8443/setup> and enter that code to create the owner. The
 
 ## Run it for real
 
-Either way, everything about your installation lives in one file you keep, never in this repository. [docs/deploy.md](docs/deploy.md) covers TLS, names, tokens and upgrades.
+Your installation's values never go in this repository. The goal is that a small bootstrap file holds only database addresses and keys, and everything else is set in the panel; until the [roadmap](docs/roadmap.md)'s settings stage is done, some settings still live in that file. [docs/deploy.md](docs/deploy.md) covers TLS, names, tokens and upgrades.
 
 - **Containers:** configure `.env`, run `python install/docker/configure.py` to generate missing credentials, then `docker compose up -d --build` for the panel, PostgreSQL and Dragonfly.
 - **A Debian or Ubuntu machine:** copy it to `/etc/shippin/site.env`, edit it, and run `sudo ./install/panel/install.sh --site /etc/shippin/site.env`.
@@ -50,17 +52,20 @@ cd web && npm ci && npm run dev  # the panel, with hot reload, at http://localho
 | `cmd/shippin-hostd`, `internal/hostd/` | The host agent. |
 | `agent/` | A small host-side diagnostic for Incus and Proxmox. |
 | `api/openapi/` | The published API contract. |
-| `config/` | Examples. A site's real values stay out of git. |
-| `install/`, `compose.yaml`, `Dockerfile` | The ways to deploy it. |
+| `config/` | Examples. An installation's real values stay out of git. |
+| `install/`, `install.sh`, `compose.yaml`, `Dockerfile` | The ways to install it. |
+| `deploy/` | Images and helpers the panel builds and runs on hosts. |
+| `docs/` | The product definition, roadmap, design system and reference. |
+| `governance/` | Local tooling that records plans and evidence. |
 | `third_party/warden-ct102/` | The older Proxmox panel, kept as a reference until its remaining features are ported. It is not served. See [the variants ledger](docs/panel-variants.md). |
 
 ## Documentation
 
+- [What Shippin is](docs/objective.md)
+- [Roadmap](docs/roadmap.md)
+- [Design system](docs/design-system.md)
 - [Documentation index](docs/README.md)
-- [Deploy](docs/deploy.md)
-- [Develop](docs/development.md)
-- [Attach a hypervisor](docs/design/proxmox-connector.md)
-- [Roadmap and known gaps](docs/roadmap.md)
+- [Deploy](docs/deploy.md) and [develop](docs/development.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security reporting](SECURITY.md)
 

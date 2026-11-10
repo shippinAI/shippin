@@ -2,7 +2,7 @@
 
 **Status:** Partial Incus execution and an authenticated, durable target-health path are implemented on `main`. Complete service deployment remains unsupported until disposable Incus pass/fail/restart acceptance, the remaining Incus lifecycle, and a distinct Proxmox application executor are verified.
 
-**Scope:** Stage E of [the platform absorption plan](platform-absorption-plan.md)
+**Scope:** Stage E of [the platform absorption plan](../archive/platform-absorption-plan.md)
 
 **Owners:** `internal/deployments` owns desired/observed deployment truth; `internal/jobs` owns worker leases; `internal/hv/{incus,proxmox}` owns provider-specific guest operations; `web/` remains the only panel.
 

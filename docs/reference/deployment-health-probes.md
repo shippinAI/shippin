@@ -2,7 +2,7 @@
 
 Status: implemented in the control plane and host agent; live provider verification
 is still required. This is the health stage of
-[`platform-absorption-plan.md`](platform-absorption-plan.md), not evidence that a
+[`platform-absorption-plan.md`](../archive/platform-absorption-plan.md), not evidence that a
 catalog service is turnkey or production ready.
 
 ## Ownership

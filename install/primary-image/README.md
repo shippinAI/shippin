@@ -49,5 +49,5 @@ containers can still be evaluated separately. The installer modifies the disk yo
 select. Physical hardware, Secure Boot, full installation and Incus runtime must be
 independently tested before claiming support.
 
-See [primary installation design](../../docs/primary-installation.md) for the
+See [primary installation design](../../docs/reference/primary-installation.md) for the
 remaining first-owner, release signing, node enrollment and acceptance requirements.

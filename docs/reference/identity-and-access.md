@@ -52,7 +52,7 @@ On callback the directory links `(issuer, sub)` to one local user:
 
 ## The system tenant
 
-The platform's own tenant owns its hosts and services. Belonging to it grants nothing, customers cannot see it, and access to what it owns comes from staff roles. See [the control plane](design/control-plane.md).
+The platform's own tenant owns its hosts and services. Belonging to it grants nothing, customers cannot see it, and access to what it owns comes from staff roles. See [the control plane](control-plane.md).
 
 ## Signup policy
 

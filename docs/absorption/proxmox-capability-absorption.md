@@ -58,4 +58,4 @@ The source handler posts lifecycle actions without waiting for the returned task
 uses a default node, and allows TLS verification to be disabled. These shortcuts are
 not adopted. Source page-specific behavior is covered only where its underlying
 capability is useful to the shared platform contract. Broader Proxmox endpoint
-coverage and its status remain in [the full coverage map](proxmox-full-coverage.md).
+coverage and its status remain in [the full coverage map](../reference/proxmox-full-coverage.md).

@@ -57,7 +57,7 @@ Host, port, node, and API URL live on the server row (`031_servers.sql` plus `03
 
 ## Approval and the infra role
 
-Provider mutation routes return `503 agenthub_review_unavailable` before invoking a driver. The old `hv.Guard` and local board adapter have been removed from this path; Shippin-local permission policy and task-board configuration cannot authorize a provider operation. The target is a configured AgentHub policy/ticket/review adapter with explicit system mapping and fail-closed behavior; see [configurable human review](../approval.md).
+Provider mutation routes return `503 agenthub_review_unavailable` before invoking a driver. The old `hv.Guard` and local board adapter have been removed from this path; Shippin-local permission policy and task-board configuration cannot authorize a provider operation. The target is a configured AgentHub policy/ticket/review adapter with explicit system mapping and fail-closed behavior; see [configurable human review](approval.md).
 
 `roles.infra` (shipped as `op_infra`) is the only role that may call `/v1/infra/servers`. Platform admin is not implied. Role authorization gates the route; AgentHub authorization is a separate required gate and is not yet connected, so all provider mutations remain unavailable.
 

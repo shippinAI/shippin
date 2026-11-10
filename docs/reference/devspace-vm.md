@@ -241,7 +241,7 @@ Each phase is shippable on its own. Later phases are not started because the fla
 |---|---|---|
 | 0, this PR | Review, the listing and size fixes, this document. | Merged. Not deployed. |
 | 1, this PR, flag off | Session manager unit. Windows for every `agent.providers` entry. Grok added. Tests, including the boot script against a fake tmux. | the operator sets `agent.session_manager` true on a throwaway tenant. Not the reference host's founder VM. |
-| 2 | Devspace is the VM. New paid devspaces get `dvm-<id>` instead of a container in the tenant VM. Free stays a container. Image carries the CLIs, tmux, and the session unit. Migration of existing containers is a separate, explicit step. | C1 has a fix (inner firewall or equivalent) before two customers share a bridge. `volume_shiftedthe removed single-site signing code docs/architecture/org-storage.md`). |
+| 2 | Devspace is the VM. New paid devspaces get `dvm-<id>` instead of a container in the tenant VM. Free stays a container. Image carries the CLIs, tmux, and the session unit. Migration of existing containers is a separate, explicit step. | C1 has a fix (inner firewall or equivalent) before two customers share a bridge. `volume_shifted` decided on the host (see `docs/reference/org-storage.md`). |
 | 3 | One install of Claude Desktop, Codex desktop, and Grok desktop, after the operator picks control plane or tenant VM. Cowork's disk on the org data volume. No install before that, and no certificate work in that change. | Placement decided. `/dev/kvm` and `/dev/vhost-vsock` confirmed on the machine that will run QEMU. Apt key checked the way Zabbly's key is checked, if the install is apt. |
 | 4 | One `hub-server` per org from `shippinAI/agent-hub`, database on that org's dataset, MCP as in `docs/connect.md`. | Phase 1 flag has been on for a real workspace without the session unit failing closed. Desktop placement does not block this; the hub does not install a desktop. |
 | 5 | Builder UI on the existing agent routes. | Phase 1 providers, including Grok, resume from the UI. |
@@ -256,7 +256,7 @@ Each phase is shippable on its own. Later phases are not started because the fla
    lists what each needs from storage and plans. Do not install either to find out, and do not
    design certificates for it.
 3. When phase 2 starts. Until then, paid customers share one tenant VM and are exposed to C1.
-4. `volume_shiftedthe removed single-site signing code docs/architecture/org-storage.md`, before
+4. `volume_shifted` on the host's ZFS, with the probe in `docs/reference/org-storage.md`, before
    any second workspace mounts the same AI home.
 5. Whether `/dev/vhost-vsock` exists on the machine that would run Cowork, and whether the desktop
    user is in group `kvm`. Do not install the package to find out.

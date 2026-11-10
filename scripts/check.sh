@@ -28,6 +28,7 @@ step "panel (build)" web npm run build
 step "panel (budget)" web npm run budget
 step "governance (install)" governance npm ci --no-audit --no-fund
 step "governance (test)" governance npm test
+step "docs (links)" . node scripts/check-docs.mjs
 
 if [ "${#failed[@]}" -gt 0 ]; then
   echo "FAILED: ${failed[*]}"

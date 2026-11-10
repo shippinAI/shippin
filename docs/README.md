@@ -1,26 +1,35 @@
 # Documentation
 
-Start with the [README](../README.md) to run it, and [develop](development.md) to change it.
+Start with [What Shippin is](objective.md). The [README](../README.md) gets it
+running.
 
-## Run it
+## The product
 
-- [Deploy](deploy.md): containers or a Debian/Ubuntu machine, TLS, names, tokens and upgrades.
-- [Attach a hypervisor](design/proxmox-connector.md)
-- [Identity and access](identity-and-access.md)
-- [Approval](approval.md)
-- [Plans](plans.md)
+- [What Shippin is](objective.md): the contract every change follows, with requirement IDs.
+- [Roadmap](roadmap.md): what exists today and the order of the rest.
+- [Design system](design-system.md): tokens, accessibility and speed rules for the panel.
 
-## Understand it
+## Run it and change it
 
-- [Objective](objective.md) and [roadmap](roadmap.md)
-- [Source ownership](source-of-truth.md): which directory owns what.
+- [Deploy](deploy.md): containers or a Debian/Ubuntu machine, TLS, upgrades.
+- [Develop](development.md): the local loop and the checks to run before pushing.
+- [Attach a hypervisor](reference/proxmox-connector.md): Incus and Proxmox.
+- [Source ownership](source-of-truth.md): which folder owns what.
 - [Panel variants](panel-variants.md): every other place a panel lived, and what became of it.
-- [Fleet operations](design/fleet-operations.md): requirements for running real hosts.
-- [Hypervisor drivers](design/hypervisor-drivers.md)
-- [Service contexts](service-contexts.md)
-- [Node enrollment](node-enrollment.md)
-- [Architecture notes](architecture/) and [designs](design/)
+- [Hosting plans](plans.md): the plan tiers the catalog and host agent use today.
+
+## How the parts work
+
+[reference/](reference/) describes the parts as they are designed: hypervisor
+drivers, identity and access, staff roles, approval, deployments, managed
+services, devspaces, enrollment and more. Each page says which parts are built.
+
+## Where older code went
+
+[absorption/](absorption/) is the ledger of capabilities taken from earlier
+Shippin, Warden and Proxmox panels, and what remains to re-author.
 
 ## History
 
-[history/](history/) holds phase notes, reviews and plans that were true when written.
+[archive/](archive/) keeps superseded plans and reviews. They were true when
+written and do not describe the product now.

@@ -25,7 +25,7 @@ The single `web/` panel and the existing platform bounded contexts own this capa
 
 Do not extend the rrflow-specific `service_instances` table into a second generic deployment registry. Do not create a parallel `/v1/infra/services` manager. Managed engines should be typed catalog definitions and deployment instances in the existing deployment owner. Engine-specific differences belong in service contracts and runtime adapters.
 
-Historical sources reviewed include the clean `shippin-cloud` checkout at `49475d3b` and the Warden capture matrix. Those sources inform capability accounting only; their panels, endpoint defaults, local secrets files, shell executors and approval mechanisms are not product implementations. See the [capability absorption ledger](capability-absorption.md).
+Historical sources reviewed include the clean `shippin-cloud` checkout at `49475d3b` and the Warden capture matrix. Those sources inform capability accounting only; their panels, endpoint defaults, local secrets files, shell executors and approval mechanisms are not product implementations. See the [capability absorption ledger](../absorption/capability-absorption.md).
 
 ## Service contracts
 

@@ -7,7 +7,7 @@ multi-tenant isolation or managed database UI have been implemented.
 ## Product hierarchy
 
 The target hierarchy and authorization contract are now owned by
-[the product contract](objective.md): internal operator organization for staff,
+[the product contract](../objective.md): internal operator organization for staff,
 infrastructure and platform services; tenant organization -> workspace -> project
 -> environment -> deployments/resources. The descriptions below record the current
 implementation shape for migration planning. In particular, current compute
@@ -47,7 +47,7 @@ come from the installation, and individual attachments need scoped authorization
 
 | Group | Desired capability and candidate products | Boundary |
 | --- | --- | --- |
-| Infrastructure | Incus and Proxmox | Hosts, placement, workloads and provider-specific capabilities belong to the infrastructure control plane. Both are intended providers; see [source ownership](source-of-truth.md) for what exists today. |
+| Infrastructure | Incus and Proxmox | Hosts, placement, workloads and provider-specific capabilities belong to the infrastructure control plane. Both are intended providers; see [source ownership](../source-of-truth.md) for what exists today. |
 | Data | ShippinDB / PostgreSQL; Dragonfly-compatible cache | Database and cache have separate lifecycle, performance, isolation and recovery requirements. |
 | Object storage | ShippinS3 | A separately scoped object-storage capability; S3 compatibility requires testing, not a name alone. |
 | Identity and secrets | Nomen / `nomen.sh`; Vaultix / `vaultix.cloud` | Identity and secret systems own their records and expose reviewed interfaces; the panel does not become a second identity or secrets store. |
@@ -76,8 +76,8 @@ semantics are interchangeable with another provider.
 
 ## Canonical contract and code placement
 
-The draft [service schema](../api/openapi/schemas/service-catalog.json), registered
-in [OpenAPI](../api/openapi/openapi.yaml), defines `ServiceDefinition`,
+The draft [service schema](../../api/openapi/schemas/service-catalog.json), registered
+in [OpenAPI](../../api/openapi/openapi.yaml), defines `ServiceDefinition`,
 `ServiceAttachment` and their explicit scopes. Definitions are catalog metadata;
 availability is not authorization or live health. Attachments separate desired
 state from observed state and require a timestamp for a non-unknown observation.

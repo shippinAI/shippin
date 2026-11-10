@@ -2,7 +2,7 @@
 
 The current development ISO builds on Debian and requests Incus from a network mirror.
 It is unsigned and does not install the Shippin control plane or panel. It is not a
-production appliance. See the [image builder](../install/primary-image/README.md)
+production appliance. See the [image builder](../../install/primary-image/README.md)
 for exact build instructions and limitations.
 
 The intended deployment has a primary server hosting the control plane, durable state,
@@ -17,5 +17,5 @@ short-lived bootstrap mechanism over trusted HTTPS, with recovery and backup. It
 not rely on a shared factory password. Node enrollment needs independently revocable
 credentials and must not silently change cluster membership or erase disks.
 
-See the [node enrollment design](node-enrollment.md), [release roadmap](roadmap.md),
-and [next implementation handoff](../install/primary-image/implementation-plan.md).
+See the [node enrollment design](node-enrollment.md), [release roadmap](../roadmap.md),
+and [next implementation handoff](../../install/primary-image/implementation-plan.md).

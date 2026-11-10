@@ -1,6 +1,6 @@
 # Panel variants
 
-This repository owns the Shippin panel. There is one: `web/`, served by `cmd/console`. This ledger records source checkouts and historical UI work so no second panel is created. Compared on 2026-11-04; capability-level reconciliation is tracked in the [absorption ledger](design/capability-absorption.md).
+This repository owns the Shippin panel. There is one: `web/`, served by `cmd/console`. This ledger records source checkouts and historical UI work so no second panel is created. Compared on 2026-11-04; capability-level reconciliation is tracked in the [absorption ledger](absorption/capability-absorption.md).
 
 | Variant | Last commit compared | What it is | Result |
 | --- | --- | --- | --- |
@@ -25,7 +25,9 @@ Not this panel, so they stay separate:
 | `shippinAI/wc`, `netbirdio/dashboard` | A NetBird dashboard. |
 | `EonsofStupid/shippincloud`, `devforge-shippin` | Forks of Apache CloudStack and Eclipse Theia. |
 | `EonsofStupid/shippin-host-console` | Empty. |
-| a private repository | Notes and tooling for one installation. Private, and it stays that way. |
+
+
+There is no private or per-installation repository (OPEN-01). Scripts that one installation used, removed from `main` in `424a25a`, are re-authored as configurable panel features; the [absorption ledger](absorption/capability-absorption.md) tracks them.
 
 ## How anything comes in
 

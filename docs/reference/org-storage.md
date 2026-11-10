@@ -106,5 +106,5 @@ Then:
 incus storage volume delete p-<tenant> shift-probe --project t-<tenant>
 ```
 
-Only after that probe succeeds should `ai.volume_shiftedthe removed single-site signing code ownAIHome`
+Only after that probe succeeds should `ai.volume_shifted` become true on a host. `ownAIHome`
 chowns the mount point, not the files inside it, so it is not a substitute.

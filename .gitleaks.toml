@@ -17,4 +17,4 @@ description = "False-positive DNSSEC design prose in the capability ledger"
 condition = "AND"
 regexTarget = "line"
 regexes = [ '''scoped credential, DNSSEC/ownership validation''' ]
-paths = [ '''docs/design/capability-absorption\.md''' ]
+paths = [ '''docs/absorption/capability-absorption\.md''' ]

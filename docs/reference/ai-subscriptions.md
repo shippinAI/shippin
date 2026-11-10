@@ -92,7 +92,7 @@ References: [Codex device authentication](https://learn.chatgpt.com/docs/auth),
 
 - AI homes are keyed by tenant (boundary empty) because hostd places every workspace of a VM tenant
   in its tenant VM. When hostd places by boundary VM, key homes by boundary.
-- `volume_shiftedthe removed single-site signing code security.shifted` create would
+- `volume_shifted` stays false. The host check, and why a failed `security.shifted` create would
   break every AI home, is in `docs/architecture/org-storage.md`. Without the shift, containers
   with isolated idmaps see the shared volume under different uids. `ownAIHome` chowns the mount
   point only.

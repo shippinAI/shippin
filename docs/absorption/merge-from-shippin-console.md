@@ -11,7 +11,7 @@ The public tree is the squashed, cleaned snapshot. A full history import was not
 | `cmd/console`, `internal/` | same paths | Console implementation. `api/openapi/` remains the published contract. |
 | `cmd/shippin-hostd`, `internal/hostd` | same paths | Console host agent. `agent/` stays the local Incus diagnostic. |
 | `cmd/shippin-bridge`, `cmd/shippin-credwriter`, `cmd/ai-launcher`, `cmd/rrflow-state`, `cmd/catalog-demo`, `cmd/hub-demo`, `cmd/chat-probe`, `cmd/vaultix-demo` | same paths | Console. |
-| `web/` | `web/` | Console UI. This is the panel. The separate `panel/` workbench has since moved into it; see [panel variants](panel-variants.md). |
+| `web/` | `web/` | Console UI. This is the panel. The separate `panel/` workbench has since moved into it; see [panel variants](../panel-variants.md). |
 | `deploy/` | `deploy/` | Kept after site addresses and site paths were removed. The supported install path is `install/panel/install.sh`. |
 | `config/shippin.json` | `config/shippin.example.json` | Example only. A site writes `/etc/shippin/shippin.json` from `config/site.env`. |
 | `deploy/hostd.json` | `deploy/hostd.example.json` | Example only. |
@@ -22,10 +22,10 @@ The public tree is the squashed, cleaned snapshot. A full history import was not
 
 ## Dropped
 
-- the removed single-site signing code . They run on the the reference host host, read the removed single-site signing code and sync over a tailnet. They are not a generic install.
-- the removed single-site signing code . Site change tickets and a tailnet URL.
+- Two single-site signing commands. They ran on the reference host, read its change file and synced over a tailnet. They are not a generic install.
+- Four single-site deploy folders: launcher, hub, passkey and Vaultix. Site change tickets and a tailnet URL.
 - `deploy/screenshots`. Live-site capture scripts. The archive already omitted the PNG files.
-- the removed single-site signing code . Replaced by `config/sparks.example.json` with generic node ids.
+- A single-site sparks inventory. Replaced by `config/sparks.example.json` with generic node ids.
 - Screenshot binaries. They were not in the archive.
 
 ## Made generic

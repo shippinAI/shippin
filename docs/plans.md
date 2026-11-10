@@ -94,7 +94,7 @@ on business and founder only (the old team numbers, not the old enterprise numbe
 - The inner Incus pool inside a tenant VM is named `default`. The bytes are the zvol `tvd-<tenant>`
   on pool `p-<tenant>`, dataset `tank/tenants/<tenant>`. See `docs/architecture/org-storage.md`.
 - The platform image cache under `state_dir/images` is a template cache, not tenant data.
-- `volume_shiftedthe removed single-site signing code security.shifted`. Steps are in the
+- `volume_shifted` stays false until the host's ZFS accepts `security.shifted`. Steps are in the
   storage doc.
 
 ```plans

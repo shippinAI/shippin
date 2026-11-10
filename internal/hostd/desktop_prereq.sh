@@ -142,7 +142,7 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 modprobe vhost_vsock >/dev/null 2>&1 || true
 
-# kvm group for accounts in the per-org uid range (docs/design/identity-local-accounts.md).
+# kvm group for accounts in the per-org uid range (docs/reference/identity-local-accounts.md).
 # This does not create accounts. Cowork needs the group for /dev/kvm and /dev/vhost-vsock.
 if getent group kvm >/dev/null 2>&1 && [ -f "$(r /etc/passwd)" ]; then
   while IFS=: read -r name _ uid _ _ _ _; do

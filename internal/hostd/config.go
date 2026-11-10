@@ -25,7 +25,7 @@ type Plan struct {
 	Cowork bool `json:"cowork"`
 }
 
-// VMPlan is the tenant VM size (vm-first tenants, docs/architecture/vm-first-tenants.md).
+// VMPlan is the tenant VM size (vm-first tenants, docs/reference/vm-first-tenants.md).
 type VMPlan struct {
 	CPU     int    `json:"cpu"`
 	Memory  string `json:"memory"`

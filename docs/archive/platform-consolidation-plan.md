@@ -181,16 +181,16 @@ This register is the active work order. It deliberately separates implemented
 metadata and design from behavior that has actually been exercised. Complete
 each packet in order, update its status with commit and CI evidence, and do not
 start a dependent packet while its gate is open. Source-by-source provenance and
-dispositions remain in [`design/capability-absorption.md`](design/capability-absorption.md);
-the architecture and UI path remain in [`design/platform-absorption-plan.md`](design/platform-absorption-plan.md).
+dispositions remain in [`design/capability-absorption.md`](../absorption/capability-absorption.md);
+the architecture and UI path remain in [`design/platform-absorption-plan.md`](platform-absorption-plan.md).
 
 ### Source-closure worklist
 
 Use this table to decide when a source folder can be marked "closed for active
 delivery" and moved to archive-ready review. A source is not closable until all
 checkpoints in its row are complete and linked to evidence in this plan,
-[`design/capability-absorption.md`](design/capability-absorption.md) and
-[`design/archive-readiness.md`](design/archive-readiness.md).
+[`design/capability-absorption.md`](../absorption/capability-absorption.md) and
+[`design/archive-readiness.md`](../absorption/archive-readiness.md).
 
 Before marking any row closed, also pass the boundary and nesting gate below.
 
@@ -208,7 +208,7 @@ Treat this as a fail-closed checklist. If any item is "no", the source is not
 closure-ready.
 
 1. **Canonical owner match:** every adopted capability is implemented in the owner
-   defined by [`source-of-truth.md`](source-of-truth.md) (for example, one panel
+   defined by [`source-of-truth.md`](../source-of-truth.md) (for example, one panel
    in `web/`, provider logic in `internal/hv/{incus,proxmox}/`, deployment runtime
    in `internal/deployments/`).
 2. **No cross-layer leaks:** provider or builder behavior is not placed in panel

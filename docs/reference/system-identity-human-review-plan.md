@@ -26,7 +26,7 @@ records; the control plane owns the authoritative system inventory.
 > services; no live AgentHub installation or least-privilege production principal
 > has been verified. No deployment provider operation is connected, so deployment
 > execution remains unavailable. See [configurable human review](approval.md).
-> Source ownership is defined by [source of truth](source-of-truth.md).
+> Source ownership is defined by [source of truth](../source-of-truth.md).
 
 ## Grounded starting point
 
@@ -53,8 +53,8 @@ records; the control plane owns the authoritative system inventory.
   configured quorum. Shippin's adapter must verify exact ticket binding and the
   current policy's matched rule semantics; only AgentHub evaluates reviewer
   eligibility and configured quorum.
-- Historical console the removed single-site signing code  and
-  the removed single-site signing code  implement separate single-site screens,
+- The historical console's single-site signing feature, package and
+  routes implement separate single-site screens,
   storage, signing and routes. They are not the AgentHub policy authority and
   are not part of the current deployment review flow.
 

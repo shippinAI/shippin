@@ -1,6 +1,6 @@
 # Hand-written expectations (not generated): for each preset role, the operator routes it may
 # call. Every route not listed under a role must answer 403. "ALL" means every route.
-# Keep this in step with docs/architecture/staff-roles/matrix.md, not with the Go table.
+# Keep this in step with docs/reference/staff-roles/matrix.md, not with the Go table.
 
 [staff.owner]
 ALL

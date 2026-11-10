@@ -1,73 +1,49 @@
-# Shippin delivery roadmap
+# Roadmap
 
-[The product contract](objective.md) governs the target and stable requirement IDs.
-Updated 2026-11-07 for internal operator ownership, staff roles, tenant workspaces,
-workspace AI subscriptions, Google Drive, runnable projects and app publishing.
-Reconcile older plans with this order; historical evidence is not current delivery.
+[What Shippin is](objective.md) defines the target and its requirement IDs. This
+page says what exists today, in what order the rest gets built, and what each
+stage must prove. Updated 2026-11-10 from the owner's direction: a clear product
+definition, a rewritten panel on strict design tokens, PostgreSQL and ClickHouse
+in every install, every setting in the panel, Incus and Proxmox with real
+dashboards, then tenants, subscriptions and a turnkey catalog.
 
-## Intended tenant journey
+## Where it stands
 
-Sign in -> open the organization's default workspace -> create/open multiple
-projects -> activate the user's Claude connection for that workspace -> connect
-selected Google Drive material -> dispatch work or connect remotely -> run/preview
-an actual app -> publish name.shippin.app or name.shippin.dev -> connect a custom
-domain -> manage deployments, services, resources, updates and recovery.
+| Area | Today | Missing |
+| --- | --- | --- |
+| Install | One command or Docker Compose installs the panel, PostgreSQL and Dragonfly with generated credentials and a setup code. Fresh install, upgrade with data kept, and restore of a backup have been run. | ClickHouse is not installed or used. |
+| Settings in the panel | About seven settings can be overridden in the panel. Hosts, health probes, workspace templates, team settings and the AgentHub connection are stored in the database and edited in the panel. | Sign-in providers, identity, mail, feature switches, every secret, workspace limits, updates and branding after setup are file or environment only and need a restart. Saving the Interface page drops provider image lists, which have no editor. |
+| Panel | One React panel (`web/`) with accessible React Aria components and a dark OKLCH token file. | About 500 raw values in 180 files bypass the tokens, plus glass, glow and gradient effects. There is no chart component and no light theme. |
+| Infrastructure | Incus and Proxmox hosts are added, tested and listed in the panel; guests are listed; the Incus driver creates guests from configured image servers (verified on real Incus 6.0.4). | The panel refuses every guest creation and other provider change in code, whatever is configured; power actions need an AgentHub review. Host credentials are file paths or environment variable names on the panel's machine. |
+| Dashboards | Live point-in-time numbers: Proxmox guest CPU, memory, disk and network; host memory. | Incus guest metrics, host CPU and load, any stored history, range queries, live updates and charts. |
+| Access | Local accounts, passkeys, setup of the internal organization, staff roles and team settings exist. | One scoped staff-role authority with primary and secondary roles; current-session MFA everywhere. |
+| Tenants | Customers, default workspaces and projects persist with cross-tenant denial tests. | Plans that shape a workspace, quotas, and runnable projects. |
+| Services | Catalog, versioned deployment plans and an Incus OCI application executor (volume, container, start, host health probe) exist. A tenant's starter database runs on a shared PostgreSQL on the platform host. | No catalog entry for PostgreSQL, ClickHouse or anything else. The Incus executor has never run against a real host, needs AgentHub with no alternative, does not re-run after a review passes, cannot act on an earlier generation's container, and ignores declared ports. Proxmox has no application path. |
 
-One organization is one tenant boundary. Most have one workspace; additional
-workspaces are supported. Connections retain owner identity and explicit workspace/
-project grants. Publishing base domains are operator configuration. Cloudflare is
-the recommended DNS integration, with a manual path for other DNS providers.
+## Order of work
 
-## Current evidence and release blockers
+| Stage | Result someone can see | Proof required |
+| --- | --- | --- |
+| 0. Clarity and foundation | This contract and roadmap; tidy docs; the [design system](design-system.md) with strict tokens enforced by a check. | The token check runs in CI; every page renders on the token scale. |
+| 1. Core install | Fresh installs include ClickHouse beside PostgreSQL and Dragonfly, configured with generated credentials; the panel shows all three healthy. | Clean install and upgrade in CI, both installers; a stopped dependency shows as down. |
+| 2. Every setting in the panel | Each configuration section has a validated panel form, stored in PostgreSQL, audited with a reason, live without a restart. Secrets are sealed in the database. The file only bootstraps and seeds a first run. | Change each setting in the panel and observe its effect without a restart; invalid values are refused; the audit log shows who, when and why. |
+| 3. Infrastructure and dashboards | Add Incus and Proxmox hosts with uploaded credentials; create and manage guests; live and historical CPU, memory, disk and network for every host and guest. | Real Incus and Proxmox in CI or the local test rig; samples land in ClickHouse; charts show gaps as gaps. |
+| 4. Control plane access | Owner and staff with primary and scoped secondary roles, effective-access view, support grants. | Denial tests for every entry point, current-session MFA. |
+| 5. Tenants and subscriptions | Plans created in the panel; a subscription opens a workspace shaped by its plan; quotas enforced. | Tenant isolation tests; quota refusals; usage visible to the tenant only. |
+| 6. First services | PostgreSQL and ClickHouse deploy for a tenant or the operator from the catalog, guided or advanced, through one executor. | Provision, health, credentials, update, backup, restore and removal for each engine separately. |
+| 7. Workspace AI and sources | Activate one's own Claude subscription, authorize Drive content, dispatch work, reconnect remotely. | Owner-runner isolation, revocation, task recovery, real sessions. |
+| 8. Catalog | Nomen, Wardenclyffe, Vaultix, Dragonfly and open-source community applications as turnkey entries. | Each entry verified on its own; no blanket parity claim. |
+| 9. Build and publish | Deploy from Git; publish an HTTPS address; connect a custom domain; manage the live app. | Route, TLS and DNS verified; safe cutover and rollback. |
+| 10. Release | Clean install, upgrade, backup, restore and support runbooks. | Current CI plus real-provider journeys. |
 
-| Area | Observed state | Remaining work |
-|---|---|---|
-| Source ownership | Go, web/, providers and partial deployment code exist here. | Source-family closure remains open; no folder is declared archive-ready. |
-| Installation foundation | Docker fresh-install HTTP tests pass for password setup/rotation, internal organization, branding, customer creation, workspaces, projects and persistence across restart. The existing local installation was upgraded with its owner/data preserved; PostgreSQL and Dragonfly report healthy. The prior database backup restored successfully in isolation. | Current CI must pass before release closure. Browser walkthrough could not run because the browser host was unavailable and the native window remained minimized. Dragonfly packaging is not managed customer-service provisioning. |
-| Staff authority | staff_roles/local-IdP grants coexist with separate staff_assignments/ops_* grants. | Reconcile one assignment authority with primary/secondary scopes and effective-access provenance. |
-| Staff/customer separation | Bootstrap and migration bind the internal Operations registry, local identity organization and system tenant explicitly. Invitations and role assignment use that link; existing customer memberships are preserved. | Reconcile scoped staff roles and prove current-session MFA, infrastructure access and customer-data denials across all entry points. |
-| Internal infrastructure | Internal ownership is persisted and shown in the operator panel. | Provider capacity placement and complete resource ownership enforcement remain open. |
-| Tenant hierarchy | Local customer creation with an explicit owner creates its default workspace. Additional workspaces and projects persist; API tests cover cross-tenant denial, member write denial and deletion guards. Compute UI is colocated under features/devspaces; grouping UI under features/workspaces. | Workspace grants/quotas and runnable compute remain open. Pending projects are not deployed applications. |
-| AI connections | Subscription status, isolated owner-runner and bridge pieces exist. | Verify the workspace-scoped grant/dispatch/remote flow. Existing docs record blocked legacy dispatch; do not present activation alone as completion. |
-| Google Drive and publication | These are explicit product requirements. | No end-to-end Google Drive, Shippin-domain or custom-domain workflow was verified in this packet. |
-| Providers/services | Inventory, bounded guest actions and partial Incus execution exist. | Real provider acceptance, Proxmox app execution and complete managed-service lifecycle remain open. |
+A stage closes only when its proof passes. Incus does not close Proxmox, and
+PostgreSQL does not close another engine.
 
-## Ordered delivery
+## How work is recorded
 
-| Stage | User-visible result | Owners and acceptance gate |
-|---|---|---|
-| 1. Internal organization/access | Owner sets up the internal org and assigns primary/secondary staff access. | Existing identity/org/staff DB/API and team UI: explicit bindings, scoped grants, no implicit tenant access, denial tests and migration proof. Complete pending password/install work here. |
-| 2. Tenant workspace hierarchy | A tenant opens its default workspace, adds another if needed, and opens multiple projects. | Existing tenant/org/project/compute owners and panel: grouping-workspace/devspace migration, persistent project state, quota ancestry and cross-tenant denial. |
-| 3. Infrastructure/runtime | Staff registers Incus/Proxmox hosts and allocates capacity; a project runs and exposes its real preview. | Server/provider/host-agent owners: credential/TLS failures, inventory freshness, isolated placement, restart recovery and live provider verification. |
-| 4. Workspace AI/Drive/remote work | Activate own Claude connection, authorize selected Drive content, dispatch to a chosen project and reconnect remotely. | Existing subs/bridge/jobs/project owners and connection UI: supported native sign-in, owner-runner isolation, workspace grants, task logs/cancel/recovery, Drive provenance/revocation, actual remote session. Explicit SDK/API credential mode where required. |
-| 5. First complete service | Tenant and operator can each deploy an appropriately owned PostgreSQL instance using automatic or advanced configuration. | Catalog/deployments/managed/jobs/provider/UI owners: same validated plan from both paths; provision, health, credential isolation, update, backup, verified restore and removal. External detach never deletes data. |
-| 6. Service family | Dragonfly, Nomen, Vaultix, ClickHouse and other services have deploy/connect/configure flows. | Engine/service adapters under existing owners: per-service requirements, dependency ordering, ownership, rotation, resources and recovery. No blanket parity claim. |
-| 7. Build/publish/manage | Deploy Git/custom sources; publish a Shippin HTTPS URL; connect a custom domain; manage the live app. | Source/builder/deployment/networking/edge/UI owners: pinned builds, slug ownership, route/TLS verification, DNS guidance/optional Cloudflare, safe cutover, logs/resources/updates/recovery; Tailscale/tunnel/custom paths verified individually. |
-| 8. Release/source closure | Clean install, upgrade, restore and support work; fully accounted source folders become archive candidates. | Install/release/source-ledger owners: clean-folder build, current CI, real provider journeys, isolation, backup/restore, public/private boundaries and preserved dirty source work. |
-
-Each stage closes a user journey. Absorb source capabilities within their owning
-stage and update the existing ledger. Incus does not close Proxmox; PostgreSQL does
-not close another engine. Platform dependency packaging does not close customer
-service provisioning. Automatic and advanced UI paths must share one executor.
-
-## Immediate packet
-
-Finish publication/CI evidence for the installation and hierarchy packet.
-Next reconcile one scoped staff-role authority, including primary/secondary roles,
-effective-access provenance and current-session MFA. Then complete and verify the
-first real project runtime on registered infrastructure. The database hierarchy
-does not close either the authorization or runtime stage.
-
-## AI work and evidence
-
-Every packet records requirement IDs, inspected sources/hashes, one user journey,
-migration/compatibility decisions, negative paths, commands and observed acceptance
-results in the existing governance session. Use the existing roadmap and ledgers;
-do not create a competing panel or plan authority. Preserve broader requirements
-until their gates pass. Report implemented, tested, deployed and live-provider
-verified separately. Disk capacity was restored during this packet; local evidence
-records both the earlier write failures and subsequent successful checks.
-
-Detailed records: [source ownership](source-of-truth.md),
-[capability ledger](design/capability-absorption.md),
-[archive readiness](design/archive-readiness.md).
+Each packet cites requirement IDs, inspects the whole relevant source, records one
+user journey, its failure paths, the commands run and what was observed, in the
+local governance session ([governance/README.md](../governance/README.md)). Report
+implemented, tested, deployed and live-provider verified separately.
+Capabilities from older panels are tracked in the
+[absorption ledger](absorption/capability-absorption.md).

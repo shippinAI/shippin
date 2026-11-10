@@ -13,7 +13,11 @@ control plane imported from shippin-console `e35ab817bbfedc626f35aa2f42760df49d4
 reference import that is not served, kept until its remaining features are ported. `install/panel/`, `install/docker/`,
 `Dockerfile` and `compose.yaml` own deployment.
 `install/primary-image/` owns the development image builder. `governance/` owns the
-local plan and journal tooling. Site values live in an uncommitted site file.
+local plan and journal tooling. `docs/` holds the product definition
+([objective.md](objective.md)), the roadmap, the design system, `reference/` for
+how parts work, `absorption/` for where older code went, and `archive/` for
+superseded plans. An installation's values are never committed; they belong in
+its database and panel (CFG-01), and until then in its uncommitted site file.
 
 `internal/orgs/` owns the explicit registry links between the internal Operations
 organization, its local identity organization and the system tenant, and between
@@ -34,7 +38,7 @@ enforces project workspace ancestry with a composite tenant foreign key.
 PostgreSQL remains the durable authority; configured Redis/Dragonfly stores only
 expiring shared counters. Runtime dependency URLs are bootstrap configuration,
 not customer service credentials or editable health-table values.
-See [the console import](merge-from-shippin-console.md). No candidate code is
+See [the console import](absorption/merge-from-shippin-console.md). No candidate code is
 accepted merely by being present in another repository; review source provenance,
 ownership, dependencies and tests before adopting it.
 
@@ -70,13 +74,13 @@ workload operations exposed through its authenticated contract. No provider or
 builder implementation may be hidden in the
 catalog handlers or the React panel.
 
-The [capability absorption ledger](design/capability-absorption.md) records which
+The [capability absorption ledger](absorption/capability-absorption.md) records which
 behaviors from historical console, cloud, mesh and Warden sources are already owned
 here, which need implementation, and the evidence required before those sources are
-archive-ready. The [archive-readiness ledger](design/archive-readiness.md) records
+archive-ready. The [archive-readiness ledger](absorption/archive-readiness.md) records
 the observed state and preservation gates for each checkout; no source tree is
 deleted or cleaned as part of capability review.
-The [platform absorption plan](design/platform-absorption-plan.md) defines the target
+The [platform absorption plan](archive/platform-absorption-plan.md) defines the target
 domain model, UI destinations, phase order and acceptance gates.
 The Proxmox operator capability is authored as Shippin Prox; `proxmox` remains the
 provider kind and API terminology. Historical Warden names are source provenance only.
@@ -91,7 +95,7 @@ Shippin is self-hosted software for operators to install on their own infrastruc
 it does not require a commercial hosted service. Server addresses, identities and
 human-review policy are installation configuration. AgentHub owns its policy
 documents, change tickets and reviews. The single-site signing routes and store imported from
-the console have been removed; see [the approval policy](approval.md) for what became
+the console have been removed; see [the approval policy](reference/approval.md) for what became
 of a site's records. AgentHub's single-site seed and runner assumptions live in
 AgentHub and must be retired there through a reviewed migration. Preserve historical
 records and verify their meaning without treating them as new AgentHub decisions.
@@ -102,7 +106,7 @@ implemented Incus volume, workload creation, power and removal write. Separate
 single-guest Incus and Proxmox power actions also persist exact-action review and
 one-shot execution provenance. Production policy quorum and live provider
 execution remain unverified; other provider mutations remain fail-closed. See
-the [system identity and human review plan](system-identity-human-review-plan.md).
+the [system identity and human review plan](reference/system-identity-human-review-plan.md).
 Deployment review reservations persist the version and digest of a deterministic
 provider execution plan derived from the immutable generation. The AgentHub action
 and review evidence bind that plan; stale plan digests are rejected before an
@@ -118,5 +122,5 @@ or make the partial deployment executor a complete service runtime.
 The draft service-definition and attachment shapes live in
 `api/openapi/schemas/service-catalog.json`, registered in the OpenAPI document.
 They do not implement a catalog, replace historical endpoint responses, or confer
-tenant isolation. See [service contexts](service-contexts.md) for the product map
+tenant isolation. See [service contexts](reference/service-contexts.md) for the product map
 and integration boundaries.

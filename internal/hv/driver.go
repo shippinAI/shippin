@@ -2,7 +2,7 @@
 //
 // Proxmox and Incus are the two drivers. Bare is a host with no hypervisor API.
 // A mutating call returns the guest the API reported after the call. It does not
-// invent a status. See docs/design/hypervisor-drivers.md.
+// invent a status. See docs/reference/hypervisor-drivers.md.
 package hv
 
 import (

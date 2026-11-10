@@ -1,6 +1,6 @@
 # Known OpenAPI drift (P0-6 baseline, 2026-10-18). TestOpenAPIContract fails on any NEW drift and on
 # stale entries, so this list can only shrink. 'code' = served but not in the spec (operator panel API is
-# specified separately in docs/architecture/staff-roles); 'spec' = designed in v0.1 but not built yet.
+# specified separately in docs/reference/staff-roles); 'spec' = designed in v0.1 but not built yet.
 code /health
 code /operator/access
 code /operator/access-requests
