@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
+
+	"shippin.cloud/console/internal/hv"
 )
 
 // UI is the human-facing configuration of the panel: names, visibility and order. The panel
@@ -202,7 +204,7 @@ func validImageRemote(kind string, r UIImageRemote) error {
 	if err != nil || u.Scheme != "https" || u.Host == "" {
 		return fmt.Errorf("ui.providers.%s: image server %q must be an https URL", kind, r.Name)
 	}
-	if !slices.Contains([]string{"simplestreams", "incus", "oci"}, r.Protocol) {
+	if spec, ok := hv.SpecFor(kind); !ok || !slices.Contains(spec.ImageProtocols, r.Protocol) {
 		return fmt.Errorf("ui.providers.%s: image server %q has an unknown protocol %q", kind, r.Name, r.Protocol)
 	}
 	return nil

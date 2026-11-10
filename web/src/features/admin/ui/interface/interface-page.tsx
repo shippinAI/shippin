@@ -42,11 +42,12 @@ function NavRow({ id, fallback, entry, disabled, onChange }: { id: string; fallb
 }
 
 const imageKinds = [{ id: "any", label: "Any guest" }, { id: "vm", label: "Virtual machine" }, { id: "ct", label: "Container" }];
-const imageProtocols = [{ id: "simplestreams", label: "Simple Streams" }, { id: "incus", label: "Incus" }, { id: "oci", label: "OCI registry" }];
 const row = "grid items-end gap-3 rounded-lg border border-line p-3";
 
 /** The images a guest can be made from, and on drivers that fetch them, the servers they come from. */
-function ImageSettings({ kind, usesServers, entry, disabled, onChange }: { kind: string; usesServers: boolean; entry?: ProviderConfig; disabled: boolean; onChange: (p: Partial<ProviderConfig>) => void }) {
+function ImageSettings({ kind, protocols, entry, disabled, onChange }: { kind: string; protocols: string[]; entry?: ProviderConfig; disabled: boolean; onChange: (p: Partial<ProviderConfig>) => void }) {
+  const usesServers = protocols.length > 0;
+  const protocolOptions = protocols.map((p) => ({ id: p, label: p }));
   const images = entry?.images ?? [];
   const remotes = entry?.image_remotes ?? [];
   const setImage = (at: number, patch: Partial<ImageConfig>) => onChange({ images: images.map((m, i) => (i === at ? { ...m, ...patch } : m)) });
@@ -63,11 +64,11 @@ function ImageSettings({ kind, usesServers, entry, disabled, onChange }: { kind:
             <div key={i} className={`${row} sm:grid-cols-[1fr_2fr_10rem_auto]`}>
               <TextField label="Name" value={r.name} isDisabled={disabled} onChange={(name) => setRemote(i, { name })} />
               <TextField label="Server URL" type="url" placeholder="https://images.example.org" value={r.server} isDisabled={disabled} onChange={(server) => setRemote(i, { server })} />
-              <Select label="Protocol" options={imageProtocols} value={r.protocol} isDisabled={disabled} onChange={(protocol) => setRemote(i, { protocol })} />
+              <Select label="Protocol" options={protocolOptions} value={r.protocol} isDisabled={disabled} onChange={(protocol) => setRemote(i, { protocol })} />
               <Button variant="ghost" size="sm" isDisabled={disabled} tooltip={`Remove image server ${r.name || i + 1}`} onPress={() => onChange({ image_remotes: remotes.filter((_, n) => n !== i) })}>Remove</Button>
             </div>
           ))}
-          <Button size="sm" variant="secondary" isDisabled={disabled} tooltip="Add a server images can be downloaded from" onPress={() => onChange({ image_remotes: [...remotes, { name: "", server: "", protocol: "simplestreams" }] })}>Add image server</Button>
+          <Button size="sm" variant="secondary" isDisabled={disabled} tooltip="Add a server images can be downloaded from" onPress={() => onChange({ image_remotes: [...remotes, { name: "", server: "", protocol: protocols[0] ?? "" }] })}>Add image server</Button>
         </section>
       )}
       <section aria-label={`Images for ${kind}`} className="space-y-3">
@@ -91,7 +92,7 @@ function ImageSettings({ kind, usesServers, entry, disabled, onChange }: { kind:
   );
 }
 
-function ProviderCardForm({ kind, fieldNames, usesServers, entry, disabled, onChange }: { kind: string; fieldNames: string[]; usesServers: boolean; entry?: ProviderConfig; disabled: boolean; onChange: (p: Partial<ProviderConfig>) => void }) {
+function ProviderCardForm({ kind, fieldNames, protocols, entry, disabled, onChange }: { kind: string; fieldNames: string[]; protocols: string[]; entry?: ProviderConfig; disabled: boolean; onChange: (p: Partial<ProviderConfig>) => void }) {
   const fieldOf = (name: string) => entry?.fields?.find((f) => f.name === name);
   const setField = (name: string, patch: Partial<ProviderFieldConfig>) =>
     onChange({ fields: upsert(entry?.fields, (f) => f.name === name, patch, { name }) });
@@ -116,7 +117,7 @@ function ProviderCardForm({ kind, fieldNames, usesServers, entry, disabled, onCh
             );
           })}
         </ul>
-        <ImageSettings kind={kind} usesServers={usesServers} entry={entry} disabled={disabled} onChange={onChange} />
+        <ImageSettings kind={kind} protocols={protocols} entry={entry} disabled={disabled} onChange={onChange} />
       </div>
     </Card>
   );
@@ -203,7 +204,7 @@ export function InterfacePage() {
                     onChange={(default_site) => setDraft((d) => ({ ...d, default_site }))} />
                 </Card>
                 {(draft.drivers ?? []).map((d) => (
-                  <ProviderCardForm key={d.kind} kind={d.kind} fieldNames={d.fields.map((f) => f.name)} usesServers={!!d.image_servers} disabled={disabled}
+                  <ProviderCardForm key={d.kind} kind={d.kind} fieldNames={d.fields.map((f) => f.name)} protocols={d.image_protocols ?? []} disabled={disabled}
                     entry={draft.providers?.find((p) => p.kind === d.kind)} onChange={(p) => setProvider(d.kind, p)} />
                 ))}
               </div>

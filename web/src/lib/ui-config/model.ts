@@ -14,7 +14,7 @@ export type ProviderConfig = {
   images?: ImageConfig[] | null;
   image_remotes?: ImageRemoteConfig[] | null;
 };
-export type DriverSpec = { kind: string; fields: { name: string; required: boolean }[]; capabilities: string[]; verbs: string[]; image_servers?: boolean };
+export type DriverSpec = { kind: string; fields: { name: string; required: boolean }[]; capabilities: string[]; verbs: string[]; image_protocols?: string[] };
 
 /** GET /v1/settings/ui: the config file with the ops override merged over it. */
 export type UiConfig = {
