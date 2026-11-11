@@ -1,7 +1,7 @@
 // Package devaccounts keeps throwaway sign-ins for developing and reviewing the panel. They exist only on
 // an installation that lists them in SHIPPIN_DEV_ACCOUNTS; nothing about them is in code or on by default.
-// A staff account holds every staff role except Owner. A customer account owns its own organization and
-// has no staff access. The installation owner's account is never touched.
+// A staff account holds every staff role except Owner, plus the per-person permissions (catalog,
+// customers) as audited direct grants. A customer account owns its own organization and has no staff access. The installation owner's account is never touched.
 package devaccounts
 
 import (
@@ -81,25 +81,32 @@ func ListedStaff(email string) bool {
 	return false
 }
 
+// Grants are the per-person permissions a staff account gets directly, and how a user id is named as a
+// staff subject. Both come from the API so this package keeps no list of its own.
+type Grants struct {
+	Perms   []string
+	Subject func(userID string) string
+}
+
 // ErrOwner means a listed address belongs to the installation owner, which is never changed here.
 var ErrOwner = errors.New("devaccounts: that address is the installation owner")
 
 // Ensure makes each account exist with the given password and its kind's access. It runs on every start,
 // so the accounts always match the list.
-func Ensure(ctx context.Context, pool *pgxpool.Pool, hash func(string) (string, error), accounts []Account, password string) error {
+func Ensure(ctx context.Context, pool *pgxpool.Pool, hash func(string) (string, error), accounts []Account, password string, grants Grants) error {
 	encoded, err := hash(password)
 	if err != nil {
 		return err
 	}
 	for _, a := range accounts {
-		if err := ensure(ctx, pool, a, encoded); err != nil {
+		if err := ensure(ctx, pool, a, encoded, grants); err != nil {
 			return fmt.Errorf("%s: %w", a.Email, err)
 		}
 	}
 	return nil
 }
 
-func ensure(ctx context.Context, pool *pgxpool.Pool, a Account, encoded string) error {
+func ensure(ctx context.Context, pool *pgxpool.Pool, a Account, encoded string, grants Grants) error {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -140,9 +147,20 @@ func ensure(ctx context.Context, pool *pgxpool.Pool, a Account, encoded string) 
 		  SELECT identity_org_id, $1, 'member' FROM orgs WHERE type='operations' AND identity_org_id IS NOT NULL ON CONFLICT DO NOTHING`, id); err != nil {
 			return err
 		}
+		if grants.Subject != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO staff_perm_grants (subject, permission, reason, granted_by)
+			  SELECT $1, p, 'development account', 'devaccounts' FROM unnest($2::text[]) p ON CONFLICT DO NOTHING`, grants.Subject(id), grants.Perms); err != nil {
+				return err
+			}
+		}
 	case Customer:
 		if _, err := tx.Exec(ctx, `DELETE FROM local_staff_roles WHERE user_id=$1`, id); err != nil {
 			return err
+		}
+		if grants.Subject != nil {
+			if _, err := tx.Exec(ctx, `DELETE FROM staff_perm_grants WHERE subject=$1`, grants.Subject(id)); err != nil {
+				return err
+			}
 		}
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO identity_audit(actor,action,detail) VALUES('devaccounts','dev_account.ensured',jsonb_build_object('email',$1::text,'kind',$2::text))`, a.Email, a.Kind); err != nil {

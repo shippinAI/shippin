@@ -16,6 +16,7 @@ func (a *API) me(w http.ResponseWriter, r *http.Request) {
 		Name     string   `json:"name"`
 		Roles    []string `json:"roles"`
 		Status   string   `json:"status"`
+		Plan     string   `json:"plan_id"`
 		Manage   bool     `json:"can_manage"`
 		// Access is set when the tenant is visible only through a platform access grant.
 		Access *grantRef `json:"access,omitempty"`
@@ -23,7 +24,7 @@ func (a *API) me(w http.ResponseWriter, r *http.Request) {
 	tenants := []ref{}
 	for i := range c.tenants {
 		t := &c.tenants[i]
-		tenants = append(tenants, ref{t.ID, t.Name, t.Roles, t.Status, c.canManage(t), t.accessRef(time.Now())})
+		tenants = append(tenants, ref{t.ID, t.Name, t.Roles, t.Status, t.Plan, c.canManage(t), t.accessRef(time.Now())})
 	}
 	platform := []string{}
 	if c.op != "" {

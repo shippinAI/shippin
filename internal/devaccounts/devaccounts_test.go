@@ -50,7 +50,7 @@ func TestAccountsOnARealDatabase(t *testing.T) {
 		t.Fatal(err)
 	}
 	accounts := []Account{{"staff@devaccounts.test", Staff, ""}, {"user@devaccounts.test", Customer, "advanced"}}
-	if err := Ensure(ctx, d.Pool, identity.HashPassword, accounts, "a-long-test-password"); err != nil && err.Error() != "staff@devaccounts.test: the installation has no owner yet; finish setup and restart" {
+	if err := Ensure(ctx, d.Pool, identity.HashPassword, accounts, "a-long-test-password", testGrants); err != nil && err.Error() != "staff@devaccounts.test: the installation has no owner yet; finish setup and restart" {
 		t.Fatal(err)
 	}
 	tx, _ := d.Pool.Begin(ctx)
@@ -66,7 +66,7 @@ func TestAccountsOnARealDatabase(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := 0; i < 2; i++ {
-		if err := Ensure(ctx, d.Pool, identity.HashPassword, accounts, "a-long-test-password"); err != nil {
+		if err := Ensure(ctx, d.Pool, identity.HashPassword, accounts, "a-long-test-password", testGrants); err != nil {
 			t.Fatalf("run %d: %v", i+1, err)
 		}
 	}
@@ -85,6 +85,12 @@ func TestAccountsOnARealDatabase(t *testing.T) {
 	if staffRoles == 0 || !hasPassword || customerRoles != 0 || customerOrgs != 1 {
 		t.Fatalf("staff roles %d, password %v, customer staff rows %d, customer organizations %d", staffRoles, hasPassword, customerRoles, customerOrgs)
 	}
+	var granted, customerGrants int
+	_ = d.Pool.QueryRow(ctx, `SELECT count(*) FROM staff_perm_grants g JOIN identity_users u ON g.subject='local:'||u.id WHERE u.email='staff@devaccounts.test' AND g.granted_by='devaccounts'`).Scan(&granted)
+	_ = d.Pool.QueryRow(ctx, `SELECT count(*) FROM staff_perm_grants g JOIN identity_users u ON g.subject='local:'||u.id WHERE u.email='user@devaccounts.test'`).Scan(&customerGrants)
+	if granted != len(testGrants.Perms) || customerGrants != 0 {
+		t.Fatalf("the staff account has %d direct grants, want %d; the customer has %d, want 0", granted, len(testGrants.Perms), customerGrants)
+	}
 	var hasOwner bool
 	_ = d.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM local_staff_roles r JOIN identity_users u ON u.id=r.user_id WHERE u.email='staff@devaccounts.test' AND 'staff.owner' = ANY(r.roles))`).Scan(&hasOwner)
 	if hasOwner {
@@ -93,10 +99,12 @@ func TestAccountsOnARealDatabase(t *testing.T) {
 	if _, err := d.Pool.Exec(ctx, `INSERT INTO identity_users (id, email, email_verified, name, role) VALUES (gen_random_uuid(),'owner@devaccounts.test',true,'Owner','owner')`); err != nil {
 		t.Fatal(err)
 	}
-	if err := Ensure(ctx, d.Pool, identity.HashPassword, []Account{{"owner@devaccounts.test", Staff, ""}}, "a-long-test-password"); !errors.Is(err, ErrOwner) {
+	if err := Ensure(ctx, d.Pool, identity.HashPassword, []Account{{"owner@devaccounts.test", Staff, ""}}, "a-long-test-password", testGrants); !errors.Is(err, ErrOwner) {
 		t.Fatalf("the owner's account must never be changed: %v", err)
 	}
-	if err := Ensure(ctx, d.Pool, identity.HashPassword, accounts, "short"); err == nil {
+	if err := Ensure(ctx, d.Pool, identity.HashPassword, accounts, "short", testGrants); err == nil {
 		t.Fatal("a short password was accepted")
 	}
 }
+
+var testGrants = Grants{Perms: []string{"catalog.plans.read", "catalog.plans.write"}, Subject: func(id string) string { return "local:" + id }}

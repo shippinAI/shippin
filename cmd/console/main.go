@@ -120,7 +120,8 @@ func ensureDevAccounts(ctx context.Context, d *db.DB) {
 	}
 	accounts, err := devaccounts.Parse(raw)
 	if err == nil {
-		err = devaccounts.Ensure(ctx, d.Pool, identity.HashPassword, accounts, os.Getenv("SHIPPIN_DEV_ACCOUNTS_PASSWORD"))
+		err = devaccounts.Ensure(ctx, d.Pool, identity.HashPassword, accounts, os.Getenv("SHIPPIN_DEV_ACCOUNTS_PASSWORD"),
+			devaccounts.Grants{Perms: api.GranularCatalogPerms(), Subject: api.LocalSubject})
 	}
 	if err != nil {
 		slog.Error("development accounts not set up", "error", err)

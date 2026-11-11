@@ -21,6 +21,9 @@ func (a *API) localCaller(r *http.Request, uid string) (*caller, error) {
 // localSubPrefix keeps local subjects apart from any IdP subject.
 const localSubPrefix = "local:"
 
+// LocalSubject is the staff subject of a local directory user, as roles and direct grants name it.
+func LocalSubject(userID string) string { return localSubPrefix + userID }
+
 func (a *API) localIdentity(ctx context.Context, uid string) (*auth.Identity, error) {
 	if a.directory == nil || a.db == nil {
 		return nil, errIdP
