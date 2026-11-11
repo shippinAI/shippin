@@ -44,7 +44,16 @@ Before the first release CI stays fast and leaves these to you, when you change 
 
 ## Review it
 
-There is one review deploy, and each round of work overwrites it:
+There is one review deploy, and each round of work overwrites it. For signing in as different kinds of user, list development accounts in its `.env`:
+
+```sh
+SHIPPIN_DEV_ACCOUNTS=admin@example.test=staff,user@example.test=customer
+SHIPPIN_DEV_ACCOUNTS_PASSWORD=<at least 12 characters>
+```
+
+The panel keeps them in step on every start and logs a warning while they exist. A staff account gets every staff role except Owner; a customer account owns a test organization and has no staff access. The owner's account is never touched. Never set these on a real installation.
+
+Then overwrite it:
 
 ```sh
 git pull --ff-only

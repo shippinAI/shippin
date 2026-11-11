@@ -128,3 +128,6 @@ func (s *Service) SetPassword(ctx context.Context, userID, current, next, remote
 	s.audit(ctx, userID, "user.password_changed", map[string]bool{"initial": existing == ""})
 	return nil
 }
+
+// HashPassword encodes a password the way sign-in checks it.
+func HashPassword(password string) (string, error) { return hashPassword(password) }

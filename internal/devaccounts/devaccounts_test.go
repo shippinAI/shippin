@@ -1,0 +1,85 @@
+package devaccounts
+
+import (
+	"context"
+	"errors"
+	"os"
+	"testing"
+
+	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/identity"
+	"shippin.cloud/console/internal/orgs"
+)
+
+func TestParseAcceptsOnlyEmailAndAKnownKind(t *testing.T) {
+	got, err := Parse(" Admin@Example.test=staff , user@example.test=customer ,")
+	if err != nil || len(got) != 2 || got[0] != (Account{"admin@example.test", Staff}) || got[1].Kind != Customer {
+		t.Fatalf("%+v %v", got, err)
+	}
+	for _, raw := range []string{"", "admin@example.test", "admin@example.test=owner", "not-an-email=staff", "a@example.test=staff,a@example.test=customer"} {
+		if _, err := Parse(raw); err == nil {
+			t.Errorf("%q was accepted", raw)
+		}
+	}
+}
+
+// TestAccountsOnARealDatabase runs when SHIPPIN_TEST_DATABASE_URL points at a disposable PostgreSQL.
+func TestAccountsOnARealDatabase(t *testing.T) {
+	url := os.Getenv("SHIPPIN_TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("SHIPPIN_TEST_DATABASE_URL is not set")
+	}
+	ctx := context.Background()
+	d, err := db.Open(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Pool.Close()
+	if _, err := d.Pool.Exec(ctx, `DELETE FROM identity_users WHERE email LIKE '%@devaccounts.test'`); err != nil {
+		t.Fatal(err)
+	}
+	accounts := []Account{{"staff@devaccounts.test", Staff}, {"user@devaccounts.test", Customer}}
+	if err := Ensure(ctx, d.Pool, identity.HashPassword, accounts, "a-long-test-password"); err != nil && err.Error() != "staff@devaccounts.test: the installation has no owner yet; finish setup and restart" {
+		t.Fatal(err)
+	}
+	tx, _ := d.Pool.Begin(ctx)
+	if _, err := orgs.ConfigureInternal(ctx, tx, "Operations"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	// A real install fills the role catalog at startup; this database never started a panel.
+	if _, err := d.Pool.Exec(ctx, `INSERT INTO staff_roles(key, name, description, permissions, preset) VALUES
+	  ('staff.owner','Owner','',ARRAY['tenants.read'],true), ('staff.ops','Operations','',ARRAY['tenants.read'],true) ON CONFLICT DO NOTHING`); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 2; i++ {
+		if err := Ensure(ctx, d.Pool, identity.HashPassword, accounts, "a-long-test-password"); err != nil {
+			t.Fatalf("run %d: %v", i+1, err)
+		}
+	}
+	var staffRoles, customerRoles, customerOrgs int
+	var hasPassword bool
+	_ = d.Pool.QueryRow(ctx, `SELECT coalesce(cardinality(r.roles),0), u.password_hash <> '' FROM identity_users u LEFT JOIN local_staff_roles r ON r.user_id=u.id WHERE u.email='staff@devaccounts.test'`).Scan(&staffRoles, &hasPassword)
+	_ = d.Pool.QueryRow(ctx, `SELECT count(*) FROM local_staff_roles r JOIN identity_users u ON u.id=r.user_id WHERE u.email='user@devaccounts.test'`).Scan(&customerRoles)
+	_ = d.Pool.QueryRow(ctx, `SELECT count(*) FROM identity_members m JOIN orgs o ON o.identity_org_id=m.org_id JOIN identity_users u ON u.id=m.user_id
+	  WHERE o.type='customer' AND m.role='owner' AND u.email='user@devaccounts.test'`).Scan(&customerOrgs)
+	if staffRoles == 0 || !hasPassword || customerRoles != 0 || customerOrgs != 1 {
+		t.Fatalf("staff roles %d, password %v, customer staff rows %d, customer organizations %d", staffRoles, hasPassword, customerRoles, customerOrgs)
+	}
+	var hasOwner bool
+	_ = d.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM local_staff_roles r JOIN identity_users u ON u.id=r.user_id WHERE u.email='staff@devaccounts.test' AND 'staff.owner' = ANY(r.roles))`).Scan(&hasOwner)
+	if hasOwner {
+		t.Fatal("a development account was given the Owner role")
+	}
+	if _, err := d.Pool.Exec(ctx, `INSERT INTO identity_users (id, email, email_verified, name, role) VALUES (gen_random_uuid(),'owner@devaccounts.test',true,'Owner','owner')`); err != nil {
+		t.Fatal(err)
+	}
+	if err := Ensure(ctx, d.Pool, identity.HashPassword, []Account{{"owner@devaccounts.test", Staff}}, "a-long-test-password"); !errors.Is(err, ErrOwner) {
+		t.Fatalf("the owner's account must never be changed: %v", err)
+	}
+	if err := Ensure(ctx, d.Pool, identity.HashPassword, accounts, "short"); err == nil {
+		t.Fatal("a short password was accepted")
+	}
+}

@@ -18,6 +18,7 @@ import (
 	"shippin.cloud/console/internal/clickhouse"
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/devaccounts"
 	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/mail"
 	"shippin.cloud/console/internal/spa"
@@ -70,6 +71,7 @@ func main() {
 	consoleAPI.StartJobs(ctx)
 	consoleAPI.SeedTemplates(ctx)
 	consoleAPI.SyncStaff(ctx)
+	ensureDevAccounts(ctx, database) // after the role catalog is loaded
 	consoleAPI.Register(mux)
 	consoleAPI.RegisterHub(mux)
 	consoleAPI.RegisterVaultixHosted(mux)
@@ -107,6 +109,24 @@ func main() {
 	}
 	log.Printf("console listening on %s (domain %s)", cfg.Listen, cfg.Domain)
 	serve(srv.ListenAndServe())
+}
+
+// ensureDevAccounts keeps the development sign-ins an installation lists in SHIPPIN_DEV_ACCOUNTS. Never on by
+// default. A failure is logged and the panel starts without them.
+func ensureDevAccounts(ctx context.Context, d *db.DB) {
+	raw := os.Getenv("SHIPPIN_DEV_ACCOUNTS")
+	if raw == "" {
+		return
+	}
+	accounts, err := devaccounts.Parse(raw)
+	if err == nil {
+		err = devaccounts.Ensure(ctx, d.Pool, identity.HashPassword, accounts, os.Getenv("SHIPPIN_DEV_ACCOUNTS_PASSWORD"))
+	}
+	if err != nil {
+		slog.Error("development accounts not set up", "error", err)
+		return
+	}
+	slog.Warn("development accounts are enabled; do not use this installation for real work", "accounts", len(accounts))
 }
 
 // serve treats a requested shutdown as a clean exit and anything else as a failure.
