@@ -8,6 +8,7 @@ running.
 - [What Shippin is](objective.md): the contract every change follows, with requirement IDs.
 - [Roadmap](roadmap.md): what exists today and the order of the rest.
 - [Design system](design-system.md): tokens, accessibility and speed rules for the panel.
+- [Code map](architecture.md): the contexts, where the code stands against them, and the order of the rewrite.
 
 ## Run it and change it
 

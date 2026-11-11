@@ -22,8 +22,8 @@ Clone `https://github.com/shippinAI/shippin.git`. During baseline development,
 repository administrators commit directly to `main` and push; topic branches and
 pull requests are optional. Run the checks above first, because GitHub records an
 administrator's push as bypassing the branch rule and nothing stops a broken commit.
-The `Checks` workflow still runs on every push, and only then covers the console,
-installer, public-tree and secret-scanning jobs that have no local command above.
+The `Checks` workflow still runs on every push. Before the first release it stays
+fast: builds, unit tests, panel checks, and the public-tree and secret scans.
 Fix a red `main` before adding anything else.
 
 Anyone without administrator rights, including automation, pushes a branch and opens a

@@ -40,7 +40,17 @@ Git Bash on Windows:
 scripts/check.sh
 ```
 
-CI also runs the Debian installer, an update from an older build (`scripts/check-upgrade.sh`, disposable machines only), `docker compose up` with the first-owner flow, and a secret scan. Run `go test -p 1 ./...` with `SHIPPIN_TEST_DATABASE_URL` pointing at a disposable Postgres to include the database tests.
+Before the first release CI stays fast and leaves these to you, when you change that code. Run `go test -p 1 ./...` with `SHIPPIN_TEST_DATABASE_URL` pointing at a disposable Postgres for the database tests, and set `SHIPPIN_TEST_CLICKHOUSE_URL` for the ClickHouse ones. Run the Debian installer only on a disposable machine.
+
+## Review it
+
+There is one review deploy, and each round of work overwrites it:
+
+```sh
+git pull --ff-only
+python install/docker/configure.py
+docker compose up -d --build
+```
 
 ## Rules that are easy to miss
 
@@ -59,4 +69,4 @@ Set `updates.repository` and `updates.branch` in your config, or `SHIPPIN_UPDATE
 
 ## Migrations and the audit log
 
-On an installer deployment the panel's database role does not own `audit_log` or `access_grants`, so a migration that alters them fails. Change them in `internal/db/audit_owner.sql` or `audit_chain.sql`, which run as a superuser.
+On every deployment the panel's database role does not own `audit_log` or `access_grants`, so a migration that alters them fails. Change them in `internal/db/audit_owner.sql` or `audit_chain.sql`, which run as a superuser.

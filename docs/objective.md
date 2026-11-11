@@ -49,6 +49,16 @@ actions. Its look, accessibility and speed follow the
 different states and are reported separately. A form, a manifest or a healthy
 container is not a working feature.
 
+## Pre-release
+
+**PRE-01.** Until the first release there is one review deploy, and it is
+overwritten in place: work, overwrite, review. Nothing is built for upgrading
+older builds: no compatibility shims and no rollback machinery. CI stays fast:
+builds, unit tests, panel checks and the secret and public-tree scans. Installers
+and database tests run by hand when that code changes. Code that is not organized
+by context is rewritten rather than worked around; see
+[the code map](architecture.md).
+
 ## What a fresh install gives you
 
 **CORE-01.** One command, or Docker Compose, installs and configures all of this:
@@ -62,8 +72,8 @@ container is not a working feature.
 
 **REL-01.** The installer generates every credential, shares no password, and
 prints a one-time setup code. Setup creates the owner, the internal organization
-and the branding. **REL-02.** Upgrades keep data and grants; backup, restore and
-rollback are proved, not assumed.
+and the branding. **REL-02.** From the first release, upgrades keep data and
+grants, and backup, restore and rollback are proved, not assumed.
 
 ## Who uses it
 
