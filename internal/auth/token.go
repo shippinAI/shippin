@@ -29,7 +29,8 @@ func (f *Flow) Require(next http.HandlerFunc) http.HandlerFunc {
 		t := f.Token(r)
 		if t == "" {
 			if s := f.cookieSession(r); s != nil && s.UserID != "" {
-				next(w, r.WithContext(context.WithValue(r.Context(), localKey{}, s.UserID)))
+				ctx := context.WithValue(r.Context(), localKey{}, s.UserID)
+				next(w, r.WithContext(context.WithValue(ctx, methodKey{}, s.Method)))
 				return
 			}
 			Problem(w, http.StatusUnauthorized, "Sign in to continue.")
@@ -37,6 +38,20 @@ func (f *Flow) Require(next http.HandlerFunc) http.HandlerFunc {
 		}
 		next(w, r.WithContext(context.WithValue(r.Context(), ctxKey{}, t)))
 	}
+}
+
+type methodKey struct{}
+
+// SignInMethod is how the current session was signed in. A bearer token from an identity provider is
+// identity_provider; an older local session that did not record it is password.
+func SignInMethod(ctx context.Context) string {
+	if LocalUser(ctx) == "" {
+		return "identity_provider"
+	}
+	if m, _ := ctx.Value(methodKey{}).(string); m != "" {
+		return m
+	}
+	return "password"
 }
 
 // LocalUser is the local directory user id Require admitted, or "" for an IdP token.

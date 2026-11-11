@@ -14,9 +14,11 @@ type Plan struct {
 	PriceCents  int    `json:"price_cents"`
 	Public      bool   `json:"public"`
 	Active      bool   `json:"active"`
+	// SignIn is how members of organizations on this plan must sign in.
+	SignIn string `json:"sign_in"`
 }
 
-const planCols = `id, label, description, rank, price_cents, public, active, updated_at`
+const planCols = `id, label, description, rank, price_cents, public, active, sign_in, updated_at`
 
 func (s *Store) Plans(ctx context.Context) (json.RawMessage, error) {
 	return s.listJSON(ctx, `SELECT `+planCols+` FROM plans ORDER BY rank, id`)
@@ -36,14 +38,14 @@ func (s *Store) PlanPrice(ctx context.Context, id string) (int, error) {
 }
 
 func (s *Store) CreatePlan(ctx context.Context, p Plan) error {
-	_, err := s.Pool.Exec(ctx, `INSERT INTO plans(id,label,description,rank,price_cents,public,active) VALUES($1,$2,$3,$4,$5,$6,$7)`,
-		p.ID, p.Label, p.Description, p.Rank, p.PriceCents, p.Public, p.Active)
+	_, err := s.Pool.Exec(ctx, `INSERT INTO plans(id,label,description,rank,price_cents,public,active,sign_in) VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
+		p.ID, p.Label, p.Description, p.Rank, p.PriceCents, p.Public, p.Active, p.SignIn)
 	return err
 }
 
 func (s *Store) UpdatePlan(ctx context.Context, p Plan) error {
-	return s.exec(ctx, `UPDATE plans SET label=$2, description=$3, rank=$4, price_cents=$5, public=$6, active=$7, updated_at=now() WHERE id=$1`,
-		p.ID, p.Label, p.Description, p.Rank, p.PriceCents, p.Public, p.Active)
+	return s.exec(ctx, `UPDATE plans SET label=$2, description=$3, rank=$4, price_cents=$5, public=$6, active=$7, sign_in=$8, updated_at=now() WHERE id=$1`,
+		p.ID, p.Label, p.Description, p.Rank, p.PriceCents, p.Public, p.Active, p.SignIn)
 }
 
 // DeletePlan refuses while tenants are still on the plan (the FK-free tenants.plan column).

@@ -16,6 +16,8 @@ type tenantView struct {
 	db.Tenant
 	Roles  []string   `json:"roles"`
 	grants []db.Grant // non-empty only for non-members
+	// signIn is the plan's sign-in rule for members. Staff reach a tenant through grants and their own rules.
+	signIn string
 }
 
 // caller is the authenticated identity plus the tenants it may see.
@@ -35,6 +37,8 @@ type caller struct {
 	infraGranted bool
 	// note is why this change is being made, read by the same gate.
 	note string
+	// method is how this session was signed in.
+	method string
 }
 
 func (a *API) caller(w http.ResponseWriter, r *http.Request) (*caller, bool) {
@@ -101,8 +105,13 @@ func (a *API) callerFromIdentity(r *http.Request, id *auth.Identity) (*caller, e
 	if err != nil {
 		return nil, err
 	}
+	rules, err := a.planSignInRules(r.Context())
+	if err != nil {
+		return nil, err
+	}
+	c.method = auth.SignInMethod(r.Context())
 	for _, t := range ts {
-		c.tenants = append(c.tenants, tenantView{Tenant: t, Roles: roles[t.IdpOrgID]})
+		c.tenants = append(c.tenants, tenantView{Tenant: t, Roles: roles[t.IdpOrgID], signIn: rules[t.Plan]})
 	}
 	// Staff who may hold grants see the granted tenants (only those, only while active).
 	if a.decideQuiet(r, c, "access.request") || a.decideQuiet(r, c, "access.breakglass") {
@@ -120,6 +129,10 @@ func (a *API) callerFromIdentity(r *http.Request, id *auth.Identity) (*caller, e
 func (c *caller) tenant(w http.ResponseWriter, id string) (*tenantView, bool) {
 	for i := range c.tenants {
 		if c.tenants[i].ID == id {
+			if t := &c.tenants[i]; t.grants == nil && !signInMeets(c.method, t.signIn) {
+				auth.Problem(w, http.StatusForbidden, signInRefusal(t.signIn))
+				return nil, false
+			}
 			return &c.tenants[i], true
 		}
 	}

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"os"
 	"strings"
 
 	"github.com/google/uuid"
@@ -28,9 +29,11 @@ const (
 type Account struct {
 	Email string
 	Kind  string
+	// Plan is the customer organization's plan, by id. Empty takes the lowest-ranked active plan.
+	Plan string
 }
 
-// Parse reads "email=kind,email=kind".
+// Parse reads "email=kind,email=kind". A customer may name its plan: "email=customer:advanced".
 func Parse(raw string) ([]Account, error) {
 	var out []Account
 	seen := map[string]bool{}
@@ -41,7 +44,10 @@ func Parse(raw string) ([]Account, error) {
 		}
 		email, kind, ok := strings.Cut(part, "=")
 		email = strings.ToLower(strings.TrimSpace(email))
-		kind = strings.TrimSpace(kind)
+		kind, plan, _ := strings.Cut(strings.TrimSpace(kind), ":")
+		if plan != "" && kind != Customer {
+			return nil, fmt.Errorf("devaccounts: only a customer account has a plan (%s)", email)
+		}
 		if a, err := mail.ParseAddress(email); !ok || err != nil || a.Address != email {
 			return nil, fmt.Errorf("devaccounts: %q is not email=kind", part)
 		}
@@ -52,12 +58,27 @@ func Parse(raw string) ([]Account, error) {
 			return nil, fmt.Errorf("devaccounts: %s is listed twice", email)
 		}
 		seen[email] = true
-		out = append(out, Account{Email: email, Kind: kind})
+		out = append(out, Account{Email: email, Kind: kind, Plan: plan})
 	}
 	if len(out) == 0 {
 		return nil, errors.New("devaccounts: no accounts listed")
 	}
 	return out, nil
+}
+
+// ListedStaff says this installation lists email as a development staff account in SHIPPIN_DEV_ACCOUNTS.
+func ListedStaff(email string) bool {
+	accounts, err := Parse(os.Getenv("SHIPPIN_DEV_ACCOUNTS"))
+	if err != nil {
+		return false
+	}
+	email = strings.ToLower(strings.TrimSpace(email))
+	for _, a := range accounts {
+		if a.Email == email && a.Kind == Staff {
+			return true
+		}
+	}
+	return false
 }
 
 // ErrOwner means a listed address belongs to the installation owner, which is never changed here.
@@ -131,22 +152,30 @@ func ensure(ctx context.Context, pool *pgxpool.Pool, a Account, encoded string) 
 		return err
 	}
 	if a.Kind == Customer {
-		return ensureOrganization(ctx, pool, id)
+		return ensureOrganization(ctx, pool, id, a.Plan)
 	}
 	return nil
 }
 
-// ensureOrganization gives a customer account an organization of its own, once.
-func ensureOrganization(ctx context.Context, pool *pgxpool.Pool, user string) error {
-	var has bool
-	if err := pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM identity_members m JOIN orgs o ON o.identity_org_id=m.org_id
-	  WHERE o.type='customer' AND m.user_id=$1)`, user).Scan(&has); err != nil || has {
+// ensureOrganization gives a customer account an organization of its own, once, on the plan asked for.
+func ensureOrganization(ctx context.Context, pool *pgxpool.Pool, user, plan string) error {
+	if plan == "" {
+		if err := pool.QueryRow(ctx, `SELECT id FROM plans WHERE active ORDER BY rank, id LIMIT 1`).Scan(&plan); err != nil {
+			return fmt.Errorf("no active plan for its organization: %w", err)
+		}
+	} else if err := pool.QueryRow(ctx, `SELECT id FROM plans WHERE id=$1 AND active`, plan).Scan(&plan); err != nil {
+		return fmt.Errorf("plan %q is not an active plan: %w", plan, err)
+	}
+	var tenant string
+	err := pool.QueryRow(ctx, `SELECT o.tenant_id::text FROM identity_members m JOIN orgs o ON o.identity_org_id=m.org_id
+	  WHERE o.type='customer' AND m.user_id=$1 LIMIT 1`, user).Scan(&tenant)
+	if err == nil {
+		_, err = pool.Exec(ctx, `UPDATE tenants SET plan=$2 WHERE id=$1`, tenant, plan)
 		return err
 	}
-	var plan string
-	if err := pool.QueryRow(ctx, `SELECT id FROM plans WHERE active ORDER BY rank, id LIMIT 1`).Scan(&plan); err != nil {
-		return fmt.Errorf("no active plan for its organization: %w", err)
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return err
 	}
-	_, err := (&orgs.Store{Pool: pool}).CreateLocalCustomer(ctx, "Development organization", plan, user, "devaccounts")
+	_, err = (&orgs.Store{Pool: pool}).CreateLocalCustomer(ctx, "Development organization", plan, user, "devaccounts")
 	return err
 }

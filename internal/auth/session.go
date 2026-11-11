@@ -27,6 +27,9 @@ type Session struct {
 	Aud string `json:"au,omitempty"`
 	// UserID is set for a local directory session. Empty means an external-issuer session.
 	UserID string `json:"uid,omitempty"`
+	// Method is how a local session was signed in: password, passkey, email_link, recovery_code, setup,
+	// invite or identity_provider. Empty on sessions made before it was recorded, which count as password.
+	Method string `json:"m,omitempty"`
 }
 
 // Store persists sessions in Postgres, AES-256-GCM encrypted (key from SHIPPIN_SESSION_KEY).

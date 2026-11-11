@@ -86,8 +86,8 @@ func authHeader(r *http.Request) string {
 	return ""
 }
 
-func (a *API) startSession(w http.ResponseWriter, r *http.Request, id string) {
-	sid, err := a.flow.StartLocal(w, r, id)
+func (a *API) startSession(w http.ResponseWriter, r *http.Request, id, method string) {
+	sid, err := a.flow.StartLocal(w, r, id, method)
 	if err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "Sign-in is unavailable right now.")
 		return
@@ -118,7 +118,7 @@ func (a *API) setupRedeem(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	sid, err := a.flow.StartLocal(w, r, u.ID)
+	sid, err := a.flow.StartLocal(w, r, u.ID, "setup")
 	if err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "Sign-in is unavailable right now.")
 		return
@@ -140,7 +140,7 @@ func (a *API) passwordLogin(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusUnauthorized, "Username or password is incorrect.")
 		return
 	}
-	a.startSession(w, r, u.ID)
+	a.startSession(w, r, u.ID, "password")
 }
 
 func (a *API) passwordChange(w http.ResponseWriter, r *http.Request) {
@@ -196,7 +196,7 @@ func (a *API) magicRedeem(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusUnauthorized, "Sign-in link is not valid.")
 		return
 	}
-	a.startSession(w, r, u.ID)
+	a.startSession(w, r, u.ID, "email_link")
 }
 
 func (a *API) recoveryRedeem(w http.ResponseWriter, r *http.Request) {
@@ -210,7 +210,7 @@ func (a *API) recoveryRedeem(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusUnauthorized, "Recovery code is not valid.")
 		return
 	}
-	a.startSession(w, r, u.ID)
+	a.startSession(w, r, u.ID, "recovery_code")
 }
 
 // passkeyChallenge starts a ceremony. The browser signs what this panel hands it, and nothing else counts.
@@ -331,7 +331,7 @@ func (a *API) passkeyLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = a.directory.BumpPasskey(r.Context(), in.CredentialID, count)
-	a.startSession(w, r, uid)
+	a.startSession(w, r, uid, "passkey")
 }
 
 func (a *API) inviteRedeem(w http.ResponseWriter, r *http.Request) {
@@ -345,7 +345,7 @@ func (a *API) inviteRedeem(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusBadRequest, "Invite is not valid.")
 		return
 	}
-	sid, err := a.flow.StartLocal(w, r, u.ID)
+	sid, err := a.flow.StartLocal(w, r, u.ID, "invite")
 	if err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "Sign-in is unavailable right now.")
 		return
@@ -658,7 +658,7 @@ func (a *API) upstreamCallback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login?error=exchange", http.StatusFound)
 		return
 	}
-	if _, err := a.flow.StartLocal(w, r, user.ID); err != nil {
+	if _, err := a.flow.StartLocal(w, r, user.ID, "identity_provider"); err != nil {
 		http.Redirect(w, r, "/login?error=exchange", http.StatusFound)
 		return
 	}

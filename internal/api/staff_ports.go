@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"shippin.cloud/console/internal/devaccounts"
 	"time"
 
 	"shippin.cloud/console/internal/db"
@@ -74,7 +75,7 @@ func (a *API) idp() staffIdP {
 		return a.staffIdP
 	}
 	if a.localRoles() {
-		return &localStaff{db: a.db, noSecondFactor: func(ctx context.Context) bool { return a.teamSettings(ctx).NoSecondFactor }}
+		return &localStaff{db: a.db, noSecondFactor: func(ctx context.Context) bool { return a.teamSettings(ctx).NoSecondFactor }, devStaff: devaccounts.ListedStaff}
 	}
 	return &nomenStaff{flow: a.flow, tok: a.cfg.Staff.TeamToken, org: a.cfg.StaffOrg(), project: a.cfg.Staff.ProjectID}
 }

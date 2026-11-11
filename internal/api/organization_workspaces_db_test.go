@@ -33,7 +33,7 @@ func TestOrganizationWorkspaceRoutesEnforceMembershipAndManagement(t *testing.T)
 			a.flow = auth.NewFlow(a.cfg, store)
 			a.directory = identity.New(database.Pool, a.cfg, nil, nil)
 			signed := httptest.NewRecorder()
-			if _, err := a.flow.StartLocal(signed, httptest.NewRequest("POST", "/v1/session/password", nil), user); err != nil {
+			if _, err := a.flow.StartLocal(signed, httptest.NewRequest("POST", "/v1/session/password", nil), user, "password"); err != nil {
 				t.Fatal(err)
 			}
 			cookie := signed.Result().Cookies()[0]

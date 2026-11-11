@@ -2,7 +2,9 @@ export type Lock = "locked" | "overridable" | "mergeable" | "bounded";
 export type Layer = "system" | "plan" | "tenant" | "workspace";
 export type Json = string | number | boolean | null | Json[] | { [k: string]: Json };
 
-export type Plan = { id: string; label: string; description: string; rank: number; /** omitted by the API without catalog.prices.read */ price_cents?: number; public: boolean; active: boolean };
+export type Plan = { id: string; label: string; description: string; rank: number; /** omitted by the API without catalog.prices.read */ price_cents?: number; public: boolean; active: boolean;
+  /** How members of organizations on this plan must sign in. */
+  sign_in: "password" | "second_factor" | "identity_provider" };
 
 export type CatalogDeploymentSource = {
   kind: "github" | "git" | "oci";

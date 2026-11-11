@@ -19,8 +19,12 @@ func (h *Handler) getPlan(w http.ResponseWriter, r *http.Request, _ string) {
 }
 
 func (h *Handler) readPlan(w http.ResponseWriter, r *http.Request) (Plan, bool) {
-	p := Plan{Active: true, Public: true}
+	p := Plan{Active: true, Public: true, SignIn: "password"}
 	if !decodeBody(w, r, &p) {
+		return p, false
+	}
+	if p.SignIn != "password" && p.SignIn != "second_factor" && p.SignIn != "identity_provider" {
+		auth.Problem(w, http.StatusBadRequest, "Sign-in must be password, second_factor or identity_provider.")
 		return p, false
 	}
 	if id := r.PathValue("id"); id != "" {

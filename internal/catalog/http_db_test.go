@@ -65,7 +65,7 @@ func do(t *testing.T, mux *http.ServeMux, method, path, body string, want int) m
 func TestCatalogAPIFlow(t *testing.T) {
 	mux := testServer(t)
 	plans := do(t, mux, "GET", "/v1/operator/catalog/plans", "", 200)["items"].([]any)
-	if len(plans) != 13 { // 011 canonical (5, includes founder) + 014 ladder except the founder row already inserted (8)
+	if len(plans) != 16 { // 011 canonical (5, includes founder) + 014 ladder except the founder row (8) + 069 tiers (3)
 		t.Fatalf("seed plans: %d", len(plans))
 	}
 	do(t, mux, "POST", "/v1/operator/catalog/plans", `{"id":"scratch","label":"Scratch","rank":5}`, 201)

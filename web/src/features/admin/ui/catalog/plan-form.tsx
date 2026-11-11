@@ -4,10 +4,16 @@ import { Button } from "../../../../lib/design/components/button/button";
 import { ModalDialog } from "../../../../lib/design/components/dialog/modal-dialog";
 import { TextField } from "../../../../lib/design/components/field/text-field";
 import { Switch } from "../../../../lib/design/components/switch/switch";
+import { Select } from "../../../../lib/design/components/select/select";
 import { catalogPaths, useCatalogWrite } from "../../../../lib/hooks/use-catalog";
 import { CatalogPerm, useCan } from "../../../../lib/hooks/use-can";
 
-const blank: Plan = { id: "", label: "", description: "", rank: 0, price_cents: 0, public: true, active: true };
+const blank: Plan = { id: "", label: "", description: "", rank: 0, price_cents: 0, public: true, active: true, sign_in: "password" };
+const signInOptions = [
+  { id: "password", label: "Password or better" },
+  { id: "second_factor", label: "Passkey or identity provider" },
+  { id: "identity_provider", label: "Identity provider only" },
+];
 
 /** Create or edit a plan (tier). Deleting is refused by the API while customers use it. */
 export function PlanForm({ initial, onClose }: { initial?: Plan; onClose: () => void }) {
@@ -25,6 +31,7 @@ export function PlanForm({ initial, onClose }: { initial?: Plan; onClose: () => 
         <div className="col-span-2"><TextField label="Description" value={p.description} onChange={set("description")} /></div>
         {prices && <TextField label="Price (cents / month)" value={String(p.price_cents)} onChange={(v) => set("price_cents")(Number(v) || 0)} />}
         <TextField label="Sort rank" value={String(p.rank)} onChange={(v) => set("rank")(Number(v) || 0)} />
+        <div className="col-span-2"><Select label="Members sign in with" options={signInOptions} value={p.sign_in ?? "password"} onChange={(v) => set("sign_in")(v as Plan["sign_in"])} /></div>
         <Switch isSelected={p.public} onChange={set("public")} tooltip="Shown on the public pricing list">Public</Switch>
         <Switch isSelected={p.active} onChange={set("active")} tooltip="Inactive plans can't be picked for new customers">Active</Switch>
       </div>

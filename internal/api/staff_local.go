@@ -19,6 +19,9 @@ type localStaff struct {
 	// noSecondFactor is the team setting that lets staff work without one, for a site that cannot
 	// offer passkeys.
 	noSecondFactor func(context.Context) bool
+	// devStaff names development staff accounts this installation lists. They sign in with a password only,
+	// so they are exempt from the second factor; nothing else is.
+	devStaff func(email string) bool
 }
 
 func localID(sub string) (string, bool) {
@@ -97,17 +100,18 @@ func (s *localStaff) MFA(ctx context.Context, user string) (bool, error) {
 		return false, nil
 	}
 	var owner, passkey, linked bool
-	err := s.db.Pool.QueryRow(ctx, `SELECT u.role = 'owner',
+	var email string
+	err := s.db.Pool.QueryRow(ctx, `SELECT u.email, u.role = 'owner',
 		EXISTS (SELECT 1 FROM identity_passkeys p WHERE p.user_id = u.id),
 		EXISTS (SELECT 1 FROM identity_links l WHERE l.user_id = u.id)
-		FROM identity_users u WHERE u.id = $1`, id).Scan(&owner, &passkey, &linked)
+		FROM identity_users u WHERE u.id = $1`, id).Scan(&email, &owner, &passkey, &linked)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
 	}
 	if err != nil {
 		return false, err
 	}
-	return owner || passkey || linked || (s.noSecondFactor != nil && s.noSecondFactor(ctx)), nil
+	return owner || passkey || linked || (s.noSecondFactor != nil && s.noSecondFactor(ctx)) || (s.devStaff != nil && s.devStaff(email)), nil
 }
 
 func localUserView(id, email, name string, active bool) staffUser {

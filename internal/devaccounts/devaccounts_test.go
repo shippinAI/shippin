@@ -12,14 +12,25 @@ import (
 )
 
 func TestParseAcceptsOnlyEmailAndAKnownKind(t *testing.T) {
-	got, err := Parse(" Admin@Example.test=staff , user@example.test=customer ,")
-	if err != nil || len(got) != 2 || got[0] != (Account{"admin@example.test", Staff}) || got[1].Kind != Customer {
+	got, err := Parse(" Admin@Example.test=staff , user@example.test=customer:advanced ,")
+	if err != nil || len(got) != 2 || got[0] != (Account{"admin@example.test", Staff, ""}) || got[1] != (Account{"user@example.test", Customer, "advanced"}) {
 		t.Fatalf("%+v %v", got, err)
 	}
-	for _, raw := range []string{"", "admin@example.test", "admin@example.test=owner", "not-an-email=staff", "a@example.test=staff,a@example.test=customer"} {
+	for _, raw := range []string{"", "admin@example.test", "admin@example.test=owner", "not-an-email=staff", "a@example.test=staff,a@example.test=customer", "a@example.test=staff:advanced"} {
 		if _, err := Parse(raw); err == nil {
 			t.Errorf("%q was accepted", raw)
 		}
+	}
+}
+
+func TestOnlyListedStaffAccountsAreExempt(t *testing.T) {
+	t.Setenv("SHIPPIN_DEV_ACCOUNTS", "admin@example.test=staff,user@example.test=customer")
+	if !ListedStaff(" Admin@Example.test ") || ListedStaff("user@example.test") || ListedStaff("someone@example.test") {
+		t.Fatal("only listed staff accounts are exempt")
+	}
+	t.Setenv("SHIPPIN_DEV_ACCOUNTS", "")
+	if ListedStaff("admin@example.test") {
+		t.Fatal("nothing is exempt when no accounts are listed")
 	}
 }
 
@@ -38,7 +49,7 @@ func TestAccountsOnARealDatabase(t *testing.T) {
 	if _, err := d.Pool.Exec(ctx, `DELETE FROM identity_users WHERE email LIKE '%@devaccounts.test'`); err != nil {
 		t.Fatal(err)
 	}
-	accounts := []Account{{"staff@devaccounts.test", Staff}, {"user@devaccounts.test", Customer}}
+	accounts := []Account{{"staff@devaccounts.test", Staff, ""}, {"user@devaccounts.test", Customer, "advanced"}}
 	if err := Ensure(ctx, d.Pool, identity.HashPassword, accounts, "a-long-test-password"); err != nil && err.Error() != "staff@devaccounts.test: the installation has no owner yet; finish setup and restart" {
 		t.Fatal(err)
 	}
@@ -65,6 +76,12 @@ func TestAccountsOnARealDatabase(t *testing.T) {
 	_ = d.Pool.QueryRow(ctx, `SELECT count(*) FROM local_staff_roles r JOIN identity_users u ON u.id=r.user_id WHERE u.email='user@devaccounts.test'`).Scan(&customerRoles)
 	_ = d.Pool.QueryRow(ctx, `SELECT count(*) FROM identity_members m JOIN orgs o ON o.identity_org_id=m.org_id JOIN identity_users u ON u.id=m.user_id
 	  WHERE o.type='customer' AND m.role='owner' AND u.email='user@devaccounts.test'`).Scan(&customerOrgs)
+	var plan string
+	_ = d.Pool.QueryRow(ctx, `SELECT t.plan FROM tenants t JOIN orgs o ON o.tenant_id=t.id JOIN identity_members m ON m.org_id=o.identity_org_id
+	  JOIN identity_users u ON u.id=m.user_id WHERE u.email='user@devaccounts.test'`).Scan(&plan)
+	if plan != "advanced" {
+		t.Fatalf("the customer organization is on %q, want advanced", plan)
+	}
 	if staffRoles == 0 || !hasPassword || customerRoles != 0 || customerOrgs != 1 {
 		t.Fatalf("staff roles %d, password %v, customer staff rows %d, customer organizations %d", staffRoles, hasPassword, customerRoles, customerOrgs)
 	}
@@ -76,7 +93,7 @@ func TestAccountsOnARealDatabase(t *testing.T) {
 	if _, err := d.Pool.Exec(ctx, `INSERT INTO identity_users (id, email, email_verified, name, role) VALUES (gen_random_uuid(),'owner@devaccounts.test',true,'Owner','owner')`); err != nil {
 		t.Fatal(err)
 	}
-	if err := Ensure(ctx, d.Pool, identity.HashPassword, []Account{{"owner@devaccounts.test", Staff}}, "a-long-test-password"); !errors.Is(err, ErrOwner) {
+	if err := Ensure(ctx, d.Pool, identity.HashPassword, []Account{{"owner@devaccounts.test", Staff, ""}}, "a-long-test-password"); !errors.Is(err, ErrOwner) {
 		t.Fatalf("the owner's account must never be changed: %v", err)
 	}
 	if err := Ensure(ctx, d.Pool, identity.HashPassword, accounts, "short"); err == nil {
