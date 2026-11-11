@@ -226,6 +226,7 @@ XML
     )
   fi
   chgrp clickhouse "$users_d"/*.xml
+  install -m 0644 "$root/install/docker/clickhouse-system-logs.xml" /etc/clickhouse-server/config.d/shippin-system-logs.xml
   if [ -d /run/systemd/system ]; then
     systemctl enable clickhouse-server.service >/dev/null 2>&1
     systemctl restart clickhouse-server.service

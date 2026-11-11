@@ -11,7 +11,7 @@ import (
 const appRole = "shippin_test_app"
 
 // asApp hardens the test schema for a stand-in app role that owns everything else (like the
-// console role on a real install) and returns a DB that logs in as that role (not SET ROLE, which a
+// console role on a real install, which also owns its database and so the public schema) and returns a DB that logs in as that role (not SET ROLE, which a
 // superuser session could undo). pre runs as the superuser before hardening.
 func asApp(t *testing.T, pre ...func(*DB)) (*DB, *DB) {
 	t.Helper()
@@ -23,6 +23,8 @@ func asApp(t *testing.T, pre ...func(*DB)) (*DB, *DB) {
 		IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='`+appRole+`') THEN CREATE ROLE `+appRole+`; END IF; END $$;
 		ALTER ROLE `+appRole+` LOGIN NOSUPERUSER;
 		GRANT USAGE, CREATE ON SCHEMA public TO `+appRole+`;
+		DO $$ BEGIN EXECUTE format('ALTER DATABASE %I OWNER TO `+appRole+`', current_database()); END $$;
+		ALTER SCHEMA public OWNER TO pg_database_owner;
 		DO $$ DECLARE r record; BEGIN
 		  FOR r IN SELECT tablename FROM pg_tables WHERE schemaname='public' LOOP
 		    EXECUTE format('ALTER TABLE %I OWNER TO `+appRole+`', r.tablename); END LOOP; END $$;`)
@@ -83,7 +85,8 @@ func TestAppRoleCanOnlyAppendAudit(t *testing.T) {
 		`UPDATE access_grants SET tenant_id=tenant_id`,
 		`ALTER TABLE audit_log DISABLE TRIGGER audit_log_append_only`, `ALTER TABLE audit_log DISABLE TRIGGER ALL`,
 		`ALTER TABLE access_grants DISABLE TRIGGER access_grants_no_delete`,
-		`DROP TRIGGER audit_log_append_only ON audit_log`, `DROP TABLE audit_log`, `DROP TABLE access_grants CASCADE`,
+		`DROP TRIGGER audit_log_append_only ON audit_log`, `DROP TABLE audit_log`, `DROP TABLE audit_log CASCADE`, `DROP TABLE access_grants CASCADE`,
+		`DROP SCHEMA public CASCADE`, `ALTER SCHEMA public RENAME TO elsewhere`,
 		`ALTER TABLE audit_log ADD COLUMN x int`, `ALTER TABLE audit_log OWNER TO ` + appRole,
 		`CREATE OR REPLACE FUNCTION shippin_append_only() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NULL; END $$`,
 		`SET session_replication_role = replica`, `SET ROLE shippin_audit_owner`, `GRANT shippin_audit_owner TO ` + appRole,

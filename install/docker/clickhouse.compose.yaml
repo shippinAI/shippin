@@ -3,12 +3,14 @@ services:
     image: ${SHIPPIN_CLICKHOUSE_IMAGE:-clickhouse/clickhouse-server:26.8.36.3}
     restart: unless-stopped
     environment:
-      CLICKHOUSE_USER: ${SHIPPIN_CLICKHOUSE_USER:-shippin}
+      CLICKHOUSE_USER: shippin
       CLICKHOUSE_PASSWORD: ${SHIPPIN_CLICKHOUSE_PASSWORD:?Run python install/docker/configure.py first}
-      CLICKHOUSE_DB: ${SHIPPIN_CLICKHOUSE_DB:-shippin}
+      CLICKHOUSE_DB: shippin
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "0"
     volumes:
       - clickhouse:/var/lib/clickhouse
+      - ./clickhouse-system-logs.xml:/etc/clickhouse-server/config.d/shippin-system-logs.xml:ro
+      - ./clickhouse-user.xml:/etc/clickhouse-server/users.d/shippin-grants.xml:ro
     ulimits:
       nofile:
         soft: 262144

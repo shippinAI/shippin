@@ -33,7 +33,7 @@ services:
         required: false
     environment:
       SHIPPIN_DATABASE_URL: ${SHIPPIN_DATABASE_URL:-postgres://${SHIPPIN_DB_USER:-shippin}:${SHIPPIN_DB_PASSWORD}@db:5432/${SHIPPIN_DB_NAME:-shippin}?sslmode=disable}
-      SHIPPIN_CLICKHOUSE_URL: ${SHIPPIN_CLICKHOUSE_URL:-http://${SHIPPIN_CLICKHOUSE_USER:-shippin}:${SHIPPIN_CLICKHOUSE_PASSWORD}@clickhouse:8123/${SHIPPIN_CLICKHOUSE_DB:-shippin}}
+      SHIPPIN_CLICKHOUSE_URL: ${SHIPPIN_CLICKHOUSE_URL:-http://shippin:${SHIPPIN_CLICKHOUSE_PASSWORD}@clickhouse:8123/shippin}
       SHIPPIN_REDIS_URL: ${SHIPPIN_REDIS_URL:-redis://:${SHIPPIN_DRAGONFLY_PASSWORD}@dragonfly:6379/0}
       SHIPPIN_REDIS_PREFIX: ${SHIPPIN_REDIS_PREFIX:-shippin:}
       SHIPPIN_LISTEN: :8443
@@ -43,6 +43,24 @@ services:
       - ${SHIPPIN_BIND:-127.0.0.1}:${SHIPPIN_PORT:-8443}:8443
     volumes:
       - state:/var/lib/shippin
+
+  db-secure:
+    image: ${SHIPPIN_POSTGRES_IMAGE:-postgres:17.11}
+    restart: "no"
+    depends_on:
+      panel:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: postgres
+      PGDATABASE: ${SHIPPIN_DB_NAME:-shippin}
+      PGPASSWORD: ${SHIPPIN_DB_ADMIN_PASSWORD:?Run python install/docker/configure.py first}
+      SHIPPIN_DB_USER: ${SHIPPIN_DB_USER:-shippin}
+    volumes:
+      - ./internal/db/audit_owner.sql:/sql/audit_owner.sql:ro
+      - ./internal/db/audit_chain.sql:/sql/audit_chain.sql:ro
+      - ./install/docker/secure-audit.sh:/secure-audit.sh:ro
+    command: [bash, /secure-audit.sh]
 
 volumes:
   db:

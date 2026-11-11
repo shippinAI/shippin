@@ -1,0 +1,10 @@
+<!-- The panel's user reaches its own database and nothing else, as on the Debian install. -->
+<clickhouse>
+    <users>
+        <shippin>
+            <grants>
+                <query>GRANT ALL ON shippin.*</query>
+            </grants>
+        </shippin>
+    </users>
+</clickhouse>

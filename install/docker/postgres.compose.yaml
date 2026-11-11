@@ -1,13 +1,16 @@
 services:
   postgres:
-    image: ${SHIPPIN_POSTGRES_IMAGE:-postgres:16}
+    image: ${SHIPPIN_POSTGRES_IMAGE:-postgres:17.11}
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${SHIPPIN_DB_USER:-shippin}
+      POSTGRES_USER: postgres
       POSTGRES_DB: ${SHIPPIN_DB_NAME:-shippin}
-      POSTGRES_PASSWORD: ${SHIPPIN_DB_PASSWORD:?Run python install/docker/configure.py first}
+      POSTGRES_PASSWORD: ${SHIPPIN_DB_ADMIN_PASSWORD:?Run python install/docker/configure.py first}
+      SHIPPIN_DB_USER: ${SHIPPIN_DB_USER:-shippin}
+      SHIPPIN_DB_PASSWORD: ${SHIPPIN_DB_PASSWORD:?Run python install/docker/configure.py first}
     volumes:
       - db:/var/lib/postgresql/data
+      - ./postgres-init.sh:/docker-entrypoint-initdb.d/10-shippin.sh:ro
     healthcheck:
       test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 5s

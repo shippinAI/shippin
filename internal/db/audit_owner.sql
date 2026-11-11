@@ -24,4 +24,10 @@ BEGIN
   EXECUTE format('GRANT SELECT, INSERT ON audit_log, access_grants TO %I', app);
   EXECUTE format('GRANT USAGE ON SEQUENCE audit_log_id_seq TO %I', app);
   EXECUTE format('GRANT UPDATE (status, decided_by, decided_name, decided_at, expires_at, ended_at) ON access_grants TO %I', app);
+  -- Whoever owns a schema can drop anything in it, whoever owns the table, and a database owner owns
+  -- public through pg_database_owner. The superuser keeps both; the app keeps what migrations need.
+  EXECUTE format('ALTER DATABASE %I OWNER TO CURRENT_USER', current_database());
+  ALTER SCHEMA public OWNER TO CURRENT_USER;
+  EXECUTE format('GRANT CONNECT, CREATE, TEMPORARY ON DATABASE %I TO %I', current_database(), app);
+  EXECUTE format('GRANT USAGE, CREATE ON SCHEMA public TO %I', app);
 END $$;
