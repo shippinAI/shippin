@@ -140,7 +140,7 @@ func (a *API) platformRoutes() []opRoute {
 		{"GET /v1/operator/agenthub-connection", "platform.settings.read", a.opAgentHubConnection},
 		{"PUT /v1/operator/agenthub-connection", "platform.settings.write", a.opSetAgentHubConnection},
 		{"POST /v1/operator/agenthub-connection/test", "platform.settings.write", a.opTestAgentHubConnection},
-	}, a.platformServiceRoutes()...)
+	}, append(a.platformServiceRoutes(), a.platformContextRoutes()...)...)
 }
 
 // platformValue is the effective value of key: the ops override, else the config file.

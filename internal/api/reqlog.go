@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // RequestLog (t1029) logs every 4xx/5xx response: route pattern, status, duration and the
@@ -17,6 +19,8 @@ import (
 func RequestLog(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+		id := uuid.NewString()
+		w.Header().Set("X-Request-ID", id)
 		info := &reqInfo{}
 		r = r.WithContext(context.WithValue(r.Context(), reqInfoKey{}, info))
 		sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
@@ -32,7 +36,11 @@ func RequestLog(h http.Handler) http.Handler {
 		if acct == "" {
 			acct = "-"
 		}
-		log.Printf("http status=%d route=%q account=%s dur_ms=%d", sw.status, route, acct, time.Since(start).Milliseconds())
+		level := slog.LevelWarn
+		if sw.status >= 500 {
+			level = slog.LevelError
+		}
+		slog.Log(r.Context(), level, "http request", "status", sw.status, "route", route, "account", acct, "dur_ms", time.Since(start).Milliseconds(), "request_id", id)
 	})
 }
 

@@ -49,6 +49,12 @@ func Open(raw string) (*Client, error) {
 	return c, nil
 }
 
+// URL is where this client connects, without credentials.
+func (c *Client) URL() string { return c.base.String() + "/" + c.database }
+
+// Endpoint names the server and database, for showing to people.
+func (c *Client) Endpoint() string { return c.base.Host + "/" + c.database }
+
 // Database is the database every statement runs in.
 func (c *Client) Database() string { return c.database }
 
@@ -113,7 +119,8 @@ func (c *Client) Insert(ctx context.Context, table string, rows []any) error {
 
 // do sends sql as the query parameter when there is a data body, otherwise as the body.
 func (c *Client) do(ctx context.Context, sql string, params map[string]string, data io.Reader) (io.ReadCloser, error) {
-	q := url.Values{"database": {c.database}}
+	// Numbers come back as JSON numbers on every server version, whatever its default.
+	q := url.Values{"database": {c.database}, "output_format_json_quote_64bit_integers": {"0"}}
 	for k, v := range params {
 		if !nameRe.MatchString(k) {
 			return nil, fmt.Errorf("clickhouse: invalid parameter name %q", k)

@@ -53,6 +53,8 @@ file name, which is a first pass:
 `web/src/features/admin` holds 74 files and 4,068 lines that belong to other
 contexts. `deploy/` still holds scripts from when one site was run by hand.
 
+`internal/platform` is the first package written to the target shape: built-in services, setup steps and disaster recovery.
+
 ## Order of the rewrite
 
 One context at a time. Each step moves the handlers and storage into the context

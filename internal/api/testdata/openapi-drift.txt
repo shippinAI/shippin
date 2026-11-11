@@ -6,7 +6,14 @@ code /operator/access
 code /operator/access-requests
 code /operator/access-requests/{}/end
 code /operator/audit
+code /operator/backups
+code /operator/backups/{}
 code /operator/boundaries
+code /operator/built-in-services
+code /operator/built-in-services/clickhouse
+code /operator/recovery-key
+code /operator/setup-steps
+code /operator/setup-steps/{}
 code /operator/break-glass
 code /operator/break-glass/pending
 code /operator/break-glass/{}/{}

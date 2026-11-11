@@ -10,8 +10,8 @@ import { useEnterStaffMode, useStaffMode } from "../../../../lib/hooks/use-staff
 export function StaffModePage() {
   const [params] = useSearchParams();
   const from = params.get("from") ?? "";
-  const rd = params.get("rd") ?? "/admin/tenants";
-  const target = rd.startsWith("/admin/") || rd === "/operator" || rd.startsWith("/operator/") ? rd : "/admin/tenants";
+  const rd = params.get("rd") ?? "/admin/start";
+  const target = rd.startsWith("/admin/") || rd === "/operator" || rd.startsWith("/operator/") ? rd : "/admin/start";
   const mode = useStaffMode().data;
   const enter = useEnterStaffMode();
   const nav = useNavigate();

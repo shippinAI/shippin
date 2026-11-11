@@ -118,28 +118,28 @@ func TestABadNewGuestIsRefusedBeforeAnythingHappens(t *testing.T) {
 	}
 }
 
-func TestANewGuestWaitsForAgentHubBeforeProviderCall(t *testing.T) {
+func TestANewGuestIsMadeOnTheProviderAndRecorded(t *testing.T) {
 	h := newGuestsHarness(t)
 	rec := infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", `{"kind":"vm","name":"web","memory":512,"disk":8,"storage":"local","network":"vmbr0"}`)
-	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), `"code":"agenthub_review_unavailable"`) {
+	if rec.Code != http.StatusCreated || !strings.Contains(rec.Body.String(), `"id":"107"`) {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 	ops, _ := h.dir.Operations(t.Context(), "", 0)
-	if h.posted() != 0 || len(ops) != 0 {
-		t.Fatalf("%+v", ops)
+	if h.posted() == 0 || len(ops) != 1 {
+		t.Fatalf("%d posts, %+v", h.posted(), ops)
 	}
 }
 
-func TestProviderIsNotCalledBeforeAgentHubReview(t *testing.T) {
+func TestAProviderRefusalReachesTheOperatorWithItsReason(t *testing.T) {
 	h := newGuestsHarness(t)
 	h.refuse = `{"data":null,"message":"Permission check failed (/storage/local, Datastore.AllocateSpace)\n"}`
 	rec := infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", `{"kind":"vm","name":"web","disk":8,"storage":"local","network":"vmbr0"}`)
-	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "agenthub_review_unavailable") || strings.Contains(rec.Body.String(), "s3cret") {
+	if rec.Code != http.StatusBadGateway || !strings.Contains(rec.Body.String(), "Datastore.AllocateSpace") || strings.Contains(rec.Body.String(), "s3cret") {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 	ops, _ := h.dir.Operations(t.Context(), "", 0)
-	if h.posted() != 0 || len(ops) != 0 {
-		t.Fatalf("%+v", ops)
+	if len(ops) != 1 {
+		t.Fatalf("a refused change is still on the record: %+v", ops)
 	}
 }
 
@@ -160,11 +160,26 @@ func TestImagesAreWhatTheHostHasThenWhatThisInstallationNames(t *testing.T) {
 	}
 }
 
-func TestDeletingThePanelsOwnGuestStillWaitsForAgentHub(t *testing.T) {
+func TestDeletingThePanelsOwnGuestNeedsItsOwnConfirmation(t *testing.T) {
 	t.Setenv("SHIPPIN_SELF_GUEST", "web")
 	h := newGuestsHarness(t)
-	rec := infraDo(h.mux, http.MethodDelete, "/v1/infra/servers/"+guestServerID+"/guests/web", "")
-	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "agenthub_review_unavailable") {
+	infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", `{"kind":"vm","name":"web","memory":512,"disk":8,"storage":"local","network":"vmbr0"}`)
+	rec := infraDo(h.mux, http.MethodDelete, "/v1/infra/servers/"+guestServerID+"/guests/107?confirm_name=107", "")
+	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "self_guest") {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestDeletingAGuestMustNameIt(t *testing.T) {
+	t.Setenv("SHIPPIN_SELF_GUEST", "someone-else")
+	h := newGuestsHarness(t)
+	for _, url := range []string{"/guests/107", "/guests/107?confirm_name=108"} {
+		rec := infraDo(h.mux, http.MethodDelete, "/v1/infra/servers/"+guestServerID+url, "")
+		if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "confirmation_required") {
+			t.Fatalf("%s: %d %s", url, rec.Code, rec.Body)
+		}
+	}
+	if ops, _ := h.dir.Operations(t.Context(), "", 0); len(ops) != 0 {
+		t.Fatalf("an unconfirmed delete ran: %+v", ops)
 	}
 }

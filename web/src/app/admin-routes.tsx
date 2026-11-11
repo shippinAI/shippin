@@ -20,10 +20,17 @@ const AdminPlatform = lazy(() => import("../features/admin/ui/platform/platform-
 const AdminInterface = lazy(() => import("../features/admin/ui/interface/interface-page").then((m) => ({ default: m.InterfacePage })));
 const AdminApi = lazy(() => import("../features/api-explorer/ui/api-explorer-page").then((m) => ({ default: m.ApiExplorerPage })));
 const AdminPlans = lazy(() => import("../features/admin/ui/catalog/plans-page").then((m) => ({ default: m.PlansPage })));
+const AdminStart = lazy(() => import("../features/platform/ui/get-started-page").then((m) => ({ default: m.GetStartedPage })));
+const AdminBuiltIn = lazy(() => import("../features/platform/ui/built-in-services-page").then((m) => ({ default: m.BuiltInServicesPage })));
+const AdminInfrastructure = lazy(() => import("../features/infrastructure/ui/infrastructure-page").then((m) => ({ default: m.InfrastructurePage })));
 const AdminServices = lazy(() => import("../features/admin/ui/catalog/services-page").then((m) => ({ default: m.ServicesPage })));
 
 export const adminRoutes: RouteObject[] = [
-  { index: true, element: <Navigate to="/admin/tenants" replace /> },
+  { index: true, element: <Navigate to="/admin/start" replace /> },
+  { path: "start", element: <AdminStart /> },
+  { path: "built-in", element: <AdminBuiltIn /> },
+  { path: "infrastructure", element: <AdminInfrastructure /> },
+  { path: "infrastructure/:tab", element: <AdminInfrastructure /> },
   { path: "tenants", element: <AdminTenants /> },
   { path: "staff-mode", element: <AdminStaffMode /> },
   { path: "workspaces", element: <AdminWorkspaces /> },

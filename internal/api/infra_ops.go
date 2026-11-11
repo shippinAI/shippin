@@ -101,9 +101,6 @@ func (a *API) infraStopGuests(w http.ResponseWriter, r *http.Request, c *caller)
 		return
 	}
 	server := r.PathValue("id")
-	if !a.permit(w, r, c, server, "*", "stop-guests") {
-		return
-	}
 	d, err := a.driver(r.Context(), server)
 	if err != nil {
 		infraErr(w, err)

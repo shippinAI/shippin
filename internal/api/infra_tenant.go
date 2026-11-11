@@ -200,7 +200,7 @@ func (a *API) tenantStatus(w http.ResponseWriter, r *http.Request, c *caller, te
 		infraErr(w, err)
 		return
 	}
-	a.executeInfraPowerReview(w, r, c, tenant, ep, id, guest, verb)
+	a.executeInfraPower(w, r, c, tenant, ep, id, guest, verb)
 }
 
 func (a *API) executeTenantPowerStatus(w http.ResponseWriter, r *http.Request, c *caller, tenant string) {
@@ -227,9 +227,6 @@ func (a *API) tenantSnapshot(w http.ResponseWriter, r *http.Request, c *caller, 
 		return
 	}
 	id, guest := r.PathValue("serverId"), r.PathValue("guest")
-	if !a.permitFor(w, r, c, tenant, id, guest, "snapshot") {
-		return
-	}
 	cl, err := a.tenantDriver(r.Context(), tenant, id)
 	if err != nil {
 		infraErr(w, err)
@@ -245,9 +242,6 @@ func (a *API) tenantSnapshot(w http.ResponseWriter, r *http.Request, c *caller, 
 
 func (a *API) tenantRollback(w http.ResponseWriter, r *http.Request, c *caller, tenant string) {
 	id, guest, name := r.PathValue("serverId"), r.PathValue("guest"), r.PathValue("name")
-	if !a.permitFor(w, r, c, tenant, id, guest, "rollback") {
-		return
-	}
 	cl, err := a.tenantClient(r.Context(), tenant, id)
 	if err != nil {
 		infraErr(w, err)

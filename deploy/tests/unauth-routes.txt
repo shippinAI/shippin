@@ -5,6 +5,7 @@ DELETE /v1/infra/servers/{id}/attachment
 DELETE /v1/infra/servers/{id}/guests/{guest}
 DELETE /v1/me/bridge-sessions/{id}
 DELETE /v1/me/ssh-keys/{keyId}
+DELETE /v1/operator/backups/{name}
 DELETE /v1/operator/catalog/defaults/{layer}/{key}
 DELETE /v1/operator/catalog/plan-services/{plan}/{service}
 DELETE /v1/operator/catalog/plans/{id}
@@ -65,8 +66,11 @@ GET /v1/operator/access-requests
 GET /v1/operator/agenthub-connection
 GET /v1/operator/audit
 GET /v1/operator/authz-shadow
+GET /v1/operator/backups
+GET /v1/operator/backups/{name}
 GET /v1/operator/boundaries
 GET /v1/operator/break-glass/pending
+GET /v1/operator/built-in-services
 GET /v1/operator/catalog/defaults
 GET /v1/operator/catalog/plan-services
 GET /v1/operator/catalog/plans
@@ -84,6 +88,7 @@ GET /v1/operator/identity
 GET /v1/operator/platform-services
 GET /v1/operator/platform-services/{serviceId}/observations
 GET /v1/operator/platform-settings
+GET /v1/operator/setup-steps
 GET /v1/operator/staff-mode
 GET /v1/operator/system
 GET /v1/operator/team
@@ -191,6 +196,7 @@ POST /v1/onboarding
 POST /v1/operator/access-requests
 POST /v1/operator/access-requests/{grantId}/end
 POST /v1/operator/agenthub-connection/test
+POST /v1/operator/backups
 POST /v1/operator/break-glass
 POST /v1/operator/break-glass/{grantId}/{decision}
 POST /v1/operator/catalog/plans
@@ -199,6 +205,7 @@ POST /v1/operator/customers
 POST /v1/operator/customers/{id}/provision-intent
 POST /v1/operator/platform-services
 POST /v1/operator/platform-services/{serviceId}/check
+POST /v1/operator/recovery-key
 POST /v1/operator/staff-mode
 POST /v1/operator/staff-mode/exit
 POST /v1/operator/team/members
@@ -274,6 +281,7 @@ PUT /v1/infra/servers/{id}/fleet
 PUT /v1/infra/servers/{id}/guests/{guest}/config
 PUT /v1/infra/servers/{id}/identity
 PUT /v1/operator/agenthub-connection
+PUT /v1/operator/built-in-services/clickhouse
 PUT /v1/operator/catalog/defaults
 PUT /v1/operator/catalog/plan-services/{plan}/{service}
 PUT /v1/operator/catalog/plans/{id}
@@ -282,6 +290,7 @@ PUT /v1/operator/customers/{id}
 PUT /v1/operator/customers/{id}/services/{service}
 PUT /v1/operator/platform-services/{serviceId}
 PUT /v1/operator/platform-settings/{key}
+PUT /v1/operator/setup-steps/{step}
 PUT /v1/operator/team/members/{userId}/roles
 PUT /v1/operator/team/roles/{roleKey}
 PUT /v1/operator/team/settings

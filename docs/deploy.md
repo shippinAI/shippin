@@ -28,6 +28,8 @@ For hosted dependencies, set `SHIPPIN_DATABASE_URL`, `SHIPPIN_CLICKHOUSE_URL` (`
 
 Images and capacity are configurable through `SHIPPIN_POSTGRES_IMAGE`, `SHIPPIN_CLICKHOUSE_IMAGE`, `SHIPPIN_DRAGONFLY_IMAGE`, `SHIPPIN_DRAGONFLY_MAXMEMORY` and `SHIPPIN_DRAGONFLY_THREADS`. This Docker path includes Dragonfly; the systemd installer still uses process-local limits unless `SHIPPIN_REDIS_URL` is configured.
 
+To recover, use **Built-in services > Disaster recovery**: make a backup, download it, and save the recovery key. To restore, run `scripts/restore-backup.sh <backup.dump> --i-understand`, which replaces the whole database. On a new machine, first put the recovery key in `.env` as `SHIPPIN_SESSION_KEY`, or saved host credentials cannot be opened.
+
 To upgrade, run `git pull --ff-only && python install/docker/configure.py && docker compose up -d --build`. The credential step adds anything a new version needs, such as ClickHouse's password, and leaves existing values alone. The panel's top bar shows when a newer build exists, and this command.
 
 Before upgrading, back up PostgreSQL and the `state` volume (including the session

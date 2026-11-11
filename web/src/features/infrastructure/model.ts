@@ -15,7 +15,10 @@ export function selectedTab(o: InfraOverview | undefined, wanted: string | undef
   return wanted && providersWithHosts(o).some((p) => p.kind === wanted) ? wanted : OVERVIEW_TAB;
 }
 
-export const tabHref = (id: string) => (id === OVERVIEW_TAB ? "/operator/hosts" : `/operator/hosts/${encodeURIComponent(id)}`);
+const infraBase = () => (typeof location !== "undefined" && location.pathname.startsWith("/admin/") ? "/admin/infrastructure" : "/operator/hosts");
+
+/** Where a tab of this page lives. It is reachable from the console and from the workspace shell. */
+export const tabHref = (id: string, base = infraBase()) => (id === OVERVIEW_TAB ? base : `${base}/${encodeURIComponent(id)}`);
 
 export const slugFrom = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40).replace(/-+$/, "");
 

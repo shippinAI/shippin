@@ -15,9 +15,9 @@ export const opsRouter = createBrowserRouter([
       {
         element: <RequireAuth />,
         children: [
-          { index: true, element: <Navigate to="/admin/tenants" replace /> },
+          { index: true, element: <Navigate to="/admin/start" replace /> },
           { path: "/admin", element: <Suspense fallback={null}><AdminLayout /></Suspense>, children: adminRoutes },
-          { path: "*", element: <Navigate to="/admin/tenants" replace /> },
+          { path: "*", element: <Navigate to="/admin/start" replace /> },
         ],
       },
     ],

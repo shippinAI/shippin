@@ -22,7 +22,7 @@ BEGIN
   EXECUTE format('REVOKE ALL ON audit_log, access_grants FROM PUBLIC, %I', app);
   EXECUTE format('REVOKE ALL ON SEQUENCE audit_log_id_seq FROM PUBLIC, %I', app);
   EXECUTE format('GRANT SELECT, INSERT ON audit_log, access_grants TO %I', app);
-  EXECUTE format('GRANT USAGE ON SEQUENCE audit_log_id_seq TO %I', app);
+  EXECUTE format('GRANT USAGE, SELECT ON SEQUENCE audit_log_id_seq TO %I', app); -- SELECT lets pg_dump back it up
   EXECUTE format('GRANT UPDATE (status, decided_by, decided_name, decided_at, expires_at, ended_at) ON access_grants TO %I', app);
   -- Whoever owns a schema can drop anything in it, whoever owns the table, and a database owner owns
   -- public through pg_database_owner. The superuser keeps both; the app keeps what migrations need.

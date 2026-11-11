@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/agenthub"
 	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/servers"
 )
@@ -227,6 +228,47 @@ func (a *API) powerReviewTTLMinutes(ctx context.Context) int {
 		minutes = int(configured)
 	}
 	return minutes
+}
+
+// externalReviewConnected says this installation has connected an outside reviewer. Until it has, a guest
+// action rests on the permission, written reason and audit entry that came before it. A connection that
+// cannot be read counts as connected, so a database fault never skips a configured review.
+func (a *API) externalReviewConnected(ctx context.Context) bool {
+	if a.db == nil {
+		return false
+	}
+	connection, err := a.db.AgentHubConnection(ctx)
+	if errors.Is(err, db.ErrNotFound) {
+		return false
+	}
+	return err != nil || (connection.BaseURL != "" && connection.HasCredential)
+}
+
+// executeInfraPower runs a guest power action, through the outside reviewer when one is connected.
+func (a *API) executeInfraPower(w http.ResponseWriter, r *http.Request, c *caller, tenant string, endpoint servers.Endpoint, serverID, guest, verb string) bool {
+	if a.externalReviewConnected(r.Context()) {
+		return a.executeInfraPowerReview(w, r, c, tenant, endpoint, serverID, guest, verb)
+	}
+	driver, err := a.openDriver(endpoint)
+	if err != nil {
+		infraErr(w, err)
+		return false
+	}
+	current, err := driver.Guest(r.Context(), guest)
+	if err != nil {
+		infraErr(w, err)
+		return false
+	}
+	if !a.verifyInfraPowerTarget(w, r, c, current, guest, verb) {
+		return false
+	}
+	g, err := a.tracked(r, c, serverID, guest, verb, func(ctx context.Context) (hv.Guest, error) { return runVerb(ctx, driver, verb, guest) })
+	if err != nil {
+		infraErr(w, err)
+		return false
+	}
+	writeJSON(w, g)
+	return true
 }
 
 func (a *API) executeInfraPowerReview(w http.ResponseWriter, r *http.Request, c *caller, tenant string, endpoint servers.Endpoint, serverID, guest, verb string) bool {

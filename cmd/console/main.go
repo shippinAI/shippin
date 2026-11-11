@@ -6,8 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"shippin.cloud/console/internal/api"
@@ -22,6 +25,7 @@ import (
 )
 
 func main() {
+	setupLogging()
 	if len(os.Args) > 1 && os.Args[1] == "setup" {
 		runSetup()
 		return
@@ -30,7 +34,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("config: %v", err)
 	}
-	ctx := context.Background()
+	// SIGTERM is what Docker and systemd send to stop a service. Background work watches this context.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 	database, err := db.OpenHolding(ctx, cfg.DatabaseURL, cfg.Migrations.Hold)
 	if err != nil {
 		log.Fatalf("db: %v", err)
@@ -59,6 +65,7 @@ func main() {
 	} else {
 		log.Print("clickhouse: not configured; metrics history is unavailable (set SHIPPIN_CLICKHOUSE_URL)")
 	}
+	consoleAPI.LoadPlatformServices(ctx)
 	consoleAPI.SetDirectory(directory)
 	consoleAPI.StartJobs(ctx)
 	consoleAPI.SeedTemplates(ctx)
@@ -76,6 +83,15 @@ func main() {
 	mux.HandleFunc("GET /auth/logout", flow.Logout)
 	mux.Handle("/", byOrigin(flow, spa.Handler(cfg.StaticDir), spa.HandlerFor(cfg.StaticDir, "ops.html")))
 	srv := &http.Server{Addr: cfg.Listen, Handler: api.RequestLog(secure(api.SameOrigin(mux))), ReadHeaderTimeout: 10 * time.Second}
+	go func() {
+		<-ctx.Done()
+		log.Print("shutting down: finishing requests in flight")
+		done, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(done); err != nil {
+			log.Printf("shutdown: %v", err)
+		}
+	}()
 	if certFile, keyFile := os.Getenv("SHIPPIN_TLS_CERT"), os.Getenv("SHIPPIN_TLS_KEY"); certFile != "" || keyFile != "" {
 		if certFile == "" || keyFile == "" {
 			log.Fatal("tls: set both SHIPPIN_TLS_CERT and SHIPPIN_TLS_KEY")
@@ -86,10 +102,29 @@ func main() {
 		}
 		srv.TLSConfig = l.Config()
 		log.Printf("console listening on %s with TLS (domain %s)", cfg.Listen, cfg.Domain)
-		log.Fatal(srv.ListenAndServeTLS("", ""))
+		serve(srv.ListenAndServeTLS("", ""))
+		return
 	}
 	log.Printf("console listening on %s (domain %s)", cfg.Listen, cfg.Domain)
-	log.Fatal(srv.ListenAndServe())
+	serve(srv.ListenAndServe())
+}
+
+// serve treats a requested shutdown as a clean exit and anything else as a failure.
+func serve(err error) {
+	if !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
+	log.Print("stopped")
+}
+
+// setupLogging sends every log line through one structured logger, as key=value text or as JSON
+// (SHIPPIN_LOG_FORMAT=json). Lines still written with the log package arrive as level INFO.
+func setupLogging() {
+	var h slog.Handler = slog.NewTextHandler(os.Stderr, nil)
+	if os.Getenv("SHIPPIN_LOG_FORMAT") == "json" {
+		h = slog.NewJSONHandler(os.Stderr, nil)
+	}
+	slog.SetDefault(slog.New(h))
 }
 
 // byOrigin serves the operator app (its own bundle) on the operator origin, the console elsewhere.

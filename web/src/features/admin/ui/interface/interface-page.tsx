@@ -13,14 +13,14 @@ import { usePlatformSettings, useSetPlatformSetting } from "../../../../lib/hook
 import { compactUi, type ImageConfig, type ImageRemoteConfig, type NavEntryConfig, type ProviderConfig, type ProviderFieldConfig, type UiConfig } from "../../../../lib/ui-config/model";
 import { textDefaults, type TextKey } from "../../../../lib/ui-config/text-keys";
 import { uiConfigKey, useUiConfig } from "../../../../lib/ui-config/use-ui-config";
-import { adminNav } from "../../../../template/admin/admin-nav";
+import { adminGroups, adminNav } from "../../../../template/admin/admin-nav";
 import { accountNav, featureOn, infrastructureNav, navSections, operatorNav, tenantNav } from "../../../../template/nav-items";
 import { PageHeader } from "../../../../template/page-header";
 
 const UI_KEY = "ui.config";
 const REASON_MIN = 5;
 
-const allSections = Object.values(navSections);
+const allSections = [...Object.values(navSections), ...adminGroups];
 const allItems = [...tenantNav, ...infrastructureNav, ...accountNav, ...operatorNav, ...adminNav];
 
 function upsert<T>(list: T[] | undefined, match: (e: T) => boolean, patch: Partial<T>, fresh: T): T[] {

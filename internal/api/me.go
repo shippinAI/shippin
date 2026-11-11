@@ -61,5 +61,6 @@ func (a *API) capabilities(r *http.Request, c *caller) map[string]bool {
 	for k, on := range a.features() {
 		out[k] = on
 	}
+	out["feature.external_review"] = a.externalReviewConnected(r.Context())
 	return out
 }

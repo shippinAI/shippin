@@ -21,7 +21,7 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/shippin-console ./cmd/console \
 
 FROM debian:trixie-slim
 RUN apt-get update -qq \
-  && apt-get install -y -qq --no-install-recommends ca-certificates curl openssl python3 \
+  && apt-get install -y -qq --no-install-recommends ca-certificates curl openssl python3 postgresql-client \
   && rm -rf /var/lib/apt/lists/* \
   && useradd --system --uid 10001 --home-dir /var/lib/shippin shippin \
   && install -d -o shippin -g shippin -m 0700 /var/lib/shippin

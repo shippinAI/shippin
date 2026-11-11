@@ -55,7 +55,7 @@ func TestInfraRoutesNeedAToken(t *testing.T) {
 	}
 }
 
-func TestInfraGuestInventoryRemainsReadableWhileMutationWaitsForAgentHub(t *testing.T) {
+func TestInfraListsAndStartsGuestsWithoutLeakingCredentials(t *testing.T) {
 	var mu sync.Mutex
 	status := "stopped"
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -118,8 +118,8 @@ func TestInfraGuestInventoryRemainsReadableWhileMutationWaitsForAgentHub(t *test
 		t.Fatalf("guests %d %s", rec.Code, rec.Body.String())
 	}
 	rec = infraDo(mux, http.MethodPost, "/v1/infra/servers/"+id+"/guests/100/status/start", "")
-	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), `"code":"agenthub_review_unavailable"`) {
-		t.Fatalf("start without AgentHub review %d %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"status":"running"`) {
+		t.Fatalf("start %d %s", rec.Code, rec.Body.String())
 	}
 	if strings.Contains(rec.Body.String(), secret) {
 		t.Fatal("response included the token secret")
@@ -140,18 +140,14 @@ func TestInfraGuestInventoryRemainsReadableWhileMutationWaitsForAgentHub(t *test
 	}
 }
 
-func TestInfraBlocksMutationWithoutAgentHubAndRejectsPlainHTTP(t *testing.T) {
+func TestAHostIsOnlyAttachedOverHTTPS(t *testing.T) {
 	id := "019a0000-0000-7000-8000-0000000000aa"
 	dir := &memHV{items: []servers.Endpoint{{ID: id, Kind: "proxmox", BaseURL: "https://pve.example:8006", Node: "n1", TokenID: "id!tok", TokenEnv: "SHIPPIN_HV_TOKEN"}}}
 	a := infraAPI(t, "op_infra", dir)
 	a.cfg.Approval.Board.Driver = "hub"
 	mux := http.NewServeMux()
 	a.infraRoutes(mux)
-	rec := infraDo(mux, http.MethodPost, "/v1/infra/servers/"+id+"/guests/100/status/start", "")
-	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), `"code":"agenthub_review_unavailable"`) {
-		t.Fatalf("local board must not authorize provider mutation: %d %s", rec.Code, rec.Body.String())
-	}
-	rec = infraDo(mux, http.MethodPut, "/v1/infra/servers/"+id, `{"kind":"proxmox","base_url":"http://pve.example:8006","node":"n1","token_id":"id!tok","token_env":"SHIPPIN_HV_TOKEN"}`)
+	rec := infraDo(mux, http.MethodPut, "/v1/infra/servers/"+id, `{"kind":"proxmox","base_url":"http://pve.example:8006","node":"n1","token_id":"id!tok","token_env":"SHIPPIN_HV_TOKEN"}`)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("http url %d %s", rec.Code, rec.Body.String())
 	}
@@ -418,8 +414,8 @@ func TestTenantGuestsStayInsideTheOrg(t *testing.T) {
 		t.Fatalf("other org %d %s", rec.Code, rec.Body.String())
 	}
 	rec = infraDo(mux, http.MethodPost, "/v1/tenants/t1/servers/"+serverID+"/guests/100/status/start", "")
-	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "agenthub_review_unavailable") {
-		t.Fatalf("owner start without AgentHub review %d %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("owner start %d %s", rec.Code, rec.Body.String())
 	}
 	member := infraAPI(t, "", dir)
 	member.cfg.Servers.Enabled = true

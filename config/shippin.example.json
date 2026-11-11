@@ -108,7 +108,7 @@
     "session": {
       "minutes": 60,
       "reauth_minutes": 5,
-      "required": true
+      "required": false
     }
   },
   "roles": {
@@ -489,7 +489,7 @@
       },
       {
         "kind": "proxmox",
-        "label": "Shippin Prox",
+        "label": "Proxmox VE",
         "description": "Configure and manage virtual machines and containers on connected Proxmox VE systems.",
         "fields": [
           {

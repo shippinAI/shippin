@@ -9,7 +9,7 @@ import { StatusDot } from "../../../lib/design/components/status-dot/status-dot"
 import { useGuests, useRollback, useSnapshot, useSnapshots, useTask, type Guest } from "../../../lib/hooks/use-hosts";
 import { useNavigate, useParams } from "../../../lib/router/router";
 import { PageHeader } from "../../../template/page-header";
-import { PowerReviewDialog } from "../../infrastructure/ui/power-review-dialog";
+import { GuestPowerDialog } from "../../infrastructure/ui/guest-power-dialog";
 
 const columns: ColumnDef<Guest>[] = [
   { id: "name", label: "Name", isRowHeader: true, render: (g) => <span className="font-medium text-fg">{g.name || g.id}</span> },
@@ -48,7 +48,7 @@ export function ServerGuestsPage() {
       <PageHeader
         eyebrow="Servers"
         title="Guests"
-        description="Machines on this server. Guest power changes require a current AgentHub review."
+        description="Machines on this server. Every power change asks for a reason and is recorded."
         actions={<Button variant="ghost" size="sm" tooltip="Back to the server list" onPress={() => nav(`/t/${tenantId}/servers`)}>All servers</Button>}
       />
       <Card elevation={2} className="mb-6 overflow-hidden">
@@ -61,7 +61,7 @@ export function ServerGuestsPage() {
           <h2 className="mb-3 text-base font-semibold text-fg">{guest.name || guest.id}</h2>
           <div className="mb-4 flex flex-wrap gap-2">
             {(["start", "stop", "shutdown", "reboot"] as const).map((verb) => (
-              <Button key={verb} size="sm" variant="secondary" tooltip={`${verb} ${guest.id} after AgentHub review.`} isDisabled={!!powerChange}
+              <Button key={verb} size="sm" variant="secondary" tooltip={`${verb} ${guest.id}`} isDisabled={!!powerChange}
                 onPress={() => setPowerChange(verb)}>
                 {verb}
               </Button>
@@ -84,7 +84,7 @@ export function ServerGuestsPage() {
           </ul>
         </Card>
       )}
-      {guest && powerChange && <PowerReviewDialog base={base} guest={guest.id} verb={powerChange} confirmSelf={!!guest.self && powerChange !== "start"} onClose={() => setPowerChange(null)} onExecuted={() => { void guests.refetch(); }} />}
+      {guest && powerChange && <GuestPowerDialog base={base} guest={guest.id} verb={powerChange} confirmSelf={!!guest.self && powerChange !== "start"} onClose={() => setPowerChange(null)} onExecuted={() => { void guests.refetch(); }} />}
       <Card className="p-5">
         <h2 className="mb-3 text-base font-semibold text-fg">Task</h2>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); setLookup(upid); }}>

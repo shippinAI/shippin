@@ -77,7 +77,7 @@ export function useDeleteGuest(base: string) {
   return useMutation({
     onMutate: () => showStarted(qc),
     mutationFn: (v: { guest: string; confirmSelf?: boolean; note?: string }) =>
-      apiSend("DELETE", `${base}/guests/${v.guest}${v.confirmSelf ? "?confirm=self" : ""}`, undefined, { note: v.note }),
+      apiSend("DELETE", `${base}/guests/${v.guest}?confirm_name=${encodeURIComponent(v.guest)}${v.confirmSelf ? "&confirm=self" : ""}`, undefined, { note: v.note }),
     onSuccess: (_d, v) => {
       toast.info(`${v.guest} was removed`, "That is what the hypervisor reported after the call.");
       void qc.invalidateQueries({ queryKey: ["hv", base, "guests"] });

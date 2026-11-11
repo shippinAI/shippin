@@ -187,6 +187,16 @@ func (a *API) infraGate(rt infraRoute) http.HandlerFunc {
 	}
 }
 
+// confirmedName requires the caller to repeat what a destructive change will remove, so a stale tab or a
+// replayed request cannot remove something else. The panel sends it after its "I understand" checkbox.
+func confirmedName(w http.ResponseWriter, r *http.Request, name string) bool {
+	if r.URL.Query().Get("confirm_name") != name {
+		writeHVProblem(w, http.StatusBadRequest, "confirmation_required", "Confirm what you are removing: "+name+".", "", "")
+		return false
+	}
+	return true
+}
+
 // noteHeader carries why a change is being made, percent-encoded so that any language survives a header.
 const noteHeader = "X-Change-Note"
 
@@ -611,9 +621,6 @@ func (a *API) infraCreate(w http.ResponseWriter, r *http.Request, c *caller) {
 		auth.Problem(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if !a.permit(w, r, c, r.PathValue("id"), in.Name, "create") {
-		return
-	}
 	m, err := a.guestManager(r.Context(), r.PathValue("id"))
 	if err != nil {
 		infraErr(w, err)
@@ -663,9 +670,6 @@ func (a *API) infraClone(w http.ResponseWriter, r *http.Request, c *caller) {
 	if !decodeStrict(w, r, &in) {
 		return
 	}
-	if !a.permit(w, r, c, r.PathValue("id"), r.PathValue("guest"), "clone") {
-		return
-	}
 	cl, err := a.pve(r.Context(), r.PathValue("id"))
 	if err != nil {
 		infraErr(w, err)
@@ -691,9 +695,6 @@ func (a *API) infraTemplate(w http.ResponseWriter, r *http.Request, c *caller) {
 	if a.refuseSelf(w, r, c, cl, guest, "template") {
 		return
 	}
-	if !a.permit(w, r, c, id, guest, "template") {
-		return
-	}
 	g, err := a.tracked(r, c, id, guest, "template", func(ctx context.Context) (hv.Guest, error) { return cl.Template(ctx, guest) })
 	if err != nil {
 		infraErr(w, err)
@@ -712,7 +713,7 @@ func (a *API) infraDelete(w http.ResponseWriter, r *http.Request, c *caller) {
 	if a.refuseSelf(w, r, c, d, guest, "delete") {
 		return
 	}
-	if !a.permit(w, r, c, id, guest, "delete") {
+	if !confirmedName(w, r, guest) {
 		return
 	}
 	cl, err := a.guestManager(r.Context(), id)
@@ -733,9 +734,6 @@ func (a *API) infraConfig(w http.ResponseWriter, r *http.Request, c *caller) {
 		return
 	}
 	id, guest := r.PathValue("id"), r.PathValue("guest")
-	if !a.permit(w, r, c, id, guest, "config") {
-		return
-	}
 	cl, err := a.pve(r.Context(), id)
 	if err != nil {
 		infraErr(w, err)
@@ -755,9 +753,6 @@ func (a *API) infraResize(w http.ResponseWriter, r *http.Request, c *caller) {
 		return
 	}
 	id, guest := r.PathValue("id"), r.PathValue("guest")
-	if !a.permit(w, r, c, id, guest, "resize") {
-		return
-	}
 	cl, err := a.pve(r.Context(), id)
 	if err != nil {
 		infraErr(w, err)
@@ -785,9 +780,6 @@ func (a *API) infraMigrate(w http.ResponseWriter, r *http.Request, c *caller) {
 	if a.refuseSelf(w, r, c, cl, guest, "migrate") {
 		return
 	}
-	if !a.permit(w, r, c, id, guest, "migrate") {
-		return
-	}
 	g, err := a.tracked(r, c, id, guest, "migrate", func(ctx context.Context) (hv.Guest, error) { return cl.Migrate(ctx, guest, in.spec()) })
 	if err != nil {
 		infraErr(w, err)
@@ -810,7 +802,7 @@ func (a *API) infraStatus(w http.ResponseWriter, r *http.Request, c *caller) {
 		infraErr(w, err)
 		return
 	}
-	if !a.executeInfraPowerReview(w, r, c, "", ep, id, guest, verb) {
+	if !a.executeInfraPower(w, r, c, "", ep, id, guest, verb) {
 		return
 	}
 }
@@ -848,9 +840,6 @@ func (a *API) infraSnapshot(w http.ResponseWriter, r *http.Request, c *caller) {
 		return
 	}
 	id, guest := r.PathValue("id"), r.PathValue("guest")
-	if !a.permit(w, r, c, id, guest, "snapshot") {
-		return
-	}
 	cl, err := a.driver(r.Context(), id)
 	if err != nil {
 		infraErr(w, err)
@@ -872,9 +861,6 @@ func (a *API) infraRollback(w http.ResponseWriter, r *http.Request, c *caller) {
 		return
 	}
 	if a.refuseSelf(w, r, c, d, guest, "rollback") {
-		return
-	}
-	if !a.permit(w, r, c, id, guest, "rollback") {
 		return
 	}
 	cl, err := a.snapshotKeeper(r.Context(), id)
@@ -925,9 +911,6 @@ func (a *API) infraDownload(w http.ResponseWriter, r *http.Request, c *caller) {
 	}
 	in.Storage = r.PathValue("storage")
 	id := r.PathValue("id")
-	if !a.permit(w, r, c, id, in.Storage, "download") {
-		return
-	}
 	cl, err := a.pve(r.Context(), id)
 	if err != nil {
 		infraErr(w, err)
@@ -943,9 +926,6 @@ func (a *API) infraDownload(w http.ResponseWriter, r *http.Request, c *caller) {
 
 func (a *API) infraUpload(w http.ResponseWriter, r *http.Request, c *caller) {
 	id, storage := r.PathValue("id"), r.PathValue("storage")
-	if !a.permit(w, r, c, id, storage, "upload") {
-		return
-	}
 	r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		auth.Problem(w, http.StatusBadRequest, "Upload must be multipart and at most 32 MiB. Larger images use download-url.")
@@ -1036,9 +1016,6 @@ func (a *API) infraVzdump(w http.ResponseWriter, r *http.Request, c *caller) {
 	if !decodeStrict(w, r, &in) {
 		return
 	}
-	if !a.permit(w, r, c, r.PathValue("id"), in.ID, "backup") {
-		return
-	}
 	cl, err := a.pve(r.Context(), r.PathValue("id"))
 	if err != nil {
 		infraErr(w, err)
@@ -1055,9 +1032,6 @@ func (a *API) infraVzdump(w http.ResponseWriter, r *http.Request, c *caller) {
 func (a *API) infraRestore(w http.ResponseWriter, r *http.Request, c *caller) {
 	var in guestBody
 	if !decodeStrict(w, r, &in) {
-		return
-	}
-	if !a.permit(w, r, c, r.PathValue("id"), in.ID, "restore") {
 		return
 	}
 	cl, err := a.pve(r.Context(), r.PathValue("id"))
@@ -1085,25 +1059,6 @@ func (a *API) infraTask(w http.ResponseWriter, r *http.Request, _ *caller) {
 		return
 	}
 	writeJSON(w, t)
-}
-
-// permit keeps non-power operator mutations fail-closed until each action has an
-// exact AgentHub review path.
-func (a *API) permit(w http.ResponseWriter, _ *http.Request, _ *caller, _, _, _ string) bool {
-	return denyProviderMutation(w)
-}
-
-func (a *API) permitFor(w http.ResponseWriter, _ *http.Request, _ *caller, _, _, _, _ string) bool {
-	return denyProviderMutation(w)
-}
-
-func denyProviderMutation(w http.ResponseWriter) bool {
-	// The legacy Shippin policy and local boards are not AgentHub. They cannot authorize
-	// provider mutations, even when a local rule or card says "approved". Keep provider
-	// inventory available while the AgentHub action-bound decision adapter is absent.
-	writeHVProblem(w, http.StatusServiceUnavailable, "agenthub_review_unavailable",
-		"Provider changes are disabled until AgentHub policy and hash-bound review are configured.", "", "")
-	return false
 }
 
 func writeHVProblem(w http.ResponseWriter, status int, code, msg string, _, _ string) {

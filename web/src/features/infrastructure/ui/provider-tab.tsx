@@ -19,7 +19,8 @@ import { useText } from "../../../lib/ui-config/use-ui-config";
 import { firstAnswering, formatUptime, isRunning, isStopped, verbApplies } from "../model";
 import { ActivityCard } from "./activity-card";
 import { ChangeNoteDialog, type PendingChange } from "./change-note-dialog";
-import { PowerReviewDialog } from "./power-review-dialog";
+import { GuestPowerDialog } from "./guest-power-dialog";
+import { StopGuestsDialog } from "./stop-guests-dialog";
 import { CreateGuestCard } from "./create-guest-card";
 import { NodeFacts } from "./node-details";
 import { SystemIdentityForm } from "./system-identity-form";
@@ -89,6 +90,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
   const detach = useDetachHost();
   const may = useInfraCan();
   const [change, setChange] = useState<PendingChange | null>(null);
+  const [stopping, setStopping] = useState(false);
   const [powerChange, setPowerChange] = useState<{ guest: string; verb: "start" | "stop" | "shutdown" | "reboot"; self: boolean } | null>(null);
   const [snapName, setSnapName] = useState("");
   const [upid, setUpid] = useState("");
@@ -106,13 +108,14 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
             <div className="flex gap-2">
               {onEdit && may("infra.hosts.write") && <Button size="sm" variant="secondary" tooltip={t("infra.dialog.editTooltip", { label: node.label })} onPress={() => onEdit(node)}>{t("infra.dialog.edit")}</Button>}
               {can("lifecycle") && may("infra.guests.power") && (
-                <Button size="sm" variant="secondary" tooltip="Batch stops are unavailable; request an AgentHub review for each guest." isDisabled>{t("infra.stop.open")}</Button>
+                <Button size="sm" variant="secondary" tooltip={t("infra.stop.tooltip")} onPress={() => setStopping(true)}>{t("infra.stop.open")}</Button>
               )}
               {may("infra.hosts.write") && (
                 <Button size="sm" variant="ghost" tooltip={t("infra.detach.tooltip")}
                   onPress={() => setChange({
                     title: t("infra.detach.title", { label: node.label }), description: t("infra.detach.body"),
                     warning: node.control_plane ? t("infra.detach.controlPlane") : undefined, confirm: t("infra.detach.confirm"),
+                    understand: t("infra.detach.understand", { label: node.label }),
                     run: (note) => detach.mutate({ id: node.id, label: node.label, note }),
                   })}>{t("infra.detach")}</Button>
               )}
@@ -201,6 +204,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
                     title: t("infra.note.title", { change: `${t("infra.delete.action").toLowerCase()} ${guest.name || guest.id}` }),
                     warning: guest.self ? t("infra.self.body") : t("infra.delete.warning"),
                     confirm: t("infra.delete.action"),
+                    understand: t("infra.delete.understand", { name: guest.name || guest.id }),
                     run: (note) => remove.mutate({ guest: guest.id, note, confirmSelf: !!guest.self }, { onSuccess: () => setGuestId("") }),
                   })}>
                   {t("infra.delete.action")}
@@ -274,7 +278,8 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
       )}
       <div className="mt-6"><ActivityCard serverId={node.id} /></div>
       <ChangeNoteDialog change={change} onClose={() => setChange(null)} />
-      {powerChange && <PowerReviewDialog base={base} guest={powerChange.guest} verb={powerChange.verb} confirmSelf={powerChange.self} onClose={() => setPowerChange(null)} onExecuted={() => { void guests.refetch(); void operations.refetch(); }} />}
+      <StopGuestsDialog serverId={node.id} guests={guests.data?.items ?? []} isOpen={stopping} onOpenChange={setStopping} />
+      {powerChange && <GuestPowerDialog base={base} guest={powerChange.guest} verb={powerChange.verb} confirmSelf={powerChange.self} onClose={() => setPowerChange(null)} onExecuted={() => { void guests.refetch(); void operations.refetch(); }} />}
     </>
   );
 }

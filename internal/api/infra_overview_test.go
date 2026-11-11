@@ -280,8 +280,8 @@ func TestHostConfigurationDoesNotUseTheLifecycleReviewBoard(t *testing.T) {
 	req.Header.Set(noteHeader, "A test of this change")
 	got := httptest.NewRecorder()
 	mux.ServeHTTP(got, req)
-	if got.Code != http.StatusServiceUnavailable || !strings.Contains(got.Body.String(), "agenthub_review_unavailable") {
-		t.Fatalf("a guest change must wait for AgentHub integration: %d %s", got.Code, got.Body)
+	if got.Code != http.StatusNotFound || !strings.Contains(got.Body.String(), "no guest with that id") {
+		t.Fatalf("a guest change reaches the provider, whatever a board says: %d %s", got.Code, got.Body)
 	}
 }
 

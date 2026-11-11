@@ -39,8 +39,8 @@ export function CreateGuestCard({ base, provider, onCreate, busy }: { base: stri
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, images.data]);
   useEffect(() => {
-    if (!storageOptions.some((o) => o.name === storage)) setStorage("");
-    if (!networkOptions.some((o) => o.name === network)) setNetwork("");
+    if (!storageOptions.some((o) => o.name === storage)) setStorage(storageOptions.length === 1 ? storageOptions[0]!.name : "");
+    if (!networkOptions.some((o) => o.name === network)) setNetwork(networkOptions.length === 1 ? networkOptions[0]!.name : "");
   }, [storageOptions, networkOptions, storage, network]);
   const needsImage = !(kind === "vm" && has("blank_vm"));
   const valid = guestNameOK(name) && (!needsImage || image !== "") && [memory, cores, disk].every(sizeOK)

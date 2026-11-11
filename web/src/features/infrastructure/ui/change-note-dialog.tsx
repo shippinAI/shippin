@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "../../../lib/design/components/button/button";
+import { Checkbox } from "../../../lib/design/components/checkbox/checkbox";
 import { ModalDialog } from "../../../lib/design/components/dialog/modal-dialog";
 import { TextField } from "../../../lib/design/components/field/text-field";
 import { useText } from "../../../lib/ui-config/use-ui-config";
@@ -10,6 +11,8 @@ export type PendingChange = {
   description?: string;
   /** Said plainly before the note, when this change can do damage. */
   warning?: string;
+  /** A destructive change must be acknowledged in these words before it can run. */
+  understand?: string;
   confirm: string;
   run: (note: string) => void;
 };
@@ -18,11 +21,13 @@ export type PendingChange = {
 export function ChangeNoteDialog({ change, onClose }: { change: PendingChange | null; onClose: () => void }) {
   const t = useText();
   const [note, setNote] = useState("");
+  const [understood, setUnderstood] = useState(false);
   useEffect(() => {
-    if (change) setNote("");
+    if (change) { setNote(""); setUnderstood(false); }
   }, [change]);
+  const ready = noteOK(note) && (!change?.understand || understood);
   const submit = () => {
-    if (!change || !noteOK(note)) return;
+    if (!change || !ready) return;
     change.run(note.trim());
     onClose();
   };
@@ -31,9 +36,10 @@ export function ChangeNoteDialog({ change, onClose }: { change: PendingChange | 
       <form className="space-y-4 px-6 py-5" data-testid="change-note" onSubmit={(e) => { e.preventDefault(); submit(); }}>
         {change?.warning && <p role="alert" className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">{change.warning}</p>}
         <TextField label={t("infra.note.label")} description={t("infra.note.help")} value={note} onChange={setNote} autoFocus />
+        {change?.understand && <Checkbox isSelected={understood} onChange={setUnderstood}>{change.understand}</Checkbox>}
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={onClose}>{t("infra.dialog.cancel")}</Button>
-          <Button type="submit" variant="primary" isDisabled={!noteOK(note)} tooltip={t("infra.note.tooltip")}>{change?.confirm}</Button>
+          <Button type="submit" variant="primary" isDisabled={!ready} tooltip={t("infra.note.tooltip")}>{change?.confirm}</Button>
         </div>
       </form>
     </ModalDialog>

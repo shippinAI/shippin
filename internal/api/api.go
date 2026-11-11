@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"shippin.cloud/console/internal/agentruns"
@@ -46,8 +47,9 @@ type API struct {
 	// directory is the local account service. Nil when the process has not wired it.
 	directory   *identity.Service
 	cacheHealth func(context.Context) error
-	// ch is ClickHouse, the metrics and events store; nil when the install has none configured.
-	ch *clickhouse.Client
+	// ch is ClickHouse, the metrics and events store. Empty when the install has none. An owner can
+	// change it from the panel, so it is read fresh each time.
+	ch atomic.Pointer[clickhouse.Client]
 	// Test-only overrides: recipient lookups and synchronous notices.
 	lookupManagers func(ctx context.Context, org string) ([]string, error)
 	orgOfUser      func(ctx context.Context, sub string) (string, error) // test seam for orgMember
@@ -195,9 +197,9 @@ func (a *API) health(w http.ResponseWriter, r *http.Request) {
 	}
 	// ClickHouse holds history, not state: when it is down the panel still works and says so.
 	ch := "disabled"
-	if a.ch != nil {
+	if store := a.ch.Load(); store != nil {
 		ch = "up"
-		if a.ch.Ping(ctx) != nil {
+		if store.Ping(ctx) != nil {
 			ch = "down"
 		}
 	}
@@ -211,9 +213,6 @@ func (a *API) health(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) SetCacheHealth(check func(context.Context) error) { a.cacheHealth = check }
-
-// SetClickHouse gives the API the metrics and events store.
-func (a *API) SetClickHouse(c *clickhouse.Client) { a.ch = c }
 
 // publicSettings is unauthenticated branding for the sign-in page of the app on r's origin.
 func (a *API) publicSettings(w http.ResponseWriter, r *http.Request) {
