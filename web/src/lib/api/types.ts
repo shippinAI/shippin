@@ -3,6 +3,10 @@ import type { Job } from "./job";
 // ⚠ Hand-typed until the generated client lands (CONSOLE-IA ground rules).
 export type TenantRef = {
   tenant_id: string; name: string; roles: string[]; status: string; can_manage: boolean;
+  /** The organization's plan, and how its members must sign in. */
+  plan_id?: string; sign_in?: "password" | "second_factor" | "identity_provider";
+  /** False when this session signed in less strongly than the plan requires. */
+  sign_in_met?: boolean;
   /** Set when an admin sees this tenant only through a platform access grant. */
   access?: { kind: "request" | "breakglass"; scope: string; expires_at: string };
 };

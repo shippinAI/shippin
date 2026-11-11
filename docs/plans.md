@@ -27,6 +27,27 @@ Business mail has no mailbox count because the deployment is dedicated.
 (`workspaces.default_plan` and `onboarding.plan`). The reference host's live console config is a different
 file and still says founder until someone changes it. This repo does not change the reference host.
 
+## Coverage tiers and sign-in
+
+A new installation also starts with three coverage tiers. Like every plan they are rows the
+owner renames, reprices, edits or removes in **Customers > Plans & tiers**.
+
+| Id | Members must sign in with | Meant for |
+|---|---|---|
+| `foundational` | `password`: a password or anything stronger | Self-service hosting on shared capacity |
+| `advanced` | `second_factor`: a passkey or an identity provider | More capacity and services |
+| `managed` | `identity_provider`: the organization's identity provider | Run for the customer, with support |
+
+Any plan can carry any of the three rules (`plans.sign_in`). The rule applies to members of
+organizations on that plan, on every organization request, and is checked against how the current
+session signed in. A session that is not strong enough gets 403 with the reason, and the panel shows
+it in place of the organization with a sign-out button. Tightening a plan takes effect on the next
+request; nobody is signed out. Staff who reach an organization through an access grant follow the
+staff rules (a role and a second factor), not the plan's.
+
+The numbers for these three tiers are not set yet: their services and limits come from the plan x
+service matrix the owner fills in.
+
 ## Devspace size (proposal)
 
 Every CPU, RAM, disk, workspace, boundary, and price figure in this section is a **proposal
