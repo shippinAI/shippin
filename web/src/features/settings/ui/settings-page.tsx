@@ -10,6 +10,7 @@ import { PageHeader } from "../../../template/page-header";
 import { AccessGrantsCard } from "../../access/ui/access-grants-card";
 import { AppCards } from "../../apps/ui/app-cards";
 import { BundleCard } from "./bundle-card";
+import { CoverageCard } from "../../coverage/ui/coverage-card";
 import { useIdpName } from "../../../lib/hooks/use-idp-name";
 
 export function SettingsPage() {
@@ -30,6 +31,7 @@ export function SettingsPage() {
           <CopyField label="Region" value={s.region} hint="Host running your tenant" />
           <CopyField label="Status" value={s.status} />
         </Card>
+        <CoverageCard tenantId={tenant.tenant_id} />
         <Card>
           <CardHeader title="Identity & infrastructure" description="Your tenant is an org in the identity provider with its own isolated project." />
           <CopyField label="OIDC issuer" value={s.idp_issuer} mono />

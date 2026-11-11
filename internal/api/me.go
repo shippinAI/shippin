@@ -17,6 +17,7 @@ func (a *API) me(w http.ResponseWriter, r *http.Request) {
 		Roles    []string `json:"roles"`
 		Status   string   `json:"status"`
 		Plan     string   `json:"plan_id"`
+		Coverage string   `json:"coverage,omitempty"`
 		SignIn   string   `json:"sign_in,omitempty"`
 		// SignInMet is false when this session signed in less strongly than the plan requires.
 		SignInMet bool `json:"sign_in_met"`
@@ -27,7 +28,7 @@ func (a *API) me(w http.ResponseWriter, r *http.Request) {
 	tenants := []ref{}
 	for i := range c.tenants {
 		t := &c.tenants[i]
-		tenants = append(tenants, ref{t.ID, t.Name, t.Roles, t.Status, t.Plan, t.signIn, t.grants != nil || signInMeets(c.method, t.signIn), c.canManage(t), t.accessRef(time.Now())})
+		tenants = append(tenants, ref{t.ID, t.Name, t.Roles, t.Status, t.Plan, t.coverage, t.signIn, t.grants != nil || signInMeets(c.method, t.signIn), c.canManage(t), t.accessRef(time.Now())})
 	}
 	platform := []string{}
 	if c.op != "" {

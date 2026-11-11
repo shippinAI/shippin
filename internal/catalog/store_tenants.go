@@ -14,12 +14,15 @@ type Customer struct {
 	Contacts  json.RawMessage `json:"contacts"`
 	Endpoints json.RawMessage `json:"endpoints"`
 	Notes     string          `json:"notes"`
+	// Coverage moves the organization off its plan's coverage tier; nil keeps the plan's.
+	Coverage *string `json:"coverage"`
 }
 
 // unlinkedOrg marks a customer created here before its IdP org exists (provisioning links it).
 const unlinkedOrg = "unlinked:"
 
-const customerCols = `t.id::text AS id, t.name, t.plan AS plan_id, t.status, t.contacts, t.endpoints, t.notes,
+const customerCols = `t.id::text AS id, t.name, t.plan AS plan_id, t.status, t.contacts, t.endpoints, t.notes, t.coverage,
+	coalesce(t.coverage, (SELECT p.coverage FROM plans p WHERE p.id=t.plan)) AS coverage_effective,
 	NOT starts_with(t.idp_org_id, '` + unlinkedOrg + `') AS idp_linked, t.created_at, t.updated_at,
 	(SELECT count(*) FROM workspaces w WHERE w.tenant_id=t.id) AS workspaces,
 	(SELECT status FROM provision_intents p WHERE p.tenant_id=t.id ORDER BY created_at DESC LIMIT 1) AS last_intent`
@@ -35,8 +38,8 @@ func (s *Store) Customer(ctx context.Context, id string) (json.RawMessage, error
 // CustomerRow reads the editable fields (updates keep the ones the caller can't see).
 func (s *Store) CustomerRow(ctx context.Context, id string) (Customer, error) {
 	c := Customer{ID: id}
-	err := s.Pool.QueryRow(ctx, `SELECT name, plan, status, contacts, endpoints, notes FROM tenants WHERE kind='customer' AND id::text=$1`, id).
-		Scan(&c.Name, &c.Plan, &c.Status, &c.Contacts, &c.Endpoints, &c.Notes)
+	err := s.Pool.QueryRow(ctx, `SELECT name, plan, status, contacts, endpoints, notes, coverage FROM tenants WHERE kind='customer' AND id::text=$1`, id).
+		Scan(&c.Name, &c.Plan, &c.Status, &c.Contacts, &c.Endpoints, &c.Notes, &c.Coverage)
 	if err != nil {
 		return c, ErrNotFound
 	}
@@ -53,15 +56,15 @@ func (s *Store) CustomerPlan(ctx context.Context, id string) (string, error) {
 }
 
 func (s *Store) CreateCustomer(ctx context.Context, c Customer) error {
-	_, err := s.Pool.Exec(ctx, `INSERT INTO tenants(id,idp_org_id,name,plan,status,contacts,endpoints,notes) VALUES($1,$2,$3,$4,'draft',$5,$6,$7)`,
-		c.ID, unlinkedOrg+c.ID, c.Name, c.Plan, c.Contacts, c.Endpoints, c.Notes)
+	_, err := s.Pool.Exec(ctx, `INSERT INTO tenants(id,idp_org_id,name,plan,status,contacts,endpoints,notes,coverage) VALUES($1,$2,$3,$4,'draft',$5,$6,$7,$8)`,
+		c.ID, unlinkedOrg+c.ID, c.Name, c.Plan, c.Contacts, c.Endpoints, c.Notes, c.Coverage)
 	return err
 }
 
 func (s *Store) UpdateCustomer(ctx context.Context, c Customer) error {
 	// Status is not editable here: lifecycle goes through provision/suspend/resume.
-	return s.exec(ctx, `UPDATE tenants SET name=$2, plan=$3, contacts=$4, endpoints=$5, notes=$6, updated_at=now() WHERE kind='customer' AND id::text=$1`,
-		c.ID, c.Name, c.Plan, c.Contacts, c.Endpoints, c.Notes)
+	return s.exec(ctx, `UPDATE tenants SET name=$2, plan=$3, contacts=$4, endpoints=$5, notes=$6, coverage=$7, updated_at=now() WHERE kind='customer' AND id::text=$1`,
+		c.ID, c.Name, c.Plan, c.Contacts, c.Endpoints, c.Notes, c.Coverage)
 }
 
 // DeleteCustomer removes only drafts that were never linked to an IdP org and own no workspaces;

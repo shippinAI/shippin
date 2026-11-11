@@ -16,8 +16,9 @@ type tenantView struct {
 	db.Tenant
 	Roles  []string   `json:"roles"`
 	grants []db.Grant // non-empty only for non-members
-	// signIn is the plan's sign-in rule for members. Staff reach a tenant through grants and their own rules.
-	signIn string
+	// coverage is the organization's effective coverage tier; signIn is the sign-in rule it sets for
+	// members. Staff reach a tenant through grants and their own rules.
+	coverage, signIn string
 }
 
 // caller is the authenticated identity plus the tenants it may see.
@@ -105,13 +106,17 @@ func (a *API) callerFromIdentity(r *http.Request, id *auth.Identity) (*caller, e
 	if err != nil {
 		return nil, err
 	}
-	rules, err := a.planSignInRules(r.Context())
+	ids := make([]string, 0, len(ts))
+	for _, t := range ts {
+		ids = append(ids, t.ID)
+	}
+	cover, err := a.tenantCoverage(r.Context(), ids)
 	if err != nil {
 		return nil, err
 	}
 	c.method = auth.SignInMethod(r.Context())
 	for _, t := range ts {
-		c.tenants = append(c.tenants, tenantView{Tenant: t, Roles: roles[t.IdpOrgID], signIn: rules[t.Plan]})
+		c.tenants = append(c.tenants, tenantView{Tenant: t, Roles: roles[t.IdpOrgID], coverage: cover[t.ID].Tier, signIn: cover[t.ID].SignIn})
 	}
 	// Staff who may hold grants see the granted tenants (only those, only while active).
 	if a.decideQuiet(r, c, "access.request") || a.decideQuiet(r, c, "access.breakglass") {

@@ -35,6 +35,7 @@ export function CustomerDetailPage() {
                 <Badge tone={c.status === "active" ? "success" : "neutral"}>{c.status}</Badge>
                 {c.status === "draft" && <TermTip term="draft" />}
                 <Badge tone="info">plan {c.plan_id}</Badge>
+                {c.coverage_effective && <Badge tone={c.coverage ? "primary" : "neutral"}>{c.coverage ? "moved to" : "coverage"} {c.coverage_effective}</Badge>}
                 <Badge tone={c.idp_linked ? "success" : "warning"}>{c.idp_linked ? "sign-in org linked" : "no sign-in org yet"}</Badge>
               </span>}
               actions={<>

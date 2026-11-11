@@ -27,26 +27,49 @@ Business mail has no mailbox count because the deployment is dedicated.
 (`workspaces.default_plan` and `onboarding.plan`). The reference host's live console config is a different
 file and still says founder until someone changes it. This repo does not change the reference host.
 
-## Coverage tiers and sign-in
+## Coverage
 
-A new installation also starts with three coverage tiers. Like every plan they are rows the
-owner renames, reprices, edits or removes in **Customers > Plans & tiers**.
+A plan sells capacity and services. Coverage sells support and operation beside it, the way the
+large clouds sell support plans beside usage. The plans above stay as they are; each one includes a
+coverage tier, and a customer can be moved to a higher one (**Customers > Plans & tiers**, then the
+customer's **Edit**). Tiers are rows the owner renames, reprices, changes or removes
+(`coverage_tiers`, migration 070). A new installation starts with three:
 
-| Id | Members must sign in with | Meant for |
-|---|---|---|
-| `foundational` | `password`: a password or anything stronger | Self-service hosting on shared capacity |
-| `advanced` | `second_factor`: a passkey or an identity provider | More capacity and services |
-| `managed` | `identity_provider`: the organization's identity provider | Run for the customer, with support |
+| | Foundational | Advanced | Managed |
+|---|---|---|---|
+| For | Small teams running their own workloads | Production workloads | Larger organizations |
+| Support hours | Business hours | 24/7 for outages, business hours otherwise | 24/7 |
+| First reply: outage | 4 business hours | 1 hour | 15 minutes |
+| First reply: degraded | 1 business day | 4 business hours | 1 hour |
+| First reply: question | 2 business days | 1 business day | 4 hours |
+| Channels | Docs, community, email | Adds chat and phone | Adds video calls |
+| Uptime target | None | 99.9% | 99.95% |
+| Operations | Customer runs workloads | Guidance on changes, setup checks | Operated remotely for the customer |
+| Named contact, reviews | No, none | No, quarterly | Yes, monthly |
+| Training | Quoted | 4 hours a year | 16 hours a year |
+| Consulting | Quoted | Quoted | Included |
+| Custom deployments | Quoted | Quoted | Quoted |
+| Remote operations | Not offered | Quoted | Included |
+| Members sign in with | Password or better | Passkey or identity provider | Identity provider |
+| Included by plans | free, starter, pro, founder and the retired ladder | business | none: sold by contract |
 
-Any plan can carry any of the three rules (`plans.sign_in`). The rule applies to members of
-organizations on that plan, on every organization request, and is checked against how the current
-session signed in. A session that is not strong enough gets 403 with the reason, and the panel shows
-it in place of the organization with a sign-out button. Tightening a plan takes effect on the next
-request; nobody is signed out. Staff who reach an organization through an access grant follow the
-staff rules (a role and a second factor), not the plan's.
+The pattern follows public support offerings: business-hours tickets at the small end, round-the-clock
+response to outages in the middle, and a named contact, reviews, training and operations run for the
+customer at the large end. Response targets are minutes to a first reply, counted within the tier's
+support hours (8 hours a business day). They are targets, not a credit-backed agreement, unless the
+owner's contract says so. Custom deployments stay quoted at every tier because each one is scoped
+separately.
 
-The numbers for these three tiers are not set yet: their services and limits come from the plan x
-service matrix the owner fills in.
+A tier is charged as the greater of a monthly minimum and a share of the organization's plan charges.
+Both start at zero: prices are the owner's to set.
+
+The sign-in rule applies to members of organizations with that coverage, on every organization
+request, against how the current session signed in. A session that is not strong enough gets 403 with
+the reason, and the panel shows it in place of the organization with a sign-out button. Tightening a
+tier takes effect on the next request; nobody is signed out. Staff who reach an organization through an
+access grant follow the staff rules (a role and a second factor), not the tier's.
+
+Members see their own tier, without prices, under **Settings** (`GET /v1/tenants/{id}/coverage`).
 
 ## Devspace size (proposal)
 

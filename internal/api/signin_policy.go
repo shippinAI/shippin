@@ -2,6 +2,12 @@ package api
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+
+	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/catalog"
 )
 
 // Sign-in rules a plan can set for the members of its organizations, weakest first.
@@ -33,7 +39,7 @@ func signInRequired(rule string) int {
 	return 0
 }
 
-// signInMeets says a session signed in by method satisfies a plan's rule. An unknown rule is treated as
+// signInMeets says a session signed in by method satisfies a coverage tier's rule. An unknown rule is treated as
 // the strictest, so a mistake never opens access.
 func signInMeets(method, rule string) bool {
 	switch rule {
@@ -45,28 +51,38 @@ func signInMeets(method, rule string) bool {
 
 func signInRefusal(rule string) string {
 	if rule == SignInIdentityProvider {
-		return "This organization's plan requires signing in through your identity provider. Sign out and sign in that way."
+		return "This organization's coverage requires signing in through your identity provider. Sign out and sign in that way."
 	}
-	return "This organization's plan requires a second factor. Sign out and sign in with a passkey or your identity provider."
+	return "This organization's coverage requires a second factor. Sign out and sign in with a passkey or your identity provider."
 }
 
-// planSignInRules maps each plan to its rule.
-func (a *API) planSignInRules(ctx context.Context) (map[string]string, error) {
-	out := map[string]string{}
+// tenantCoverage maps each tenant to its effective coverage tier and that tier's sign-in rule.
+func (a *API) tenantCoverage(ctx context.Context, ids []string) (map[string]catalog.Coverage, error) {
+	if a.db == nil || len(ids) == 0 {
+		return map[string]catalog.Coverage{}, nil
+	}
+	return (&catalog.Store{Pool: a.db.Pool}).CoverageOf(ctx, ids)
+}
+
+// coverage is GET /v1/tenants/{tenantId}/coverage: what the organization's coverage tier includes,
+// for every member. Prices stay with the operator.
+func (a *API) coverage(w http.ResponseWriter, r *http.Request) {
+	_, t, ok := a.tenantCtx(w, r)
+	if !ok {
+		return
+	}
 	if a.db == nil {
-		return out, nil
+		writeJSON(w, map[string]any{"coverage": nil})
+		return
 	}
-	rows, err := a.db.Pool.Query(ctx, `SELECT id, sign_in FROM plans`)
+	raw, err := (&catalog.Store{Pool: a.db.Pool}).TenantCoverage(r.Context(), t.ID)
+	if errors.Is(err, catalog.ErrNotFound) {
+		writeJSON(w, map[string]any{"coverage": nil})
+		return
+	}
 	if err != nil {
-		return nil, err
+		auth.Problem(w, http.StatusServiceUnavailable, "Coverage is unavailable right now.")
+		return
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var id, rule string
-		if err := rows.Scan(&id, &rule); err != nil {
-			return nil, err
-		}
-		out[id] = rule
-	}
-	return out, rows.Err()
+	writeJSON(w, map[string]any{"coverage": json.RawMessage(raw)})
 }

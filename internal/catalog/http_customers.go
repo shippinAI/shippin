@@ -60,6 +60,13 @@ func (h *Handler) readCustomer(w http.ResponseWriter, r *http.Request) (Customer
 		auth.Problem(w, http.StatusBadRequest, "Pick a plan that exists in Plans & Tiers.")
 		return c, false
 	}
+	if c.Coverage != nil && *c.Coverage == "" {
+		c.Coverage = nil
+	}
+	if c.Coverage != nil && !h.S.CoverageExists(r.Context(), *c.Coverage) {
+		auth.Problem(w, http.StatusBadRequest, "Pick a coverage tier that exists, or leave it empty to use the plan's.")
+		return c, false
+	}
 	return c, true
 }
 

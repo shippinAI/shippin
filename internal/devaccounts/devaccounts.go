@@ -31,9 +31,12 @@ type Account struct {
 	Kind  string
 	// Plan is the customer organization's plan, by id. Empty takes the lowest-ranked active plan.
 	Plan string
+	// Coverage moves the organization off its plan's coverage tier. Empty keeps the plan's.
+	Coverage string
 }
 
-// Parse reads "email=kind,email=kind". A customer may name its plan: "email=customer:advanced".
+// Parse reads "email=kind,email=kind". A customer may name its plan and coverage tier:
+// "email=customer:pro" or "email=customer:business:managed".
 func Parse(raw string) ([]Account, error) {
 	var out []Account
 	seen := map[string]bool{}
@@ -44,9 +47,13 @@ func Parse(raw string) ([]Account, error) {
 		}
 		email, kind, ok := strings.Cut(part, "=")
 		email = strings.ToLower(strings.TrimSpace(email))
-		kind, plan, _ := strings.Cut(strings.TrimSpace(kind), ":")
-		if plan != "" && kind != Customer {
+		kind, rest, _ := strings.Cut(strings.TrimSpace(kind), ":")
+		plan, coverage, _ := strings.Cut(rest, ":")
+		if rest != "" && kind != Customer {
 			return nil, fmt.Errorf("devaccounts: only a customer account has a plan (%s)", email)
+		}
+		if coverage != "" && plan == "" {
+			return nil, fmt.Errorf("devaccounts: name the plan before the coverage tier (%s)", email)
 		}
 		if a, err := mail.ParseAddress(email); !ok || err != nil || a.Address != email {
 			return nil, fmt.Errorf("devaccounts: %q is not email=kind", part)
@@ -58,7 +65,7 @@ func Parse(raw string) ([]Account, error) {
 			return nil, fmt.Errorf("devaccounts: %s is listed twice", email)
 		}
 		seen[email] = true
-		out = append(out, Account{Email: email, Kind: kind, Plan: plan})
+		out = append(out, Account{Email: email, Kind: kind, Plan: plan, Coverage: coverage})
 	}
 	if len(out) == 0 {
 		return nil, errors.New("devaccounts: no accounts listed")
@@ -170,13 +177,21 @@ func ensure(ctx context.Context, pool *pgxpool.Pool, a Account, encoded string, 
 		return err
 	}
 	if a.Kind == Customer {
-		return ensureOrganization(ctx, pool, id, a.Plan)
+		return ensureOrganization(ctx, pool, id, a.Plan, a.Coverage)
 	}
 	return nil
 }
 
-// ensureOrganization gives a customer account an organization of its own, once, on the plan asked for.
-func ensureOrganization(ctx context.Context, pool *pgxpool.Pool, user, plan string) error {
+// ensureOrganization gives a customer account an organization of its own, once, on the plan and
+// coverage asked for.
+func ensureOrganization(ctx context.Context, pool *pgxpool.Pool, user, plan, coverage string) error {
+	var cover *string
+	if coverage != "" {
+		if err := pool.QueryRow(ctx, `SELECT id FROM coverage_tiers WHERE id=$1 AND active`, coverage).Scan(&coverage); err != nil {
+			return fmt.Errorf("coverage %q is not an active coverage tier: %w", coverage, err)
+		}
+		cover = &coverage
+	}
 	if plan == "" {
 		if err := pool.QueryRow(ctx, `SELECT id FROM plans WHERE active ORDER BY rank, id LIMIT 1`).Scan(&plan); err != nil {
 			return fmt.Errorf("no active plan for its organization: %w", err)
@@ -188,12 +203,16 @@ func ensureOrganization(ctx context.Context, pool *pgxpool.Pool, user, plan stri
 	err := pool.QueryRow(ctx, `SELECT o.tenant_id::text FROM identity_members m JOIN orgs o ON o.identity_org_id=m.org_id
 	  WHERE o.type='customer' AND m.user_id=$1 LIMIT 1`, user).Scan(&tenant)
 	if err == nil {
-		_, err = pool.Exec(ctx, `UPDATE tenants SET plan=$2 WHERE id=$1`, tenant, plan)
+		_, err = pool.Exec(ctx, `UPDATE tenants SET plan=$2, coverage=$3 WHERE id=$1`, tenant, plan, cover)
 		return err
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return err
 	}
-	_, err = (&orgs.Store{Pool: pool}).CreateLocalCustomer(ctx, "Development organization", plan, user, "devaccounts")
+	if _, err = (&orgs.Store{Pool: pool}).CreateLocalCustomer(ctx, "Development organization", plan, user, "devaccounts"); err != nil {
+		return err
+	}
+	_, err = pool.Exec(ctx, `UPDATE tenants t SET coverage=$2 FROM orgs o JOIN identity_members m ON m.org_id=o.identity_org_id
+	  WHERE o.tenant_id=t.id AND o.type='customer' AND m.user_id=$1`, user, cover)
 	return err
 }

@@ -51,7 +51,7 @@ SHIPPIN_DEV_ACCOUNTS=admin@example.test=staff,user@example.test=customer
 SHIPPIN_DEV_ACCOUNTS_PASSWORD=<at least 12 characters>
 ```
 
-The panel keeps them in step on every start and logs a warning while they exist. A staff account gets every staff role except Owner, the per-person catalog and customer permissions as direct grants (shown under Team > Direct grants), and no second-factor requirement. A customer account owns a test organization and has no staff access; `user@example.test=customer:advanced` puts that organization on a chosen plan. The owner's account is never touched. Never set these on a real installation.
+The panel keeps them in step on every start and logs a warning while they exist. A staff account gets every staff role except Owner, the per-person catalog and customer permissions as direct grants (shown under Team > Direct grants), and no second-factor requirement. A customer account owns a test organization and has no staff access; `user@example.test=customer:pro` puts that organization on a chosen plan, and `user@example.test=customer:business:managed` also moves it to a coverage tier. The owner's account is never touched. Never set these on a real installation.
 
 Then overwrite it:
 

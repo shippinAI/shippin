@@ -132,6 +132,7 @@ func (a *API) Register(mux Router) {
 	mux.HandleFunc("POST /v1/tenants/{tenantId}/provision", a.flow.Require(a.retryProvision))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}", a.flow.Require(a.tenant))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/settings", a.flow.Require(a.tenantSettings))
+	mux.HandleFunc("GET /v1/tenants/{tenantId}/coverage", a.flow.Require(a.coverage))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/sparks", a.flow.Require(a.sparks))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/workspaces", a.flow.Require(a.listWorkspaces))
 	mux.HandleFunc("POST /v1/tenants/{tenantId}/workspaces", a.flow.Require(a.createWorkspace))

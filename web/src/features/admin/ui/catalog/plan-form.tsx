@@ -5,19 +5,16 @@ import { ModalDialog } from "../../../../lib/design/components/dialog/modal-dial
 import { TextField } from "../../../../lib/design/components/field/text-field";
 import { Switch } from "../../../../lib/design/components/switch/switch";
 import { Select } from "../../../../lib/design/components/select/select";
-import { catalogPaths, useCatalogWrite } from "../../../../lib/hooks/use-catalog";
+import { catalogPaths, useCatalogWrite, useCoverageTiers } from "../../../../lib/hooks/use-catalog";
 import { CatalogPerm, useCan } from "../../../../lib/hooks/use-can";
 
-const blank: Plan = { id: "", label: "", description: "", rank: 0, price_cents: 0, public: true, active: true, sign_in: "password" };
-const signInOptions = [
-  { id: "password", label: "Password or better" },
-  { id: "second_factor", label: "Passkey or identity provider" },
-  { id: "identity_provider", label: "Identity provider only" },
-];
+const blank: Plan = { id: "", label: "", description: "", rank: 0, price_cents: 0, public: true, active: true, coverage: "" };
 
 /** Create or edit a plan (tier). Deleting is refused by the API while customers use it. */
 export function PlanForm({ initial, onClose }: { initial?: Plan; onClose: () => void }) {
+  const tiers = useCoverageTiers().data?.items ?? [];
   const [p, setP] = useState<Plan>(initial ?? blank);
+  const coverage = p.coverage || tiers.find((t) => t.active)?.id || "";
   const save = useCatalogWrite(initial ? "Plan updated" : "Plan created");
   const del = useCatalogWrite("Plan deleted");
   const prices = useCan()(CatalogPerm.pricesRead);
@@ -31,7 +28,7 @@ export function PlanForm({ initial, onClose }: { initial?: Plan; onClose: () => 
         <div className="col-span-2"><TextField label="Description" value={p.description} onChange={set("description")} /></div>
         {prices && <TextField label="Price (cents / month)" value={String(p.price_cents)} onChange={(v) => set("price_cents")(Number(v) || 0)} />}
         <TextField label="Sort rank" value={String(p.rank)} onChange={(v) => set("rank")(Number(v) || 0)} />
-        <div className="col-span-2"><Select label="Members sign in with" options={signInOptions} value={p.sign_in ?? "password"} onChange={(v) => set("sign_in")(v as Plan["sign_in"])} /></div>
+        <div className="col-span-2"><Select label="Includes coverage" options={tiers.map((t) => ({ id: t.id, label: t.label }))} value={coverage} onChange={set("coverage")} /></div>
         <Switch isSelected={p.public} onChange={set("public")} tooltip="Shown on the public pricing list">Public</Switch>
         <Switch isSelected={p.active} onChange={set("active")} tooltip="Inactive plans can't be picked for new customers">Active</Switch>
       </div>
@@ -40,7 +37,7 @@ export function PlanForm({ initial, onClose }: { initial?: Plan; onClose: () => 
         <div className="flex-1" />
         <Button tooltip="Cancel" variant="ghost" onPress={onClose}>Cancel</Button>
         <Button tooltip="Save plan" variant="primary" isDisabled={save.isPending || !p.id || !p.label}
-          onPress={() => save.mutate({ method: initial ? "PUT" : "POST", path: catalogPaths.plan(initial?.id), body: prices ? p : { ...p, price_cents: undefined } }, { onSuccess: onClose })}>Save plan</Button>
+          onPress={() => save.mutate({ method: initial ? "PUT" : "POST", path: catalogPaths.plan(initial?.id), body: { ...p, coverage, price_cents: prices ? p.price_cents : undefined } }, { onSuccess: onClose })}>Save plan</Button>
       </div>
     </ModalDialog>
   );
