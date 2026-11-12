@@ -46,7 +46,7 @@ export function WaitlistPage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Check your email</h1>
             <p className="mt-2 text-base text-fg-muted">Open the link we sent, or enter the code from the email here.</p>
-            <form className="mt-6 grid gap-2 rounded-xl border border-line bg-surface p-5"
+            <form key="confirm" className="mt-6 grid gap-2 rounded-xl border border-line bg-surface p-5"
               onSubmit={(e) => { e.preventDefault(); confirm(String(new FormData(e.currentTarget).get("code") ?? "")); }}>
               <label className="text-sm text-fg-muted" htmlFor="waitlist-code">Code</label>
               <input id="waitlist-code" name="code" autoComplete="one-time-code" className={`${field} font-mono`} />
@@ -65,7 +65,7 @@ export function WaitlistPage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Join the waitlist</h1>
             <p className="mt-2 text-base text-fg-muted">Leave your address. We'll email a link to confirm it, then invite you when a place opens.</p>
-            <form className="mt-6 grid gap-2 rounded-xl border border-line bg-surface p-5"
+            <form key="join" className="mt-6 grid gap-2 rounded-xl border border-line bg-surface p-5"
               onSubmit={(e) => {
                 e.preventDefault();
                 const f = new FormData(e.currentTarget);
