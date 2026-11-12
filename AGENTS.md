@@ -7,5 +7,5 @@
 - Use the project skills under .agents/skills for substantial work. Ground plans in full relevant source files and current evidence.
 - Record substantive work, available chat, decisions, checks and failure paths in Git-ignored .ai/data/ via governance/README.md. Do not store secrets there.
 - Verify actual behavior and negative paths; report missing services, incomplete checks and environmental limits. Never claim an unimplemented deployment works.
-- Never import candidate code without reviewing provenance, license, dependencies, security and tests.
+- Never import candidate code without reviewing provenance, dependencies, security and tests.
 - During an authorized initial installation, paste the current one-time setup code printed by the running Shippin panel directly into the active user chat so the owner can complete setup. Never record the code in `.ai/data`, source files, or commits.
