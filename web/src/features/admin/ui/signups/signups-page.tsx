@@ -104,7 +104,7 @@ export function SignupsPage() {
           </div>
         )}
         {list.isError ? <p role="alert" className="p-5 text-base text-danger">{list.error.message}</p> : (
-          <DataTable label="Waitlist" columns={cols} rows={rows}
+          <DataTable label="Waitlist" columns={cols} rows={rows} dependencies={[reasonOK, invite.isPending, writeInvites]}
             empty={<EmptyState title="No one is waiting" description={list.data?.signup === "waitlist" ? "People who join from the sign-in page appear here." : "Switch sign-up to “with a public waitlist” to let people ask to join."} />} />
         )}
       </Card>
