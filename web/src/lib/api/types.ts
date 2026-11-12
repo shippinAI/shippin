@@ -33,6 +33,8 @@ export type PublicSettings = {
   /** Local magic-link sign-in is offered when an upstream issuer is not required. */
   local_login?: boolean;
   signup?: "open" | "invite_only" | "waitlist";
+  /** The sign-in page may offer the public waitlist form (waitlist mode, no captcha to solve). */
+  waitlist_form?: boolean;
   /** True until the installation owner redeems the setup code at /setup. */
   setup_open?: boolean;
   /** Which app this origin serves: the customer console or the operator app (ops.<domain>). */

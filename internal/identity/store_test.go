@@ -130,6 +130,21 @@ func TestStoreBootstrapMagicInviteWaitlist(t *testing.T) {
 	if _, err := s.LinkUpstream(ctx, "https://id.example.invalid", "sub-2", "owner@example.invalid", true); err != ErrConflict {
 		t.Fatal("conflict", err)
 	}
+	if err := s.JoinWaitlist(ctx, "wait@example.invalid", "Wait", "Co", "note", "", "203.0.113.5"); !errors.Is(err, ErrWaitlistClosed) {
+		t.Fatal("waitlist joined while sign-up is open", err)
+	}
+	s.SetSignupMode(func(context.Context) string { return "waitlist" })
+	if s.Signup(ctx) != "waitlist" {
+		t.Fatal("live sign-up mode ignored")
+	}
+	noMail := New(s.db, s.cfg, nil, NoneCaptcha{})
+	noMail.SetSignupMode(func(context.Context) string { return "waitlist" })
+	if err := noMail.JoinWaitlist(ctx, "nomail@example.invalid", "", "", "", "", "203.0.113.6"); !errors.Is(err, ErrNoMail) {
+		t.Fatal("waitlist took an entry it cannot confirm", err)
+	}
+	if rows, _ := s.SearchWaitlist(ctx, "nomail@"); len(rows) != 0 {
+		t.Fatal("unconfirmable waitlist entry stored", rows)
+	}
 	if err := s.JoinWaitlist(ctx, "wait@example.invalid", "Wait", "Co", "note", "", "203.0.113.5"); err != nil {
 		t.Fatal(err)
 	}
@@ -147,6 +162,16 @@ func TestStoreBootstrapMagicInviteWaitlist(t *testing.T) {
 	codesOut, err := s.BulkInvite(ctx, user.ID, []string{rows[0].ID})
 	if err != nil || len(codesOut) != 1 {
 		t.Fatal(err, codesOut)
+	}
+	// In waitlist mode a stranger is refused, and the person invited off the list gets in.
+	if err := s.RequestMagic(ctx, "stranger@example.invalid", ""); !errors.Is(err, ErrSignup) {
+		t.Fatal("waitlist mode accepted a stranger", err)
+	}
+	if err := s.RequestMagic(ctx, "wait@example.invalid", codesOut[0]); err != nil {
+		t.Fatal("waitlist invitee refused", err)
+	}
+	if invited, err := s.RedeemMagic(ctx, lastLine(mail.last)); err != nil || invited.Email != "wait@example.invalid" {
+		t.Fatal("waitlist invitee not signed up", err, invited)
 	}
 	key, err := s.CreateAPIKey(ctx, "automation", []string{"waitlist:read"})
 	if err != nil {

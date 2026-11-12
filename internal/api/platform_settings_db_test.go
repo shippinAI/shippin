@@ -77,7 +77,9 @@ func TestPlatformSettings(t *testing.T) {
 		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"https://one.test/health","timeout_seconds":11}],"reason":"timeout too long"}`},
 		{"services.probes", `{"value":[{"name":"Nomen","kind":"nomen","url":"https://one.test"},{"name":"nomen","kind":"nomen","tcp":"host:5432"}],"reason":"duplicate names"}`},
 		{"infra.power_review_ttl_minutes", `{"value":0,"reason":"zero review window"}`},
-		{"infra.power_review_ttl_minutes", `{"value":1441,"reason":"unbounded review window"}`}} {
+		{"infra.power_review_ttl_minutes", `{"value":1441,"reason":"unbounded review window"}`},
+		{"directory.signup", `{"value":"everyone","reason":"unknown sign-up mode"}`},
+		{"directory.signup", `{"value":true,"reason":"wrong type"}`}} {
 		if code := put(bad.k, bad.b); code < 400 {
 			t.Fatalf("%s %s accepted (%d)", bad.k, bad.b, code)
 		}
@@ -99,8 +101,19 @@ func TestPlatformSettings(t *testing.T) {
 	if put("idp.account_path", `{"value":null,"reason":"back to config"}`) != 200 || a.idpAccountURL(ctx) != "https://idp.example.test/ui/console/users/me" {
 		t.Fatal("clearing did not fall back to the config value")
 	}
-	if audits() != 4 {
-		t.Fatalf("want 4 audit rows, got %d", audits())
+	// Sign-up mode: the config file until the panel sets it, then the panel's value, live.
+	a.cfg.Directory.Signup = "invite_only"
+	if a.signupMode(ctx) != "invite_only" {
+		t.Fatalf("sign-up mode default = %q", a.signupMode(ctx))
+	}
+	if put("directory.signup", `{"value":"waitlist","reason":"open the waitlist"}`) != 200 || a.signupMode(ctx) != "waitlist" {
+		t.Fatal("sign-up mode override not effective")
+	}
+	if put("directory.signup", `{"value":null,"reason":"back to invitations"}`) != 200 || a.signupMode(ctx) != "invite_only" {
+		t.Fatal("sign-up mode did not fall back to the config file")
+	}
+	if audits() != 6 {
+		t.Fatalf("want 6 audit rows, got %d", audits())
 	}
 }
 

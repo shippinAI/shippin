@@ -183,7 +183,13 @@ func (a *API) Register(mux Router) {
 }
 
 // SetDirectory wires the local account service.
-func (a *API) SetDirectory(s *identity.Service) { a.directory = s }
+// SetDirectory attaches local accounts, whose sign-up follows the panel's sign-up setting.
+func (a *API) SetDirectory(s *identity.Service) {
+	a.directory = s
+	if s != nil {
+		s.SetSignupMode(a.signupMode)
+	}
+}
 
 func (a *API) health(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
@@ -229,7 +235,8 @@ func (a *API) publicSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, map[string]any{
 		"brand": brand, "domain": a.cfg.Domain,
-		"local_login": !a.cfg.Directory.UpstreamRequired, "signup": a.cfg.Directory.Signup,
+		"local_login": !a.cfg.Directory.UpstreamRequired, "signup": a.signupMode(r.Context()),
+		"waitlist_form":      a.signupMode(r.Context()) == "waitlist" && a.cfg.Directory.Captcha.Provider == "none" && a.directory != nil && a.directory.CanMail(),
 		"setup_open":         a.directory != nil && !a.directory.HasOwner(r.Context()),
 		"governance_domains": a.cfg.GovernanceDomains,
 		"idp_host":           a.cfg.IDP.Issuer, "idp_account_url": a.idpAccountURL(r.Context()), "idp_name": a.cfg.IDP.Name, "login_ready": ready, "app": app,

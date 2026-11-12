@@ -6,9 +6,11 @@ export type PlatformSetting = {
   key: string;
   label: string;
   help: string;
-  kind: "string" | "bool" | "integer" | "json" | "array";
+  kind: "string" | "bool" | "integer" | "choice" | "json" | "array";
   min?: number;
   max?: number;
+  /** The allowed values of a "choice" setting, in display order. */
+  choices?: { value: string; label: string }[];
   config_value: unknown;
   value: unknown;
   overridden: boolean;

@@ -21,10 +21,36 @@ import (
 // file stays the default (a cleared override falls back to it); each write is audited in its tx.
 type platformKey struct {
 	Key, Label, Help string
-	Kind             string            // "string" | "bool" | "json"
+	Kind             string            // "string" | "bool" | "integer" | "choice" | "json" | "array"
 	Min, Max         int               // integer bounds exposed to the existing settings UI
+	Choices          []settingChoice   // the allowed values of a "choice" key, in display order
 	def              func(a *API) any  // the config file value
 	valid            func(v any) error // nil = ok
+}
+
+// settingChoice is one allowed value of a "choice" setting and what the panel calls it.
+type settingChoice struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
+}
+
+// signupChoices are the sign-up modes, most closed first.
+var signupChoices = []settingChoice{
+	{"invite_only", "Invitation only"},
+	{"waitlist", "Invitation only, with a public waitlist"},
+	{"open", "Anyone can sign up"},
+}
+
+func oneOfChoices(cs []settingChoice) func(any) error {
+	return func(v any) error {
+		s, _ := v.(string)
+		for _, c := range cs {
+			if c.Value == s {
+				return nil
+			}
+		}
+		return fmt.Errorf("must be one of the listed choices")
+	}
 }
 
 var accountPathRe = regexp.MustCompile(`^(/[A-Za-z0-9._~-]+)+/?$`)
@@ -113,6 +139,9 @@ func (a *API) platformKeys() []platformKey {
 				return nil
 			}},
 		uiKeyDef(),
+		{Key: "directory.signup", Kind: "choice", Choices: signupChoices, Label: "Who can sign up",
+			Help: "Invitation only: people need an invitation. With a waitlist: the sign-in page also lets anyone ask to join, and you invite them from the list. Anyone: new accounts are created on first sign-in. Takes effect on the next sign-in.",
+			def:  func(a *API) any { return a.cfg.Directory.Signup }, valid: oneOfChoices(signupChoices)},
 	}
 	if a.cfg.IDP.ClientID != "" {
 		keys = append(keys, issuerKey(a.cfg), platformKey{Key: "idp.account_path", Kind: "string", Label: "IdP account page path",
@@ -164,6 +193,15 @@ func (a *API) platformValue(ctx context.Context, key string) any {
 	return nil
 }
 
+// signupMode is the sign-up mode in force: the panel's setting, else the config file.
+func (a *API) signupMode(ctx context.Context) string {
+	if a.db == nil {
+		return a.cfg.Directory.Signup
+	}
+	m, _ := a.platformValue(ctx, "directory.signup").(string)
+	return m
+}
+
 // rrflowAutoAttach: auto-attach (ops override or config) and rrflow enabled for tenant.
 func (a *API) rrflowAutoAttach(ctx context.Context, tenant string) bool {
 	on, _ := a.platformValue(ctx, "services.rrflow.auto_attach").(bool)
@@ -175,8 +213,12 @@ func (a *API) opPlatformSettings(w http.ResponseWriter, r *http.Request, _ *call
 	out := []map[string]any{}
 	for _, k := range a.platformKeys() {
 		_, over := m[k.Key]
-		out = append(out, map[string]any{"key": k.Key, "label": k.Label, "help": k.Help, "kind": k.Kind, "min": k.Min, "max": k.Max,
-			"config_value": k.def(a), "value": a.platformValue(r.Context(), k.Key), "overridden": over})
+		row := map[string]any{"key": k.Key, "label": k.Label, "help": k.Help, "kind": k.Kind, "min": k.Min, "max": k.Max,
+			"config_value": k.def(a), "value": a.platformValue(r.Context(), k.Key), "overridden": over}
+		if k.Choices != nil {
+			row["choices"] = k.Choices
+		}
+		out = append(out, row)
 	}
 	writeJSON(w, map[string]any{"items": out})
 }
@@ -207,7 +249,7 @@ func (a *API) opSetPlatformSetting(w http.ResponseWriter, r *http.Request, c *ca
 		_, isO := v.(map[string]any)
 		_, isA := v.([]any)
 		_, isN := v.(float64)
-		if (k.Kind == "string" && !isS) || (k.Kind == "bool" && !isB) || (k.Kind == "json" && !isO) || (k.Kind == "array" && !isA) || (k.Kind == "integer" && !isN) {
+		if ((k.Kind == "string" || k.Kind == "choice") && !isS) || (k.Kind == "bool" && !isB) || (k.Kind == "json" && !isO) || (k.Kind == "array" && !isA) || (k.Kind == "integer" && !isN) {
 			auth.Problem(w, http.StatusBadRequest, "The value must be a "+k.Kind+".")
 			return
 		}

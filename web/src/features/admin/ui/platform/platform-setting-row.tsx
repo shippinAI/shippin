@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Badge } from "../../../../lib/design/components/badge/badge";
 import { Button } from "../../../../lib/design/components/button/button";
 import { TextField } from "../../../../lib/design/components/field/text-field";
+import { Select } from "../../../../lib/design/components/select/select";
 import { Switch } from "../../../../lib/design/components/switch/switch";
 import { type PlatformSetting, useSetPlatformSetting } from "../../../../lib/hooks/use-platform-settings";
 
@@ -27,6 +28,8 @@ export function PlatformSettingRow({ s, canWrite }: { s: PlatformSetting; canWri
         <Switch isSelected={value === true} onChange={setValue} isDisabled={!canWrite} tooltip="Turn on or off; saved with a reason">
           {value ? "On" : "Off"}
         </Switch>
+      ) : s.kind === "choice" && s.choices ? (
+        <Select label="Value" value={String(value)} onChange={setValue} isDisabled={!canWrite} options={s.choices.map((c) => ({ id: c.value, label: c.label }))} />
       ) : (
         <TextField label="Value" type={s.kind === "integer" ? "number" : "text"} value={String(value)} onChange={setValue} isDisabled={!canWrite} min={s.kind === "integer" ? s.min : undefined} max={s.kind === "integer" ? s.max : undefined} step={s.kind === "integer" ? 1 : undefined} />
       )}

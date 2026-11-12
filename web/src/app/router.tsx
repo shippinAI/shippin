@@ -6,6 +6,7 @@ import { LandingRedirect, RequireAuth } from "./require-auth";
 // Everything but the root layout and the auth gate is its own chunk (initial JS budget, CONSOLE-IA).
 const SignInPage = lazy(() => import("../features/auth/ui/sign-in-page").then((m) => ({ default: m.SignInPage })));
 const InvitePage = lazy(() => import("../features/auth/ui/invite-page").then((m) => ({ default: m.InvitePage })));
+const WaitlistPage = lazy(() => import("../features/auth/ui/waitlist-page").then((m) => ({ default: m.WaitlistPage })));
 const SetupPage = lazy(() => import("../features/auth/ui/setup-page").then((m) => ({ default: m.SetupPage })));
 const GoPage = lazy(() => import("../features/go/ui/go-page").then((m) => ({ default: m.GoPage })));
 const OverviewPage = lazy(() => import("../features/overview/ui/overview-page").then((m) => ({ default: m.OverviewPage })));
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
       { path: "/login", element: <Suspense fallback={null}><SignInPage /></Suspense> },
       { path: "/setup", element: <Suspense fallback={null}><SetupPage /></Suspense> },
       { path: "/invite", element: <Suspense fallback={null}><InvitePage /></Suspense> },
+      { path: "/waitlist", element: <Suspense fallback={null}><WaitlistPage /></Suspense> },
       { path: "/device", element: <Suspense fallback={null}><DevicePage /></Suspense> },
       {
         element: <RequireAuth />,

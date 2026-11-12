@@ -149,8 +149,12 @@ export function SignInPage() {
               New installation? <a className="font-medium underline" href="/setup">Create the owner account</a> with the setup code the installer printed.
             </p>
           )}
-          <p className="mt-8 text-xs text-fg-subtle">
-            Need access? Ask your organization owner for an invite, or join the waitlist at /v1/waitlist.
+          <p className="mt-8 text-sm text-fg-subtle">
+            {s?.waitlist_form
+              ? <>New here? <a className="font-medium underline" href="/waitlist">Join the waitlist</a>, and we'll invite you when a place opens.</>
+              : s?.signup === "open"
+                ? "New here? Sign in with your email address and your account is created."
+                : "New here? Accounts are by invitation. Ask the person who runs this installation, or your organization's owner, for one."}
           </p>
         </div>
       </div>

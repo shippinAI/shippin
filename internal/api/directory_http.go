@@ -361,8 +361,13 @@ func (a *API) waitlistJoin(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := a.directory.JoinWaitlist(r.Context(), in.Email, in.Name, in.Company, in.Notes, in.Captcha, clientIP(r)); err != nil {
 		code := http.StatusBadRequest
-		if err.Error() == "rate limit" {
+		switch {
+		case err.Error() == "rate limit":
 			code = http.StatusTooManyRequests
+		case errors.Is(err, identity.ErrWaitlistClosed):
+			code = http.StatusForbidden
+		case errors.Is(err, identity.ErrNoMail):
+			code = http.StatusServiceUnavailable
 		}
 		auth.Problem(w, code, err.Error())
 		return
@@ -484,7 +489,7 @@ func (a *API) adminConfig(w http.ResponseWriter, r *http.Request, _ string) {
 	if over, ok := a.directory.Branding(r.Context()); ok {
 		brand = mergeBrand(brand, over)
 	}
-	writeJSON(w, map[string]any{"version": a.directory.ConfigVersion(r.Context()), "signup": a.cfg.Directory.Signup, "brand": brand, "upstream_required": a.cfg.Directory.UpstreamRequired})
+	writeJSON(w, map[string]any{"version": a.directory.ConfigVersion(r.Context()), "signup": a.signupMode(r.Context()), "brand": brand, "upstream_required": a.cfg.Directory.UpstreamRequired})
 }
 
 func (a *API) adminBrand(w http.ResponseWriter, r *http.Request, actor string) {

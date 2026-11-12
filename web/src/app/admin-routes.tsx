@@ -19,6 +19,7 @@ const AdminStaffMode = lazy(() => import("../features/admin/ui/staff-mode/staff-
 const AdminPlatform = lazy(() => import("../features/admin/ui/platform/platform-settings-page").then((m) => ({ default: m.PlatformSettingsPage })));
 const AdminInterface = lazy(() => import("../features/admin/ui/interface/interface-page").then((m) => ({ default: m.InterfacePage })));
 const AdminApi = lazy(() => import("../features/api-explorer/ui/api-explorer-page").then((m) => ({ default: m.ApiExplorerPage })));
+const AdminSignups = lazy(() => import("../features/admin/ui/signups/signups-page").then((m) => ({ default: m.SignupsPage })));
 const AdminPlans = lazy(() => import("../features/admin/ui/catalog/plans-page").then((m) => ({ default: m.PlansPage })));
 const AdminStart = lazy(() => import("../features/platform/ui/get-started-page").then((m) => ({ default: m.GetStartedPage })));
 const AdminBuiltIn = lazy(() => import("../features/platform/ui/built-in-services-page").then((m) => ({ default: m.BuiltInServicesPage })));
@@ -37,6 +38,7 @@ export const adminRoutes: RouteObject[] = [
   { path: "customers", element: <AdminCustomers /> },
   { path: "customers/:customerId", element: <AdminCustomer /> },
   { path: "plans", element: <AdminPlans /> },
+  { path: "signups", element: <AdminSignups /> },
   { path: "services", element: <AdminServices /> },
   { path: "access", element: <AdminAccess /> },
   { path: "team", element: <AdminTeam /> },

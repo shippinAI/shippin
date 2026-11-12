@@ -103,6 +103,7 @@ GET /v1/operator/tenants/{tenantId}/apps
 GET /v1/operator/tenants/{tenantId}/setup
 GET /v1/operator/tenants/{tenantId}/vm
 GET /v1/operator/tenants/{tenantId}/workspaces/{workspaceId}/discover
+GET /v1/operator/waitlist
 GET /v1/operator/workspaces
 GET /v1/ops/servers
 GET /v1/ops/support-grants
@@ -229,6 +230,7 @@ POST /v1/operator/tenants/{tenantId}/suspend
 POST /v1/operator/tenants/{tenantId}/vm
 POST /v1/operator/tenants/{tenantId}/vm/harden
 POST /v1/operator/tenants/{tenantId}/vm/{action}
+POST /v1/operator/waitlist/{id}/invite
 POST /v1/operator/workspaces/{workspaceId}/{action}
 POST /v1/ops/support-grants
 POST /v1/ops/support-grants/{id}/revoke

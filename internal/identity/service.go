@@ -27,11 +27,15 @@ var (
 	ErrSetupUsed   = errors.New("setup code is not valid")
 	ErrOwnerExists = errors.New("an owner already exists")
 	ErrSignup      = errors.New("signup is closed")
-	ErrInvite      = errors.New("invite is not valid")
-	ErrConflict    = errors.New("account is already linked")
-	ErrNotFound    = errors.New("not found")
-	ErrScope       = errors.New("missing scope")
-	ErrSetupInput  = errors.New("provide a valid email, username, owner name and internal organization name")
+	// ErrWaitlistClosed: the installation is not taking waitlist entries (sign-up mode is not waitlist).
+	ErrWaitlistClosed = errors.New("the waitlist is not open")
+	// ErrNoMail: the installation can't send email, so nothing that needs a confirmation can start.
+	ErrNoMail     = errors.New("this installation can't send email yet, so the waitlist can't take new entries")
+	ErrInvite     = errors.New("invite is not valid")
+	ErrConflict   = errors.New("account is already linked")
+	ErrNotFound   = errors.New("not found")
+	ErrScope      = errors.New("missing scope")
+	ErrSetupInput = errors.New("provide a valid email, username, owner name and internal organization name")
 )
 
 // Sender delivers one plain message. SMTP and the disposable file sink both implement it.
@@ -93,6 +97,25 @@ type Service struct {
 	passkeyLimit  attemptLimiter
 	passwordLimit attemptLimiter
 	now           func() time.Time
+	// signupMode is the live sign-up mode (the panel's setting); nil or empty uses the config file.
+	signupMode func(context.Context) string
+}
+
+// CanMail reports whether this installation can send email.
+func (s *Service) CanMail() bool { return s.send != nil }
+
+// SetSignupMode makes sign-up follow a live value, such as the panel's setting.
+func (s *Service) SetSignupMode(f func(context.Context) string) { s.signupMode = f }
+
+// Signup is the sign-up mode in force now: open, invite_only or waitlist. Waitlist is invite-only
+// for accounts, plus a public list people can join.
+func (s *Service) Signup(ctx context.Context) string {
+	if s.signupMode != nil {
+		if m := s.signupMode(ctx); m != "" {
+			return m
+		}
+	}
+	return s.cfg.Directory.Signup
 }
 
 func New(pool *pgxpool.Pool, cfg *config.Config, send Sender, captcha Captcha) *Service {
@@ -255,13 +278,7 @@ func (s *Service) RequestMagic(ctx context.Context, email, invite string) error 
 	var exists bool
 	_ = s.db.QueryRow(ctx, `SELECT true FROM identity_users WHERE email = $1`, email).Scan(&exists)
 	if !exists {
-		switch s.cfg.Directory.Signup {
-		case "open":
-		case "invite_only":
-			if invite == "" {
-				return ErrSignup
-			}
-		default:
+		if s.Signup(ctx) != "open" && invite == "" {
 			return ErrSignup
 		}
 	}
@@ -301,7 +318,7 @@ func (s *Service) RedeemMagic(ctx context.Context, raw string) (User, error) {
 			Invite string `json:"invite"`
 		}
 		_ = json.Unmarshal(meta, &extra)
-		if s.cfg.Directory.Signup == "invite_only" {
+		if s.Signup(ctx) != "open" {
 			if err := consumeInvite(ctx, tx, extra.Invite, email); err != nil {
 				return User{}, err
 			}
@@ -366,7 +383,7 @@ func (s *Service) LinkUpstream(ctx context.Context, issuer, sub, email string, v
 			return User{}, err
 		}
 	}
-	if s.cfg.Directory.Signup != "open" {
+	if s.Signup(ctx) != "open" {
 		return User{}, ErrSignup
 	}
 	tx, err := s.db.Begin(ctx)
@@ -456,6 +473,12 @@ func (s *Service) RedeemInvite(ctx context.Context, raw, email, name string) (Us
 
 // JoinWaitlist records a pending row and mails a confirmation token.
 func (s *Service) JoinWaitlist(ctx context.Context, email, name, company, notes, captcha, remote string) error {
+	if s.Signup(ctx) != "waitlist" {
+		return ErrWaitlistClosed
+	}
+	if s.send == nil {
+		return ErrNoMail // checked first: an entry nobody can confirm would wait forever
+	}
 	if !s.limit.Allow(remote, s.now()) {
 		return errors.New("rate limit")
 	}
@@ -481,7 +504,11 @@ func (s *Service) JoinWaitlist(ctx context.Context, email, name, company, notes,
 	if s.send == nil {
 		return errors.New("mail is not configured")
 	}
-	return s.send.Send(ctx, email, "Confirm your request", "Confirm your waitlist request:\n"+raw+"\n")
+	body := "Confirm your request to join the waitlist.\n"
+	if o := strings.TrimRight(s.cfg.Directory.Origin, "/"); o != "" {
+		body += "Open this link:\n" + o + "/waitlist?token=" + raw + "\n\nOr enter this code on the waitlist page:\n"
+	}
+	return s.send.Send(ctx, email, "Confirm your request", body+raw+"\n")
 }
 
 // ConfirmWaitlist moves a pending row to confirmed.
@@ -513,11 +540,12 @@ func (s *Service) ConfirmWaitlist(ctx context.Context, raw string) error {
 
 type WaitRow struct {
 	ID, Email, Name, Company, Notes, Status string
+	CreatedAt                               time.Time
 }
 
 func (s *Service) SearchWaitlist(ctx context.Context, q string) ([]WaitRow, error) {
 	q = "%" + strings.TrimSpace(q) + "%"
-	rows, err := s.db.Query(ctx, `SELECT id::text, email, name, company, notes, status FROM identity_waitlist WHERE email ILIKE $1 OR name ILIKE $1 ORDER BY created_at`, q)
+	rows, err := s.db.Query(ctx, `SELECT id::text, email, name, company, notes, status, created_at FROM identity_waitlist WHERE email ILIKE $1 OR name ILIKE $1 ORDER BY created_at`, q)
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +553,7 @@ func (s *Service) SearchWaitlist(ctx context.Context, q string) ([]WaitRow, erro
 	var out []WaitRow
 	for rows.Next() {
 		var w WaitRow
-		if err := rows.Scan(&w.ID, &w.Email, &w.Name, &w.Company, &w.Notes, &w.Status); err != nil {
+		if err := rows.Scan(&w.ID, &w.Email, &w.Name, &w.Company, &w.Notes, &w.Status, &w.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, w)
@@ -553,28 +581,50 @@ func csv(s string) string {
 	return s
 }
 
+// ErrNotConfirmed: only waitlist rows whose address was confirmed can be invited.
+var ErrNotConfirmed = errors.New("only confirmed rows can be invited")
+
 // BulkInvite invites confirmed waitlist rows and returns the raw codes.
 func (s *Service) BulkInvite(ctx context.Context, actor string, ids []string) ([]string, error) {
 	var codes []string
 	for _, id := range ids {
-		var email, status string
-		err := s.db.QueryRow(ctx, `SELECT email, status FROM identity_waitlist WHERE id = $1`, id).Scan(&email, &status)
+		_, code, err := s.InviteFromWaitlist(ctx, actor, id)
 		if err != nil {
-			return nil, err
-		}
-		if status != "confirmed" {
-			return nil, errors.New("only confirmed rows can be invited")
-		}
-		code, err := s.CreateInvite(ctx, actor, email, "member", 1, s.now().Add(14*24*time.Hour))
-		if err != nil {
-			return nil, err
-		}
-		if _, err := s.db.Exec(ctx, `UPDATE identity_waitlist SET status = 'invited' WHERE id = $1`, id); err != nil {
 			return nil, err
 		}
 		codes = append(codes, code)
 	}
 	return codes, nil
+}
+
+// InviteFromWaitlist invites one confirmed waitlist row for 14 days and returns its address and raw code.
+func (s *Service) InviteFromWaitlist(ctx context.Context, actor, id string) (string, string, error) {
+	var email, status string
+	if err := s.db.QueryRow(ctx, `SELECT email, status FROM identity_waitlist WHERE id::text = $1`, id).Scan(&email, &status); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", "", ErrNotFound
+		}
+		return "", "", err
+	}
+	if status != "confirmed" {
+		return "", "", ErrNotConfirmed
+	}
+	code, err := s.CreateInvite(ctx, actor, email, "member", 1, s.now().Add(14*24*time.Hour))
+	if err != nil {
+		return "", "", err
+	}
+	if _, err := s.db.Exec(ctx, `UPDATE identity_waitlist SET status = 'invited' WHERE id::text = $1`, id); err != nil {
+		return "", "", err
+	}
+	return email, code, nil
+}
+
+// SendInvite mails an invitation link. It fails when the installation has no mail.
+func (s *Service) SendInvite(ctx context.Context, email, link string) error {
+	if s.send == nil {
+		return errors.New("mail is not configured")
+	}
+	return s.send.Send(ctx, email, "You're invited", "You have been invited. Open this link to create your account:\n"+link+"\n")
 }
 
 // CreateAPIKey returns the raw key once.
