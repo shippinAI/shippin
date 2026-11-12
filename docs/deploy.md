@@ -105,13 +105,24 @@ incus config device add <vm> panel proxy nat=true listen=tcp:<host address>:443 
 
 `nat=true` forwards only the listen address given, so binding a single host address keeps the panel off the others.
 
-## First owner
+## First sign-in
 
-After the health check passes, the installer runs `shippin-console setup` and prints `setup_code=...` while no owner exists. The code is valid for 24 hours. Running the installer again before it is redeemed issues a new code and invalidates the old one; once an owner exists, nothing is issued. Open `https://<console host>/setup` and enter the one-time code, then choose a username and password and provide your full name, email, organization name, and installation branding. The password is chosen by the owner; the installer does not ship a shared default credential. Setup atomically creates the owner, local organization and tenant boundary, and branding settings, signs the owner in, and shows eight recovery codes once. Sign-in accepts username or email with the chosen password, passkeys, and recovery codes.
+After the health check passes, the installer runs `shippin-console setup` and prints `setup_code=...` while no owner exists. The code is valid for 24 hours. Running the installer again before it is redeemed issues a new code and invalidates the old one; once an owner exists, nothing is issued.
+
+1. **Setup account.** Open `https://<console host>/setup`, enter the one-time code, choose a password, and give the internal organization's name and the installation's branding. This creates the built-in `setup` account. It owns the installation and signs in with username `setup`. Whoever installs, you or an AI assistant, uses it to finish setting up. The installer ships no shared default credential: the password is chosen at `/setup`.
+2. **Take it over.** Until the owner has taken over, every page shows **Take over this installation** with two steps:
+   1. **Set a new password for the setup account.** The password used during setup stops working, every other sign-in of the setup account is signed out, and any passkeys or recovery codes on it are removed.
+   2. **Create your own owner account,** with your username, email and password. It is shown eight recovery codes once.
+
+   Sign in with your own account from then on, and keep the setup account for emergencies.
+
+If an AI assistant ran setup, it gives you the setup account's password in your chat, and you do both steps yourself. The panel cannot tell a person from an assistant: an assistant should never do the takeover steps.
+
+The takeover does not revoke tokens or other credentials the setup account created before it. The audit log under **Access & audit** shows what the setup account did. Sign-in accepts username or email with a password, passkeys and recovery codes.
 
 The owner is the platform admin without any upstream IdP: a local session maps the owner to the `roles.iam` source of `operator.role`, and the first local organization maps directly to a customer tenant boundary. No compute is provisioned during first-run setup. Existing passwordless accounts can set their first password under **Account → Security** after signing in; accounts with a password must verify it to change it. See [identity and access](reference/identity-and-access.md).
 
-The `--example` install redeems its own code as part of the smoke test.
+The `--example` install redeems its own code, opens the waitlist and takes the setup account over as part of its smoke test.
 
 ## Connect a hypervisor
 

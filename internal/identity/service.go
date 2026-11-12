@@ -9,7 +9,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"net/mail"
 	"net/url"
 	"os"
 	"strings"
@@ -137,9 +136,11 @@ type User struct {
 // SetupInput contains the complete first-run configuration. The setup code is
 // the authorization to create the initial owner; all user and organization
 // credentials are chosen by that owner.
+// SetupInput creates the built-in setup account with the one-time setup code: its password, the
+// internal organization and the installation brand. Nothing in it is about a person.
 type SetupInput struct {
-	Code, Username, Email, Name, Password, Organization string
-	Brand                                               config.Brand
+	Code, Password, Organization string
+	Brand                        config.Brand
 }
 
 func (s *Service) audit(ctx context.Context, actor, action string, detail any) {
@@ -178,73 +179,67 @@ func (s *Service) IssueSetup(ctx context.Context) (string, error) {
 	return code, err
 }
 
-// RedeemSetup creates the owner, an org, and recovery codes. Codes are returned once.
-func (s *Service) RedeemSetup(ctx context.Context, in SetupInput) (User, []string, error) {
-	in.Email = emailNorm(in.Email)
-	in.Username = strings.ToLower(strings.TrimSpace(in.Username))
-	in.Name = strings.TrimSpace(in.Name)
+// RedeemSetup spends the one-time setup code on the built-in setup account (REL-03), the internal
+// organization and the brand. The account owns the installation until a person takes it over; it has
+// no recovery codes, so whoever ran setup keeps nothing once its password is changed.
+func (s *Service) RedeemSetup(ctx context.Context, in SetupInput) (User, error) {
 	in.Organization = strings.TrimSpace(in.Organization)
-	address, emailErr := mail.ParseAddress(in.Email)
-	if emailErr != nil || address.Address != in.Email || !validUsername(in.Username) || len(in.Name) < 1 || len(in.Name) > 120 || len(in.Organization) < 2 || len(in.Organization) > 120 {
-		return User{}, nil, ErrSetupInput
+	if len(in.Organization) < 2 || len(in.Organization) > 120 {
+		return User{}, ErrSetupInput
 	}
 	if err := validateBrand(in.Brand); err != nil {
-		return User{}, nil, err
+		return User{}, err
+	}
+	passwordHash, err := hashPassword(in.Password)
+	if err != nil {
+		return User{}, err
 	}
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
-		return User{}, nil, err
+		return User{}, err
 	}
 	defer tx.Rollback(ctx)
 	// Serialize first-owner claims across concurrently issued setup codes.
 	if _, err := tx.Exec(ctx, `LOCK TABLE identity_users IN SHARE ROW EXCLUSIVE MODE`); err != nil {
-		return User{}, nil, err
+		return User{}, err
 	}
 	var ownerExists bool
 	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM identity_users WHERE role='owner')`).Scan(&ownerExists); err != nil {
-		return User{}, nil, err
+		return User{}, err
 	}
 	if ownerExists {
-		return User{}, nil, ErrOwnerExists
+		return User{}, ErrOwnerExists
 	}
 	var id string
 	err = tx.QueryRow(ctx, `UPDATE identity_tokens SET used_at = now() WHERE kind = 'setup' AND hash = $1 AND used_at IS NULL AND expires_at > now() RETURNING id`, hashToken(in.Code)).Scan(&id)
 	if err != nil {
-		return User{}, nil, ErrSetupUsed
+		return User{}, ErrSetupUsed
 	}
-	passwordHash, err := hashPassword(in.Password)
+	user, err := insertUser(ctx, tx, SetupEmail, "Setup account", "owner", true)
 	if err != nil {
-		return User{}, nil, err
+		return User{}, err
 	}
-	user, err := insertUser(ctx, tx, in.Email, in.Name, "owner", true)
-	if err != nil {
-		return User{}, nil, err
+	if _, err := tx.Exec(ctx, `UPDATE identity_users SET username=$2, password_hash=$3, builtin='setup' WHERE id=$1`, user.ID, SetupUsername, passwordHash); err != nil {
+		return User{}, err
 	}
-	if _, err := tx.Exec(ctx, `UPDATE identity_users SET username=$2,password_hash=$3 WHERE id=$1`, user.ID, in.Username, passwordHash); err != nil {
-		return User{}, nil, err
-	}
-	user.Username = in.Username
+	user.Username = SetupUsername
 	org, err := orgs.ConfigureInternal(ctx, tx, in.Organization)
 	if err != nil {
-		return User{}, nil, err
+		return User{}, err
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO identity_members (org_id, user_id, role) VALUES ($1,$2,'owner')`, org, user.ID); err != nil {
-		return User{}, nil, err
-	}
-	codes, err := insertRecovery(ctx, tx, user.ID)
-	if err != nil {
-		return User{}, nil, err
+		return User{}, err
 	}
 	brandJSON, _ := json.Marshal(in.Brand)
 	if _, err := tx.Exec(ctx, `INSERT INTO identity_settings (key,value) VALUES ('branding',$1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`, brandJSON); err != nil {
-		return User{}, nil, err
+		return User{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return User{}, nil, err
+		return User{}, err
 	}
-	s.audit(ctx, user.ID, "user.signup", map[string]string{"via": "setup"})
+	s.audit(ctx, user.ID, "setup.account_created", map[string]string{"organization": in.Organization})
 	s.emit(ctx, "user.signup", map[string]string{"user_id": user.ID, "via": "setup"})
-	return user, codes, nil
+	return user, nil
 }
 
 func insertUser(ctx context.Context, tx pgx.Tx, email, name, role string, verified bool) (User, error) {

@@ -29,7 +29,7 @@ docker compose up -d --build
 docker compose logs panel | grep setup_code
 ```
 
-Open <https://localhost:8443/setup> and enter that code to create the owner. The browser warns about the certificate because it is self-signed for this machine. The panel opens on **Get started**, which walks you through the built-in services, how people reach it, adding your first Incus or Proxmox server, and making a recovery point.
+Open <https://localhost:8443/setup> and enter that code to create the built-in `setup` account, which you, or an AI assistant installing for you, use to finish setting up. The panel then asks you to set your own password for it and create your own owner account. The browser warns about the certificate because it is self-signed for this machine. The panel opens on **Get started**, which walks you through the built-in services, how people reach it, adding your first Incus or Proxmox server, and making a recovery point.
 
 ## Run it for real
 

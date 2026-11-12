@@ -1,7 +1,8 @@
+import type { ReactNode } from "react";
 import { Button } from "../../../lib/design/components/button/button";
 
-/** Recovery codes, shown the one time they exist. */
-export function RecoveryCodes({ codes }: { codes: string[] }) {
+/** Recovery codes, shown the one time they exist. `next` replaces the default "continue" action. */
+export function RecoveryCodes({ codes, next }: { codes: string[]; next?: ReactNode }) {
   return (
     <div>
       <h1 className="text-3xl font-semibold tracking-tight">Save your recovery codes</h1>
@@ -15,7 +16,7 @@ export function RecoveryCodes({ codes }: { codes: string[] }) {
       </ul>
       <div className="mt-4 flex gap-3">
         <Button variant="secondary" tooltip="Copy all recovery codes" onPress={() => void navigator.clipboard?.writeText(codes.join("\n"))}>Copy</Button>
-        <Button variant="primary" tooltip="Open the panel" onPress={() => window.location.assign("/")}>I saved them, continue</Button>
+        {next ?? <Button variant="primary" tooltip="Open the panel" onPress={() => window.location.assign("/")}>I saved them, continue</Button>}
       </div>
     </div>
   );

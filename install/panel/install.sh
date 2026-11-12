@@ -424,15 +424,17 @@ else
   echo "this database was not created by the installer, so the audit log was not protected; see docs/deploy.md"
 fi
 
-# First owner. While no owner exists, every run issues a fresh one-time setup code (valid 24 hours)
-# and invalidates any earlier unredeemed one. Once an owner exists nothing is issued.
+# Setup account. While no owner exists, every run issues a fresh one-time setup code (valid 24 hours)
+# and invalidates any earlier unredeemed one. Redeeming it at /setup creates the built-in setup account,
+# which whoever installs (a person or an AI assistant) uses to finish setting up; the panel then asks the
+# owner to take it over. Once an owner exists nothing is issued.
 setup_out=$(set -a; . /etc/shippin/console.env; set +a; "$prefix/shippin-console" setup)
 code=${setup_out#setup_code=}
 code=${code%%$'\n'*}
 if [ -n "$code" ]; then
   printf 'setup_code=%s\n' "$code"
   if [ "$example" -eq 0 ]; then
-    echo "Redeem it once at https://<console host>/setup to create the owner (docs/deploy.md, First owner)."
+    echo "Redeem it once at https://<console host>/setup to create the setup account (docs/deploy.md, First sign-in)."
   fi
 else
   echo "an owner already exists; no setup code issued"
@@ -441,11 +443,16 @@ if [ "$example" -eq 1 ]; then
   [ -n "$code" ] || { echo "the disposable install expected a setup code" >&2; exit 1; }
   base="${scheme}://${host}:${port}"
   example_password=$(openssl rand -hex 24)
-  setup_json=$(curl -fsS "${curl_tls[@]}" -H 'content-type: application/json' -d "{\"code\":\"${code}\",\"email\":\"owner@example.invalid\",\"name\":\"Owner\",\"username\":\"owner\",\"password\":\"${example_password}\",\"organization\":\"Example organization\",\"brand\":{\"name\":\"Shippin\"}}" "$base/v1/setup")
-  printf '%s\n' "$setup_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["user_id"] and len(d["recovery_codes"])==8; print("setup_ok")'
+  setup_json=$(curl -fsS "${curl_tls[@]}" -H 'content-type: application/json' -d "{\"code\":\"${code}\",\"password\":\"${example_password}\",\"organization\":\"Example organization\",\"brand\":{\"name\":\"Shippin\"}}" "$base/v1/setup")
+  printf '%s\n' "$setup_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["user_id"] and d["username"]=="setup"; print("setup_ok")'
   sid=$(printf '%s\n' "$setup_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["session"])')
+  # Sign-up is invitation only by default; the setup account opens the waitlist from the panel API.
+  curl -fsS "${curl_tls[@]}" -X PUT -H "Cookie: shippin_session=${sid}" -H 'content-type: application/json' -d '{"value":"waitlist","reason":"example install smoke test"}' "$base/v1/operator/platform-settings/directory.signup" >/dev/null
   curl -fsS "${curl_tls[@]}" -H 'content-type: application/json' -d '{"email":"wait@example.invalid","name":"Wait","company":"Example"}' "$base/v1/waitlist" >/dev/null
   token=$(python3 -c 'import json; print(json.load(open("/var/lib/shippin/mail-sink.log"))["body"].split()[-1])')
   curl -fsS "${curl_tls[@]}" -H 'content-type: application/json' -d "{\"token\":\"${token}\"}" "$base/v1/waitlist/confirm" >/dev/null
   curl -fsS "${curl_tls[@]}" -H "Cookie: shippin_session=${sid}" "$base/v1/admin/waitlist.csv" | python3 -c 'import sys; body=sys.stdin.read(); assert "wait@example.invalid" in body and "confirmed" in body; print(body.strip())'
+  # Take the setup account over, as the panel asks: a new password, then an owner account of one's own.
+  curl -fsS "${curl_tls[@]}" -H "Cookie: shippin_session=${sid}" -H 'content-type: application/json' -d "{\"password\":\"$(openssl rand -hex 24)\"}" "$base/v1/setup/handover/password" | python3 -c 'import json,sys; assert json.load(sys.stdin)["password_set"]; print("setup_password_ok")'
+  curl -fsS "${curl_tls[@]}" -H "Cookie: shippin_session=${sid}" -H 'content-type: application/json' -d "{\"username\":\"owner\",\"name\":\"Owner\",\"email\":\"owner@example.invalid\",\"password\":\"$(openssl rand -hex 24)\"}" "$base/v1/setup/handover/owner" | python3 -c 'import json,sys; assert len(json.load(sys.stdin)["recovery_codes"])==8; print("owner_ok")'
 fi

@@ -54,7 +54,7 @@ func (s *Store) New(ctx context.Context, sess *Session) (string, error) {
 	nonce := make([]byte, s.aead.NonceSize())
 	_, _ = rand.Read(nonce)
 	sealed := s.aead.Seal(nonce, nonce, raw, []byte(id))
-	return id, s.db.PutSession(ctx, id, sealed, sess.Expires)
+	return id, s.db.PutSession(ctx, id, sealed, sess.Expires, sess.UserID)
 }
 
 func (s *Store) Get(ctx context.Context, id string) *Session {

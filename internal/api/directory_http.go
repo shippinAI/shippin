@@ -20,6 +20,9 @@ func (a *API) registerDirectory(mux Router) {
 		return
 	}
 	mux.HandleFunc("POST /v1/setup", a.setupRedeem)
+	mux.HandleFunc("GET /v1/setup/handover", a.handoverState)
+	mux.HandleFunc("POST /v1/setup/handover/password", a.handoverPassword)
+	mux.HandleFunc("POST /v1/setup/handover/owner", a.handoverOwner)
 	mux.HandleFunc("POST /v1/session/password", a.passwordLogin)
 	mux.HandleFunc("PUT /v1/directory/me/password", a.passwordChange)
 	mux.HandleFunc("POST /v1/session/magic", a.magicBegin)
@@ -103,7 +106,7 @@ func (a *API) setupRedeem(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusBadRequest, "Request body was not accepted.")
 		return
 	}
-	u, codes, err := a.directory.RedeemSetup(r.Context(), in)
+	u, err := a.directory.RedeemSetup(r.Context(), in)
 	if err != nil {
 		switch {
 		case errors.Is(err, identity.ErrSetupUsed):
@@ -123,7 +126,7 @@ func (a *API) setupRedeem(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusServiceUnavailable, "Sign-in is unavailable right now.")
 		return
 	}
-	writeJSON(w, map[string]any{"user_id": u.ID, "session": sid, "recovery_codes": codes})
+	writeJSON(w, map[string]any{"user_id": u.ID, "session": sid, "username": u.Username})
 }
 
 func (a *API) passwordLogin(w http.ResponseWriter, r *http.Request) {

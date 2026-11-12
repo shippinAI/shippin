@@ -8,6 +8,15 @@ import (
 // Current is the decrypted session cookie, or nil.
 func (f *Flow) Current(r *http.Request) *Session { return f.cookieSession(r) }
 
+// CurrentID is the id of the request's valid session, or "".
+func (f *Flow) CurrentID(r *http.Request) string {
+	if f.cookieSession(r) == nil {
+		return ""
+	}
+	c, _ := r.Cookie(cookieName)
+	return c.Value
+}
+
 // StartLocal stores a directory session and sets the existing session cookie. Every caller has just
 // proved who the user is (setup code, magic link, passkey or recovery code), so it counts as a
 // sign-in for the checks that ask how recent one is.

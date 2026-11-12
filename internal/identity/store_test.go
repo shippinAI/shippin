@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -52,28 +53,69 @@ func TestStoreBootstrapMagicInviteWaitlist(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	input := SetupInput{Code: code, Username: "owner", Email: "Owner@Example.invalid", Name: "Owner", Password: "a long test password", Organization: "Owner Works", Brand: config.Brand{Name: "Shippin", Short: "Ship", Tagline: "Build and ship"}}
+	input := SetupInput{Code: code, Password: "the installer's password", Organization: "Owner Works", Brand: config.Brand{Name: "Shippin", Short: "Ship", Tagline: "Build and ship"}}
 	invalid := input
-	invalid.Email = "not an email"
-	if _, _, err := s.RedeemSetup(ctx, invalid); !errors.Is(err, ErrSetupInput) {
-		t.Fatal("invalid email accepted", err)
+	invalid.Organization = "x"
+	if _, err := s.RedeemSetup(ctx, invalid); !errors.Is(err, ErrSetupInput) {
+		t.Fatal("one-letter organization accepted", err)
 	}
 	invalid = input
 	invalid.Password = "short"
-	if _, _, err := s.RedeemSetup(ctx, invalid); !errors.Is(err, ErrPassword) {
+	if _, err := s.RedeemSetup(ctx, invalid); !errors.Is(err, ErrPassword) {
 		t.Fatal("short password accepted", err)
 	}
 	invalid = input
 	invalid.Brand.LogoURL = "javascript:alert(1)"
-	if _, _, err := s.RedeemSetup(ctx, invalid); !errors.Is(err, ErrBrand) {
+	if _, err := s.RedeemSetup(ctx, invalid); !errors.Is(err, ErrBrand) {
 		t.Fatal("invalid branding accepted", err)
 	}
-	user, codes, err := s.RedeemSetup(ctx, input)
+	if h, err := s.SetupHandover(ctx); err != nil || h.Exists || h.Pending() {
+		t.Fatal("handover before setup", h, err)
+	}
+	setup, err := s.RedeemSetup(ctx, input)
+	if err != nil || setup.Role != "owner" || setup.Username != SetupUsername {
+		t.Fatal(err, setup)
+	}
+	if _, err := s.RedeemSetup(ctx, input); err == nil {
+		t.Fatal("setup code reused")
+	}
+	if _, err := s.AuthenticatePassword(ctx, "setup", "the installer's password", "test"); err != nil {
+		t.Fatal("setup account sign-in", err)
+	}
+	if h, _ := s.SetupHandover(ctx); !h.Exists || h.PasswordSet || len(h.Owners) != 0 || !h.Pending() {
+		t.Fatal("fresh setup should be pending takeover", h)
+	}
+	// A person takes the setup account over: the installer's password stops working.
+	if _, err := s.TakeOverSetup(ctx, setup.ID, "short"); !errors.Is(err, ErrPassword) {
+		t.Fatal("short takeover password accepted", err)
+	}
+	if _, err := s.TakeOverSetup(ctx, uuid.NewString(), "the owner's own password"); !errors.Is(err, ErrNotOwner) {
+		t.Fatal("a stranger took the setup account over", err)
+	}
+	if id, err := s.TakeOverSetup(ctx, setup.ID, "the owner's own password"); err != nil || id != setup.ID {
+		t.Fatal("takeover", err, id)
+	}
+	if _, err := s.AuthenticatePassword(ctx, "setup", "the installer's password", "test"); err == nil {
+		t.Fatal("the installer's password still works after takeover")
+	}
+	if _, err := s.AuthenticatePassword(ctx, "setup", "the owner's own password", "test"); err != nil {
+		t.Fatal("the new setup password does not work", err)
+	}
+	if h, _ := s.SetupHandover(ctx); !h.PasswordSet || !h.Pending() {
+		t.Fatal("still pending until an owner account exists", h)
+	}
+	if _, _, err := s.CreateOwner(ctx, setup.ID, OwnerInput{Username: "setup", Email: "x@example.invalid", Name: "X", Password: "a long test password"}); !errors.Is(err, ErrSetupInput) {
+		t.Fatal("an owner named setup was accepted", err)
+	}
+	user, codes, err := s.CreateOwner(ctx, setup.ID, OwnerInput{Username: "owner", Email: "Owner@Example.invalid", Name: "Owner", Password: "a long test password"})
 	if err != nil || user.Role != "owner" || user.Username != "owner" || len(codes) != 8 {
 		t.Fatal(err, user, len(codes))
 	}
-	if _, _, err := s.RedeemSetup(ctx, input); err == nil {
-		t.Fatal("setup code reused")
+	if _, _, err := s.CreateOwner(ctx, setup.ID, OwnerInput{Username: "owner2", Email: "owner@example.invalid", Name: "Owner", Password: "a long test password"}); !errors.Is(err, ErrConflict) {
+		t.Fatal("duplicate owner email accepted", err)
+	}
+	if h, _ := s.SetupHandover(ctx); h.Pending() || len(h.Owners) != 1 || h.Owners[0] != "owner" {
+		t.Fatal("takeover should be complete", h)
 	}
 	if _, err := s.AuthenticatePassword(ctx, "OWNER", "a long test password", "test"); err != nil {
 		t.Fatal("password login", err)

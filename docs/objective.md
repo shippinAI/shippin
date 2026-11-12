@@ -165,8 +165,14 @@ overwritten in place: work, overwrite, review.
 | Dragonfly | Short-lived shared counters and caches. Nothing durable. |
 
 **REL-01.** The installer generates every credential, shares no password, and
-prints a one-time setup code. Setup creates the owner, the internal organization
-and the branding. **REL-02.** From the first release, upgrades keep data and
+prints a one-time setup code. **REL-03.** The code creates the built-in setup
+account, the internal organization and the branding. Whoever installs, a person
+or an AI assistant, finishes setting up as that account. Until the owner takes
+it over, every page asks them to:
+1. set its password, which signs every other session of it out;
+2. create their own owner account.
+
+**REL-02.** From the first release, upgrades keep data and
 grants, and backup, restore and rollback are proved, not assumed.
 
 ## Who uses it
