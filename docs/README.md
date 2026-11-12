@@ -5,8 +5,8 @@ running.
 
 ## The product
 
-- [What Shippin is](objective.md): the contract every change follows, with requirement IDs.
-- [Roadmap](roadmap.md): what exists today and the order of the rest.
+- [What Shippin is](objective.md): software for running a commercial cloud provider; the contract every change follows, with requirement IDs.
+- [Roadmap](roadmap.md): what exists today, and the order toward the friends-and-family launch and then a commercial cloud.
 - [Design system](design-system.md): tokens, accessibility and speed rules for the panel.
 - [Code map](architecture.md): the contexts, where the code stands against them, and the order of the rewrite.
 
@@ -17,7 +17,7 @@ running.
 - [Attach a hypervisor](reference/proxmox-connector.md): Incus and Proxmox.
 - [Source ownership](source-of-truth.md): which folder owns what.
 - [Panel variants](panel-variants.md): every other place a panel lived, and what became of it.
-- [Hosting plans](plans.md): the plan tiers the catalog and host agent use today.
+- [Hosting plans](plans.md): the plans the catalog and host agent use today, and the coverage tiers beside them.
 
 ## How the parts work
 

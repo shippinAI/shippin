@@ -1,8 +1,15 @@
 # Shippin
 
-Shippin is an open cloud panel for your own servers. Install it once, add your Incus and Proxmox hosts in the panel, and run a private cloud on them: a control plane for the people who run the infrastructure, and tenant organizations whose workspaces, projects, apps and databases run on it. Everything is set up and changed in the panel.
+Shippin is the software for running a commercial cloud provider, built for customers who are not infrastructure engineers.
 
-This repository is the whole product: the control plane, the panel, the host agent and the installers. [What Shippin is](docs/objective.md) defines it; the [roadmap](docs/roadmap.md) says what works today.
+One control plane runs the whole business:
+- **Capacity:** your own Incus and Proxmox servers side by side. Public clouds (AWS, Google Cloud, Azure, DigitalOcean, Fly.io) and servers your customers bring can be mixed in.
+- **Customers:** they sign up, by invitation at first, into their own organizations on a plan and a support coverage tier.
+- **What they buy:** virtual machines, services deployed onto them with one click, development spaces with a terminal anyone can use and their own AI, published apps, and a sync API so a desktop app such as DevPulse can work locally against the cloud.
+
+Everything is set up and changed in the panel.
+
+This repository is the whole product: the control plane, the panel, the host agent and the installers. We run our own cloud on it, and anyone can install it to run theirs. [What Shippin is](docs/objective.md) defines it, and the [roadmap](docs/roadmap.md) says what works today. Much of the above is still to be built.
 
 ## Try it
 

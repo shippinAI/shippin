@@ -12,10 +12,10 @@ Each part of the product is one context, and one owner in the code.
 | --- | --- | --- | --- |
 | Access | Who is calling, sessions, permissions, the audit log | `internal/access` | shared |
 | Identity | Accounts, passkeys, sign-in providers, staff roles, teams | `internal/identity` | `identity`, `team` |
-| Tenancy | Organizations, workspaces, projects, plans, subscriptions | `internal/tenancy` | `organizations`, `workspaces`, `projects`, `plans` |
-| Infrastructure | Providers, hosts, guests, networks, fleets, capacity, metrics | `internal/infrastructure`, `internal/hv` | `infrastructure` |
+| Tenancy | Organizations, invitations, workspaces, projects, plans, coverage, subscriptions, usage | `internal/tenancy` | `organizations`, `workspaces`, `projects`, `plans` |
+| Infrastructure | Providers (Incus, Proxmox, public clouds, customer-brought servers), regions, hosts, guests, customer machines, networks, fleets, capacity, metrics | `internal/infrastructure`, `internal/hv` | `infrastructure` |
 | Services | Catalog, deployments, managed services, jobs | `internal/services` | `catalog`, `deployments` |
-| Runtime | Devspaces, terminals, desktops, bridges, AI subscriptions, chat | `internal/runtime` | `devspaces`, `terminal`, `chat`, `connections` |
+| Runtime | Devspaces, terminals and their plain-language layer, desktops, bridges, devices and project sync, AI subscriptions, chat | `internal/runtime` | `devspaces`, `terminal`, `chat`, `connections` |
 | Platform | Settings, interface, health, updates, setup | `internal/platform` | `settings` |
 | Integrations | GitHub, Vaultix, rrflow, AgentHub, each optional | one package each | under the context that uses it |
 
