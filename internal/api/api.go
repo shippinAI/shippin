@@ -174,6 +174,7 @@ func (a *API) Register(mux Router) {
 	a.registerOperator(mux)
 	a.registerDirectory(mux)
 	a.infraRoutes(mux)
+	mux.HandleFunc("GET /v1/mcpl", a.mcplPublic)
 	mux.HandleFunc("GET /auth/ws-check", a.wsCheck)
 	mux.HandleFunc("GET /auth/ws-login", a.wsLogin)
 	mux.HandleFunc("GET /_shippin/auth", a.wsCode)

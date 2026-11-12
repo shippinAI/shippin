@@ -136,6 +136,14 @@ by an outside system such as AgentHub is optional:
 
 No site's policy is built in.
 
+**MCPL-01 One canonical action surface.** Every action a person can take is described
+once ([MCPL](mcpl.md)): ID, route, access, risk, reason and summary. Routes, inputs,
+outputs and errors follow one set of rules. A person in the panel, the API and an AI
+acting for that person after a natural chat all run the same handler, permission
+check and audit. There is no second API for models. Plain code does the mechanical
+work so that a model's tokens go to choices. `TestMCPLConformance` enforces this,
+and its lists of gaps only shrink.
+
 **UI-01 One panel.** `web/` is the only panel. Every destination is within four
 actions. Its look, accessibility and speed follow the
 [design system](design-system.md) (UI-02, UI-03, PERF-01).

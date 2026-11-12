@@ -88,6 +88,7 @@ GET /v1/operator/customers/{id}/services
 GET /v1/operator/edge
 GET /v1/operator/host
 GET /v1/operator/identity
+GET /v1/operator/mcpl
 GET /v1/operator/platform-services
 GET /v1/operator/platform-services/{serviceId}/observations
 GET /v1/operator/platform-settings

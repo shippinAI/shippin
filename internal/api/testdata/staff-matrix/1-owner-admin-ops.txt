@@ -9,6 +9,7 @@ ALL
 
 [staff.platform_admin]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/tenants
 GET /v1/operator/system
 GET /v1/operator/tenants/{tenantId}
@@ -46,6 +47,7 @@ GET /v1/operator/team/permission-grants
 
 [staff.ops]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/tenants
 GET /v1/operator/system
 GET /v1/operator/tenants/{tenantId}
@@ -77,6 +79,7 @@ POST /v1/operator/break-glass
 
 [staff.infra]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/staff-mode
 POST /v1/operator/staff-mode
 POST /v1/operator/staff-mode/exit

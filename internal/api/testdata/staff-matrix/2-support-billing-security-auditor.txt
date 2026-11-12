@@ -1,6 +1,7 @@
 # Part 2 of the staff matrix (part 1: 1-owner-admin-ops.txt). Same format; files are read in name order.
 [staff.support]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/tenants
 GET /v1/operator/system
 GET /v1/operator/tenants/{tenantId}
@@ -20,6 +21,7 @@ POST /v1/operator/access-requests/{grantId}/end
 
 [staff.billing]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/tenants
 GET /v1/operator/system
 GET /v1/operator/tenants/{tenantId}
@@ -33,6 +35,7 @@ GET /v1/operator/boundaries
 
 [staff.security]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/tenants
 GET /v1/operator/system
 GET /v1/operator/tenants/{tenantId}
@@ -56,6 +59,7 @@ GET /v1/operator/team/permission-grants
 
 [staff.auditor]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/tenants
 GET /v1/operator/system
 GET /v1/operator/tenants/{tenantId}

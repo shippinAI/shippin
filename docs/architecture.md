@@ -27,7 +27,8 @@ and the database connection are plumbing, shared by contexts.
 `internal/catalog` already works this way, and it is the pattern to follow:
 
 - One package holds a context's types, rules, storage and HTTP handlers.
-- It lists its own routes, each with the permission that guards it. `cmd/console` mounts them.
+- It lists its own routes, each with the permission that guards it and its [MCPL](mcpl.md) action: ID, risk, reason and summary. `cmd/console` mounts them.
+- Its routes, inputs and errors follow the MCPL rules: its prefix, named path parameters, strict JSON, `reason` in the body, and problem+json.
 - It takes what it needs through a small `Deps` struct, and never reaches into another context's tables.
 - It calls another context only through that context's exported functions.
 - Its panel code is one folder in `web/src/features/`, and its API is its own file under `api/openapi/`.

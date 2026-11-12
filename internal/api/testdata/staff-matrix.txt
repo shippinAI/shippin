@@ -7,6 +7,7 @@ ALL
 
 [staff.platform_admin]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/tenants
 POST /v1/operator/tenants/{tenantId}/provision
 POST /v1/operator/tenants/{tenantId}/setup/rrflow
@@ -51,6 +52,7 @@ POST /v1/operator/customers/{id}/provision-intent
 
 [staff.ops]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/tenants
 POST /v1/operator/tenants/{tenantId}/provision
 POST /v1/operator/tenants/{tenantId}/setup/rrflow
@@ -90,6 +92,7 @@ POST /v1/operator/customers/{id}/provision-intent
 
 [staff.support]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/tenants
 GET /v1/operator/tenants/{tenantId}/vm
 GET /v1/operator/workspaces
@@ -113,6 +116,7 @@ GET /v1/operator/customers/{id}/provision-intents
 
 [staff.billing]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/tenants
 GET /v1/operator/tenants/{tenantId}/vm
 # customer catalog (internal/catalog)
@@ -140,6 +144,7 @@ GET /v1/operator/customers/{id}/provision-intents
 
 [staff.security]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/tenants
 GET /v1/operator/tenants/{tenantId}/vm
 GET /v1/operator/workspaces
@@ -166,6 +171,7 @@ GET /v1/operator/customers/{id}/provision-intents
 
 [staff.auditor]
 GET /v1/operator/access
+GET /v1/operator/mcpl
 GET /v1/operator/tenants
 GET /v1/operator/tenants/{tenantId}/vm
 GET /v1/operator/workspaces

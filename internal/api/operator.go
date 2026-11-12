@@ -49,7 +49,7 @@ func (a *API) operatorRoutes() []opRoute {
 		{"GET /v1/operator/audit", "audit.read", a.opAudit},
 		{"GET /v1/operator/tenants/{tenantId}", "tenants.read", a.opTenantDetail},
 		{"GET /v1/operator/tenants/{tenantId}/setup", "tenants.read", a.opTenantSetup},
-	}, append(append(a.teamRoutes(), a.grantRoutes()...), append(a.catalogRoutes(), append(a.boundaryRoutes(), append(a.staffSwitchRoutes(), append(a.platformRoutes(), a.signupRoutes()...)...)...)...)...)...)
+	}, append(append(a.teamRoutes(), a.grantRoutes()...), append(a.catalogRoutes(), append(a.boundaryRoutes(), append(a.staffSwitchRoutes(), append(a.platformRoutes(), append(a.signupRoutes(), a.mcplRoutes()...)...)...)...)...)...)...)
 }
 
 // registerOperator mounts the provider panel API. Every handler is gated server-side.

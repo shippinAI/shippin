@@ -44,7 +44,7 @@ break-glass, for every role including Owner (unchanged from the 50bcc84 design).
 | `audit.legal_hold` | new: withhold notice decision |
 | `mail.*`, `dns.*`, `billing.*`, `edge.write`, `host.write` | **[guess]** sections not yet routed in `operator.go`; reserve names now |
 | `team.read` / `team.write` | new `/v1/operator/team/*` |
-| `panel.view` | `/me` `provider.panel` = holds any staff role |
+| `panel.view` | `/me` `provider.panel` = holds any staff role; `GET /v1/operator/access` and `GET /v1/operator/mcpl` |
 
 `workspaces.act` scope: Ops actions are restart/start/stop/retry only; destroy-type actions map to
 `tenants.delete`-level **[guess: depends on the action list in `workspace_action.go`]**.
