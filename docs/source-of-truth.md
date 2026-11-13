@@ -67,8 +67,14 @@ result is reconciled separately. Only a verified pass can produce `ready`.
 Upgrades, backup/restore, complete service lifecycle and Proxmox application
 execution are not implemented, so this partial runtime is not yet a turnkey
 deployable service.
-`internal/jobs/` remains the durable worker lease/retry mechanism, not deployment
-truth. `internal/hv/incus/` and `internal/hv/proxmox/` retain provider-specific
+`internal/runfleet` and `cmd/shippin-run` own the GitHub Actions runner control
+plane: the fleet file, onboarding plans, redacted logs, the usage meter, and the
+runner MCP. `site/shippin-run` is the public marketing site for that product, not
+a second panel. `internal/jobs/` remains the durable worker lease/retry mechanism, not deployment
+truth and not a GitHub Actions runner. Guest creation on Proxmox and Incus is an
+interface with no implementation. The Warden runner HTML stays unmounted.
+
+`internal/hv/incus/` and `internal/hv/proxmox/` retain provider-specific
 guest behavior; `internal/hostd/` owns only the bounded in-guest bootstrap and
 workload operations exposed through its authenticated contract. No provider or
 builder implementation may be hidden in the

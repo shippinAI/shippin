@@ -1,0 +1,21 @@
+# Shippin Run
+
+> GitHub Actions runners for personal accounts and organizations, with an MCP server, redacted logs, and customer-set retention.
+
+Shippin Run is the runner product in the Shippin repository. The marketing site is static. The control plane is `shippin-run`. Creating Proxmox or Incus guests is not implemented; the fleet file records the runner you asked for and says so.
+
+## Pages
+
+- [Home](/): what the product does, a simulator, and a comparison that cites public pages.
+- [MCP](/mcp/): tool names, JSON results, and client configuration for Cursor, Claude, and Lovable.
+- [Operators](/operators/): configuration, the control plane on a Linux VM, and Cloudflare DNS for this site.
+
+## MCP tools
+
+connect_repo, list_runners, get_runner_health, list_jobs, get_job_logs, explain_failure, set_runs_on, get_usage, set_log_retention, approve_repo.
+
+set_runs_on previews a change unless `apply` is true. get_job_logs redacts secrets. get_usage meters minutes and does not collect payment.
+
+## Labels
+
+Workflows use `runs-on: shippin-<size>`. The default size ids are `linux-x64-2`, `linux-arm-2`, `windows-x64-2`, and `macos-m4`. Windows and macOS images are not built in this version.

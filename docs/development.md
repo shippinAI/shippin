@@ -18,6 +18,19 @@ Open <http://localhost:5173/setup> and enter the code. The dev server proxies `/
 
 Chrome, Edge and Firefox keep the panel's `Secure` session cookie on `http://localhost`. Safari does not, so use one of those for this loop.
 
+## Shippin Run
+
+The runner control plane is a separate process from the console. From the
+repository root:
+
+```sh
+go test ./internal/runfleet ./cmd/shippin-run
+```
+
+The marketing site is `site/shippin-run`. `npm ci && npm run build && npm run budget`
+checks the JavaScript budget. `npm run lhci` needs Chrome and checks the mobile
+performance budget. CI runs both.
+
 ## The control plane
 
 `scripts/dev-server.sh` starts the database in a container, makes a session key and a certificate under `.run/` (ignored by git), prints a setup code, and runs the console from source at <https://localhost:8443>:

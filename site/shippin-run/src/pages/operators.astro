@@ -1,0 +1,40 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base
+  title="Operate Shippin Run"
+  description="Configuration, a Linux VM for the control plane, and Cloudflare DNS for the site."
+>
+  <section class="hero">
+    <div>
+      <p class="kicker">Operators</p>
+      <h1>Control plane on Linux. Site on Pages.</h1>
+      <p class="lede">The control plane is a Go process with a state directory. The site is the static build in <code>site/shippin-run</code>. Neither one creates CI guests yet.</p>
+    </div>
+  </section>
+  <section>
+    <h2>Recommended host layout</h2>
+    <p>Run the control plane in an Ubuntu 24.04 virtual machine. On a Windows 11 desktop, Hyper-V is the better place for that VM than WSL2. WSL2 can run the same process, and it sleeps, forwards ports, and keeps time in ways that make a webhook listener flaky. Keep CI guests out of WSL2 as well. Until Proxmox or Incus creation exists, register runner machines yourself and list them in <code>ci_runners.json</code>.</p>
+    <p>The repository script <code>install/shippin-run/windows/New-ShippinRunVM.ps1</code> creates the Hyper-V VM from an ISO you supply. Run it on the Windows host. The Linux script <code>install/shippin-run/deploy-control-plane.sh</code> installs systemd inside that VM.</p>
+  </section>
+  <section>
+    <h2>DNS for this site</h2>
+    <ol>
+      <li>In Cloudflare, open the existing zone. Create a Pages project from this repository. Set the root directory to <code>site/shippin-run</code>, the build command to <code>npm ci &amp;&amp; npm run build</code>, and the output directory to <code>dist</code>. Use Node 24.</li>
+      <li>Add the custom domains for the apex and <code>www</code>. When the zone is on the same account, accept the records Pages offers. They are CNAME records to <code>&lt;project&gt;.pages.dev</code>. Cloudflare flattens the apex CNAME.</li>
+      <li>Leave the records proxied. After Pages says the domains are active, resolve the apex and confirm it answers.</li>
+    </ol>
+    <p>The control plane is a different hostname that you choose. Do not point the site hostname at the control plane.</p>
+  </section>
+  <section>
+    <h2>Configuration</h2>
+    <p>Secrets stay in the environment. Sizes, free minutes, and the provisioner name can live in JSON. See the repository files <code>config/shippin-run.example.json</code>, <code>config/shippin-run.env.example</code>, and <code>config/ci_runners.schema.json</code>.</p>
+    <ul>
+      <li><code>SHIPPIN_RUN_STATE_DIR</code> holds <code>ci_runners.json</code> and <code>state.json</code>.</li>
+      <li><code>SHIPPIN_RUN_API_TOKEN</code> is required before <code>serve</code> listens.</li>
+      <li><code>SHIPPIN_RUN_GITHUB_WEBHOOK_SECRET</code> verifies <code>X-Hub-Signature-256</code>. Unsigned webhooks are rejected.</li>
+      <li><code>SHIPPIN_RUN_GITHUB_APP_ID</code>, <code>SHIPPIN_RUN_GITHUB_PRIVATE_KEY_FILE</code>, and <code>SHIPPIN_RUN_GITHUB_INSTALLATION_ID</code> mint installation tokens. One installation per process in this build.</li>
+      <li><code>SHIPPIN_RUN_PROVISIONER</code> is <code>none</code>, <code>proxmox</code>, or <code>incus</code>. Proxmox health probes run when the API URL, token, and node are set. Create stays unimplemented for both providers.</li>
+    </ul>
+  </section>
+</Base>

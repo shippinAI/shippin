@@ -15,6 +15,7 @@ running.
 
 - [Deploy](deploy.md): containers or a Debian/Ubuntu machine, TLS, upgrades.
 - [Develop](development.md): the local loop and the checks to run before pushing.
+- [Shippin Run](reference/shippin-run.md): runner control plane, fleet file, and MCP. [Deploy](reference/shippin-run-deploy.md) is the host and the site.
 - [Attach a hypervisor](reference/proxmox-connector.md): Incus and Proxmox.
 - [Source ownership](source-of-truth.md): which folder owns what.
 - [Panel variants](panel-variants.md): every other place a panel lived, and what became of it.
