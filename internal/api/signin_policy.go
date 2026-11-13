@@ -2,12 +2,10 @@ package api
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"net/http"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/catalog"
+	"shippin.cloud/console/internal/tenancy/coverage_tier"
 )
 
 // Sign-in rules a plan can set for the members of its organizations, weakest first.
@@ -57,11 +55,11 @@ func signInRefusal(rule string) string {
 }
 
 // tenantCoverage maps each tenant to its effective coverage tier and that tier's sign-in rule.
-func (a *API) tenantCoverage(ctx context.Context, ids []string) (map[string]catalog.Coverage, error) {
+func (a *API) tenantCoverage(ctx context.Context, ids []string) (map[string]coverage_tier.Coverage, error) {
 	if a.db == nil || len(ids) == 0 {
-		return map[string]catalog.Coverage{}, nil
+		return map[string]coverage_tier.Coverage{}, nil
 	}
-	return (&catalog.Store{Pool: a.db.Pool}).CoverageOf(ctx, ids)
+	return coverage_tier.Of(ctx, a.db.Pool, ids)
 }
 
 // coverage is GET /v1/tenants/{tenantId}/coverage: what the organization's coverage tier includes,
@@ -75,14 +73,10 @@ func (a *API) coverage(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"coverage": nil})
 		return
 	}
-	raw, err := (&catalog.Store{Pool: a.db.Pool}).TenantCoverage(r.Context(), t.ID)
-	if errors.Is(err, catalog.ErrNotFound) {
-		writeJSON(w, map[string]any{"coverage": nil})
-		return
-	}
+	view, err := coverage_tier.ForTenant(r.Context(), a.db.Pool, t.ID)
 	if err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "Coverage is unavailable right now.")
 		return
 	}
-	writeJSON(w, map[string]any{"coverage": json.RawMessage(raw)})
+	writeJSON(w, map[string]any{"coverage": view})
 }

@@ -3,6 +3,7 @@ package catalog
 import (
 	"encoding/json"
 	"net/http"
+	"shippin.cloud/console/internal/tenancy/coverage_tier"
 	"strconv"
 
 	"shippin.cloud/console/internal/auth"
@@ -24,9 +25,9 @@ func (h *Handler) readPlan(w http.ResponseWriter, r *http.Request) (Plan, bool) 
 		return p, false
 	}
 	if p.Coverage == "" {
-		p.Coverage = h.S.LowestCoverage(r.Context())
+		p.Coverage = coverage_tier.Lowest(r.Context(), h.S.Pool)
 	}
-	if !h.S.CoverageExists(r.Context(), p.Coverage) {
+	if !coverage_tier.Exists(r.Context(), h.S.Pool, p.Coverage) {
 		auth.Problem(w, http.StatusBadRequest, "Pick the coverage tier this plan includes.")
 		return p, false
 	}

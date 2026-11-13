@@ -1,4 +1,4 @@
-# served /v1 routes with no MCPL action. This list may only shrink: describe one, then UPDATE_MCPL=1 go test -run TestMCPLConformance ./internal/api
+# served /v1 routes that are not yet generated actions. This list may only shrink: move an entity to internal/<domain>/<entity>/<verb>.go, then UPDATE_MCPL=1 go test -run TestMCPLConformance ./internal/api
 DELETE /v1/infra/fleets/{fleet}
 DELETE /v1/infra/networks/{id}
 DELETE /v1/infra/networks/{id}/resources/{resource}/attachment
@@ -7,6 +7,12 @@ DELETE /v1/infra/servers/{id}/guests/{guest}
 DELETE /v1/me/bridge-sessions/{id}
 DELETE /v1/me/ssh-keys/{keyId}
 DELETE /v1/operator/backups/{name}
+DELETE /v1/operator/catalog/defaults/{layer}/{key}
+DELETE /v1/operator/catalog/plan-services/{plan}/{service}
+DELETE /v1/operator/catalog/plans/{id}
+DELETE /v1/operator/catalog/services/{id}
+DELETE /v1/operator/customers/{id}
+DELETE /v1/operator/customers/{id}/services/{service}
 DELETE /v1/operator/platform-services/{serviceId}
 DELETE /v1/operator/team/permission-grants/{userId}/{permKey}
 DELETE /v1/operator/team/roles/{roleKey}
@@ -74,11 +80,23 @@ GET /v1/operator/backups/{name}
 GET /v1/operator/boundaries
 GET /v1/operator/break-glass/pending
 GET /v1/operator/built-in-services
+GET /v1/operator/catalog/defaults
+GET /v1/operator/catalog/plan-services
+GET /v1/operator/catalog/plans
+GET /v1/operator/catalog/plans/{id}
+GET /v1/operator/catalog/services
+GET /v1/operator/catalog/services/{id}
+GET /v1/operator/customers
+GET /v1/operator/customers/{id}
+GET /v1/operator/customers/{id}/effective-config
+GET /v1/operator/customers/{id}/provision-intents
+GET /v1/operator/customers/{id}/services
 GET /v1/operator/edge
 GET /v1/operator/host
 GET /v1/operator/identity
 GET /v1/operator/platform-services
 GET /v1/operator/platform-services/{serviceId}/observations
+GET /v1/operator/platform-settings
 GET /v1/operator/setup-steps
 GET /v1/operator/staff-mode
 GET /v1/operator/system
@@ -91,13 +109,16 @@ GET /v1/operator/tenants/{tenantId}/apps
 GET /v1/operator/tenants/{tenantId}/setup
 GET /v1/operator/tenants/{tenantId}/vm
 GET /v1/operator/tenants/{tenantId}/workspaces/{workspaceId}/discover
+GET /v1/operator/waitlist
 GET /v1/operator/workspaces
 GET /v1/ops/servers
 GET /v1/ops/support-grants
 GET /v1/orgs
 GET /v1/platform/services
 GET /v1/session/passkeys
+GET /v1/settings/public
 GET /v1/settings/ui
+GET /v1/setup/handover
 GET /v1/templates
 GET /v1/tenants
 GET /v1/tenants/{tenantId}
@@ -201,6 +222,10 @@ POST /v1/operator/agenthub-connection/test
 POST /v1/operator/backups
 POST /v1/operator/break-glass
 POST /v1/operator/break-glass/{grantId}/{decision}
+POST /v1/operator/catalog/plans
+POST /v1/operator/catalog/services
+POST /v1/operator/customers
+POST /v1/operator/customers/{id}/provision-intent
 POST /v1/operator/platform-services
 POST /v1/operator/platform-services/{serviceId}/check
 POST /v1/operator/recovery-key
@@ -222,6 +247,7 @@ POST /v1/operator/tenants/{tenantId}/suspend
 POST /v1/operator/tenants/{tenantId}/vm
 POST /v1/operator/tenants/{tenantId}/vm/harden
 POST /v1/operator/tenants/{tenantId}/vm/{action}
+POST /v1/operator/waitlist/{id}/invite
 POST /v1/operator/workspaces/{workspaceId}/{action}
 POST /v1/ops/support-grants
 POST /v1/ops/support-grants/{id}/revoke
@@ -235,6 +261,9 @@ POST /v1/session/passkey/login
 POST /v1/session/passkey/register
 POST /v1/session/password
 POST /v1/session/recovery
+POST /v1/setup
+POST /v1/setup/handover/owner
+POST /v1/setup/handover/password
 POST /v1/tenants
 POST /v1/tenants/{tenantId}/access/{grantId}/{decision}
 POST /v1/tenants/{tenantId}/ai-terminal/touch
@@ -281,6 +310,8 @@ POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/adopt
 POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/code
 POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/login
 POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/site
+POST /v1/waitlist
+POST /v1/waitlist/confirm
 PUT /v1/admin/branding
 PUT /v1/directory/me/password
 PUT /v1/infra/fleets/{fleet}
@@ -292,7 +323,14 @@ PUT /v1/infra/servers/{id}/guests/{guest}/config
 PUT /v1/infra/servers/{id}/identity
 PUT /v1/operator/agenthub-connection
 PUT /v1/operator/built-in-services/clickhouse
+PUT /v1/operator/catalog/defaults
+PUT /v1/operator/catalog/plan-services/{plan}/{service}
+PUT /v1/operator/catalog/plans/{id}
+PUT /v1/operator/catalog/services/{id}
+PUT /v1/operator/customers/{id}
+PUT /v1/operator/customers/{id}/services/{service}
 PUT /v1/operator/platform-services/{serviceId}
+PUT /v1/operator/platform-settings/{key}
 PUT /v1/operator/setup-steps/{step}
 PUT /v1/operator/team/members/{userId}/roles
 PUT /v1/operator/team/roles/{roleKey}

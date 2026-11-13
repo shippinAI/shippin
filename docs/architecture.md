@@ -27,8 +27,8 @@ and the database connection are plumbing, shared by contexts.
 `internal/catalog` already works this way, and it is the pattern to follow:
 
 - One package holds a context's types, rules, storage and HTTP handlers.
-- It lists its own routes, each with the permission that guards it and its [MCPL](mcpl.md) action: ID, risk, reason and summary. `cmd/console` mounts them.
-- Its routes, inputs and errors follow the MCPL rules: its prefix, named path parameters, strict JSON, `reason` in the body, and problem+json.
+- Each entity is a folder, `internal/<domain>/<entity>/`, holding its types and storage (`<entity>.go`), one file per action (`<verb>.go`) and its tests beside them. The folder and file give the action its [MCPL](mcpl.md) ID and route; `go generate ./internal/actions` writes the registry and the panel's action map, and `cmd/console` mounts them. Nothing lists routes by hand.
+- `internal/tenancy/coverage_tier` is the first entity in this shape; the rest of `internal/catalog` follows it.
 - It takes what it needs through a small `Deps` struct, and never reaches into another context's tables.
 - It calls another context only through that context's exported functions.
 - Its panel code is one folder in `web/src/features/`, and its API is its own file under `api/openapi/`.

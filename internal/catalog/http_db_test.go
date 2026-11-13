@@ -68,27 +68,11 @@ func TestCatalogAPIFlow(t *testing.T) {
 	if len(plans) != 13 { // 011 canonical (5, includes founder) + 014 ladder except the founder row (8); 070 moved 069's tiers to coverage
 		t.Fatalf("seed plans: %d", len(plans))
 	}
-	tiers := do(t, mux, "GET", "/v1/operator/catalog/coverage", "", 200)["items"].([]any)
-	if len(tiers) != 3 || tiers[0].(map[string]any)["id"] != "foundational" || tiers[2].(map[string]any)["sign_in"] != "identity_provider" {
-		t.Fatalf("seed coverage: %v", tiers)
-	}
 	created := do(t, mux, "POST", "/v1/operator/catalog/plans", `{"id":"scratch","label":"Scratch","rank":5}`, 201)
 	if created["coverage"] != "foundational" {
 		t.Fatalf("a plan without coverage takes the lowest tier: %v", created["coverage"])
 	}
 	do(t, mux, "POST", "/v1/operator/catalog/plans", `{"id":"nocover","label":"x","coverage":"nope"}`, 400)
-	do(t, mux, "POST", "/v1/operator/catalog/coverage", `{"id":"enterprise","label":"Enterprise","support_hours":"always","channels":["email","video"],"critical_minutes":10,"uptime_target":99.99,"operations":"managed","consulting":"included"}`, 201)
-	do(t, mux, "PUT", "/v1/operator/catalog/coverage/enterprise", `{"label":"Enterprise","support_hours":"weekends"}`, 400)
-	do(t, mux, "PUT", "/v1/operator/catalog/coverage/enterprise", `{"label":"Enterprise","channels":["fax"]}`, 400)
-	do(t, mux, "PUT", "/v1/operator/catalog/coverage/enterprise", `{"label":"Enterprise","critical_minutes":0}`, 400)
-	do(t, mux, "PUT", "/v1/operator/catalog/coverage/enterprise", `{"label":"Enterprise","uptime_target":100}`, 400)
-	do(t, mux, "PUT", "/v1/operator/catalog/coverage/enterprise", `{"label":"Enterprise","remote_operations":"free"}`, 400)
-	got := do(t, mux, "PUT", "/v1/operator/catalog/coverage/enterprise", `{"label":"Enterprise+","sign_in":"second_factor","price_cents":150000,"spend_percent":10}`, 200)
-	if got["label"] != "Enterprise+" || got["spend_percent"] != 10.0 || got["critical_minutes"] != nil {
-		t.Fatalf("coverage update: %v", got)
-	}
-	do(t, mux, "DELETE", "/v1/operator/catalog/coverage/foundational", "", 409)
-	do(t, mux, "DELETE", "/v1/operator/catalog/coverage/enterprise", "", 204)
 	do(t, mux, "POST", "/v1/operator/catalog/plans", `{"id":"scratch","label":"Dup"}`, 409)
 	do(t, mux, "POST", "/v1/operator/catalog/plans", `{"id":"Bad Id","label":"x"}`, 400)
 	do(t, mux, "PUT", "/v1/operator/catalog/plans/scratch", `{"label":"Scratch+","price_cents":900}`, 200)

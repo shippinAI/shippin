@@ -3,6 +3,7 @@ package catalog
 import (
 	"encoding/json"
 	"net/http"
+	"shippin.cloud/console/internal/tenancy/coverage_tier"
 	"strings"
 
 	"github.com/google/uuid"
@@ -63,7 +64,7 @@ func (h *Handler) readCustomer(w http.ResponseWriter, r *http.Request) (Customer
 	if c.Coverage != nil && *c.Coverage == "" {
 		c.Coverage = nil
 	}
-	if c.Coverage != nil && !h.S.CoverageExists(r.Context(), *c.Coverage) {
+	if c.Coverage != nil && !coverage_tier.Exists(r.Context(), h.S.Pool, *c.Coverage) {
 		auth.Problem(w, http.StatusBadRequest, "Pick a coverage tier that exists, or leave it empty to use the plan's.")
 		return c, false
 	}

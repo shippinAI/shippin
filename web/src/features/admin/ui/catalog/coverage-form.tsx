@@ -1,4 +1,6 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { callAction } from "../../../../lib/api/actions";
 import type { CoverageTier } from "../../../../lib/api/catalog-types";
 import { Button } from "../../../../lib/design/components/button/button";
 import { Checkbox } from "../../../../lib/design/components/checkbox/checkbox";
@@ -6,7 +8,7 @@ import { Drawer } from "../../../../lib/design/components/drawer/drawer";
 import { TextField } from "../../../../lib/design/components/field/text-field";
 import { Select } from "../../../../lib/design/components/select/select";
 import { Switch } from "../../../../lib/design/components/switch/switch";
-import { catalogPaths, useCatalogWrite } from "../../../../lib/hooks/use-catalog";
+import { toast } from "../../../../lib/design/components/toast/toast-queue";
 import { CatalogPerm, useCan } from "../../../../lib/hooks/use-can";
 import { channelLabel, operationsLabel, reviewsLabel, services, severities, signInLabel, supportHoursLabel, termLabel } from "../../../coverage/wording";
 
@@ -23,23 +25,32 @@ const optionalNumber = (v: string) => (v.trim() === "" ? null : Number(v));
 /** Create or edit a coverage tier. Deleting is refused by the API while a plan includes it. */
 export function CoverageForm({ initial, onClose }: { initial?: CoverageTier; onClose: () => void }) {
   const [c, setC] = useState<CoverageTier>(initial ?? blank);
-  const save = useCatalogWrite(initial ? "Coverage updated" : "Coverage tier created");
-  const del = useCatalogWrite("Coverage tier deleted");
+  const [reason, setReason] = useState("");
+  const qc = useQueryClient();
   const prices = useCan()(CatalogPerm.pricesRead);
   const set = <K extends keyof CoverageTier>(k: K) => (v: CoverageTier[K]) => setC({ ...c, [k]: v });
   const channel = (ch: CoverageTier["channels"][number], on: boolean) => set("channels")(on ? [...c.channels, ch] : c.channels.filter((x) => x !== ch));
-  const body = prices ? c : { ...c, price_cents: undefined, spend_percent: undefined };
+  // The action takes exactly its input fields: the id is in the path on an update, and read-only fields are never sent.
+  const { id, updated_at: _read, price_cents, spend_percent, ...fields } = c as CoverageTier & { updated_at?: string };
+  const input = { ...fields, ...(prices ? { price_cents, spend_percent } : {}), reason };
+  const done = (msg: string) => ({ onSuccess: () => { toast.success(msg); void qc.invalidateQueries({ queryKey: ["catalog"] }); onClose(); }, onError: (e: Error) => toast.error("Not saved", e.message) });
+  const save = useMutation({ mutationFn: () => initial
+    ? callAction("shippin.tenancy.coverage_tier.update", { coverageTierId: id }, input)
+    : callAction("shippin.tenancy.coverage_tier.create", {}, { id, ...input }), ...done(initial ? "Coverage updated" : "Coverage tier created") });
+  const del = useMutation({ mutationFn: () => callAction("shippin.tenancy.coverage_tier.delete", { coverageTierId: id }, { reason }), ...done("Coverage tier deleted") });
+  const reasonOK = reason.trim().length >= 5;
   return (
     <Drawer isOpen onOpenChange={(o) => !o && onClose()} title={initial ? `Edit ${initial.label}` : "New coverage tier"}
       subtitle="Every value is yours to set. Response targets are minutes to a first reply, counted within the support hours."
       footer={<>
-        {initial && <Button tooltip="Delete" variant="danger" onPress={() => del.mutate({ method: "DELETE", path: catalogPaths.coverage(c.id) }, { onSuccess: onClose })}>Delete</Button>}
+        {initial && <Button tooltip={reasonOK ? "Delete this tier" : "Give a reason first"} variant="danger" isDisabled={!reasonOK || del.isPending} onPress={() => del.mutate()}>Delete</Button>}
         <div className="flex-1" />
         <Button tooltip="Cancel" variant="ghost" onPress={onClose}>Cancel</Button>
-        <Button tooltip="Save coverage tier" variant="primary" isDisabled={save.isPending || !c.id || !c.label}
-          onPress={() => save.mutate({ method: initial ? "PUT" : "POST", path: catalogPaths.coverage(initial?.id), body }, { onSuccess: onClose })}>Save</Button>
+        <Button tooltip={reasonOK ? "Save coverage tier" : "Give a reason first"} variant="primary" isDisabled={save.isPending || !c.id || !c.label || !reasonOK}
+          onPress={() => save.mutate()}>Save</Button>
       </>}>
       <div className="grid grid-cols-2 gap-4 px-6 py-5">
+        <div className="col-span-2"><TextField label="Reason (audited)" value={reason} onChange={setReason} placeholder="Why this changes" description="Kept in the audit log with the change. At least 5 characters." /></div>
         <TextField label="Id" value={c.id} onChange={set("id")} isDisabled={!!initial} mono isRequired />
         <TextField label="Label" value={c.label} onChange={set("label")} isRequired />
         <div className="col-span-2"><TextField label="Description" multiline value={c.description} onChange={set("description")} /></div>

@@ -137,8 +137,9 @@ by an outside system such as AgentHub is optional:
 No site's policy is built in.
 
 **MCPL-01 One canonical action surface.** Every action a person can take is described
-once ([MCPL](mcpl.md)): ID, route, access, risk, reason and summary. Routes, inputs,
-outputs and errors follow one set of rules. A person in the panel, the API and an AI
+once, as a file whose folder gives its ID and route ([MCPL](mcpl.md)). Routes,
+the registry and the panel's action map are generated; none is written by hand.
+Inputs, outputs, reasons, audit and errors are handled the same way for every action. A person in the panel, the API and an AI
 acting for that person after a natural chat all run the same handler, permission
 check and audit. There is no second API for models. Plain code does the mechanical
 work so that a model's tokens go to choices. `TestMCPLConformance` enforces this,
