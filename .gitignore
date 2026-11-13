@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.lighthouseci/
 *.log
 .cache/
 /.ai/data/
@@ -22,3 +23,6 @@ __pycache__/
 !config/*.example.json
 !config/site.env.example
 !third_party/warden-ct102/warden.env.example
+
+# Astro generated types
+site/shippin-run/.astro/

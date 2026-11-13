@@ -1,0 +1,21 @@
+[Unit]
+Description=Shippin Run control plane
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=shippin-run
+Group=shippin-run
+EnvironmentFile=/etc/shippin-run/env
+ExecStart=/usr/local/bin/shippin-run serve
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/shippin-run
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,31 @@
+{
+  "name": "shippin-run-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
+    "preview": "astro preview",
+    "budget": "node scripts/check-budget.mjs && size-limit",
+    "lhci": "lhci autorun"
+  },
+  "size-limit": [
+    {
+      "name": "initial boot script",
+      "path": "dist/scripts/boot.js",
+      "limit": "4 kB",
+      "gzip": true
+    },
+    {
+      "name": "runner demo island",
+      "path": "dist/scripts/runner-demo.js",
+      "limit": "16 kB",
+      "gzip": true
+    }
+  ],
+  "devDependencies": {
+    "@lhci/cli": "0.15.1",
+    "@size-limit/file": "11.2.0",
+    "astro": "5.15.9",
+    "size-limit": "11.2.0"
+  }
+}

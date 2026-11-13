@@ -1,0 +1,163 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base
+  title="Shippin Run — GitHub Actions runners"
+  description="GitHub Actions runners for personal accounts and organizations. One label change, an MCP server, redacted logs, and retention you set."
+>
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="kicker">shippin.run</p>
+      <h1>Runners for the account you already have.</h1>
+      <p class="lede">
+        Install a GitHub App, point a job at <code>shippin-&lt;size&gt;</code>, and keep the logs on a retention you choose. Personal repositories are registered one by one. Organizations can share a runner.
+      </p>
+      <div class="actions">
+        <a class="button" href="/operators/">Deploy the control plane</a>
+        <a class="button ghost" href="/mcp/">MCP tools</a>
+      </div>
+    </div>
+    <figure class="media">
+      <picture>
+        <source srcset="/media/rack.avif" type="image/avif" />
+        <source srcset="/media/rack.webp" type="image/webp" />
+        <img
+          src="/media/rack.webp"
+          width="960"
+          height="540"
+          alt="Three flat isometric blades in citric, green, and amber on a dark field."
+          fetchpriority="high"
+          decoding="async"
+        />
+      </picture>
+    </figure>
+  </section>
+
+  <section>
+    <div class="grid two">
+      <div>
+        <h2>One label.</h2>
+        <pre><code>jobs:
+  build:
+    runs-on: shippin-linux-x64-2</code></pre>
+        <p>
+          <code>set_runs_on</code> previews the diff. It opens a pull request only when <code>apply</code> is true. A Lovable project is detected from <code>.lovable/project.json</code>. If that repo has no workflow yet, the preview adds <code>.github/workflows/shippin-run.yml</code>.
+        </p>
+      </div>
+      <div>
+        <p class="kicker">CSS rack, no script</p>
+        <div class="rack" aria-hidden="true">
+          <div class="rack-scene">
+            <div class="blade"></div>
+            <div class="blade"></div>
+            <div class="blade"></div>
+          </div>
+        </div>
+        <p>The blades are CSS. The simulator below stays unloaded until you ask for it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Simulator</h2>
+    <p>This canvas is a demo. It does not read the fleet file and it does not provision a machine.</p>
+    <div class="stage" data-demo-stage>
+      <picture>
+        <source srcset="/media/rack.avif" type="image/avif" />
+        <img src="/media/rack.webp" width="960" height="540" alt="" />
+      </picture>
+      <p class="stage-note">Poster first. The canvas loads when you press the button.</p>
+      <p class="live" data-demo-live aria-live="polite"></p>
+    </div>
+    <div class="actions">
+      <button type="button" data-demo>Load the simulator</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>What this build does</h2>
+    <div class="grid three">
+      <article class="card">
+        <h3>Accounts</h3>
+        <p>A user account gets one runner registration per repository. An organization can use one organization runner, or per-repository registration when you ask for it.</p>
+      </article>
+      <article class="card">
+        <h3>Logs</h3>
+        <p>Logs are redacted before they are stored. Each repository sets retention in days. Zero means the log body is discarded.</p>
+      </article>
+      <article class="card">
+        <h3>Guests</h3>
+        <p>Proxmox can probe a guest that is already listed in <code>ci_runners.json</code>. Creating a Proxmox or Incus guest returns “not implemented” and the runner stays <code>desired</code>.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="compare">
+    <h2>Blacksmith, from public pages</h2>
+    <p>Checked 13 November 2026. Cells state what those pages say, and what this repository implements.</p>
+    <div class="table-scroll" tabindex="0">
+      <table>
+        <caption class="sr">Shippin Run and Blacksmith</caption>
+        <thead>
+          <tr><th scope="col">Topic</th><th scope="col">Shippin Run in this repository</th><th scope="col">Blacksmith public pages</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Personal repositories</th>
+            <td>Each repository of a user account is registered on its own.</td>
+            <td>The quickstart says Blacksmith is limited to GitHub organizations and is not available for personal repositories.</td>
+          </tr>
+          <tr>
+            <th scope="row">Setup</th>
+            <td>GitHub App credentials, then a <code>runs-on: shippin-&lt;size&gt;</code> label. The workflow edit is a preview until apply.</td>
+            <td>The quickstart says to grant their GitHub integration and replace <code>runs-on</code> with a Blacksmith tag such as <code>blacksmith-2vcpu-ubuntu-2404</code>.</td>
+          </tr>
+          <tr>
+            <th scope="row">Published per-minute figures</th>
+            <td>Example config: Linux x64 $0.004, Linux ARM $0.0025, Windows $0.008, macOS M4 $0.08. The meter does not collect payment. Windows and macOS images are not built.</td>
+            <td>Pricing page, 2 vCPU selector: Ubuntu x64 $0.004/min, Ubuntu ARM $0.0025/min, Windows x64 $0.008/min, macOS M4 $0.08/min, and “3,000 free min/mo.”</td>
+          </tr>
+          <tr>
+            <th scope="row">Free minutes</th>
+            <td>Example config meters 3,000 minutes on <code>linux-x64-2</code> only. Other sizes are billed at the list price in the meter.</td>
+            <td>The pricing page says 3,000 free minutes per month. It does not, on that page, spell out the size mix.</td>
+          </tr>
+          <tr>
+            <th scope="row">Cache</th>
+            <td>No colocated Actions cache and no Docker layer cache in this build.</td>
+            <td>The quickstart says runners use a colocated cache, 25 GB per repository each week, and documents Docker layer cache through their actions.</td>
+          </tr>
+          <tr>
+            <th scope="row">Debug</th>
+            <td>Stored jobs, redacted logs, and a rule-based <code>explain_failure</code>. No shell on a guest.</td>
+            <td>The quickstart lists run history, log search, and SSH access to debug running jobs.</td>
+          </tr>
+          <tr>
+            <th scope="row">MCP</th>
+            <td>Official tools on the MCP page. Results are JSON. <code>set_runs_on</code> is a dry-run unless apply is set.</td>
+            <td>The quickstart does not document an MCP server. An unaffiliated third-party project reads usage by replaying a dashboard session.</td>
+          </tr>
+          <tr>
+            <th scope="row">Job logs</th>
+            <td>Secrets are redacted before storage. Retention is per repository, including discard-immediately.</td>
+            <td>Their status page said that on 5 November 2026 they detected unauthorized access to the system that stores CI job logs, revoked it the same day, and that job-log data for about 2.6% of customer accounts was involved.</td>
+          </tr>
+          <tr>
+            <th scope="row">Open source</th>
+            <td>A public repository with a detected license is approved automatically. Private repositories wait for a reason.</td>
+            <td>The pricing page says they currently support Celery, Ladybird, Zen, and Limbo, and asks maintainers of actively maintained public repos to reach out.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ol class="sources">
+      <li><a href="https://docs.blacksmith.sh/introduction/quickstart">Blacksmith quickstart</a></li>
+      <li><a href="https://www.blacksmith.sh/pricing">Blacksmith pricing</a></li>
+      <li><a href="https://status.blacksmith.sh/cmw5fokyu013w13mrtneqjv5l">Blacksmith status notice, 6 November 2026</a></li>
+      <li><a href="https://github.com/dholliday3/blacksmith-usage-mcp">Unaffiliated Blacksmith usage MCP</a></li>
+    </ol>
+  </section>
+</Base>
+<style>
+  .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+</style>
