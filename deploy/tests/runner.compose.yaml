@@ -34,5 +34,3 @@ volumes:
 networks:
   default:
     name: shippin-run-acceptance
-
-

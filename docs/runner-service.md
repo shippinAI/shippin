@@ -140,4 +140,3 @@ Credential rotation remains explicitly unavailable and accepts no key input.
 The post-replacement browser pass verified exact revision 3 and template values,
 including timeout 140, before any further successful write. Reader revision 1 and
 the earlier persisted run regression also passed. No worker-applied claim follows.
-
