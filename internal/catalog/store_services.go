@@ -6,7 +6,8 @@ import (
 	"strings"
 )
 
-// Service is a catalog row: something Shippin can turn on for a tenant.
+// Service is a catalog row: something Shippin can turn on for a tenant, as effective config reads it.
+// Staff change rows through the actions in internal/services/catalog_service.
 type Service struct {
 	ID               string            `json:"id"`
 	Label            string            `json:"label"`
@@ -22,10 +23,6 @@ type Service struct {
 }
 
 const serviceCols = `id, label, description, kind, docs_url, config_schema, default_config, deployment_source, runtime_contract, required, active, updated_at`
-
-func (s *Store) Services(ctx context.Context) (json.RawMessage, error) {
-	return s.listJSON(ctx, `SELECT `+serviceCols+` FROM catalog_services ORDER BY required DESC, id`)
-}
 
 // DeployableService is the tenant-safe view used to configure a new deployment. Source
 // credentials and secret-reference defaults are intentionally omitted.
@@ -117,42 +114,6 @@ func scrubSecretReference(value any) any {
 	default:
 		return value
 	}
-}
-
-func (s *Store) Service(ctx context.Context, id string) (json.RawMessage, error) {
-	return s.oneJSON(ctx, `SELECT `+serviceCols+` FROM catalog_services WHERE id=$1`, id)
-}
-
-func (s *Store) CreateService(ctx context.Context, v Service) error {
-	_, err := s.Pool.Exec(ctx, `INSERT INTO catalog_services(id,label,description,kind,docs_url,config_schema,default_config,deployment_source,runtime_contract,required,active)
-		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, v.ID, v.Label, v.Description, v.Kind, v.DocsURL, v.ConfigSchema, v.DefaultConfig, deploymentSourceJSON(v.DeploymentSource), runtimeContractJSON(v.RuntimeContract), v.Required, v.Active)
-	return err
-}
-
-func (s *Store) UpdateService(ctx context.Context, v Service) error {
-	return s.exec(ctx, `UPDATE catalog_services SET label=$2, description=$3, kind=$4, docs_url=$5, config_schema=$6,
-		default_config=$7, deployment_source=$8, runtime_contract=$9, required=$10, active=$11, updated_at=now() WHERE id=$1`,
-		v.ID, v.Label, v.Description, v.Kind, v.DocsURL, v.ConfigSchema, v.DefaultConfig, deploymentSourceJSON(v.DeploymentSource), runtimeContractJSON(v.RuntimeContract), v.Required, v.Active)
-}
-
-func runtimeContractJSON(contract *RuntimeContract) json.RawMessage {
-	if contract == nil {
-		return nil
-	}
-	b, _ := json.Marshal(contract)
-	return json.RawMessage(b)
-}
-
-func deploymentSourceJSON(source *DeploymentSource) json.RawMessage {
-	if source == nil {
-		return nil
-	}
-	b, _ := json.Marshal(source)
-	return json.RawMessage(b)
-}
-
-func (s *Store) DeleteService(ctx context.Context, id string) error {
-	return s.exec(ctx, `DELETE FROM catalog_services WHERE id=$1`, id)
 }
 
 // PlanService is one cell of the plan x service matrix.

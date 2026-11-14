@@ -9,7 +9,6 @@ DELETE /v1/operator/backups/{name}
 DELETE /v1/operator/catalog/defaults/{layer}/{key}
 DELETE /v1/operator/catalog/plan-services/{plan}/{service}
 DELETE /v1/operator/catalog/plans/{id}
-DELETE /v1/operator/catalog/services/{id}
 DELETE /v1/operator/customers/{id}
 DELETE /v1/operator/customers/{id}/services/{service}
 DELETE /v1/operator/platform-services/{serviceId}
@@ -82,8 +81,6 @@ GET /v1/operator/catalog/defaults
 GET /v1/operator/catalog/plan-services
 GET /v1/operator/catalog/plans
 GET /v1/operator/catalog/plans/{id}
-GET /v1/operator/catalog/services
-GET /v1/operator/catalog/services/{id}
 GET /v1/operator/customers
 GET /v1/operator/customers/{id}
 GET /v1/operator/customers/{id}/effective-config
@@ -219,7 +216,6 @@ POST /v1/operator/backups
 POST /v1/operator/break-glass
 POST /v1/operator/break-glass/{grantId}/{decision}
 POST /v1/operator/catalog/plans
-POST /v1/operator/catalog/services
 POST /v1/operator/customers
 POST /v1/operator/customers/{id}/provision-intent
 POST /v1/operator/platform-services
@@ -322,7 +318,6 @@ PUT /v1/operator/built-in-services/clickhouse
 PUT /v1/operator/catalog/defaults
 PUT /v1/operator/catalog/plan-services/{plan}/{service}
 PUT /v1/operator/catalog/plans/{id}
-PUT /v1/operator/catalog/services/{id}
 PUT /v1/operator/customers/{id}
 PUT /v1/operator/customers/{id}/services/{service}
 PUT /v1/operator/platform-services/{serviceId}

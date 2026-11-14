@@ -2,8 +2,8 @@ import type { CatalogDeploymentSource, CatalogRuntimeContract, CatalogRuntimeCon
 
 export type RuntimeKindDraft = "none" | "incus_oci_container";
 
-export function runtimeKindDraft(runtime?: CatalogRuntimeContract | null): RuntimeKindDraft {
-  return runtime?.kind === "incus_oci_container" && runtime.providers.length === 1 && runtime.providers[0] === "incus" ? runtime.kind : "none";
+export function runtimeKindDraft(runtime?: { kind: string; providers: readonly string[] } | null): RuntimeKindDraft {
+  return runtime?.kind === "incus_oci_container" && runtime.providers.length === 1 && runtime.providers[0] === "incus" ? "incus_oci_container" : "none";
 }
 
 export function runtimeContractFromDraft(kind: RuntimeKindDraft, source: CatalogDeploymentSource | null, raw: string): CatalogRuntimeContract | null {
