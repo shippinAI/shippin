@@ -105,6 +105,52 @@ revocable.
 **Development spaces, AI and publishing:** AI-01 to AI-03, EXT-01, PUB-01 to
 PUB-03 and NET-01 below.
 
+## The hosted development space
+
+The development space is the product a solo developer meets first: an app builder
+in the spirit of Lovable, on their own AI subscriptions, in a space we host, that
+teaches them as they go.
+
+**SOLO-01 Usable by one person now.** A single developer can sign up, get a hosted
+space and build in it while the rest of the cloud grows. The panel runs for solo
+use before it runs for teams: what a solo developer needs works end to end, and
+what they don't need stays out of their way.
+
+**DEV-01 Build with your own subscriptions, in a space we host.** A person brings
+the AI they already pay for (Claude, ChatGPT and others) into their own hosted
+space, under AI-01: their sign-in, their runner, never pooled or collected. They
+describe what they want, see it built, preview it and publish it (PUB-01). The
+space is theirs and is limited to itself: its editor, terminals and AI apps reach
+only that space.
+
+**IDE-01 One focused workspace.** The space opens as one screen that brings
+together:
+- a customized VS Code;
+- tailored Zellij and WezTerm sessions, limited to the space;
+- the person's AI apps (Claude desktop, ChatGPT), shown inside it.
+
+It shows only what matters to the step the person is on and brings the rest into
+focus when it is used. Nothing is hidden: the full editor and the real shell are
+one action away.
+
+**GUIDE-01 Behind the scenes, made visible.** Interactive explanations and motion
+show what is happening as it happens:
+- the files an AI changed;
+- the commands that ran;
+- a build, a deploy, a preview.
+
+How much is explained is a setting each person chooses, from quiet to step by
+step. The explanations are driven by the same events as the actions (MCPL-01), so
+what they show is what actually ran.
+
+**COACH-01 A specialist that teaches.** A dedicated specialist (a mixture of
+expert models) follows a person's events: prompt submissions, errors, builds and
+deploys. From them it judges the person's skill and level, responds when a
+trigger calls for it, and adjusts how much it explains. It keeps notes on what the
+person has learned and where they struggle. Those notes belong to the person:
+they can read, correct, export and delete them, and nothing about their
+subscriptions or credentials is part of them.
+
 ## Rules for every change
 
 **CFG-01 Everything happens in the panel.** Anyone allowed to can do every action,

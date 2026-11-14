@@ -4,6 +4,8 @@
 commercial cloud provider, and its requirement IDs. This page says what exists
 today, the order the rest gets built in, and what each stage must prove.
 
+Updated 2026-11-13: the hosted development space (SOLO-01 to COACH-01) comes first for solo developers, in the spirit of Lovable on their own subscriptions, and it teaches as it goes.
+
 Updated 2026-11-11 from the owner's direction:
 - Shippin is a custom commercial cloud.
 - Its own Incus and Proxmox hosts sit in one control plane, with public clouds (AWS, Google Cloud, Azure, DigitalOcean, Fly.io) mixed in.
@@ -15,7 +17,8 @@ Updated 2026-11-11 from the owner's direction:
 
 | Area | Today | Missing |
 | --- | --- | --- |
-| MCPL (MCPL-01) | Actions are files, `internal/<domain>/<entity>/<verb>.go`. Their IDs and routes, the registry and the panel's action map are generated, and one runner handles input, reason, transaction, audit and errors. `internal/tenancy/coverage_tier` is the first entity, proved in a browser. 343 legacy routes are listed and the list only shrinks. | Every other entity moved into that shape; public, signed-in and member mounting; MCP from the registry; events; UI actions. See [MCPL](mcpl.md). |
+| MCPL (MCPL-01) | Actions are files, `internal/<domain>/<entity>/<verb>.go`. Their IDs and routes, the registry and the panel's action map are generated. One runner handles input, reason, transaction, audit and errors. Actions mount for staff, members, signed-in people and the public. Every change emits an event, streamed to the people who could have run it. Coverage tiers, an organization's coverage and SSH keys are in that shape. 340 legacy routes are listed, and the list only shrinks. | Every other entity moved into that shape; MCP generated from the registry, with access keys for AI clients; UI actions. See [MCPL](mcpl.md). |
+| Hosted development space (SOLO-01, DEV-01, IDE-01, GUIDE-01, COACH-01) | Workspaces with Zellij, a WezTerm hand-off, AI app cards and the AI-01 subscription runner design. MCPL events exist to drive explanations and a coach. | The single focused workspace screen with a customized VS Code; AI apps shown inside it; explanations and motion driven by events, with a per-person explanation level; the specialist that follows events, judges skill and keeps the person's notes. |
 | Install | One command or Docker Compose installs the panel, PostgreSQL 17, ClickHouse 26.8 LTS and (in Compose) Dragonfly, with generated credentials and a setup code. The panel's database role is not a superuser and cannot alter or drop the audit log. `/healthz` and the panel's dependency card report each part. A fresh install, an upgrade that keeps data, and a backup restore have been run. | ClickHouse holds no data until the metrics sampler exists. ClickHouse backup and restore are not done. |
 | Settings in the panel | About eight settings can be overridden in the panel, including who can sign up. Hosts, health probes, provider images and image servers, workspace templates, team settings and the AgentHub connection are stored in the database and edited in the panel. | Sign-in providers, identity, mail, feature switches, every secret, workspace limits, updates and branding after setup are file or environment settings only, and need a restart. |
 | Panel | One React panel (`web/`) on React Aria components. Every colour, size, radius and shadow comes from a strict token file, enforced in CI by `npm run tokens`. Text and control edges meet WCAG AA contrast by calculation. | No chart component and no light theme. Pages keep their old layout and navigation, and many forms use one-off inputs instead of the shared field. |
