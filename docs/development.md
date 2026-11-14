@@ -47,11 +47,13 @@ Before the first release CI stays fast and leaves these to you, when you change 
 There is one review deploy, and each round of work overwrites it. For signing in as different kinds of user, list development accounts in its `.env`:
 
 ```sh
-SHIPPIN_DEV_ACCOUNTS=admin@example.test=staff,user@example.test=customer
+SHIPPIN_DEV_ACCOUNTS=admin@example.test=admin,staff@example.test=staff,user@example.test=customer
 SHIPPIN_DEV_ACCOUNTS_PASSWORD=<at least 12 characters>
 ```
 
-The panel keeps them in step on every start and logs a warning while they exist. A staff account gets every staff role except Owner, the per-person catalog and customer permissions as direct grants (shown under Team > Direct grants), and no second-factor requirement. A customer account owns a test organization and has no staff access; `user@example.test=customer:pro` puts that organization on a chosen plan, and `user@example.test=customer:business:managed` also moves it to a coverage tier. The owner's account is never touched. Never set these on a real installation.
+The panel keeps them in step on every start and logs a warning while they exist. A staff account gets every staff role except Owner, the per-person catalog and customer permissions as direct grants (shown under Team > Direct grants), and no second-factor requirement. An admin account is the same with the Owner role too, so it sees and changes everything the panel offers; it is still not the installation's owner, and listing it as staff again takes Owner away on the next start. A customer account owns a test organization and has no staff access; `user@example.test=customer:pro` puts that organization on a chosen plan, and `user@example.test=customer:business:managed` also moves it to a coverage tier. The owner's account is never touched. Never set these on a real installation.
+
+The review deploy serves `https://localhost:<port>` with a certificate the panel made for itself, so the browser warns once. Proceed past the warning for `localhost`, or trust the certificate on your own machine: it is `/var/lib/shippin/tls/panel.crt` in the panel container (`docker compose cp panel:/var/lib/shippin/tls/panel.crt .`).
 
 Then overwrite it:
 

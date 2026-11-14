@@ -1,7 +1,9 @@
 // Package devaccounts keeps throwaway sign-ins for developing and reviewing the panel. They exist only on
 // an installation that lists them in SHIPPIN_DEV_ACCOUNTS; nothing about them is in code or on by default.
 // A staff account holds every staff role except Owner, plus the per-person permissions (catalog,
-// customers) as audited direct grants. A customer account owns its own organization and has no staff access. The installation owner's account is never touched.
+// customers) as audited direct grants. An admin account is a staff account that also holds the Owner role, for
+// reviewing everything the panel offers. A customer account owns its own organization and has no staff access.
+// The installation owner's account is never touched.
 package devaccounts
 
 import (
@@ -22,6 +24,7 @@ import (
 // Kinds of development account.
 const (
 	Staff    = "staff"
+	Admin    = "admin"
 	Customer = "customer"
 )
 
@@ -35,7 +38,8 @@ type Account struct {
 	Coverage string
 }
 
-// Parse reads "email=kind,email=kind". A customer may name its plan and coverage tier:
+// Parse reads "email=kind,email=kind", where kind is staff, admin or customer. A customer may name its plan
+// and coverage tier:
 // "email=customer:pro" or "email=customer:business:managed".
 func Parse(raw string) ([]Account, error) {
 	var out []Account
@@ -58,8 +62,8 @@ func Parse(raw string) ([]Account, error) {
 		if a, err := mail.ParseAddress(email); !ok || err != nil || a.Address != email {
 			return nil, fmt.Errorf("devaccounts: %q is not email=kind", part)
 		}
-		if kind != Staff && kind != Customer {
-			return nil, fmt.Errorf("devaccounts: %s must be %s or %s", email, Staff, Customer)
+		if kind != Staff && kind != Admin && kind != Customer {
+			return nil, fmt.Errorf("devaccounts: %s must be %s, %s or %s", email, Staff, Admin, Customer)
 		}
 		if seen[email] {
 			return nil, fmt.Errorf("devaccounts: %s is listed twice", email)
@@ -73,7 +77,7 @@ func Parse(raw string) ([]Account, error) {
 	return out, nil
 }
 
-// ListedStaff says this installation lists email as a development staff account in SHIPPIN_DEV_ACCOUNTS.
+// ListedStaff says this installation lists email as a development staff or admin account in SHIPPIN_DEV_ACCOUNTS.
 func ListedStaff(email string) bool {
 	accounts, err := Parse(os.Getenv("SHIPPIN_DEV_ACCOUNTS"))
 	if err != nil {
@@ -81,7 +85,7 @@ func ListedStaff(email string) bool {
 	}
 	email = strings.ToLower(strings.TrimSpace(email))
 	for _, a := range accounts {
-		if a.Email == email && a.Kind == Staff {
+		if a.Email == email && (a.Kind == Staff || a.Kind == Admin) {
 			return true
 		}
 	}
@@ -124,7 +128,7 @@ func ensure(ctx context.Context, pool *pgxpool.Pool, a Account, encoded string, 
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
 		id = uuid.Must(uuid.NewV7()).String()
-		name := map[string]string{Staff: "Development admin", Customer: "Development user"}[a.Kind]
+		name := map[string]string{Staff: "Development staff", Admin: "Development admin", Customer: "Development user"}[a.Kind]
 		if _, err := tx.Exec(ctx, `INSERT INTO identity_users (id, email, email_verified, name, role) VALUES ($1,$2,true,$3,'member')`, id, a.Email, name); err != nil {
 			return err
 		}
@@ -137,7 +141,7 @@ func ensure(ctx context.Context, pool *pgxpool.Pool, a Account, encoded string, 
 		return err
 	}
 	switch a.Kind {
-	case Staff:
+	case Staff, Admin:
 		var internal bool
 		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM orgs WHERE type='operations' AND identity_org_id IS NOT NULL)`).Scan(&internal); err != nil {
 			return err
@@ -145,9 +149,11 @@ func ensure(ctx context.Context, pool *pgxpool.Pool, a Account, encoded string, 
 		if !internal {
 			return errors.New("the installation has no owner yet; finish setup and restart")
 		}
+		// Every staff role; Owner only for an admin. Run on every start, so changing an account's kind in the list
+		// adds or takes away Owner.
 		if _, err := tx.Exec(ctx, `INSERT INTO local_staff_roles (user_id, roles)
-		  SELECT $1, coalesce(array_agg(key ORDER BY key), '{}') FROM staff_roles WHERE key <> 'staff.owner'
-		  ON CONFLICT (user_id) DO UPDATE SET roles = EXCLUDED.roles, updated_at = now()`, id); err != nil {
+		  SELECT $1, coalesce(array_agg(key ORDER BY key), '{}') FROM staff_roles WHERE key <> 'staff.owner' OR $2
+		  ON CONFLICT (user_id) DO UPDATE SET roles = EXCLUDED.roles, updated_at = now()`, id, a.Kind == Admin); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO identity_members (org_id, user_id, role)

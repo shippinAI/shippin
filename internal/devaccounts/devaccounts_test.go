@@ -12,11 +12,12 @@ import (
 )
 
 func TestParseAcceptsOnlyEmailAndAKnownKind(t *testing.T) {
-	got, err := Parse(" Admin@Example.test=staff , user@example.test=customer:business:managed ,")
-	if err != nil || len(got) != 2 || got[0] != (Account{Email: "admin@example.test", Kind: Staff}) || got[1] != (Account{"user@example.test", Customer, "business", "managed"}) {
+	got, err := Parse(" Admin@Example.test=staff , user@example.test=customer:business:managed , boss@example.test=admin")
+	if err != nil || len(got) != 3 || got[0] != (Account{Email: "admin@example.test", Kind: Staff}) || got[1] != (Account{"user@example.test", Customer, "business", "managed"}) ||
+		got[2] != (Account{Email: "boss@example.test", Kind: Admin}) {
 		t.Fatalf("%+v %v", got, err)
 	}
-	for _, raw := range []string{"", "admin@example.test", "admin@example.test=owner", "not-an-email=staff", "a@example.test=staff,a@example.test=customer", "a@example.test=staff:pro", "a@example.test=customer::managed"} {
+	for _, raw := range []string{"", "admin@example.test", "admin@example.test=owner", "not-an-email=staff", "a@example.test=staff,a@example.test=customer", "a@example.test=staff:pro", "a@example.test=admin:pro", "a@example.test=customer::managed"} {
 		if _, err := Parse(raw); err == nil {
 			t.Errorf("%q was accepted", raw)
 		}
@@ -24,8 +25,8 @@ func TestParseAcceptsOnlyEmailAndAKnownKind(t *testing.T) {
 }
 
 func TestOnlyListedStaffAccountsAreExempt(t *testing.T) {
-	t.Setenv("SHIPPIN_DEV_ACCOUNTS", "admin@example.test=staff,user@example.test=customer")
-	if !ListedStaff(" Admin@Example.test ") || ListedStaff("user@example.test") || ListedStaff("someone@example.test") {
+	t.Setenv("SHIPPIN_DEV_ACCOUNTS", "admin@example.test=staff,user@example.test=customer,boss@example.test=admin")
+	if !ListedStaff(" Admin@Example.test ") || !ListedStaff("boss@example.test") || ListedStaff("user@example.test") || ListedStaff("someone@example.test") {
 		t.Fatal("only listed staff accounts are exempt")
 	}
 	t.Setenv("SHIPPIN_DEV_ACCOUNTS", "")
@@ -94,12 +95,33 @@ func TestAccountsOnARealDatabase(t *testing.T) {
 	var hasOwner bool
 	_ = d.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM local_staff_roles r JOIN identity_users u ON u.id=r.user_id WHERE u.email='staff@devaccounts.test' AND 'staff.owner' = ANY(r.roles))`).Scan(&hasOwner)
 	if hasOwner {
-		t.Fatal("a development account was given the Owner role")
+		t.Fatal("a development staff account was given the Owner role")
+	}
+
+	// An admin holds every role, Owner included; listed as staff again, it loses Owner on the next start.
+	admin := []Account{{Email: "admin@devaccounts.test", Kind: Admin}}
+	ownerRole := func() (has bool, roles int) {
+		_ = d.Pool.QueryRow(ctx, `SELECT 'staff.owner' = ANY(r.roles), cardinality(r.roles) FROM local_staff_roles r JOIN identity_users u ON u.id=r.user_id
+		  WHERE u.email='admin@devaccounts.test'`).Scan(&has, &roles)
+		return
+	}
+	if err := Ensure(ctx, d.Pool, identity.HashPassword, admin, "a-long-test-password", testGrants); err != nil {
+		t.Fatal(err)
+	}
+	if has, roles := ownerRole(); !has || roles != staffRoles+1 {
+		t.Fatalf("the admin account: Owner %v, %d roles, want Owner and %d", has, roles, staffRoles+1)
+	}
+	admin[0].Kind = Staff
+	if err := Ensure(ctx, d.Pool, identity.HashPassword, admin, "a-long-test-password", testGrants); err != nil {
+		t.Fatal(err)
+	}
+	if has, _ := ownerRole(); has {
+		t.Fatal("an admin listed again as staff kept the Owner role")
 	}
 	if _, err := d.Pool.Exec(ctx, `INSERT INTO identity_users (id, email, email_verified, name, role) VALUES (gen_random_uuid(),'owner@devaccounts.test',true,'Owner','owner')`); err != nil {
 		t.Fatal(err)
 	}
-	if err := Ensure(ctx, d.Pool, identity.HashPassword, []Account{{Email: "owner@devaccounts.test", Kind: Staff}}, "a-long-test-password", testGrants); !errors.Is(err, ErrOwner) {
+	if err := Ensure(ctx, d.Pool, identity.HashPassword, []Account{{Email: "owner@devaccounts.test", Kind: Admin}}, "a-long-test-password", testGrants); !errors.Is(err, ErrOwner) {
 		t.Fatalf("the owner's account must never be changed: %v", err)
 	}
 	if err := Ensure(ctx, d.Pool, identity.HashPassword, accounts, "short", testGrants); err == nil {
