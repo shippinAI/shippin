@@ -1,0 +1,41 @@
+import assert from "node:assert/strict";
+import { ApiError } from "../../lib/api/client";
+import { loadProjects, loadResource, runnerHref, runnerTab, errorKey, type RunnerProject } from "./model";
+const project: RunnerProject = { id: "project-1", tenant_id: "org-a", name: "One", scopes: ["runs:read"] };
+const original = globalThis.fetch;
+const calls: { path: string; init?: RequestInit }[] = [];
+let response: unknown = { projects: [project, { ...project, id: "other", tenant_id: "org-b" }] };
+let status = 200;
+globalThis.fetch = (async (path, init) => {
+  calls.push({ path: String(path), init });
+  return new Response(JSON.stringify(response), { status, headers: { "Content-Type": "application/json" } });
+}) as typeof fetch;
+try {
+  assert.deepEqual(await loadProjects("org-a"), [project]);
+  assert.equal(calls[0].path, "/v1/runner/projects");
+  assert.equal(calls[0].init?.credentials, "same-origin");
+  assert.deepEqual(calls[0].init?.headers, { Accept: "application/json" });
+  response = { items: [], consistency: "eventual" };
+  assert.deepEqual(await loadResource("org-a", project, "runs"), response);
+  assert.equal(calls[1].path, "/v1/projects/project-1/runs");
+  await assert.rejects(loadResource("org-b", project, "runs"), (e: unknown) => e instanceof ApiError && e.status === 403);
+  await assert.rejects(loadResource("org-a", project, "connectors"));
+  await assert.rejects(loadResource("org-a", { ...project, id: "../escape" }, "runs"));
+  assert.equal(calls.length, 2, "Unauthorized or invalid projects must not reach fetch");
+  response = { items: [{ id: "run-1", project: "another-project" }], consistency: "eventual" };
+  await assert.rejects(loadResource("org-a", project, "runs"), /Invalid run response/);
+  response = { github: { state: "unconfigured" }, execution_hosts: { state: "empty", workers: [], truncated: false } };
+  assert.deepEqual(await loadResource("org-a", { ...project, scopes: ["workers:manage"] }, "connectors"), response);
+  response = { projects: null };
+  assert.deepEqual(await loadProjects("org-a"), []);
+  response = { projects: [{ ...project, scopes: null }] };
+  assert.deepEqual(await loadProjects("org-a"), []);
+  status = 403;
+  await assert.rejects(loadResource("org-a", project, "runs"), (e: unknown) => errorKey(e) === "runners.denied");
+  status = 503;
+  await assert.rejects(loadProjects("org-a"), (e: unknown) => errorKey(e) === "runners.unavailable");
+  assert.equal(errorKey(new ApiError(401, "")), "runners.signIn");
+  assert.equal(runnerTab("unknown"), "overview");
+  assert.equal(runnerHref("org-a", "project-1", "runs"), "/t/org-a/runners/project-1/runs");
+  console.log("Runner client boundaries passed: tenant isolation, scope gating, same-origin requests, denial and unavailable states.");
+} finally { globalThis.fetch = original; }

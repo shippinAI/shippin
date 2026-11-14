@@ -26,6 +26,7 @@ export type NavSection = { id: string; label: string };
 
 // Order and names follow CONSOLE-IA.md "Navigation tree per role".
 export const tenantNav: NavItem[] = [
+  { id: "tenant.runners", label: "Runners", icon: Cpu, to: "runners", hue: "var(--color-hue-workspaces)", mobile: true, prefix: true },
   { id: "tenant.home", label: "Home", icon: LayoutGrid, to: "", hue: "var(--color-primary)", mobile: true },
   { id: "tenant.projects", label: "Projects", icon: FolderGit2, to: "projects", hue: "var(--color-hue-workspaces)", feature: "workspaces" },
   { id: "tenant.database", label: "Database", icon: Database, to: "database", hue: "var(--color-hue-data)", mobile: true, feature: "workspaces" },

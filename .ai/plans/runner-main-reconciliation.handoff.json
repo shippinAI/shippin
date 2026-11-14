@@ -1,0 +1,209 @@
+{
+  "schema_version": "clyffy.handoff.v1",
+  "id": "platform-runner-main-reconciliation-20261114",
+  "status": "ready",
+  "objective": "Reconcile the existing canonical Shippin runner-panel bridge branch with current platform main while retaining both runner and acquisition tests and security behavior.",
+  "baseline_commit": "2499fe8061a91d9e160409a1aea8f323deec735e",
+  "evidence": [
+    {
+      "kind": "source",
+      "location": "AGENTS.md",
+      "claim": "Reviewed current branch panel, bridge, test, source ownership or verification anchor."
+    },
+    {
+      "kind": "source",
+      "location": "web/package.json",
+      "claim": "Reviewed current branch panel, bridge, test, source ownership or verification anchor."
+    },
+    {
+      "kind": "source",
+      "location": "cmd/console/main.go",
+      "claim": "Reviewed current branch panel, bridge, test, source ownership or verification anchor."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/lib/ui-config/text-keys.ts",
+      "claim": "Reviewed current branch panel, bridge, test, source ownership or verification anchor."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/features/runners/model.test.ts",
+      "claim": "Reviewed current branch panel, bridge, test, source ownership or verification anchor."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/features/runners/profiles.test.ts",
+      "claim": "Reviewed current branch panel, bridge, test, source ownership or verification anchor."
+    },
+    {
+      "kind": "source",
+      "location": "web/scripts/test-runner-render.mjs",
+      "claim": "Reviewed current branch panel, bridge, test, source ownership or verification anchor."
+    },
+    {
+      "kind": "source",
+      "location": "internal/runnerbridge/proxy.go",
+      "claim": "Reviewed current branch panel, bridge, test, source ownership or verification anchor."
+    },
+    {
+      "kind": "source",
+      "location": "scripts/check.sh",
+      "claim": "Reviewed current branch panel, bridge, test, source ownership or verification anchor."
+    },
+    {
+      "kind": "git-simulation",
+      "location": "origin/main e95f887be28c6ee41786a46eb6cc58f2fbe4ba84",
+      "claim": "git merge-tree --write-tree reports only web/package.json conflict; merge base 91c54fa0fe4cca2cfbfe3a1b2680272c8b1cf965; rerun before action."
+    },
+    {
+      "kind": "git-object",
+      "location": "HEAD:web/package.json",
+      "claim": "blob bdd9b5c36d9665e812672de87159a91478b6c7a9 includes runner profiles/model/render tests."
+    },
+    {
+      "kind": "git-object",
+      "location": "origin/main:web/package.json",
+      "claim": "blob f2a93054fe67506c8e1681887b1698d268aa5600 includes acquisition-model test."
+    },
+    {
+      "kind": "git-object",
+      "location": "origin/main:web/src/features/admin/ui/signups/acquisition-panel.tsx",
+      "claim": "blob 6085ea1ebc38cbc25c5273ad0f804373adfb75f3 contains native signer field and clearSeedNode fix."
+    }
+  ],
+  "constraints": [
+    "Git merge, conflict resolution, staging and commits are root-owned only; no delegated worker Git mutations.",
+    "No remote push, PR merge, production configuration, real data, Firecracker host work or credential exposure.",
+    "Never drop acquisition or runner test commands, signer DOM clearing, retention lifecycle or runner proxy wiring.",
+    "CI acquisition job is backend qualification, not proof of cross-repo browser acceptance.",
+    "Previously denied journal scope stays closed; do not retry journal writes."
+  ],
+  "authorized_scope": [
+    "web/package.json"
+  ],
+  "anchors": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "b18ce7c45343efea101e7b53d24b1109562430bbcab29f4ab73d5e74fe80304f"
+    },
+    {
+      "path": "web/package.json",
+      "sha256": "43518080f6d3c8357ac3912642b9cdd3d77090772ad8dada7caf511d997c0355"
+    },
+    {
+      "path": "cmd/console/main.go",
+      "sha256": "f34fa56a67089f40148abd16b7213ea952f018d7130a57b9cdf7b1cee8c9872a"
+    },
+    {
+      "path": "web/src/lib/ui-config/text-keys.ts",
+      "sha256": "3c34a3da938aaab3f11b5d747f42eb4da9b4c9fb5477a0280070c4876935fa26"
+    },
+    {
+      "path": "web/src/features/runners/model.test.ts",
+      "sha256": "c5960aff55cb9dcf02eeae7d1238f78362f4b0997ba3e7a5b62b90b5a48a10b3"
+    },
+    {
+      "path": "web/src/features/runners/profiles.test.ts",
+      "sha256": "e67487cec7069cb41ad6fdf45a9f5d2d37ac5dca82a0181e2315f7ac0a005916"
+    },
+    {
+      "path": "web/scripts/test-runner-render.mjs",
+      "sha256": "3e8950edbc2d5792291a2b197352939f143afe3e4857037a70ecf183b6343316"
+    },
+    {
+      "path": "internal/runnerbridge/proxy.go",
+      "sha256": "0048142bf687d081b37c070a6f49966e59d75f100311747ff2ca648d887cfb54"
+    },
+    {
+      "path": "scripts/check.sh",
+      "sha256": "3958275908668ad78008fe9bcfc0fa49faf0dc377011b46a020960d010e327d1"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "platform-reconcile",
+      "title": "Root-owned platform branch reconciliation",
+      "status": "pending",
+      "paths": [
+        "web/package.json"
+      ],
+      "depends_on": [],
+      "steps": [
+        "ROOT ONLY: verify reviewed clean tracked worktree, HEAD 2499fe8061a91d9e160409a1aea8f323deec735e, origin/main e95f887be28c6ee41786a46eb6cc58f2fbe4ba84 and merge base 91c54fa0fe4cca2cfbfe3a1b2680272c8b1cf965. Validate anchors and re-run git merge-tree; expect ONLY web/package.json conflict. If refs, worktree or conflicts changed, stop/replan. Never clean/reset or discard unrelated files, private plans or uncommitted user state.",
+        "ROOT ONLY: merge exact current main into existing PR20 branch. Resolve only web/package.json by preserving the complete test command union: upstream jiti src/features/admin/ui/signups/acquisition-model.test.ts AND PR20 jiti src/features/runners/profiles.test.ts, jiti src/features/runners/model.test.ts and node scripts/test-runner-render.mjs, plus every shared/upstream test command exactly once. Retain all other package metadata/dependency versions from the correct merged inputs; do not drop tests, regenerate lockfile unnecessarily or select one side wholesale. Stage only the deliberate conflict resolution.",
+        "Review all auto-merges, not only package.json. cmd/console/main.go must start both upstream context-bound RunAcquisitionRetention and PR20 runner bridge/proxy wiring; ui-config text keys must contain both upstream acquisition and PR20 runner keys. Preserve upstream signer DOM clearing, source acquisition permission/tenant separation and dedicated acquisition-qualification workflow; preserve runner gateway trust and runner views/configuration. Verify no duplicate mux registrations, route shadowing or silently altered canonical auth semantics.",
+        "Run npm --prefix web test and npm --prefix web run typecheck plus token checks, explicitly confirming both sets of test names appear and execute. Run generated-action consistency (go generate ./internal/actions then compare tracked generated outputs with the reconciled tree) and Go tests/vet as available. Run scripts/check.sh where prerequisites exist. For opt-in real acquisition PostgreSQL/browser and runner browser fixture checks, use only verified isolated synthetic resources with explicit opt-in, serialize schema-dropping tests, and report skips separately. Do not equate fixture browser evidence with an actual GitHub/Firecracker job.",
+        "Inspect git diff --check, both-parent merge diff, conflict markers, lockfile and staged paths; no secrets or installation-specific settings. ROOT ONLY: create the merge commit on PR20 branch after review if authorized and checks support it; report exact parents/commit and limitations. No worker handles Git merge/commit, no remote push or PR merge without root's current authorization."
+      ],
+      "checks": [
+        {
+          "argv": [
+            "git",
+            "merge-tree",
+            "--write-tree",
+            "2499fe8061a91d9e160409a1aea8f323deec735e",
+            "e95f887be28c6ee41786a46eb6cc58f2fbe4ba84"
+          ],
+          "expected": "Only web/package.json conflicts before root's merge; conflict exit status is expected."
+        },
+        {
+          "argv": [
+            "npm",
+            "--prefix",
+            "web",
+            "test"
+          ],
+          "expected": "Acquisition-model and all three runner model/profile/render tests execute and pass with existing web suite."
+        },
+        {
+          "argv": [
+            "npm",
+            "--prefix",
+            "web",
+            "run",
+            "typecheck"
+          ],
+          "expected": "Panel types compile against regenerated contracts."
+        },
+        {
+          "argv": [
+            "npm",
+            "--prefix",
+            "web",
+            "run",
+            "tokens"
+          ],
+          "expected": "Design token rules pass."
+        },
+        {
+          "argv": [
+            "go",
+            "test",
+            "./..."
+          ],
+          "expected": "Applicable platform tests pass; skips and Windows/Linux limitations reported."
+        },
+        {
+          "argv": [
+            "go",
+            "generate",
+            "./internal/actions"
+          ],
+          "expected": "Generated registry, typed calls and OpenAPI remain consistent; inspect diff rather than assume."
+        }
+      ],
+      "acceptance": [
+        "Root-reviewed merge preserves both test suites and all unrelated package metadata.",
+        "Both acquisition retention/signer security and runner bridge/view wiring survive merged behavior.",
+        "Generated actions and relevant checks pass or limitations are honestly recorded; no actual job or deployment is inferred."
+      ]
+    }
+  ],
+  "next_task": "platform-reconcile",
+  "escalation_triggers": [
+    "Either branch/ref/worktree or simulated conflict set differs.",
+    "Automatic merge changes permission, route, signer, retention or proxy behavior unexpectedly.",
+    "Required generated files differ unexpectedly or tests demand unowned/live services.",
+    "A non-root worker would need to perform Git operations."
+  ]
+}
