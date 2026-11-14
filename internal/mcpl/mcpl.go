@@ -40,6 +40,10 @@ const (
 	Member   Access = "member"    // a tenant member; the tenant's own roles apply
 )
 
+// MemberRoles are what a member action may require of the caller in the organization: "" anyone who
+// sees it, "manage" a manager, "decide" an owner or admin who approves platform access.
+var MemberRoles = []string{"", "manage", "decide"}
+
 // Action is one thing a person can do, described once.
 type Action struct {
 	// ID is shippin.<domain>.<entity>.<verb>, for example shippin.tenancy.plan.update.
@@ -127,7 +131,14 @@ func Validate(actions []Action) []error {
 			fail(a, "a DELETE's verb is one of %v", deleteVerbs)
 		}
 		switch a.Access {
-		case Public, SignedIn, Member:
+		case Public, SignedIn:
+			if a.Perm != "" {
+				fail(a, "a %s action has no permission; the action decides the rest", a.Access)
+			}
+		case Member:
+			if !slices.Contains(MemberRoles, a.Perm) {
+				fail(a, "a member action's permission is one of %q", MemberRoles)
+			}
 		case Staff:
 			if a.Perm == "" {
 				fail(a, "a staff action names its permission")
@@ -150,6 +161,8 @@ func Validate(actions []Action) []error {
 			if a.Risk == Read {
 				fail(a, "a read emits no event")
 			}
+		} else if a.Risk != Read {
+			fail(a, "a change emits an event")
 		}
 	}
 	return errs

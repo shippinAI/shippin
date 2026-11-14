@@ -82,11 +82,7 @@ func (a *API) promptWorkspace(ctx context.Context, j *jobs.Job, run *agentruns.R
 	if msg != "" {
 		return nil, jobs.Permanent(errors.New(msg))
 	}
-	keys, _ := a.db.SSHKeys(ctx, j.CreatedBy)
-	pub := []string{}
-	for _, k := range keys {
-		pub = append(pub, k.PublicKey)
-	}
+	pub, _ := a.userKeys(ctx, j.CreatedBy)
 	id, _ := uuid.NewV7()
 	label := strings.TrimRight(name[:min(len(name), 31)], "-")
 	ws := db.Workspace{ID: id.String(), TenantID: j.TenantID, Name: label, State: "provisioning", SSHKeys: pub,

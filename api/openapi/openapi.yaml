@@ -61,10 +61,6 @@ tags:
 paths:
   /me:
     $ref: paths/me.yaml#/me
-  /me/ssh-keys:
-    $ref: paths/ssh-keys.yaml#/keys
-  /me/ssh-keys/{keyId}:
-    $ref: paths/ssh-keys.yaml#/key
   /tenants:
     $ref: paths/tenants.yaml#/tenants
   /tenants/{tenantId}:

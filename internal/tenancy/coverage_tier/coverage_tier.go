@@ -231,9 +231,9 @@ type CustomerView struct {
 }
 
 // ForTenant is the organization's own tier (its override, else its plan's); nil when it has none.
-func ForTenant(ctx context.Context, pool *pgxpool.Pool, tenantID string) (*CustomerView, error) {
+func ForTenant(ctx context.Context, q mcpl.DB, tenantID string) (*CustomerView, error) {
 	var v CustomerView
-	err := pool.QueryRow(ctx, `SELECT id, label, description, support_hours, channels, critical_minutes, high_minutes, normal_minutes,
+	err := q.QueryRow(ctx, `SELECT id, label, description, support_hours, channels, critical_minutes, high_minutes, normal_minutes,
 	  uptime_target::float8, operations, named_contact, reviews, training_hours, consulting, custom_deployments, remote_operations, team_training
 	  FROM coverage_tiers WHERE id = (SELECT coalesce(t.coverage, p.coverage) FROM tenants t LEFT JOIN plans p ON p.id=t.plan WHERE t.id::text=$1)`, tenantID).
 		Scan(&v.ID, &v.Label, &v.Description, &v.SupportHours, &v.Channels, &v.CriticalMinutes, &v.HighMinutes, &v.NormalMinutes, &v.UptimeTarget,

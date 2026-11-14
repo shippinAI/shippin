@@ -2,9 +2,7 @@ package api
 
 import (
 	"context"
-	"net/http"
 
-	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/tenancy/coverage_tier"
 )
 
@@ -60,23 +58,4 @@ func (a *API) tenantCoverage(ctx context.Context, ids []string) (map[string]cove
 		return map[string]coverage_tier.Coverage{}, nil
 	}
 	return coverage_tier.Of(ctx, a.db.Pool, ids)
-}
-
-// coverage is GET /v1/tenants/{tenantId}/coverage: what the organization's coverage tier includes,
-// for every member. Prices stay with the operator.
-func (a *API) coverage(w http.ResponseWriter, r *http.Request) {
-	_, t, ok := a.tenantCtx(w, r)
-	if !ok {
-		return
-	}
-	if a.db == nil {
-		writeJSON(w, map[string]any{"coverage": nil})
-		return
-	}
-	view, err := coverage_tier.ForTenant(r.Context(), a.db.Pool, t.ID)
-	if err != nil {
-		auth.Problem(w, http.StatusServiceUnavailable, "Coverage is unavailable right now.")
-		return
-	}
-	writeJSON(w, map[string]any{"coverage": view})
 }

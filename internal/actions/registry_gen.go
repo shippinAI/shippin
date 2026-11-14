@@ -3,12 +3,18 @@
 package actions
 
 import (
+	identity_ssh_key "shippin.cloud/console/internal/identity/ssh_key"
 	"shippin.cloud/console/internal/mcpl"
+	tenancy_coverage "shippin.cloud/console/internal/tenancy/coverage"
 	tenancy_coverage_tier "shippin.cloud/console/internal/tenancy/coverage_tier"
 )
 
 // All is every action, in ID order.
 var All = []mcpl.Registered{
+	mcpl.Register("shippin.identity.ssh_key.create", identity_ssh_key.Create),
+	mcpl.Register("shippin.identity.ssh_key.delete", identity_ssh_key.Delete),
+	mcpl.Register("shippin.identity.ssh_key.list", identity_ssh_key.List),
+	mcpl.Register("shippin.tenancy.coverage.get", tenancy_coverage.Get),
 	mcpl.Register("shippin.tenancy.coverage_tier.create", tenancy_coverage_tier.Create),
 	mcpl.Register("shippin.tenancy.coverage_tier.delete", tenancy_coverage_tier.Delete),
 	mcpl.Register("shippin.tenancy.coverage_tier.get", tenancy_coverage_tier.Get),

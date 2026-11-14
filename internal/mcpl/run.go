@@ -10,7 +10,9 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"slices"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -31,9 +33,14 @@ type Spec struct {
 	Summary string
 	Access  Access
 	// Perm is the catalog permission a staff action needs.
+	// For a member action Perm is the organization role it needs: "" any member, "manage" a manager,
+	// "decide" an owner or admin who approves access. Signed-in and public actions have none.
 	Perm string
 	// Collection: a verb other than list/get/create/update/delete acts on the whole collection, not one item.
 	Collection bool
+	// Singleton: there is one of this entity in its parent (an organization's coverage, a person's
+	// profile), so its path is singular and carries no item ID.
+	Singleton bool
 }
 
 // DB is what an action queries: the pool for a read, the change's transaction for anything else.
@@ -48,13 +55,39 @@ type Call struct {
 	Ctx  context.Context
 	Pool *pgxpool.Pool
 	// DB is set by the runner: a change runs in one transaction that commits only with its audit entry.
-	DB     DB
-	Actor  string
+	DB DB
+	// Actor is the person the action runs as; "" for a public action.
+	Actor string
+	// Tenant is the organization a member action runs in, from the route's {tenantId}.
+	Tenant string
 	Reason string
 	// Perms answers field-level permission questions for the caller; nil allows nothing extra.
 	Perms func(perm string) bool
-	// Audit records a change after it succeeded and before it commits; a failure undoes the change.
-	Audit func(action, detail string) error
+	// Audit records a change after it succeeded and before it commits, on the change's own transaction,
+	// so the entry and the change are kept or lost together.
+	Audit func(q DB, action, detail string) error
+	// Publish hands the action's event to subscribers once the change is committed.
+	Publish func(Event)
+	// Services are what the action uses besides the database; see Need.
+	Services Services
+}
+
+// Services are the dependencies actions use besides the database, keyed by the interface type the
+// action's own package declares. The host provides the implementations, so an action never reaches
+// for a global and a test hands it a fake.
+type Services map[reflect.Type]any
+
+// Provide makes v available to actions that Need a T.
+func Provide[T any](s Services, v T) { s[reflect.TypeFor[T]()] = v }
+
+// Need is the T this install provides, or a plain 503 when it has none (mail not set up, no IdP).
+func Need[T any](c *Call) (T, error) {
+	v, ok := c.Services[reflect.TypeFor[T]()].(T)
+	if !ok {
+		var zero T
+		return zero, &Error{http.StatusServiceUnavailable, "This install isn't set up for that yet."}
+	}
+	return v, nil
 }
 
 // Can reports whether the caller holds perm, for fields an action shows or takes only with it.
@@ -79,17 +112,17 @@ type Runner interface {
 	Describe() Spec
 	Input() reflect.Type
 	Output() reflect.Type
-	serve(id string, risk Risk, c *Call, w http.ResponseWriter, r *http.Request)
+	serve(g Registered, c *Call, w http.ResponseWriter, r *http.Request)
 }
 
 func (d Def[In, Out]) Describe() Spec       { return d.Spec }
 func (d Def[In, Out]) Input() reflect.Type  { return reflect.TypeFor[In]() }
 func (d Def[In, Out]) Output() reflect.Type { return reflect.TypeFor[Out]() }
 
-func (d Def[In, Out]) serve(id string, risk Risk, c *Call, w http.ResponseWriter, r *http.Request) {
+func (d Def[In, Out]) serve(g Registered, c *Call, w http.ResponseWriter, r *http.Request) {
 	var in In
 	if r.Method != http.MethodGet {
-		if err := decode(w, r, &in, c, risk != Read && d.Access == Staff); err != nil {
+		if err := decode(w, r, &in, c, g.Reason); err != nil {
 			problem(w, err)
 			return
 		}
@@ -97,7 +130,7 @@ func (d Def[In, Out]) serve(id string, risk Risk, c *Call, w http.ResponseWriter
 	bind(r, &in)
 	c.DB = c.Pool
 	var tx pgx.Tx
-	if risk != Read && c.Pool != nil {
+	if g.Risk != Read && c.Pool != nil {
 		var err error
 		if tx, err = c.Pool.Begin(c.Ctx); err != nil {
 			problem(w, err)
@@ -111,9 +144,10 @@ func (d Def[In, Out]) serve(id string, risk Risk, c *Call, w http.ResponseWriter
 		problem(w, err)
 		return
 	}
-	if risk != Read && c.Audit != nil {
-		if err := c.Audit(id, describe(r, c.Reason)); err != nil {
-			log.Printf("audit %s: %v", id, err)
+	subject := subjectOf(r, out)
+	if g.Risk != Read && c.Audit != nil {
+		if err := c.Audit(c.DB, g.ID, describe(subject, c.Reason)); err != nil {
+			log.Printf("audit %s: %v", g.ID, err)
 			problem(w, &Error{http.StatusServiceUnavailable, "The change couldn't be audited, so it wasn't made."})
 			return
 		}
@@ -124,17 +158,41 @@ func (d Def[In, Out]) serve(id string, risk Risk, c *Call, w http.ResponseWriter
 			return
 		}
 	}
+	if g.Event != "" && c.Publish != nil {
+		c.Publish(Event{ID: g.Event, Action: g.ID, Actor: c.Actor, Tenant: c.Tenant, Access: g.Access, Perm: g.Perm, Subject: subject, At: time.Now().UTC()})
+	}
 	if _, none := any(out).(None); none {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	code := http.StatusOK
-	if strings.HasSuffix(id, ".create") {
+	if strings.HasSuffix(g.ID, ".create") {
 		code = http.StatusCreated
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(out)
+}
+
+// subjectOf is what the action acted on: the route's own values (tenantId, coverageTierId), and the
+// id of what it created.
+func subjectOf(r *http.Request, out any) map[string]string {
+	s := map[string]string{}
+	for _, part := range strings.Split(r.Pattern, "/") {
+		if strings.HasPrefix(part, "{") {
+			name := strings.Trim(part, "{}")
+			s[name] = r.PathValue(name)
+		}
+	}
+	if r.Method == http.MethodPost {
+		var created struct {
+			ID any `json:"id"`
+		}
+		if raw, err := json.Marshal(out); err == nil && json.Unmarshal(raw, &created) == nil && created.ID != nil {
+			s["id"] = fmt.Sprint(created.ID)
+		}
+	}
+	return s
 }
 
 // decode reads a JSON object, takes its reason out, and decodes the rest strictly into in.
@@ -191,13 +249,15 @@ func bindValue(r *http.Request, v reflect.Value) {
 	}
 }
 
-func describe(r *http.Request, reason string) string {
-	var ids []string
-	for _, part := range strings.Split(r.Pattern, "/") {
-		if strings.HasPrefix(part, "{") {
-			name := strings.Trim(part, "{}")
-			ids = append(ids, name+"="+r.PathValue(name))
-		}
+func describe(subject map[string]string, reason string) string {
+	keys := make([]string, 0, len(subject))
+	for k := range subject {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	ids := make([]string, 0, len(keys))
+	for _, k := range keys {
+		ids = append(ids, k+"="+subject[k])
 	}
 	return strings.TrimSpace(strings.Join(ids, " ") + " · " + reason)
 }
@@ -252,11 +312,15 @@ func Register(id string, r Runner) Registered {
 		panic(fmt.Sprintf("mcpl: %s: %v", id, err))
 	}
 	risk := RiskOf(route)
-	return Registered{Action: Action{ID: id, Route: route, Access: s.Access, Perm: s.Perm, Risk: risk,
-		Reason: s.Access == Staff && risk != Read, Summary: s.Summary}, Runner: r}
+	a := Action{ID: id, Route: route, Access: s.Access, Perm: s.Perm, Risk: risk,
+		Reason: s.Access == Staff && risk != Read, Summary: s.Summary}
+	if risk != Read {
+		a.Event = EventFor(id)
+	}
+	return Registered{Action: a, Runner: r}
 }
 
 // Serve runs the action for one request.
 func (g Registered) Serve(c *Call, w http.ResponseWriter, r *http.Request) {
-	g.Runner.serve(g.ID, g.Risk, c, w, r)
+	g.Runner.serve(g, c, w, r)
 }

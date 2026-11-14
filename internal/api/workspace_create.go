@@ -56,7 +56,7 @@ func (a *API) newWorkspace(w http.ResponseWriter, r *http.Request, c *caller, t 
 		auth.Problem(w, http.StatusBadRequest, msg)
 		return
 	}
-	keys, err := a.userKeys(r, c.id.Sub)
+	keys, err := a.userKeys(r.Context(), c.id.Sub)
 	if err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "SSH keys are unavailable right now.")
 		return

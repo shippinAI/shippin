@@ -57,7 +57,24 @@ when the generated files are stale, so a new or moved action cannot ship without
   - `list` GETs the collection and `create` POSTs to it.
   - `get` GETs one item, `update` PUTs it, and `delete`, `remove` and `revoke` DELETE it.
   - Any other verb POSTs to the item, or to the collection when the spec says `Collection`.
+- **Singletons.** An entity there is one of in its parent (an organization's coverage, a workspace's
+  firewall) says `Singleton`. Its path is singular with no item ID:
+  `internal/tenancy/coverage/get.go` is `GET /v1/tenants/{tenantId}/tenancy/coverage`.
 - **Risk** follows the method: a GET reads, a DELETE destroys, everything else writes.
+
+### Who may call it
+
+`Access` and `Perm` decide, through the same gate the routes before actions used:
+
+| Access | Gate | `Perm` |
+| --- | --- | --- |
+| `Staff` | the operator gate: origin, sign-in, staff session rules | the catalog permission |
+| `Member` | the organization in `{tenantId}`, which the caller belongs to or holds an access grant for | `""` anyone who sees it, `"manage"` a manager, `"decide"` an owner or admin |
+| `SignedIn` | any session; the action runs as `c.Actor` | none |
+| `Public` | none; only `public` and `auth` actions may change anything | none |
+
+A member action runs with `c.Tenant` set. A change made through a staff access grant is marked as such
+in the organization's audit log.
 
 ### What every action gets without writing it
 
@@ -76,9 +93,28 @@ when the generated files are stale, so a new or moved action cannot ship without
 #### Transaction and audit
 
 - A change runs in one database transaction, as `c.DB`.
-- The audit entry (action ID, item and reason) is written after the action succeeds. The transaction
-  commits only if that entry is saved, so a refused attempt is never logged as a change, and a change
-  is never made without its entry.
+- The audit entry (action ID, what it acted on, and the reason) is written on that same transaction
+  after the action succeeds. The entry and the change commit together or not at all, so a refused
+  attempt is never logged as a change, and a change is never made without its entry.
+
+#### Events
+
+- Every change emits an event once it is committed: the action's ID with the verb in the past,
+  `shippin.identity.ssh_key.create` emits `shippin.identity.ssh_key.created`.
+- An event says who, in which organization, and what it acted on (`subject`: the route's IDs and the
+  created item's `id`). It never carries the action's output; a follower reads the item through a get
+  action, under its own permissions.
+- Inside the panel's server, `a.events.On(id, fn)` reacts to one. Pushing a person's SSH keys to their
+  running workspaces is such a reaction, not part of the action.
+- `GET /v1/me/mcpl/events` streams them (server-sent events) to the people who could have run the
+  action: their own, their organizations' at their role, and staff events their permissions cover.
+
+#### Services
+
+- An action uses nothing but `c.DB` directly. Anything else (mail, the identity provider, a
+  hypervisor) is an interface its own package declares, fetched with `mcpl.Need[T](c)`.
+- `internal/api/mcpl_services.go` provides the implementations. Tests hand in fakes through
+  `mcpltest.As{Services: ...}`. An install without the service answers a plain 503.
 
 #### Output
 
@@ -99,6 +135,23 @@ when the generated files are stale, so a new or moved action cannot ship without
 
 The spec's values are literals, so the generator reads them without running code.
 
+### Routes that are not actions
+
+A stream, a WebSocket, a browser redirect in a sign-in flow, a webhook another system sends, the
+edge's forward-auth check, a file download and another protocol's endpoint (MCP) are not actions.
+They are mounted with `a.transport(mux, pattern, Carries, handler)`, which records what they carry.
+The conformance test accepts them as such and nothing else.
+
+### Testing an entity
+
+`internal/mcpl/mcpltest` serves an entity's generated actions on their routes against a fresh test
+database, as a caller you set, and collects the audit entries and events:
+
+```go
+h := mcpltest.Serve(t, actions.All, "shippin.identity.ssh_key.", mcpltest.As{Actor: "ada"})
+k := h.Call("POST", "/v1/me/identity/ssh-keys", body, 201)
+```
+
 ## Domains
 
 `public`, `auth`, `access`, `identity`, `tenancy`, `infrastructure`, `services`, `runtime`,
@@ -109,12 +162,12 @@ The same list names action IDs, events, UI actions and, later, the per-domain MC
 
 | Piece | State |
 | --- | --- |
-| Generated actions | `coverage_tier` (list, get, create, update, delete), proved with a database test and in a browser. |
-| Legacy routes | 343 served `/v1` routes are not yet action files. `internal/api/testdata/mcpl-undescribed.txt` lists them; `TestMCPLConformance` fails on a new one and on a stale entry, so the list only shrinks. |
-| Mounting | Staff actions are mounted. Public, signed-in and member actions are refused at startup until their mounting is written. |
+| Generated actions | Staff: `tenancy.coverage_tier` (list, get, create, update, delete). Member: `tenancy.coverage` (get). Signed-in: `identity.ssh_key` (list, create, delete). Each has a database test. |
+| Legacy routes | 340 served `/v1` routes are not yet action files or declared transports. `internal/api/testdata/mcpl-undescribed.txt` lists them; `TestMCPLConformance` fails on a new one and on a stale entry, so the list only shrinks. |
+| Mounting | Every audience: staff, member, signed-in and public. |
+| Events | Emitted by every change after commit, with in-process reactions and a stream at `GET /v1/me/mcpl/events`. |
 | Manifests | `GET /v1/mcpl` (public) and `GET /v1/operator/mcpl` (staff, with what the caller may run). |
 | MCP | Planned: generated from the registry, one MCP per domain, running the same `Def`. Input schemas come from the `In` types. |
-| Events | Planned: `shippin.<domain>.<entity>.<past verb>`, emitted where the audit entry is written today. |
 | UI actions, components, lessons | Planned: `shippin.ui.<domain>.<workflow>.<action>` with readiness and receipts. The panel's controls have roles and labels, which browser tests already drive. |
 
 Measured on 2026-11-12, before any entity moved:
@@ -131,12 +184,13 @@ Each disappears as its routes become action files.
 ## Order of work
 
 1. **Done.** The action runner, the generator, the registry and the panel map, the conformance
-   ratchet, and the coverage tier as the first entity, end to end.
+   ratchet, and the coverage tier as the first entity, end to end. Then every audience, events,
+   services and transports, with SSH keys and an organization's coverage moved.
 2. **Entity by entity, in the [code map](architecture.md)'s order.** Move each into
    `internal/<domain>/<entity>/`, switch its panel calls to `callAction`, and shrink the list in the
    same commit. Plans, catalog services and customers come next, then Access.
 3. **MCP from the registry,** with a person's delegated session as how an AI signs in.
-4. **Events,** then **UI actions** with receipts, proved in a real browser.
+4. **UI actions** with receipts, proved in a real browser.
 
 ## Adding an action
 

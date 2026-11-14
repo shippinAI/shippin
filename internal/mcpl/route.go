@@ -13,6 +13,8 @@ import (
 //   - Each entity is its plural in kebab case; an outer entity is followed by its own {<entity>Id}.
 //   - list GET the collection; create POST it; get GET, update PUT and delete/remove/revoke DELETE one
 //     item; any other verb POSTs to the item, or to the collection when the spec says Collection.
+//   - A Singleton entity (one per parent) is singular with no item ID: get GET, update PUT and
+//     delete DELETE it, and any other verb POSTs to it.
 //
 // shippin.tenancy.coverage_tier.update for staff is PUT /v1/operator/tenancy/coverage-tiers/{coverageTierId}.
 func RouteFor(id string, s Spec) (string, error) {
@@ -39,12 +41,22 @@ func RouteFor(id string, s Spec) (string, error) {
 	}
 	b.WriteString("/" + domain)
 	for i, e := range entities {
+		if i == len(entities)-1 && s.Singleton {
+			b.WriteString("/" + kebab(e))
+			break
+		}
 		b.WriteString("/" + plural(kebab(e)))
 		if i < len(entities)-1 {
 			b.WriteString("/{" + param(e) + "}")
 		}
 	}
 	item := "/{" + param(entities[len(entities)-1]) + "}"
+	if s.Singleton {
+		if verb == "list" || verb == "create" || s.Collection {
+			return "", errors.New("a singleton has no collection: it is read with get and changed with update")
+		}
+		item = ""
+	}
 	switch verb {
 	case "list":
 		return "GET " + b.String(), nil

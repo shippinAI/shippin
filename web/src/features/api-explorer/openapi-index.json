@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 172,
+  "operationCount": 169,
   "tags": [
     "agents-runtime",
     "audit",
@@ -925,36 +925,6 @@
       "path": "/me",
       "operationId": "getMe",
       "summary": "Who am I, my tenants, roles and UI capability hints",
-      "tags": [
-        "me"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "GET",
-      "path": "/me/ssh-keys",
-      "operationId": "listMySSHKeys",
-      "summary": "My SSH public keys (installed on every workspace I own)",
-      "tags": [
-        "me"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "POST",
-      "path": "/me/ssh-keys",
-      "operationId": "addMySSHKey",
-      "summary": "Add a key; it is pushed to my running workspaces",
-      "tags": [
-        "me"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "DELETE",
-      "path": "/me/ssh-keys/{keyId}",
-      "operationId": "deleteMySSHKey",
-      "summary": "Remove a key from my account and workspaces",
       "tags": [
         "me"
       ],

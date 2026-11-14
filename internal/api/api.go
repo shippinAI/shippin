@@ -24,6 +24,7 @@ import (
 	"shippin.cloud/console/internal/jobs"
 	"shippin.cloud/console/internal/mail"
 	"shippin.cloud/console/internal/managed"
+	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/servers"
 	"shippin.cloud/console/internal/subs"
 	"shippin.cloud/console/internal/tenantdb"
@@ -93,6 +94,13 @@ type API struct {
 	openIncusOCIExecutor func(servers.Endpoint) (incusOCIExecutorProvider, error)
 	// hvVisible is the tenant isolation seam. Nil uses the server registry.
 	hvVisible func(ctx context.Context, tenant, id string) (servers.Endpoint, error)
+	// events carries what MCPL actions did to the handlers and streams that follow them.
+	events mcpl.Bus
+	// actionSvcs are the services actions Need, built once from this API's stores and clients.
+	actionSvcs     mcpl.Services
+	actionSvcsOnce sync.Once
+	// transports are the served routes that are not actions, with what each carries.
+	transports map[string]Carries
 }
 
 // authTime is when the caller last signed in at the IdP (zero for PATs).
@@ -132,7 +140,6 @@ func (a *API) Register(mux Router) {
 	mux.HandleFunc("POST /v1/tenants/{tenantId}/provision", a.flow.Require(a.retryProvision))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}", a.flow.Require(a.tenant))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/settings", a.flow.Require(a.tenantSettings))
-	mux.HandleFunc("GET /v1/tenants/{tenantId}/coverage", a.flow.Require(a.coverage))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/sparks", a.flow.Require(a.sparks))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/workspaces", a.flow.Require(a.listWorkspaces))
 	mux.HandleFunc("POST /v1/tenants/{tenantId}/workspaces", a.flow.Require(a.createWorkspace))
@@ -151,9 +158,6 @@ func (a *API) Register(mux Router) {
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/audit", a.flow.Require(a.tenantAudit))
 	mux.HandleFunc("GET /v1/jobs/{jobId}", a.flow.Require(a.getJob))
 	mux.HandleFunc("GET /v1/templates", a.flow.Require(a.listTemplates))
-	mux.HandleFunc("GET /v1/me/ssh-keys", a.flow.Require(a.listKeys))
-	mux.HandleFunc("POST /v1/me/ssh-keys", a.flow.Require(a.addKey))
-	mux.HandleFunc("DELETE /v1/me/ssh-keys/{keyId}", a.flow.Require(a.deleteKey))
 	a.projectRoutes(mux)
 	a.subscriptionRoutes(mux)
 	a.connectRoutes(mux)
@@ -175,6 +179,8 @@ func (a *API) Register(mux Router) {
 	a.registerDirectory(mux)
 	a.infraRoutes(mux)
 	mux.HandleFunc("GET /v1/mcpl", a.mcplPublic)
+	a.mountActions(mux)
+	a.followSSHKeys()
 	mux.HandleFunc("GET /auth/ws-check", a.wsCheck)
 	mux.HandleFunc("GET /auth/ws-login", a.wsLogin)
 	mux.HandleFunc("GET /_shippin/auth", a.wsCode)

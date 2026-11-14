@@ -13,7 +13,8 @@ import (
 )
 
 // TestMCPLConformance holds the API to docs/mcpl.md. Every generated action is served on its derived
-// route behind its own permission. Every other served /v1 route is legacy, listed in
+// route behind its own permission. A route that carries something else (a stream, a socket, a
+// webhook) is mounted with a.transport and says so. Every other served /v1 route is legacy, listed in
 // testdata/mcpl-undescribed.txt; that list may only shrink, as entities move into
 // internal/<domain>/<entity>/<verb>.go. Regenerate it with UPDATE_MCPL=1.
 func TestMCPLConformance(t *testing.T) {
@@ -45,6 +46,15 @@ func TestMCPLConformance(t *testing.T) {
 		if perm, ok := gate[x.Route]; x.Access == mcpl.Staff && (!ok || perm != x.Perm) {
 			t.Errorf("%s: route gate %q, the action needs %q", x.ID, perm, x.Perm)
 		}
+	}
+	for pat, carries := range a.transports {
+		if !served[pat] && strings.HasPrefix(strings.SplitN(pat, " ", 2)[1], "/v1/") {
+			t.Errorf("transport %s (%s) is not served", pat, carries)
+		}
+		if described[pat] {
+			t.Errorf("%s is both an action and a transport", pat)
+		}
+		described[pat] = true
 	}
 	var legacy []string
 	for pat := range served {

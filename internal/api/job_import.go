@@ -38,11 +38,7 @@ func (a *API) runImportJob(ctx context.Context, j *jobs.Job, step func(string)) 
 	if err != nil {
 		return nil, errors.New("project is not ready yet")
 	}
-	keys, _ := a.db.SSHKeys(ctx, j.CreatedBy)
-	pub := []string{}
-	for _, k := range keys {
-		pub = append(pub, k.PublicKey)
-	}
+	pub, _ := a.userKeys(ctx, j.CreatedBy)
 	id, _ := uuid.NewV7()
 	label := strings.TrimRight(name[:min(len(name), 31)], "-")
 	ws := db.Workspace{ID: id.String(), TenantID: j.TenantID, Name: label, State: "provisioning", SSHKeys: pub,

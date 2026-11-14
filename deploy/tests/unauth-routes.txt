@@ -4,7 +4,7 @@ DELETE /v1/infra/networks/{id}/resources/{resource}/attachment
 DELETE /v1/infra/servers/{id}/attachment
 DELETE /v1/infra/servers/{id}/guests/{guest}
 DELETE /v1/me/bridge-sessions/{id}
-DELETE /v1/me/ssh-keys/{keyId}
+DELETE /v1/me/identity/ssh-keys/{sshKeyId}
 DELETE /v1/operator/backups/{name}
 DELETE /v1/operator/catalog/defaults/{layer}/{key}
 DELETE /v1/operator/catalog/plan-services/{plan}/{service}
@@ -60,7 +60,8 @@ GET /v1/infra/servers/{id}/tasks/{upid}
 GET /v1/jobs/{jobId}
 GET /v1/me
 GET /v1/me/bridge-sessions
-GET /v1/me/ssh-keys
+GET /v1/me/identity/ssh-keys
+GET /v1/me/mcpl/events
 GET /v1/me/subscriptions
 GET /v1/operator/access
 GET /v1/operator/access-requests
@@ -118,7 +119,6 @@ GET /v1/tenants/{tenantId}/access
 GET /v1/tenants/{tenantId}/apps
 GET /v1/tenants/{tenantId}/audit
 GET /v1/tenants/{tenantId}/bundle
-GET /v1/tenants/{tenantId}/coverage
 GET /v1/tenants/{tenantId}/db
 GET /v1/tenants/{tenantId}/db/audit
 GET /v1/tenants/{tenantId}/db/backups
@@ -160,6 +160,7 @@ GET /v1/tenants/{tenantId}/settings
 GET /v1/tenants/{tenantId}/setup
 GET /v1/tenants/{tenantId}/sparks
 GET /v1/tenants/{tenantId}/team
+GET /v1/tenants/{tenantId}/tenancy/coverage
 GET /v1/tenants/{tenantId}/usage
 GET /v1/tenants/{tenantId}/workspaces
 GET /v1/tenants/{tenantId}/workspaces/{workspaceId}
@@ -197,7 +198,7 @@ POST /v1/infra/servers/{id}/restore
 POST /v1/infra/servers/{id}/stop-guests
 POST /v1/infra/servers/{id}/storage/{storage}/download-url
 POST /v1/infra/servers/{id}/storage/{storage}/upload
-POST /v1/me/ssh-keys
+POST /v1/me/identity/ssh-keys
 POST /v1/onboarding
 POST /v1/operator/access-requests
 POST /v1/operator/access-requests/{grantId}/end

@@ -172,6 +172,8 @@ func specOf(lit *ast.CompositeLit) (mcpl.Spec, error) {
 				s.Access = map[string]mcpl.Access{"Public": mcpl.Public, "SignedIn": mcpl.SignedIn, "Staff": mcpl.Staff, "Member": mcpl.Member}[sel.Sel.Name]
 			case "Collection":
 				s.Collection = ident(fkv.Value) == "true"
+			case "Singleton":
+				s.Singleton = ident(fkv.Value) == "true"
 			}
 		}
 		return s, nil
