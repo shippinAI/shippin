@@ -87,7 +87,10 @@ func (a *API) newCall(r *http.Request, c *caller, mark ...func(*db.AuditEntry)) 
 	}
 	entry := db.AuditEntry{Actor: "anonymous", ActorName: "Someone without a session", IP: clientIP(r)}
 	if c != nil {
-		call.Actor = c.id.Sub
+		call.Actor, call.Via = c.id.Sub, c.method
+		if auth.ViaAccessKey(r.Context()) {
+			call.Via = "access_key"
+		}
 		entry = teamEntry(r, c, "", "")
 	}
 	call.Audit = func(q mcpl.DB, action, detail string) error {
@@ -139,7 +142,7 @@ func memberRefusal(role string) string {
 // at their role, and staff events their permissions cover. An AI client follows it to know when to act.
 // A stream ends after 15 minutes so the caller's roles are read again on reconnect.
 func (a *API) mcplEvents(w http.ResponseWriter, r *http.Request) {
-	c, ok := a.caller(w, r)
+	c, ok := a.resolve(w, r)
 	if !ok {
 		return
 	}

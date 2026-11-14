@@ -4,6 +4,7 @@ DELETE /v1/infra/networks/{id}/resources/{resource}/attachment
 DELETE /v1/infra/servers/{id}/attachment
 DELETE /v1/infra/servers/{id}/guests/{guest}
 DELETE /v1/me/bridge-sessions/{id}
+DELETE /v1/me/identity/access-keys/{accessKeyId}
 DELETE /v1/me/identity/ssh-keys/{sshKeyId}
 DELETE /v1/operator/backups/{name}
 DELETE /v1/operator/catalog/defaults/{layer}/{key}
@@ -60,6 +61,7 @@ GET /v1/infra/servers/{id}/tasks/{upid}
 GET /v1/jobs/{jobId}
 GET /v1/me
 GET /v1/me/bridge-sessions
+GET /v1/me/identity/access-keys
 GET /v1/me/identity/ssh-keys
 GET /v1/me/mcpl/events
 GET /v1/me/subscriptions
@@ -198,6 +200,9 @@ POST /v1/infra/servers/{id}/restore
 POST /v1/infra/servers/{id}/stop-guests
 POST /v1/infra/servers/{id}/storage/{storage}/download-url
 POST /v1/infra/servers/{id}/storage/{storage}/upload
+POST /v1/mcp
+POST /v1/mcp/{domain}
+POST /v1/me/identity/access-keys
 POST /v1/me/identity/ssh-keys
 POST /v1/onboarding
 POST /v1/operator/access-requests

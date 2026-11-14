@@ -58,6 +58,7 @@ export const operatorNav: NavItem[] = [
 export const accountNav: NavItem[] = [
   { id: "account.hub", label: "Approvals", icon: LayoutGrid, to: "/hub", hue: "var(--color-hue-ai)", feature: "board" },
   { id: "account.security", label: "Security", icon: KeyRound, to: "/account/security", hue: "var(--color-hue-secrets)", cap: "account.local" },
+  { id: "account.ai-access", label: "AI access", icon: Bot, to: "/account/ai-access", hue: "var(--color-hue-ai)", cap: "account.local" },
   { id: "account.ssh", label: "SSH keys", icon: KeySquare, to: "/account/ssh-keys", hue: "var(--color-hue-secrets)", feature: "workspaces" },
   { id: "account.chat", label: "Automaton chat", icon: Bot, to: "/chat", hue: "var(--color-hue-ai)", mobile: true, feature: "chat" },
   { id: "account.ai", label: "AI subscriptions", icon: Bot, to: "/account/ai", hue: "var(--color-hue-ai)", feature: "ai" },

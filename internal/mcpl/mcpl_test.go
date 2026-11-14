@@ -112,3 +112,32 @@ func TestEvents(t *testing.T) {
 	cancel()
 	b.Publish(Event{ID: "after cancel"}) // must not panic on a closed channel
 }
+
+func TestInputSchema(t *testing.T) {
+	type fields struct {
+		Label string `json:"label"`
+		Price *int   `json:"price_cents,omitempty"`
+	}
+	type in struct {
+		ID string `path:"coverageTierId" json:"-"`
+		fields
+	}
+	g := Register("shippin.tenancy.coverage_tier.update", Def[in, None]{Spec: Spec{Summary: "Change it.", Access: Staff, Perm: "p"}})
+	s := InputSchema(g)
+	props := s["properties"].(Schema)
+	for _, want := range []string{"coverageTierId", "label", "price_cents", "reason"} {
+		if props[want] == nil {
+			t.Errorf("%s missing from %v", want, props)
+		}
+	}
+	if props["ID"] != nil || props["fields"] != nil {
+		t.Errorf("path field or embedded struct leaked: %v", props)
+	}
+	if req := s["required"].([]string); len(req) != 2 || req[0] != "coverageTierId" || req[1] != "reason" {
+		t.Errorf("required: %v", req)
+	}
+	read := InputSchema(Register("shippin.tenancy.coverage_tier.get", Def[in, None]{Spec: Spec{Summary: "Read it.", Access: Staff, Perm: "p"}}))
+	if rp := read["properties"].(Schema); rp["label"] != nil || rp["reason"] != nil {
+		t.Errorf("a read takes no body or reason: %v", rp)
+	}
+}

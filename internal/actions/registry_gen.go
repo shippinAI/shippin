@@ -3,6 +3,7 @@
 package actions
 
 import (
+	identity_access_key "shippin.cloud/console/internal/identity/access_key"
 	identity_ssh_key "shippin.cloud/console/internal/identity/ssh_key"
 	"shippin.cloud/console/internal/mcpl"
 	tenancy_coverage "shippin.cloud/console/internal/tenancy/coverage"
@@ -11,6 +12,9 @@ import (
 
 // All is every action, in ID order.
 var All = []mcpl.Registered{
+	mcpl.Register("shippin.identity.access_key.create", identity_access_key.Create),
+	mcpl.Register("shippin.identity.access_key.list", identity_access_key.List),
+	mcpl.Register("shippin.identity.access_key.revoke", identity_access_key.Revoke),
 	mcpl.Register("shippin.identity.ssh_key.create", identity_ssh_key.Create),
 	mcpl.Register("shippin.identity.ssh_key.delete", identity_ssh_key.Delete),
 	mcpl.Register("shippin.identity.ssh_key.list", identity_ssh_key.List),

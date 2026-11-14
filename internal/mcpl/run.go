@@ -58,6 +58,8 @@ type Call struct {
 	DB DB
 	// Actor is the person the action runs as; "" for a public action.
 	Actor string
+	// Via is how the caller signed in: password, passkey, identity_provider, access_key and so on.
+	Via string
 	// Tenant is the organization a member action runs in, from the route's {tenantId}.
 	Tenant string
 	Reason string
@@ -128,9 +130,13 @@ func (d Def[In, Out]) serve(g Registered, c *Call, w http.ResponseWriter, r *htt
 		}
 	}
 	bind(r, &in)
+	if c.Pool == nil {
+		problem(w, &Error{http.StatusServiceUnavailable, "The database isn't connected."})
+		return
+	}
 	c.DB = c.Pool
 	var tx pgx.Tx
-	if g.Risk != Read && c.Pool != nil {
+	if g.Risk != Read {
 		var err error
 		if tx, err = c.Pool.Begin(c.Ctx); err != nil {
 			problem(w, err)

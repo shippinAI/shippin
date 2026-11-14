@@ -152,6 +152,37 @@ h := mcpltest.Serve(t, actions.All, "shippin.identity.ssh_key.", mcpltest.As{Act
 k := h.Call("POST", "/v1/me/identity/ssh-keys", body, 201)
 ```
 
+## MCP
+
+`POST /v1/mcp` is an MCP server (streamable HTTP, JSON responses) whose tools are the generated actions
+the caller may run, and nothing else. `POST /v1/mcp/<domain>` serves one domain's tools.
+
+- **Names.** A tool is the action ID without `shippin.` and with dashes: `identity-ssh_key-create`.
+- **Input.** Its input schema is derived from the action's `In` type, plus its route's parameters and,
+  for a staff change, the required `reason`. A member tool lists the caller's own organizations as the
+  choices for `tenantId`.
+- **Hints.** Reads are marked read-only, deletes destructive.
+- **Dispatch.** A call is dispatched as an ordinary request to the action's own route, with the caller's
+  own credentials. It passes the same gate, takes the same reason, commits with the same audit entry
+  and emits the same event as the panel's call. Nothing is reached around the route.
+
+### Access keys
+
+An AI client signs in with an access key: **Account > AI access** in the panel, or the
+`identity.access_key` actions.
+- A key acts as the person who made it, through their own permissions.
+- Only its hash is stored, and it is shown once.
+- It expires within 90 days, shows when it was last used, and is revoked at once.
+- It carries the sign-in method of the session that made it, so an organization's sign-in rule still
+  applies.
+- A key cannot make another key.
+- Staff routes that need a recent sign-in refuse it, so those stay a person's own session.
+- Taking over the setup account revokes the keys made with it.
+
+```sh
+claude mcp add --transport http shippin https://<panel>/v1/mcp --header "Authorization: Bearer shp_..."
+```
+
 ## Domains
 
 `public`, `auth`, `access`, `identity`, `tenancy`, `infrastructure`, `services`, `runtime`,
@@ -167,7 +198,7 @@ The same list names action IDs, events, UI actions and, later, the per-domain MC
 | Mounting | Every audience: staff, member, signed-in and public. |
 | Events | Emitted by every change after commit, with in-process reactions and a stream at `GET /v1/me/mcpl/events`. |
 | Manifests | `GET /v1/mcpl` (public) and `GET /v1/operator/mcpl` (staff, with what the caller may run). |
-| MCP | Planned: generated from the registry, one MCP per domain, running the same `Def`. Input schemas come from the `In` types. |
+| MCP | `POST /v1/mcp` and `POST /v1/mcp/<domain>`: tools generated from the registry, dispatched through each action's own route. Access keys for AI clients, in the panel under **Account > AI access**. |
 | UI actions, components, lessons | Planned: `shippin.ui.<domain>.<workflow>.<action>` with readiness and receipts. The panel's controls have roles and labels, which browser tests already drive. |
 
 Measured on 2026-11-12, before any entity moved:
@@ -189,7 +220,7 @@ Each disappears as its routes become action files.
 2. **Entity by entity, in the [code map](architecture.md)'s order.** Move each into
    `internal/<domain>/<entity>/`, switch its panel calls to `callAction`, and shrink the list in the
    same commit. Plans, catalog services and customers come next, then Access.
-3. **MCP from the registry,** with a person's delegated session as how an AI signs in.
+3. **Done.** MCP from the registry, with access keys as how an AI client signs in as a person.
 4. **UI actions** with receipts, proved in a real browser.
 
 ## Adding an action

@@ -19,6 +19,7 @@ import (
 // As is who the actions run as.
 type As struct {
 	Actor  string
+	Via    string
 	Tenant string
 	// Perms answers c.Can; nil allows nothing extra.
 	Perms    func(perm string) bool
@@ -67,7 +68,7 @@ func Serve(t *testing.T, all []mcpl.Registered, prefix string, as As) *Harness {
 			continue
 		}
 		h.Mux.HandleFunc(g.Route, func(w http.ResponseWriter, r *http.Request) {
-			g.Serve(&mcpl.Call{Ctx: r.Context(), Pool: h.Pool, Actor: h.As.Actor, Tenant: h.As.Tenant, Perms: h.As.Perms, Services: h.As.Services,
+			g.Serve(&mcpl.Call{Ctx: r.Context(), Pool: h.Pool, Actor: h.As.Actor, Via: h.As.Via, Tenant: h.As.Tenant, Perms: h.As.Perms, Services: h.As.Services,
 				Audit: func(_ mcpl.DB, action, detail string) error {
 					h.Audits = append(h.Audits, action+" "+detail)
 					return nil

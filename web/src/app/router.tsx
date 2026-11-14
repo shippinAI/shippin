@@ -21,6 +21,7 @@ const DeploymentsPage = lazy(() => import("../features/deployments/ui/deployment
 const WorkspaceDetailPage = lazy(() => import("../features/devspaces/ui/workspace-detail-page").then((m) => ({ default: m.WorkspaceDetailPage })));
 const AIConnectionsPage = lazy(() => import("../features/account/ui/ai-connections-page").then((m) => ({ default: m.AIConnectionsPage })));
 const SecurityPage = lazy(() => import("../features/account/ui/security-page").then((m) => ({ default: m.SecurityPage })));
+const AccessKeysPage = lazy(() => import("../features/account/ui/access-keys-page").then((m) => ({ default: m.AccessKeysPage })));
 const SSHKeysPage = lazy(() => import("../features/account/ui/ssh-keys-page").then((m) => ({ default: m.SSHKeysPage })));
 const CreateWorkspacePage = lazy(() => import("../features/devspaces/ui/create/create-workspace-page").then((m) => ({ default: m.CreateWorkspacePage })));
 const ProjectsPage = lazy(() => import("../features/projects/ui/projects-page").then((m) => ({ default: m.ProjectsPage })));
@@ -81,6 +82,7 @@ export const router = createBrowserRouter([
               { path: "/t/:tenantId/desktop", element: <Suspense fallback={null}><DesktopPage /></Suspense> },
               { path: "/account/security", element: <Suspense fallback={null}><SecurityPage /></Suspense> },
               { path: "/account/ssh-keys", element: <SSHKeysPage /> },
+              { path: "/account/ai-access", element: <AccessKeysPage /> },
               { path: "/account/ai", element: <AIConnectionsPage /> },
               { path: "/account/bridge", element: <BridgeSessionsPage /> },
               { path: "/hub", element: <Suspense fallback={null}><HubPage /></Suspense> },

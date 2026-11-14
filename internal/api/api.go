@@ -21,6 +21,7 @@ import (
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/proxmox"
 	"shippin.cloud/console/internal/identity"
+	"shippin.cloud/console/internal/identity/access_key"
 	"shippin.cloud/console/internal/jobs"
 	"shippin.cloud/console/internal/mail"
 	"shippin.cloud/console/internal/managed"
@@ -101,6 +102,8 @@ type API struct {
 	actionSvcsOnce sync.Once
 	// transports are the served routes that are not actions, with what each carries.
 	transports map[string]Carries
+	// root serves every route; MCP tool calls are dispatched through it.
+	root http.Handler
 }
 
 // authTime is when the caller last signed in at the IdP (zero for PATs).
@@ -115,6 +118,11 @@ func New(cfg *config.Config, flow *auth.Flow, d *db.DB) *API {
 	a := &API{cfg: cfg, flow: flow, db: d, host: hostclient.New(cfg.Incus.HostdURL), started: time.Now(), probeGate: newProbeConcurrencyGate(cfg.ProbeConcurrency),
 		jobs: jobs.NewStore(d.Pool), subs: &subs.Store{Pool: d.Pool}, gh: newGitHub(cfg.GitHub),
 		runs: &agentruns.Store{Pool: d.Pool}, svcs: rrflowStore(d), n2: newN2(cfg, d)}
+	if flow != nil && flow.Keys == nil && d != nil {
+		flow.Keys = func(ctx context.Context, token string) (string, string, bool) {
+			return access_key.Resolve(ctx, d.Pool, token)
+		}
+	}
 	a.tenantDB = tenantdb.NewGate(tenantdb.DialerFrom(cfg.TenantDB.Host, cfg.TenantDB.PortOrDefault(), cfg.TenantDB.SSL(), cfg.TenantDB.Timeout(), cfg.TenantDBSecrets),
 		tenantdb.Guard{Timeout: cfg.TenantDB.Timeout(), MaxRows: cfg.TenantDB.Rows()})
 	importCtx, cancelImport := context.WithTimeout(context.Background(), 10*time.Second)
@@ -126,6 +134,9 @@ func New(cfg *config.Config, flow *auth.Flow, d *db.DB) *API {
 }
 
 func (a *API) Register(mux Router) {
+	if h, ok := mux.(http.Handler); ok {
+		a.root = h // MCP runs tool calls through the same routes
+	}
 	mux.HandleFunc("GET /healthz", a.health)
 	mux.HandleFunc("GET /readyz", a.health)
 	mux.HandleFunc("GET /v1/health", a.health)
@@ -180,6 +191,7 @@ func (a *API) Register(mux Router) {
 	a.infraRoutes(mux)
 	mux.HandleFunc("GET /v1/mcpl", a.mcplPublic)
 	a.mountActions(mux)
+	a.mcpRoutes(mux)
 	a.followSSHKeys()
 	mux.HandleFunc("GET /auth/ws-check", a.wsCheck)
 	mux.HandleFunc("GET /auth/ws-login", a.wsLogin)
