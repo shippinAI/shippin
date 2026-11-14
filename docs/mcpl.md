@@ -35,15 +35,56 @@ and from that location alone it is:
 | ID | `shippin.tenancy.coverage_tier.update` |
 | Route | `PUT /v1/operator/tenancy/coverage-tiers/{coverageTierId}` |
 | Risk | write: it changes something, so it needs a reason |
+| Event | `shippin.tenancy.coverage_tier.updated`, after it commits |
 | Registry entry | `internal/actions/registry_gen.go` |
-| Panel entry | `web/src/lib/api/actions.gen.ts`, called as `callAction("shippin.tenancy.coverage_tier.update", { coverageTierId }, input)` |
+| Panel entry | `web/src/lib/api/actions.gen.ts`: typed from `UpdateInput` and `Tier`, called as `callAction("shippin.tenancy.coverage_tier.update", { coverageTierId }, { ...input, reason })` |
+| OpenAPI | `api/openapi/actions.gen.json`, operation `shippin.tenancy.coverage_tier.update` |
+| MCP tool | `tenancy-coverage_tier-update` |
 | Manifest | `GET /v1/operator/mcpl` |
 
-`go generate ./internal/actions` (`cmd/mcplgen`) finds every action file and writes the registry and
-the panel map. No route, ID or path is written by hand anywhere. `internal/actions` fails its tests
-when the generated files are stale, so a new or moved action cannot ship without them.
+No route, ID, path, panel type or API description is written by hand anywhere.
+
+### How it is generated
+
+`go generate ./internal/actions` runs two passes, each the only owner of what it writes:
+
+1. **From the source** (`cmd/mcplgen`, package `gen`): it parses the action files without compiling
+   them and writes the registry. It runs even when the registry it replaces no longer compiles,
+   because an action moved or was renamed.
+2. **From the compiled registry** (`cmd/mcplspec`, package `contract`): it walks each action's Go
+   `In` and `Out` types once and writes the panel's typed map and the OpenAPI document from that one
+   walk, so they cannot disagree with each other or with what the server decodes.
+
+`internal/actions` fails its tests when any generated file is stale. The image build
+([Dockerfile](../Dockerfile)) runs the same generation from the source alone before building the
+panel and the server, so an image is always what its source says.
+
+The generated types follow encoding/json:
+- a pointer is nullable and always sent;
+- `omitempty` may be left out;
+- an embedded struct is flattened;
+- a field tagged `path` or `query` is a parameter, not body.
+
+A named struct is one named type (`ssh_key.Key` is `SshKey`, `access_key.Created` is
+`AccessKeyCreated`). Two Go types that would share a name stop the generator.
 
 ### Route rules
+
+A route is four independent choices, each written in one place and each changing one part of the
+path:
+
+| Axis | Comes from | Decides |
+| --- | --- | --- |
+| Audience | `Spec.Access` | the prefix |
+| Domain | the folder under `internal/` | the next segment |
+| Entity | the folders below it | the plural segments and their `{<entity>Id}` |
+| Verb | the file name, through `mcpl.Verbs` | the method, and the item or the collection |
+
+Moving a file moves its route; changing the audience changes only the prefix. The domain stays in the
+route, decided on 2026-11-14: the route is then the file's location, so any route leads to its file.
+The per-domain MCP (`/v1/mcp/<domain>`) and the OpenAPI tags group by the same segment, and two
+domains can each have an entity of the same name without colliding. No route is an exception to these
+rules; a route that would need one is a transport (below), not an action.
 
 - **Audience** gives the prefix:
   - staff: `/v1/operator`;
@@ -53,10 +94,11 @@ when the generated files are stale, so a new or moved action cannot ship without
 
   The domain follows the prefix.
 - **Entities** are plural and kebab-case. An outer entity is followed by its own `{<entity>Id}`.
-- **Verbs** map to methods:
+- **Verbs** map to methods, in one table (`mcpl.Verbs`) that routes, risks and validation all read:
   - `list` GETs the collection and `create` POSTs to it.
   - `get` GETs one item, `update` PUTs it, and `delete`, `remove` and `revoke` DELETE it.
-  - Any other verb POSTs to the item, or to the collection when the spec says `Collection`.
+  - Any other verb is a write POSTed to the item (`.../coverage-tiers/{coverageTierId}/publish`), or
+    to the collection when the spec says `Collection`.
 - **Singletons.** An entity there is one of in its parent (an organization's coverage, a workspace's
   firewall) says `Singleton`. Its path is singular with no item ID:
   `internal/tenancy/coverage/get.go` is `GET /v1/tenants/{tenantId}/tenancy/coverage`.
@@ -85,6 +127,15 @@ in the organization's audit log.
 - The body is a JSON object decoded strictly: an unknown field is refused, and so is an `id` in the
   body of an update, because the path carries it.
 - Path and query values fill the fields tagged `path:"..."` and `query:"..."`.
+- A choice from a fixed set is a string type that lists its values, and is their only owner:
+
+  ```go
+  type Hours string
+  func (Hours) Values() []string { return []string{"business", "critical_always", "always"} }
+  ```
+
+  The action checks a value with `mcpl.Valid(v)`. The panel's types, the OpenAPI document and the MCP
+  input schema list the values from the type.
 
 #### Reason
 
@@ -133,7 +184,7 @@ in the organization's audit log.
 - `c.Can(perm)` answers field-level questions, such as hiding prices from a caller who may not see
   them.
 
-The spec's values are literals, so the generator reads them without running code.
+The spec's values are literals, so the first pass reads them without running code.
 
 ### Routes that are not actions
 
@@ -183,13 +234,35 @@ An AI client signs in with an access key: **Account > AI access** in the panel, 
 claude mcp add --transport http shippin https://<panel>/v1/mcp --header "Authorization: Bearer shp_..."
 ```
 
+## The factory
+
+`mcplgen new` starts an action where it belongs:
+
+```sh
+go run ./cmd/mcplgen new tenancy/plan/list -access staff -perm catalog.plans.read -summary "List the plans, cheapest first."
+```
+
+It checks the request against the rules above before writing anything: the domain, the names, the
+permission for the audience, the summary, and a singleton's verbs. Then it writes:
+- the entity's file when the entity is new (`plan.go`: its type, and `ByID` and `Parent` from the
+  route);
+- `list.go`, with the input and output its verb implies;
+- `list_db_test.go`, which calls the route.
+
+It then runs both generation passes. The new action is served, typed in the panel, in the OpenAPI
+document and offered over MCP. It answers `501 ... is not written yet` and its test fails until it is
+written. The factory never overwrites a file.
+
+`-singleton` makes an entity there is one of in its parent. `-collection` makes a custom verb act on
+the whole collection. A nested entity is a deeper path: `tenancy/plan/service/create`.
+
 ## Domains
 
 `public`, `auth`, `access`, `identity`, `tenancy`, `infrastructure`, `services`, `runtime`,
 `platform`, `integrations`: the contexts of the [code map](architecture.md), plus `public` and `auth`.
 The same list names action IDs, events, UI actions and, later, the per-domain MCPs.
 
-## Where it stands, 2026-11-13
+## Where it stands, 2026-11-14
 
 | Piece | State |
 | --- | --- |
@@ -198,6 +271,9 @@ The same list names action IDs, events, UI actions and, later, the per-domain MC
 | Mounting | Every audience: staff, member, signed-in and public. |
 | Events | Emitted by every change after commit, with in-process reactions and a stream at `GET /v1/me/mcpl/events`. |
 | Manifests | `GET /v1/mcpl` (public) and `GET /v1/operator/mcpl` (staff, with what the caller may run). |
+| Contracts | Generated from the registry: the panel's typed `callAction` (parameters, body and answer from the Go types) and `api/openapi/actions.gen.json`, which the API explorer lists. The hand-written `api/openapi/openapi.yaml` keeps only routes that are not actions; `TestOpenAPIContract` refuses an action's path in it and ratchets the undocumented rest in `internal/api/testdata/openapi-drift.txt`. |
+| Factory | `mcplgen new`, tested by scaffolding every shape and finding it where it says. |
+| Build | The image regenerates the registry and contracts from source. |
 | MCP | `POST /v1/mcp` and `POST /v1/mcp/<domain>`: tools generated from the registry, dispatched through each action's own route. Access keys for AI clients, in the panel under **Account > AI access**. |
 | UI actions, components, lessons | Planned: `shippin.ui.<domain>.<workflow>.<action>` with readiness and receipts. The panel's controls have roles and labels, which browser tests already drive. |
 
@@ -221,11 +297,17 @@ Each disappears as its routes become action files.
    `internal/<domain>/<entity>/`, switch its panel calls to `callAction`, and shrink the list in the
    same commit. Plans, catalog services and customers come next, then Access.
 3. **Done.** MCP from the registry, with access keys as how an AI client signs in as a person.
-4. **UI actions** with receipts, proved in a real browser.
+4. **Done.** Typed panel calls and OpenAPI generated from the registry, the factory, and generation in
+   the image build.
+5. **UI actions** with receipts, proved in a real browser.
 
 ## Adding an action
 
 1. Pick the domain and the entity folder. If none fits, it is probably two actions.
-2. Write `<verb>.go` with `var <Verb> = mcpl.Def[In, Out]{Spec: ..., Run: ...}`, its tests beside it.
-3. Run `go generate ./internal/actions`.
-4. In the panel, call it with `callAction("<id>", params, input)`.
+2. Start it with `go run ./cmd/mcplgen new <domain>/<entity>/<verb> ...`, or write `<verb>.go` by hand
+   with `var <Verb> = mcpl.Def[In, Out]{Spec: ..., Run: ...}` and run `go generate ./internal/actions`.
+3. Write it and its test. Change its Go types, never the generated files.
+4. In the panel, call it with `callAction("<id>", params, body)`: the compiler checks the parameters
+   and body, and the answer is typed.
+5. Moving a legacy route: remove its path from `api/openapi/openapi.yaml`, switch the panel's calls,
+   and shrink both ratchet files in the same commit (`UPDATE_MCPL=1 UPDATE_OPENAPI=1 go test ./internal/api`).

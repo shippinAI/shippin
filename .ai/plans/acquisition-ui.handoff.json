@@ -1,0 +1,189 @@
+{
+  "schema_version": "clyffy.handoff.v1",
+  "id": "acquisition-ui-20261114",
+  "status": "ready",
+  "objective": "Add the platform's private source configuration and imported early-access lead view to the existing sign-ups panel, using the verified generated actions and no credential exposure.",
+  "baseline_commit": "6f68686c43fccf4caee360b78a909b4476db1a1a",
+  "evidence": [
+    {
+      "kind": "source",
+      "location": "web/src/features/admin/ui/signups/signups-page.tsx",
+      "claim": "Reviewed current canonical UI, generated action adapter, accessibility, permission, wording, navigation or test convention."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/lib/api/actions.ts",
+      "claim": "Reviewed current canonical UI, generated action adapter, accessibility, permission, wording, navigation or test convention."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/lib/hooks/use-can.ts",
+      "claim": "Reviewed current canonical UI, generated action adapter, accessibility, permission, wording, navigation or test convention."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/lib/ui-config/text-keys.ts",
+      "claim": "Reviewed current canonical UI, generated action adapter, accessibility, permission, wording, navigation or test convention."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/lib/ui-config/use-ui-config.ts",
+      "claim": "Reviewed current canonical UI, generated action adapter, accessibility, permission, wording, navigation or test convention."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/template/admin/admin-nav.ts",
+      "claim": "Reviewed current canonical UI, generated action adapter, accessibility, permission, wording, navigation or test convention."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/app/admin-routes.tsx",
+      "claim": "Reviewed current canonical UI, generated action adapter, accessibility, permission, wording, navigation or test convention."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/lib/design/components/field/text-field.tsx",
+      "claim": "Reviewed current canonical UI, generated action adapter, accessibility, permission, wording, navigation or test convention."
+    },
+    {
+      "kind": "source",
+      "location": "web/package.json",
+      "claim": "Reviewed current canonical UI, generated action adapter, accessibility, permission, wording, navigation or test convention."
+    },
+    {
+      "kind": "verification",
+      "location": "web/src/lib/api/actions.gen.ts",
+      "claim": "Actual generated source action IDs and DTOs inspected; go generate ./internal/actions and go test ./internal/tenancy/acquisition_source/... ./internal/actions passed. No runtime/browser claim."
+    }
+  ],
+  "constraints": [
+    "Backend action/type contract is now frozen; do not dispatch or implement until root re-anchors it and changes status to ready.",
+    "UI-only scope. Root owns backend, generated contracts, canonical authorization integration and real browser harness.",
+    "No real credentials, source service, deployment, provisioning, identity creation, waitlist enrollment or outgoing communications.",
+    "Synthetic test values only. No secrets in generated files, logs, persistence, query or mutation caches.",
+    "Do not represent local UI tests or mocked actions as proof of live server authorization or actual import.",
+    "Implement responsive accessible UI within existing web panel and configurable text system."
+  ],
+  "authorized_scope": [
+    "web/src/features/admin/ui/signups",
+    "web/src/lib/ui-config/text-keys.ts",
+    "web/src/lib/hooks/use-can.ts",
+    "web/src/template/admin/admin-nav.ts",
+    "web/src/app/admin-routes.tsx",
+    "web/package.json"
+  ],
+  "anchors": [
+    {
+      "path": "web/src/features/admin/ui/signups/signups-page.tsx",
+      "sha256": "c064177b38d84525521cd6cf8c36a4e07cdb8aaa57008cca0287d0aebe770305"
+    },
+    {
+      "path": "web/src/lib/api/actions.ts",
+      "sha256": "c49e2b84c85429be3722a0156b9920fef470e7ae1e312c1a8a4f499e4dd50da3"
+    },
+    {
+      "path": "web/src/lib/hooks/use-can.ts",
+      "sha256": "afe2f7eb3e791c32cc3f005194e886bf0d9096764c8da2c25b7553ffb801f9aa"
+    },
+    {
+      "path": "web/src/lib/ui-config/text-keys.ts",
+      "sha256": "9c7cf60dae60041b4aa7cca42c1f9bb9a7d04262c25f40329ed6dc77a34c2cbf"
+    },
+    {
+      "path": "web/src/lib/ui-config/use-ui-config.ts",
+      "sha256": "1f6007623a9927f367e477de2017b35fc0f3d23bcf65be82f450a2e2ba3d9c98"
+    },
+    {
+      "path": "web/src/template/admin/admin-nav.ts",
+      "sha256": "1aa9addf6176b18c9610d64f5d240df57bec433830157542ef401c1521aa025b"
+    },
+    {
+      "path": "web/src/app/admin-routes.tsx",
+      "sha256": "9e3ab130d4f2fe56e0dbf4a93135a342b71fb845528e137a40feae6d138a239a"
+    },
+    {
+      "path": "web/src/lib/design/components/field/text-field.tsx",
+      "sha256": "c6dda2c20eb9310547fd645a3cc85063c6ce2a188794fccf69cefdc94f5254f9"
+    },
+    {
+      "path": "web/package.json",
+      "sha256": "d045a2f98082a9b2b03a4e3164a547d724dcd5ee808ffce36cbe9169cebf81e9"
+    },
+    {
+      "path": "web/src/lib/api/actions.gen.ts",
+      "sha256": "4d5b4cad9200f4250e30537c77965cd25c8cc108e419aacc2cada5298ffda17f"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "acquisition-ui",
+      "title": "Existing sign-ups panel acquisition source and lead tabs",
+      "status": "pending",
+      "paths": [
+        "web/src/features/admin/ui/signups",
+        "web/src/lib/ui-config/text-keys.ts",
+        "web/src/lib/hooks/use-can.ts",
+        "web/src/template/admin/admin-nav.ts",
+        "web/src/app/admin-routes.tsx",
+        "web/package.json"
+      ],
+      "depends_on": [],
+      "steps": [
+        "STOP until backend generated contract is frozen. Root must inspect backend changes, confirm exact action IDs, path params, input/output types and permission behavior, add resulting generated file digest as an anchor, refresh affected UI anchors and mark this handoff ready. Do not manually invent, edit or cast around generated actions/types. Backend has not yet been verified and listed field names are a provisional target.",
+        "Extend the existing Customers > Sign-ups page with a visibly separate Imported early-access area and accessible Source and Leads tabs, preserving the existing confirmed waitlist flow. Do not create another panel, merge leads with waitlist, mark addresses verified, create accounts/invitations, send email or claim automatic enrollment.",
+        "Existing admin navigation cap is customers.read; change only its existing OR expression to permit customers.read or acquisition.read or platform.settings.write as appropriate for entry. Show existing waitlist only to customers.read; avoid even issuing its query for other users. The source list requires acquisition.read; editors require BOTH acquisition.read for list and platform.settings.write to read or edit source config. Explain missing acquisition.read plainly rather than bypassing the server. Sync controls separately require acquisition.sync. UI gating is not authorization; root verifies canonical server gates.",
+        "Use only generated callAction and generated types once frozen. Source summary provisional shape: id, label, state, config_generation, cursor, latest_success_at, active_lead_count, paused, signer_configured, ca_configured. Config GET returns safe editable configuration and no signer. CREATE takes server-generated UUID semantics: label, HTTPS origin, explicit dial IP and port, CA, immutable tenant/project/issuer/audience, base64 32-byte signing seed and audited reason. UPDATE requires expected generation; endpoint/trust, optional replacement signer and pause are editable; blank signer means retain existing. Never permit tenant/project/issuer/audience edits in this slice. Display conflict and require re-read on stale generation, without silent overwrite.",
+        "Source settings must distinguish configured, paused, never synchronized, last successful import and errors. Show sync only for allowed unpaused source; one bounded page, require audited reason, show returned aggregate/more and refresh only safe source and lead queries. Configured does not mean synced or connected. No fake test button, actual import, automatic recurring sync or cursor reset. Warn plainly: after a known source restore pause and obtain operator reconciliation; automatic restore detection and reset are not provided.",
+        "Lead tab displays latest 100 active, unexpired, non-deleted imported records only for acquisition.read, source-scoped. Display email, status, consent version/time and appropriate timestamps; email_verified:false means not verified. Honor total/truncated from backend and clearly say this is a latest-100 preview, not the entire list; do not claim pagination or completeness. Loading, empty, permission denied, source error, paused and no-source states are distinct.",
+        "Never put signer seed in query cache, mutation variables, local/session storage, URL, logs, analytics, toast, devtools-visible durable state or responses. Use an uncontrolled password input/ref for temporary entry, assemble call payload only inside the in-flight request, clear input/ref and transient references as soon as practical, including failures/unmount; reset mutation and use no retained mutation cache for credentials. Blank update leaves signer unchanged, while the configured state is only a boolean. Do not echo a previous value or insert it into error messages. CA is public trust material, not a secret, but must not be misrepresented as proof of remote identity.",
+        "Use existing React Aria design components and token styles, useText with text-keys for all new configurable panel wording, keyboard-labelled tabs and forms, error/status semantics. Add focused tests or model tests for capability gating, payloads, stale conflict, no-secret retention, status/empty/truncated states and navigation. Root owns true canonical gate integration and real browser verification. Do not change generated backend artifacts, server, source repository, release, live deployment or provisioning."
+      ],
+      "checks": [
+        {
+          "argv": [
+            "npm",
+            "--prefix",
+            "web",
+            "run",
+            "typecheck"
+          ],
+          "expected": "Generated types compile without casts or handwritten routes."
+        },
+        {
+          "argv": [
+            "npm",
+            "--prefix",
+            "web",
+            "test"
+          ],
+          "expected": "Panel tests, configurable copy and hardcoding checks pass including new focused tests."
+        },
+        {
+          "argv": [
+            "npm",
+            "--prefix",
+            "web",
+            "run",
+            "tokens"
+          ],
+          "expected": "Design token checks pass."
+        }
+      ],
+      "acceptance": [
+        "Source configuration and lead preview are clearly separate from confirmed waitlist and never create or invite users.",
+        "Per-permission controls and requests are correctly gated, while actual server enforcement is independently proved by root.",
+        "Secrets are not echoed or retained in query/mutation/browser persistence; signer input clears on success, failure and unmount.",
+        "Honest source status, latest-100 truncation, stale config and known-restore warnings are visible, keyboard accessible and responsive.",
+        "No claim of live deployment, verified addresses, automatic sync or full browser/server proof without root evidence."
+      ]
+    }
+  ],
+  "next_task": "acquisition-ui",
+  "escalation_triggers": [
+    "Backend generated contract not frozen or differs materially from provisional shape.",
+    "Source or UI anchor changes during handoff.",
+    "Secret handling cannot avoid retained mutation/query data.",
+    "Permission, restore, truncation or consent semantics unclear.",
+    "Task requires backend edits, real credentials or live access."
+  ]
+}

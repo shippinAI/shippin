@@ -1,0 +1,166 @@
+{
+  "schema_version": "clyffy.handoff.v1",
+  "id": "acquisition-signer-lifecycle-20261114",
+  "status": "ready",
+  "objective": "Remove signing seeds from the actual acquisition UI DOM after every completion or abandonment path, while preserving functional and accessible input.",
+  "baseline_commit": "f84972fa238d4be1783ac41b7f2d6f8ab904e1a4",
+  "evidence": [
+    {
+      "kind": "source",
+      "location": "web/src/features/admin/ui/signups/acquisition-panel.tsx",
+      "claim": "Reviewed current signer field, form lifecycle, design, generated action, tests or worktree conventions."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/features/admin/ui/signups/signups-page.tsx",
+      "claim": "Reviewed current signer field, form lifecycle, design, generated action, tests or worktree conventions."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/features/admin/ui/signups/acquisition-model.test.ts",
+      "claim": "Reviewed current signer field, form lifecycle, design, generated action, tests or worktree conventions."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/lib/design/components/field/text-field.tsx",
+      "claim": "Reviewed current signer field, form lifecycle, design, generated action, tests or worktree conventions."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/lib/api/actions.ts",
+      "claim": "Reviewed current signer field, form lifecycle, design, generated action, tests or worktree conventions."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/lib/api/actions.gen.ts",
+      "claim": "Reviewed current signer field, form lifecycle, design, generated action, tests or worktree conventions."
+    },
+    {
+      "kind": "source",
+      "location": "web/package.json",
+      "claim": "Reviewed current signer field, form lifecycle, design, generated action, tests or worktree conventions."
+    },
+    {
+      "kind": "source",
+      "location": "AGENTS.md",
+      "claim": "Reviewed current signer field, form lifecycle, design, generated action, tests or worktree conventions."
+    },
+    {
+      "kind": "observation",
+      "location": "root-owned synthetic browser acceptance",
+      "claim": "Parent reports actual seed remains in serialized DOM after successful save despite ref.value clearing; root cause not yet proven."
+    }
+  ],
+  "constraints": [
+    "UI and focused test files only; preserve concurrently modified acquisition fixture files and all fixture state.",
+    "Use only synthetic signing seeds. No production credentials, live access, schema/backend/generated contract changes, provisioning or deployment.",
+    "Do not claim browser memory is cryptographically erased; transient request/input is necessary, persistent or later DOM exposure is not.",
+    "No weakening of actual browser security assertions or replacement with source-text-only tests.",
+    "Prior denied governance journal scope remains closed; do not retry."
+  ],
+  "authorized_scope": [
+    "web/src/features/admin/ui/signups/acquisition-panel.tsx",
+    "web/src/features/admin/ui/signups/acquisition-signer-lifecycle.test.tsx",
+    "web/scripts/acquisition-signer-lifecycle.test.mjs",
+    "web/package.json"
+  ],
+  "anchors": [
+    {
+      "path": "web/src/features/admin/ui/signups/acquisition-panel.tsx",
+      "sha256": "bc31e797a739c0e04a305c3cd59906d2894e3266ecf4b4bb71dc573235ab4154"
+    },
+    {
+      "path": "web/src/features/admin/ui/signups/signups-page.tsx",
+      "sha256": "01b5cc159f766d7e04f4c6e604f5b7a42ad22261951d063311e1f1219224ddca"
+    },
+    {
+      "path": "web/src/features/admin/ui/signups/acquisition-model.test.ts",
+      "sha256": "9f2a9f315a69b548d1cd59edf422c8f7f571091d300420ec663348840405b94c"
+    },
+    {
+      "path": "web/src/lib/design/components/field/text-field.tsx",
+      "sha256": "c6dda2c20eb9310547fd645a3cc85063c6ce2a188794fccf69cefdc94f5254f9"
+    },
+    {
+      "path": "web/src/lib/api/actions.ts",
+      "sha256": "c49e2b84c85429be3722a0156b9920fef470e7ae1e312c1a8a4f499e4dd50da3"
+    },
+    {
+      "path": "web/src/lib/api/actions.gen.ts",
+      "sha256": "4d5b4cad9200f4250e30537c77965cd25c8cc108e419aacc2cada5298ffda17f"
+    },
+    {
+      "path": "web/package.json",
+      "sha256": "6b650e3a8cca43192af1d130f25e01e70b607539ad1ca66eac84766ddbbe59e8"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "b18ce7c45343efea101e7b53d24b1109562430bbcab29f4ab73d5e74fe80304f"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "signer-lifecycle",
+      "title": "Clear acquisition signing seed on all completion and abandonment paths",
+      "status": "pending",
+      "paths": [
+        "web/src/features/admin/ui/signups/acquisition-panel.tsx",
+        "web/src/features/admin/ui/signups/acquisition-signer-lifecycle.test.tsx",
+        "web/scripts/acquisition-signer-lifecycle.test.mjs",
+        "web/package.json"
+      ],
+      "depends_on": [],
+      "steps": [
+        "Fix only the acquisition signing-seed field and its lifecycle, preserving all concurrent fixture test changes. Existing SigningSeedField wraps a React Aria Input and ref.value clearing; a real browser observed the submitted seed still in serialized page DOM after successful save. Do not assert an unproven library-internal root cause.",
+        "Use a local native uncontrolled password input with associated accessible label, description, required semantics, autocomplete new-password, spellcheck disabled and existing token/focus styling; do not add a controlled value, defaultValue, React secret state, query or mutation variables, storage, logging or URL. An operator must be able to type/paste the seed and the submit request must receive it once; a blank optional update preserves the server-side signer.",
+        "Centralize a complete seed reset for create and update: clear live value, defaultValue and any value attribute, and force a fresh field/remount when necessary to prevent React or browser state from restoring the serialized value. Execute on successful and failed server submissions, local-validation failure and early return, cancel/create close, source change, tab or route navigation and component unmount. Safely handle async completion after unmount, avoid wiping unrelated user input, and do not leave retained signer in mutation/query cache or user-facing errors. Ensure aria labels, description associations, focus and keyboard flow remain usable after reset. For unmount retain a safe reference to the actual prior input node before React nulls the parent ref, or use a ref callback teardown; test that detached node itself is cleared, not only the replacement page.",
+        "Add behavioral browser DOM regression for the ACTUAL rendered component, not a text search for code or a mocked description. Use isolated synthetic key values and controllable success/error responses or the root-owned disposable real-browser fixture; cover create and update success, server failure, local validation failure, cancellation, source switch, tab/route navigation and unmount. Assert input.value and input.defaultValue empty, getAttribute('value') absent or empty, outerHTML and page.content exclude seed; inspect localStorage/sessionStorage, URL, relevant response payloads and query/mutation state where observable. Verify unrelated form labels and keyboard control still work and blank update does not send a signer. Retain a handle to the removed input before navigation/unmount and assert its live value, defaultValue and value attribute are empty after detachment.",
+        "Run web typecheck, focused behavioral browser test, existing web tests and token checks as available. Root owns independent full real-Postgres/source/browser acceptance and current fixture scripts; coordinate any test seam without editing its concurrently owned files. Report exact commands, exit status, skips and actual browser evidence. No backend/schema/generated contract or live credential/deployment changes."
+      ],
+      "checks": [
+        {
+          "argv": [
+            "npm",
+            "--prefix",
+            "web",
+            "run",
+            "typecheck"
+          ],
+          "expected": "Actual UI types compile."
+        },
+        {
+          "argv": [
+            "npm",
+            "--prefix",
+            "web",
+            "test"
+          ],
+          "expected": "Existing panel tests pass, no source-text-only substitute for browser proof."
+        },
+        {
+          "argv": [
+            "npm",
+            "--prefix",
+            "web",
+            "run",
+            "tokens"
+          ],
+          "expected": "Design token checks pass."
+        }
+      ],
+      "acceptance": [
+        "Actual rendered and previously detached input nodes do not expose the submitted synthetic seed through live/default value, value attribute, outerHTML or page serialization after success, failure, cancel, navigation or unmount.",
+        "Create/update remain usable, accessible and retain blank-signer-means-unchanged behavior; no seed in storage, URL, responses or retained query/mutation state.",
+        "Root independently reruns real source/platform/browser acceptance; report it only if actually observed.",
+        "No fixture data or concurrently owned test files are overwritten."
+      ]
+    }
+  ],
+  "next_task": "signer-lifecycle",
+  "escalation_triggers": [
+    "Source anchor changed or concurrent fixture files would need editing.",
+    "Actual DOM failure persists after the narrow field reset.",
+    "A backend, generated contract or real credential change is required.",
+    "Behavioral browser regression cannot be executed; report skipped rather than asserting success."
+  ]
+}

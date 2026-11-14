@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 169,
+  "operationCount": 187,
   "tags": [
     "agents-runtime",
     "audit",
@@ -26,6 +26,7 @@
     "secrets",
     "settings",
     "subscriptions-runtime",
+    "tenancy",
     "tenants",
     "workspace-runtime",
     "workspaces"
@@ -753,6 +754,72 @@
       "implementationStatus": "registered"
     },
     {
+      "method": "GET",
+      "path": "/me/identity/access-keys",
+      "operationId": "shippin.identity.access_key.list",
+      "summary": "List your access keys, with when each expires and was last used.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.identity.access_key.list"
+    },
+    {
+      "method": "POST",
+      "path": "/me/identity/access-keys",
+      "operationId": "shippin.identity.access_key.create",
+      "summary": "Make an access key an AI client or script uses to act as you; it is shown once.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.identity.access_key.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/identity/access-keys/{accessKeyId}",
+      "operationId": "shippin.identity.access_key.revoke",
+      "summary": "Revoke one of your access keys; whatever uses it stops at once.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.identity.access_key.revoke"
+    },
+    {
+      "method": "GET",
+      "path": "/me/identity/ssh-keys",
+      "operationId": "shippin.identity.ssh_key.list",
+      "summary": "List the SSH keys on your account, which Shippin puts on the workspaces you create.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.identity.ssh_key.list"
+    },
+    {
+      "method": "POST",
+      "path": "/me/identity/ssh-keys",
+      "operationId": "shippin.identity.ssh_key.create",
+      "summary": "Add an SSH public key to your account; it is put on your running workspaces too.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.identity.ssh_key.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/identity/ssh-keys/{sshKeyId}",
+      "operationId": "shippin.identity.ssh_key.delete",
+      "summary": "Remove an SSH key from your account and from your workspaces.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.identity.ssh_key.delete"
+    },
+    {
       "method": "POST",
       "path": "/session/magic",
       "operationId": "requestMagicLink",
@@ -938,7 +1005,7 @@
       "tags": [
         "members"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "registered"
     },
     {
       "method": "POST",
@@ -948,7 +1015,7 @@
       "tags": [
         "members"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "registered"
     },
     {
       "method": "DELETE",
@@ -958,7 +1025,7 @@
       "tags": [
         "members"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "registered"
     },
     {
       "method": "PATCH",
@@ -968,7 +1035,7 @@
       "tags": [
         "members"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "registered"
     },
     {
       "method": "GET",
@@ -1524,6 +1591,138 @@
       ],
       "implementationStatus": "registered",
       "feature": "feature.ai"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/acquisition-sources",
+      "operationId": "shippin.tenancy.acquisition_source.list",
+      "summary": "List configured acquisition sources without exposing source credentials or lead contact data.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenancy/acquisition-sources",
+      "operationId": "shippin.tenancy.acquisition_source.create",
+      "summary": "Register a private acquisition source with pinned TLS and a write-only signer key.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.create"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/acquisition-sources/{acquisitionSourceId}",
+      "operationId": "shippin.tenancy.acquisition_source.get",
+      "summary": "Read a source's nonsecret connection and trust configuration.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/tenancy/acquisition-sources/{acquisitionSourceId}",
+      "operationId": "shippin.tenancy.acquisition_source.update",
+      "summary": "Update a source endpoint or trust settings with an expected generation and explicit pause state.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.update"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/acquisition-sources/{acquisitionSourceId}/leads",
+      "operationId": "shippin.tenancy.acquisition_source.lead.list",
+      "summary": "Review up to 100 current acquisition leads with consent details and explicit unverified status.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.lead.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenancy/acquisition-sources/{acquisitionSourceId}/sync",
+      "operationId": "shippin.tenancy.acquisition_source.sync",
+      "summary": "Import one bounded page from an authorized acquisition source.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.sync"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/coverage-tiers",
+      "operationId": "shippin.tenancy.coverage_tier.list",
+      "summary": "List the coverage tiers, lowest rank first.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.coverage_tier.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenancy/coverage-tiers",
+      "operationId": "shippin.tenancy.coverage_tier.create",
+      "summary": "Create a coverage tier with its support hours, response targets, services and sign-in rule.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.coverage_tier.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/tenancy/coverage-tiers/{coverageTierId}",
+      "operationId": "shippin.tenancy.coverage_tier.delete",
+      "summary": "Remove a coverage tier that no plan includes; organizations moved to it fall back to their plan's.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.coverage_tier.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/coverage-tiers/{coverageTierId}",
+      "operationId": "shippin.tenancy.coverage_tier.get",
+      "summary": "Read one coverage tier.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.coverage_tier.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/tenancy/coverage-tiers/{coverageTierId}",
+      "operationId": "shippin.tenancy.coverage_tier.update",
+      "summary": "Change a coverage tier's support, services, sign-in rule or price.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.coverage_tier.update"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/tenancy/coverage",
+      "operationId": "shippin.tenancy.coverage.get",
+      "summary": "Read what your organization's coverage includes: support hours, response targets and services.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.coverage.get"
     },
     {
       "method": "POST",

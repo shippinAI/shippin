@@ -1,0 +1,124 @@
+{
+  "schema_version": "clyffy.handoff.v1",
+  "id": "acquisition-integration-20261114",
+  "status": "ready",
+  "objective": "Author isolated real-browser acquisition acceptance without product changes or live execution.",
+  "baseline_commit": "6f68686c43fccf4caee360b78a909b4476db1a1a",
+  "evidence": [
+    {
+      "kind": "source",
+      "location": "internal/devaccounts/devaccounts.go",
+      "claim": "Read full relevant authentication, fixture, or action boundary source."
+    },
+    {
+      "kind": "source",
+      "location": "internal/api/perm_grants.go",
+      "claim": "Read full relevant authentication, fixture, or action boundary source."
+    },
+    {
+      "kind": "source",
+      "location": "internal/api/staff_local.go",
+      "claim": "Read full relevant authentication, fixture, or action boundary source."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/lib/api/actions.ts",
+      "claim": "Read full relevant authentication, fixture, or action boundary source."
+    },
+    {
+      "kind": "source",
+      "location": "docs/development.md",
+      "claim": "Read full relevant authentication, fixture, or action boundary source."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/lib/api/actions.gen.ts",
+      "claim": "Reviewed actual generated acquisition routes, typed payloads, nested summary and lead response."
+    },
+    {
+      "kind": "source",
+      "location": "internal/acquisition/contracts.go",
+      "claim": "Reviewed actual generated acquisition routes, typed payloads, nested summary and lead response."
+    }
+  ],
+  "constraints": [
+    "Test files only; root owns fixture Docker orchestration.",
+    "No real credentials or live services; loopback HTTPS and synthetic identities only.",
+    "Never print response bodies, secrets, sessions or raw errors.",
+    "Actual generated contracts reviewed; UI selectors must be checked against implementing source before runtime qualification.",
+    "Parent explicitly authorized execution on own shippin-acquisition-acceptance synthetic Docker fixture after panel-ready; no live installation. Parent owns panel image/start, agent may run phase launcher and inspect fixture state."
+  ],
+  "authorized_scope": [
+    "web/scripts/test-acquisition-integration.mjs",
+    "scripts/test-acquisition"
+  ],
+  "anchors": [
+    {
+      "path": "internal/devaccounts/devaccounts.go",
+      "sha256": "567c383354ead693bef23b5201133fdd92d05978da4edafbcb7b8c85fddd10c4"
+    },
+    {
+      "path": "internal/api/perm_grants.go",
+      "sha256": "66b1400f8b9e52079328d723147f43053e8038810098cef0a55c55b24805a947"
+    },
+    {
+      "path": "internal/api/staff_local.go",
+      "sha256": "c34d13d4986c96f89ecaa41898023bdf0dddd14b1aa5a814ad569b5781517378"
+    },
+    {
+      "path": "web/src/lib/api/actions.ts",
+      "sha256": "c49e2b84c85429be3722a0156b9920fef470e7ae1e312c1a8a4f499e4dd50da3"
+    },
+    {
+      "path": "docs/development.md",
+      "sha256": "636790fac4a4d8b8edac07175ba6adec75e118401af6b1ff0eaa3491a31cd2d1"
+    },
+    {
+      "path": "web/src/lib/api/actions.gen.ts",
+      "sha256": "4d5b4cad9200f4250e30537c77965cd25c8cc108e419aacc2cada5298ffda17f"
+    },
+    {
+      "path": "internal/acquisition/contracts.go",
+      "sha256": "32663d292c4aed2f6551b49273ebf7fc186ce91ff8b70bf3c7ba96dbc6fd6ccb"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "harness",
+      "title": "Real fixture acceptance harness",
+      "status": "pending",
+      "paths": [
+        "web/scripts/test-acquisition-integration.mjs",
+        "scripts/test-acquisition"
+      ],
+      "depends_on": [],
+      "steps": [
+        "Implement isolated setup/login/explicit fixture grants and source deletion helper from reviewed source.",
+        "After generated contract and UI are available inspect and anchor actual source; implement signup to configure to pull to lead display, repeat and persistence, reader/customer/crossorigin/wrongtrust negatives.",
+        "Syntax check scripts; root supplies disposable fixture before execution; report unrun or blocked tests accurately.",
+        "After parent panel-ready execute bootstrap, prepare, verify and parent-orchestrated recreation/deletion phases on fixture only; record exact outcomes and substantive failures without secrets."
+      ],
+      "checks": [
+        {
+          "argv": [
+            "node",
+            "--check",
+            "web/scripts/test-acquisition-integration.mjs"
+          ],
+          "expected": "Valid JavaScript; not proof of actual integration."
+        }
+      ],
+      "acceptance": [
+        "No product or deployment changes.",
+        "Real auth and real source TLS, no route mocks or cookie forgery.",
+        "End-to-end result requires persisted imported record and tombstone disappearance, not only success UI."
+      ]
+    }
+  ],
+  "next_task": "harness",
+  "escalation_triggers": [
+    "Contract differs from actual generated files.",
+    "Fixture identity or endpoint is not isolated.",
+    "Secrets would be logged or live data touched."
+  ]
+}

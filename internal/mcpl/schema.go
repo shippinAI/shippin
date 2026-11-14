@@ -7,6 +7,26 @@ import (
 	"time"
 )
 
+// Enum is a string type with a fixed set of values, which it lists. The type is the one owner of its
+// values: the action checks them with Valid, and the panel's types and OpenAPI list them.
+//
+//	type Hours string
+//	func (Hours) Values() []string { return []string{"business", "critical_always", "always"} }
+type Enum interface{ Values() []string }
+
+// Valid is whether v is one of its type's values.
+func Valid[T interface {
+	~string
+	Enum
+}](v T) bool {
+	for _, x := range v.Values() {
+		if x == string(v) {
+			return true
+		}
+	}
+	return false
+}
+
 // Schema is a JSON Schema, derived from an action's Go types so MCP tools, OpenAPI and the panel's
 // types never drift from what the action decodes.
 type Schema = map[string]any
@@ -29,6 +49,9 @@ func schemaOf(t reflect.Type, seen map[reflect.Type]bool) Schema {
 		return Schema{"type": "string", "format": "date-time"}
 	case t == rawType:
 		return Schema{}
+	}
+	if t.Kind() == reflect.String && t.Implements(reflect.TypeFor[Enum]()) {
+		return Schema{"type": "string", "enum": reflect.Zero(t).Interface().(Enum).Values()}
 	}
 	switch t.Kind() {
 	case reflect.String:
@@ -54,14 +77,14 @@ func schemaOf(t reflect.Type, seen map[reflect.Type]bool) Schema {
 		seen[t] = true
 		defer delete(seen, t)
 		props := Schema{}
-		fields(t, func(name string, f reflect.StructField) { props[name] = schemaOf(f.Type, seen) })
+		JSONFields(t, func(name string, f reflect.StructField) { props[name] = schemaOf(f.Type, seen) })
 		return Schema{"type": "object", "properties": props, "additionalProperties": false}
 	}
 	return Schema{}
 }
 
-// fields calls fn for each JSON field of struct t, flattening embedded structs as encoding/json does.
-func fields(t reflect.Type, fn func(name string, f reflect.StructField)) {
+// JSONFields calls fn for each JSON field of struct t, flattening embedded structs as encoding/json does.
+func JSONFields(t reflect.Type, fn func(name string, f reflect.StructField)) {
 	for i := range t.NumField() {
 		f := t.Field(i)
 		tag := f.Tag.Get("json")
@@ -75,7 +98,7 @@ func fields(t reflect.Type, fn func(name string, f reflect.StructField)) {
 				ft = ft.Elem()
 			}
 			if ft.Kind() == reflect.Struct {
-				fields(ft, fn)
+				JSONFields(ft, fn)
 				continue
 			}
 		}

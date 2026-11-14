@@ -7,6 +7,8 @@ export type ApiOperation = {
   implementationStatus: string;
   /** The capability this route needs to be offered; the API contract says which. */
   feature?: string;
+  /** The MCPL action this operation is, when it is one (generated from the action files). */
+  action?: string;
 };
 
 export type OperationIndex = { basePath: string; operationCount: number; tags: string[]; operations: ApiOperation[] };

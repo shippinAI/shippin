@@ -6,6 +6,8 @@ import (
 	identity_access_key "shippin.cloud/console/internal/identity/access_key"
 	identity_ssh_key "shippin.cloud/console/internal/identity/ssh_key"
 	"shippin.cloud/console/internal/mcpl"
+	tenancy_acquisition_source "shippin.cloud/console/internal/tenancy/acquisition_source"
+	tenancy_acquisition_source_lead "shippin.cloud/console/internal/tenancy/acquisition_source/lead"
 	tenancy_coverage "shippin.cloud/console/internal/tenancy/coverage"
 	tenancy_coverage_tier "shippin.cloud/console/internal/tenancy/coverage_tier"
 )
@@ -18,6 +20,12 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.identity.ssh_key.create", identity_ssh_key.Create),
 	mcpl.Register("shippin.identity.ssh_key.delete", identity_ssh_key.Delete),
 	mcpl.Register("shippin.identity.ssh_key.list", identity_ssh_key.List),
+	mcpl.Register("shippin.tenancy.acquisition_source.create", tenancy_acquisition_source.Create),
+	mcpl.Register("shippin.tenancy.acquisition_source.get", tenancy_acquisition_source.Get),
+	mcpl.Register("shippin.tenancy.acquisition_source.lead.list", tenancy_acquisition_source_lead.List),
+	mcpl.Register("shippin.tenancy.acquisition_source.list", tenancy_acquisition_source.List),
+	mcpl.Register("shippin.tenancy.acquisition_source.sync", tenancy_acquisition_source.Sync),
+	mcpl.Register("shippin.tenancy.acquisition_source.update", tenancy_acquisition_source.Update),
 	mcpl.Register("shippin.tenancy.coverage.get", tenancy_coverage.Get),
 	mcpl.Register("shippin.tenancy.coverage_tier.create", tenancy_coverage_tier.Create),
 	mcpl.Register("shippin.tenancy.coverage_tier.delete", tenancy_coverage_tier.Delete),

@@ -281,6 +281,11 @@ func Forbidden(m string) error { return &Error{http.StatusForbidden, m} }
 func NotFound(m string) error  { return &Error{http.StatusNotFound, m} }
 func Conflict(m string) error  { return &Error{http.StatusConflict, m} }
 
+// NotWritten is what an action the factory started answers until it is written: 501, naming it.
+func NotWritten(id string) error {
+	return &Error{http.StatusNotImplemented, id + " is not written yet: see its file under internal/."}
+}
+
 // problem writes every error the same way: application/problem+json with a plain message.
 func problem(w http.ResponseWriter, err error) {
 	var e *Error

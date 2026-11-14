@@ -1,9 +1,10 @@
+import type { CoverageTierCustomerView } from "../../../lib/api/actions.gen";
 import type { ReactNode } from "react";
 import type { CoverageTier } from "../../../lib/api/catalog-types";
 import { Badge } from "../../../lib/design/components/badge/badge";
 import { channelLabel, clockFor, operationsLabel, reviewsLabel, services, severities, supportHoursLabel, target, termLabel } from "../wording";
 
-type Shown = Omit<CoverageTier, "rank" | "sign_in" | "price_cents" | "spend_percent" | "public" | "active"> & Partial<CoverageTier>;
+type Shown = CoverageTierCustomerView & Partial<CoverageTier>;
 
 /** What a coverage tier includes, as a definition list. Compact drops the services and extras. */
 export function CoverageSummary({ tier: c, compact = false }: { tier: Shown; compact?: boolean }) {

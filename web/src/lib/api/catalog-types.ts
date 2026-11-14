@@ -6,23 +6,8 @@ export type Plan = { id: string; label: string; description: string; rank: numbe
   /** The coverage tier this plan includes. */
   coverage: string };
 
-type Term = "none" | "quoted" | "included";
-/** Support and operation sold beside a plan. Response targets are first-response minutes within support hours; null is no target. */
-export type CoverageTier = {
-  id: string; label: string; description: string; rank: number;
-  /** How members of organizations with this coverage must sign in. */
-  sign_in: "password" | "second_factor" | "identity_provider";
-  support_hours: "business" | "critical_always" | "always";
-  channels: ("docs" | "community" | "email" | "chat" | "phone" | "video")[];
-  critical_minutes: number | null; high_minutes: number | null; normal_minutes: number | null;
-  /** Percentage such as 99.9; null is no commitment. */
-  uptime_target: number | null;
-  operations: "self" | "assisted" | "managed"; named_contact: boolean; reviews: "none" | "quarterly" | "monthly"; training_hours: number;
-  consulting: Term; custom_deployments: Term; remote_operations: Term; team_training: Term;
-  /** omitted without catalog.prices.read: the charge is the greater of the monthly minimum and the share of plan charges. */
-  price_cents?: number; spend_percent?: number;
-  public: boolean; active: boolean;
-};
+/** Support and operation sold beside a plan, generated from the coverage_tier action types. */
+export type { CoverageTier } from "./actions.gen";
 
 export type CatalogDeploymentSource = {
   kind: "github" | "git" | "oci";

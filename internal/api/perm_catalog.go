@@ -56,6 +56,8 @@ var permCatalog = []Perm{
 	{Key: "provision.intent.create", Section: "Customers", Label: "Record a provision intent (desired state for an operator to apply)", Risk: true, Grantable: true},
 	{Key: "platform.settings.read", Section: "Platform", Label: "View ops-editable platform settings (IdP account page, rrflow auto-attach)", Grantable: true},
 	{Key: "platform.settings.write", Section: "Platform", Label: "Change ops-editable platform settings (audited)", Risk: true, Grantable: true},
+	{Key: "acquisition.read", Section: "Acquisition", Label: "View imported acquisition source metadata and lead contact details", Grantable: true},
+	{Key: "acquisition.sync", Section: "Acquisition", Label: "Import one bounded page from a configured acquisition source", Risk: true, Grantable: true},
 	{Key: "infra.read", Section: "Infrastructure", Label: "View hosts, guests, node detail and the change history"},
 	{Key: "infra.hosts.write", Section: "Infrastructure", Label: "Add, test and detach hosts", Risk: true},
 	{Key: "infra.network.write", Section: "Infrastructure", Label: "Configure and remove network integrations", Risk: true},
@@ -87,15 +89,15 @@ func knownPerm(k string) bool { _, ok := permIndex[k]; return ok }
 // grantablePerm reports whether k may be granted to a principal directly.
 func grantablePerm(k string) bool { return permIndex[k].Grantable }
 
-// GranularCatalogPerms are the customer-catalog permissions (Owner preset + direct grants only).
+// GranularCatalogPerms are the explicit development-account permissions. Keep this allowlist
+// separate from the full grantable catalog so newly grantable sensitive capabilities are not
+// silently inherited by every configured development staff account.
 func GranularCatalogPerms() []string {
-	out := []string{}
-	for _, p := range permCatalog {
-		if p.Grantable {
-			out = append(out, p.Key)
-		}
+	return []string{
+		"catalog.plans.read", "catalog.prices.read", "catalog.plans.write", "config.defaults.write",
+		"customers.read", "customers.contacts.read", "customers.notes.read", "customers.write", "customers.services.write", "config.effective.read", "provision.intent.create",
+		"platform.settings.read", "platform.settings.write",
 	}
-	return out
 }
 
 // highRisk reports whether any of perms is a high-risk permission.

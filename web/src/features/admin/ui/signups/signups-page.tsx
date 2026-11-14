@@ -11,8 +11,10 @@ import { TextField } from "../../../../lib/design/components/field/text-field";
 import { Select } from "../../../../lib/design/components/select/select";
 import { toast } from "../../../../lib/design/components/toast/toast-queue";
 import { CatalogPerm, useCan } from "../../../../lib/hooks/use-can";
-import { usePlatformSettings, useSetPlatformSetting } from "../../../../lib/hooks/use-platform-settings";
+import { type PlatformSetting, useSetPlatformSetting } from "../../../../lib/hooks/use-platform-settings";
+import { useText } from "../../../../lib/ui-config/use-ui-config";
 import { PageHeader } from "../../../../template/page-header";
+import { AcquisitionPanel } from "./acquisition-panel";
 
 type WaitRow = { id: string; email: string; name: string; company: string; notes: string; status: "pending" | "confirmed" | "invited"; created_at: string };
 type Waitlist = { signup: string; mail: boolean; items: WaitRow[] };
@@ -27,9 +29,13 @@ const status: Record<WaitRow["status"], { label: string; tone: "neutral" | "info
 /** Customers → Sign-ups: who may sign up (LAUNCH-01), the waitlist, and invitations off it. */
 export function SignupsPage() {
   const can = useCan();
+  const t = useText();
   const qc = useQueryClient();
-  const list = useQuery({ queryKey: ["waitlist"], queryFn: () => apiGet<Waitlist>("/v1/operator/waitlist") });
-  const mode = usePlatformSettings().data?.items.find((s) => s.key === "directory.signup");
+  const canWaitlist = can(CatalogPerm.customersRead);
+  const canSettingsRead = can("platform.settings.read");
+  const list = useQuery({ queryKey: ["waitlist"], queryFn: () => apiGet<Waitlist>("/v1/operator/waitlist"), enabled: canWaitlist, retry: false });
+  const settings = useQuery({ queryKey: ["platform-settings"], queryFn: () => apiGet<{ items: PlatformSetting[] }>("/v1/operator/platform-settings"), enabled: canSettingsRead, retry: false });
+  const mode = settings.data?.items.find((s) => s.key === "directory.signup");
   const setMode = useSetPlatformSetting();
   const [next, setNext] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -64,10 +70,10 @@ export function SignupsPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Customers" title="Sign-ups" description="Who can create an account, and the people waiting for an invitation. Every change needs a reason and is audited." />
-      <Card className="mb-6">
+      <PageHeader eyebrow="Customers" title="Sign-ups" description={t(canWaitlist ? "signups.page.description" : "signups.page.acquisitionDescription")} />
+      {(canWaitlist || canSettingsRead || writeMode) && <Card className="mb-6">
         <CardHeader title="Who can sign up" description={mode?.help} />
-        <div className="grid gap-4 p-5 md:grid-cols-[1fr_1fr_auto] md:items-end">
+        {!canSettingsRead && !canWaitlist ? <p className="px-5 pb-5 text-sm text-fg-subtle">{t("signups.modeNeedsRead")}</p> : <div className="grid gap-4 p-5 md:grid-cols-[1fr_1fr_auto] md:items-end">
           {mode?.choices ? (
             <Select label="Sign-up" value={current} onChange={setNext} isDisabled={!writeMode} options={mode.choices.map((c) => ({ id: c.value, label: c.label }))} />
           ) : <p className="text-base text-fg-muted">Current: {list.data?.signup ?? "…"}</p>}
@@ -77,10 +83,10 @@ export function SignupsPage() {
               tooltip="Save who can sign up"
               onPress={() => setMode.mutate({ key: "directory.signup", value: current, reason }, { onSuccess: () => { setReason(""); setNext(null); void qc.invalidateQueries({ queryKey: ["waitlist"] }); } })}>Save</Button>
           )}
-        </div>
-        {!writeMode && <p className="px-5 pb-5 text-sm text-fg-subtle">Changing this needs platform.settings.write.</p>}
-      </Card>
-      <Card>
+        </div>}
+        {!writeMode && canSettingsRead && <p className="px-5 pb-5 text-sm text-fg-subtle">Changing this needs platform.settings.write.</p>}
+      </Card>}
+      {canWaitlist && <Card className="mb-6">
         <CardHeader title="Waitlist" description={list.data?.signup === "waitlist"
           ? "The sign-in page links to the waitlist. People confirm their address, then you invite them."
           : "The waitlist is closed, so no one new can join it. Anyone already on it can still be invited."} />
@@ -107,7 +113,8 @@ export function SignupsPage() {
           <DataTable label="Waitlist" columns={cols} rows={rows} dependencies={[reasonOK, invite.isPending, writeInvites]}
             empty={<EmptyState title="No one is waiting" description={list.data?.signup === "waitlist" ? "People who join from the sign-in page appear here." : "Switch sign-up to “with a public waitlist” to let people ask to join."} />} />
         )}
-      </Card>
+      </Card>}
+      <AcquisitionPanel />
     </>
   );
 }

@@ -16,7 +16,7 @@ const blank: CoverageTier = {
   id: "", label: "", description: "", rank: 0, sign_in: "password", support_hours: "business", channels: ["docs", "email"],
   critical_minutes: null, high_minutes: null, normal_minutes: null, uptime_target: null, operations: "self", named_contact: false,
   reviews: "none", training_hours: 0, consulting: "quoted", custom_deployments: "quoted", remote_operations: "none", team_training: "quoted",
-  price_cents: 0, spend_percent: 0, public: true, active: true,
+  price_cents: 0, spend_percent: 0, public: true, active: true, updated_at: "",
 };
 
 const options = <K extends string>(labels: Record<K, string>) => (Object.keys(labels) as K[]).map((id) => ({ id, label: labels[id] }));
@@ -31,7 +31,7 @@ export function CoverageForm({ initial, onClose }: { initial?: CoverageTier; onC
   const set = <K extends keyof CoverageTier>(k: K) => (v: CoverageTier[K]) => setC({ ...c, [k]: v });
   const channel = (ch: CoverageTier["channels"][number], on: boolean) => set("channels")(on ? [...c.channels, ch] : c.channels.filter((x) => x !== ch));
   // The action takes exactly its input fields: the id is in the path on an update, and read-only fields are never sent.
-  const { id, updated_at: _read, price_cents, spend_percent, ...fields } = c as CoverageTier & { updated_at?: string };
+  const { id, updated_at: _read, price_cents, spend_percent, ...fields } = c;
   const input = { ...fields, ...(prices ? { price_cents, spend_percent } : {}), reason };
   const done = (msg: string) => ({ onSuccess: () => { toast.success(msg); void qc.invalidateQueries({ queryKey: ["catalog"] }); onClose(); }, onError: (e: Error) => toast.error("Not saved", e.message) });
   const save = useMutation({ mutationFn: () => initial
