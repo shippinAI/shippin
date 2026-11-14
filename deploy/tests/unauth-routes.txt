@@ -8,10 +8,10 @@ DELETE /v1/me/identity/access-keys/{accessKeyId}
 DELETE /v1/me/identity/ssh-keys/{sshKeyId}
 DELETE /v1/operator/backups/{name}
 DELETE /v1/operator/catalog/defaults/{layer}/{key}
-DELETE /v1/operator/catalog/services/{id}
 DELETE /v1/operator/customers/{id}
 DELETE /v1/operator/customers/{id}/services/{service}
 DELETE /v1/operator/platform-services/{serviceId}
+DELETE /v1/operator/services/catalog-services/{catalogServiceId}
 DELETE /v1/operator/team/permission-grants/{userId}/{permKey}
 DELETE /v1/operator/team/roles/{roleKey}
 DELETE /v1/operator/templates/{templateId}
@@ -76,8 +76,6 @@ GET /v1/operator/boundaries
 GET /v1/operator/break-glass/pending
 GET /v1/operator/built-in-services
 GET /v1/operator/catalog/defaults
-GET /v1/operator/catalog/services
-GET /v1/operator/catalog/services/{id}
 GET /v1/operator/customers
 GET /v1/operator/customers/{id}
 GET /v1/operator/customers/{id}/effective-config
@@ -90,6 +88,8 @@ GET /v1/operator/mcpl
 GET /v1/operator/platform-services
 GET /v1/operator/platform-services/{serviceId}/observations
 GET /v1/operator/platform-settings
+GET /v1/operator/services/catalog-services
+GET /v1/operator/services/catalog-services/{catalogServiceId}
 GET /v1/operator/setup-steps
 GET /v1/operator/staff-mode
 GET /v1/operator/system
@@ -213,12 +213,12 @@ POST /v1/operator/agenthub-connection/test
 POST /v1/operator/backups
 POST /v1/operator/break-glass
 POST /v1/operator/break-glass/{grantId}/{decision}
-POST /v1/operator/catalog/services
 POST /v1/operator/customers
 POST /v1/operator/customers/{id}/provision-intent
 POST /v1/operator/platform-services
 POST /v1/operator/platform-services/{serviceId}/check
 POST /v1/operator/recovery-key
+POST /v1/operator/services/catalog-services
 POST /v1/operator/staff-mode
 POST /v1/operator/staff-mode/exit
 POST /v1/operator/team/members
@@ -301,11 +301,11 @@ PUT /v1/infra/servers/{id}/identity
 PUT /v1/operator/agenthub-connection
 PUT /v1/operator/built-in-services/clickhouse
 PUT /v1/operator/catalog/defaults
-PUT /v1/operator/catalog/services/{id}
 PUT /v1/operator/customers/{id}
 PUT /v1/operator/customers/{id}/services/{service}
 PUT /v1/operator/platform-services/{serviceId}
 PUT /v1/operator/platform-settings/{key}
+PUT /v1/operator/services/catalog-services/{catalogServiceId}
 PUT /v1/operator/setup-steps/{step}
 PUT /v1/operator/team/members/{userId}/roles
 PUT /v1/operator/team/roles/{roleKey}

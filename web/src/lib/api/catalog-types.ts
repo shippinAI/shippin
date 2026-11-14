@@ -1,4 +1,4 @@
-import type { CatalogLock } from "./actions.gen";
+import type { CatalogDeploymentSource as GeneratedDeploymentSource, CatalogLock } from "./actions.gen";
 
 /** A lock mode, generated from catalog.Lock. */
 export type Lock = CatalogLock;
@@ -12,13 +12,8 @@ export type { Plan, PlanService } from "./actions.gen";
 /** Support and operation sold beside a plan, generated from the coverage_tier action types. */
 export type { CoverageTier } from "./actions.gen";
 
-export type CatalogDeploymentSource = {
-  kind: "github" | "git" | "oci";
-  reference: string;
-  commit?: string;
-  context_path?: string;
-  credential_ref?: string;
-};
+/** The generated deployment source with its kind narrowed to the ones the server accepts. */
+export type CatalogDeploymentSource = Omit<GeneratedDeploymentSource, "kind"> & { kind: "github" | "git" | "oci" };
 
 export type CatalogRuntimePort = { name: string; protocol: "tcp" | "udp"; container_port: number };
 export type CatalogRuntimeContractV1 = {
@@ -37,12 +32,9 @@ export type CatalogRuntimeContractV3 = Omit<CatalogRuntimeContractV2, "version">
 };
 export type CatalogRuntimeContract = CatalogRuntimeContractV1 | CatalogRuntimeContractV2 | CatalogRuntimeContractV3;
 
-export type CatalogService = {
-  id: string; label: string; description: string; kind: string; docs_url: string;
-  config_schema: { properties?: Record<string, { type?: string; title?: string }> };
-  default_config: Record<string, Json>; deployment_source: CatalogDeploymentSource | null;
-  runtime_contract?: CatalogRuntimeContract | null; required: boolean; active: boolean;
-};
+/** A catalog service definition, generated from the catalog_service action types. Its deployment source and
+ * runtime contract are the generated shapes; the Catalog* types above narrow them for the service form. */
+export type { CatalogService } from "./actions.gen";
 
 export type Contact = { name: string; email: string; role: string };
 export type Endpoint = { kind: string; host: string; note: string };

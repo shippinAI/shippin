@@ -6,7 +6,6 @@
     "audit",
     "bridge-runtime",
     "bundle-runtime",
-    "catalog",
     "chat-runtime",
     "compute-enrollment",
     "compute-nodes",
@@ -24,6 +23,7 @@
     "projects-runtime",
     "rrflow",
     "secrets",
+    "services",
     "settings",
     "subscriptions-runtime",
     "tenancy",
@@ -210,56 +210,6 @@
         "bundle-runtime"
       ],
       "implementationStatus": "registered"
-    },
-    {
-      "method": "GET",
-      "path": "/operator/catalog/services",
-      "operationId": "listCatalogServices",
-      "summary": "List configured service definitions (operators only)",
-      "tags": [
-        "catalog"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "POST",
-      "path": "/operator/catalog/services",
-      "operationId": "createCatalogService",
-      "summary": "Create a configurable service definition (operators only)",
-      "tags": [
-        "catalog"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "DELETE",
-      "path": "/operator/catalog/services/{id}",
-      "operationId": "deleteCatalogService",
-      "summary": "Delete a service definition without active plan references (operators only)",
-      "tags": [
-        "catalog"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "GET",
-      "path": "/operator/catalog/services/{id}",
-      "operationId": "getCatalogService",
-      "summary": "Read one service definition (operators only)",
-      "tags": [
-        "catalog"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "PUT",
-      "path": "/operator/catalog/services/{id}",
-      "operationId": "updateCatalogService",
-      "summary": "Update a service definition (operators only)",
-      "tags": [
-        "catalog"
-      ],
-      "implementationStatus": "unknown"
     },
     {
       "method": "GET",
@@ -1437,6 +1387,61 @@
       ],
       "implementationStatus": "planned",
       "feature": "feature.secrets"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/services/catalog-services",
+      "operationId": "shippin.services.catalog_service.list",
+      "summary": "List the catalog's service definitions, required ones first.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.catalog_service.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/services/catalog-services",
+      "operationId": "shippin.services.catalog_service.create",
+      "summary": "Add a service to the catalog with its config schema, defaults and optional pinned deployment source and runtime contract.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.catalog_service.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/services/catalog-services/{catalogServiceId}",
+      "operationId": "shippin.services.catalog_service.delete",
+      "summary": "Remove a service from the catalog; plans and organizations lose it, and it is refused while a deployment uses it.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.catalog_service.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/services/catalog-services/{catalogServiceId}",
+      "operationId": "shippin.services.catalog_service.get",
+      "summary": "Read one catalog service definition with its config schema, defaults and pinned deployment source.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.catalog_service.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/services/catalog-services/{catalogServiceId}",
+      "operationId": "shippin.services.catalog_service.update",
+      "summary": "Replace a catalog service's definition: label, config schema, defaults, deployment source and runtime contract.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.catalog_service.update"
     },
     {
       "method": "GET",

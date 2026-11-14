@@ -1,21 +1,25 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { callAction } from "../../../../lib/api/actions";
 import type { CatalogService } from "../../../../lib/api/catalog-types";
 import { Button } from "../../../../lib/design/components/button/button";
 import { Drawer } from "../../../../lib/design/components/drawer/drawer";
 import { TextField } from "../../../../lib/design/components/field/text-field";
 import { Switch } from "../../../../lib/design/components/switch/switch";
 import { Select } from "../../../../lib/design/components/select/select";
-import { catalogPaths, useCatalogWrite } from "../../../../lib/hooks/use-catalog";
+import { toast } from "../../../../lib/design/components/toast/toast-queue";
 import { deploymentSourceFromDraft, sourceDraft, validDeploymentSource } from "./service-source";
 import type { CatalogRuntimeContractV3 } from "../../../../lib/api/catalog-types";
-import { emptyRuntimeContractDraft, runtimeContractFromDraft, runtimeKindDraft, validRuntimeDraft } from "./service-runtime";
+import { emptyRuntimeContractDraft, runtimeContractFromDraft, runtimeKindDraft, validRuntimeContract, validRuntimeDraft } from "./service-runtime";
 import { RuntimeRecipeForm } from "./service-runtime-form";
 
-const obj = (s: string) => { try { const v = JSON.parse(s); return v && typeof v === "object" && !Array.isArray(v) ? v : null; } catch { return null; } };
+const obj = (s: string): Record<string, unknown> | null => { try { const v: unknown = JSON.parse(s); return v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, unknown> : null; } catch { return null; } };
 
-/** Create or edit a catalog service, including its JSON config schema and defaults. */
-export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogService>; onClose: () => void }) {
-  const editing = !!initial?.id;
+/** Create or edit a catalog service, including its JSON config schema and defaults. Every change carries a reason for the audit log. */
+export function ServiceForm({ initial, onClose }: { initial?: CatalogService; onClose: () => void }) {
+  const editing = !!initial;
+  const [reason, setReason] = useState("");
+  const qc = useQueryClient();
   const [s, setS] = useState({ id: initial?.id ?? "", label: initial?.label ?? "", description: initial?.description ?? "", kind: initial?.kind ?? "app",
     docs_url: initial?.docs_url ?? "", required: initial?.required ?? false, active: initial?.active ?? true });
   const [schema, setSchema] = useState(JSON.stringify(initial?.config_schema ?? { type: "object", properties: {} }, null, 2));
@@ -23,7 +27,8 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
   const [source, setSource] = useState(() => sourceDraft(initial?.deployment_source));
   const [runtimeKind, setRuntimeKind] = useState(() => runtimeKindDraft(initial?.runtime_contract));
   const [runtimeRecipe, setRuntimeRecipe] = useState<CatalogRuntimeContractV3>(() => {
-    const saved = initial?.runtime_contract;
+    // The server stores only contracts it validated; the guard narrows the generated shape to the recipe types this form edits.
+    const saved = validRuntimeContract(initial?.runtime_contract) ? initial.runtime_contract : null;
     if (saved?.version === 3) return saved;
     if (saved?.version === 2) return { ...saved, version: 3, environment: [] };
     return emptyRuntimeContractDraft();
@@ -34,27 +39,34 @@ export function ServiceForm({ initial, onClose }: { initial?: Partial<CatalogSer
     : runtimeVersion === 2
       ? (({ environment: _environment, ...runtimeV2 }) => ({ ...runtimeV2, version: 2 }))(runtimeRecipe)
       : runtimeRecipe);
-  const save = useCatalogWrite(editing ? "Service updated" : "Service added");
-  const del = useCatalogWrite("Service removed");
   const deploymentSource = deploymentSourceFromDraft(source);
   const sourceValid = validDeploymentSource(deploymentSource);
   const runtimeContract = runtimeContractFromDraft(runtimeKind, deploymentSource, runtimeJSON);
   const runtimeValid = validRuntimeDraft(runtimeKind, deploymentSource, runtimeJSON);
-  const ok = obj(schema) && obj(defaults) && s.id && s.label && sourceValid && runtimeValid;
+  const reasonOK = reason.trim().length >= 5;
+  const ok = obj(schema) && obj(defaults) && s.id && s.label && sourceValid && runtimeValid && reasonOK;
+  const done = (msg: string) => ({ onSuccess: () => { toast.success(msg); void qc.invalidateQueries({ queryKey: ["catalog"] }); onClose(); }, onError: (e: Error) => toast.error("Not saved", e.message) });
+  // The action takes exactly its input fields: on an update the id is in the path, not the body.
+  const { id, ...fields } = s;
+  const input = { ...fields, config_schema: obj(schema) ?? {}, default_config: obj(defaults) ?? {}, deployment_source: deploymentSource, runtime_contract: runtimeContract, reason };
+  const save = useMutation({ mutationFn: () => initial
+    ? callAction("shippin.services.catalog_service.update", { catalogServiceId: id }, input)
+    : callAction("shippin.services.catalog_service.create", {}, { id, ...input }), ...done(editing ? "Service updated" : "Service added") });
+  const del = useMutation({ mutationFn: () => callAction("shippin.services.catalog_service.delete", { catalogServiceId: id }, { reason }), ...done("Service removed") });
   const set = (k: keyof typeof s) => (v: string | boolean) => setS({ ...s, [k]: v });
   const updateSourceField = (k: keyof typeof source) => (v: string) => setSource((current) => ({ ...current, [k]: v }));
   return (
     <Drawer isOpen onOpenChange={(o) => !o && onClose()} title={editing ? `Edit ${initial.label}` : "New service"}
       subtitle="Defaults are the system layer; tiers and customers change them within each lock mode."
       footer={<>
-        {editing && <Button tooltip="Delete" variant="danger" onPress={() => del.mutate({ method: "DELETE", path: catalogPaths.service(s.id) }, { onSuccess: onClose })}>Delete</Button>}
+        {editing && <Button tooltip={reasonOK ? "Delete this service" : "Give a reason first"} variant="danger" isDisabled={!reasonOK || del.isPending} onPress={() => del.mutate()}>Delete</Button>}
         <div className="flex-1" />
         <Button tooltip="Cancel" variant="ghost" onPress={onClose}>Cancel</Button>
-        <Button tooltip="Save service" variant="primary" isDisabled={!ok || save.isPending}
-          onPress={() => save.mutate({ method: editing ? "PUT" : "POST", path: catalogPaths.service(initial?.id),
-            body: { ...s, config_schema: obj(schema), default_config: obj(defaults), deployment_source: deploymentSource, runtime_contract: runtimeContract } }, { onSuccess: onClose })}>Save service</Button>
+        <Button tooltip={reasonOK ? "Save service" : "Give a reason first"} variant="primary" isDisabled={!ok || save.isPending}
+          onPress={() => save.mutate()}>Save service</Button>
       </>}>
       <div className="grid gap-4 px-6 py-5">
+        <TextField label="Reason (audited)" value={reason} onChange={setReason} placeholder="Why this changes" description="Kept in the audit log with the change. At least 5 characters." />
         <div className="grid grid-cols-2 gap-4">
           <TextField label="Id" value={s.id} onChange={set("id")} isDisabled={!!initial} mono isRequired />
           <TextField label="Label" value={s.label} onChange={set("label")} isRequired />

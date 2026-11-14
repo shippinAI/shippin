@@ -98,7 +98,103 @@ export type AcquisitionSyncResult = {
   more: boolean;
 };
 
+export type CatalogDeploymentSource = {
+  kind: string;
+  reference: string;
+  commit?: string;
+  context_path?: string;
+  credential_ref?: string;
+};
+
 export type CatalogLock = "locked" | "overridable" | "mergeable" | "bounded";
+
+export type CatalogRuntimeContract = {
+  version: number;
+  kind: string;
+  providers: string[];
+  resources?: CatalogRuntimeResources | null;
+  storage?: CatalogRuntimeStorage | null;
+  network?: CatalogRuntimeNetwork | null;
+  health?: CatalogRuntimeHealthCheck | null;
+  environment?: CatalogRuntimeEnvironmentBinding[] | null;
+};
+
+export type CatalogRuntimeEnvironmentBinding = {
+  name: string;
+  config_path: string;
+};
+
+export type CatalogRuntimeHealthCheck = {
+  kind: string;
+  port: number;
+  path?: string;
+  interval_seconds: number;
+  timeout_seconds: number;
+  failure_threshold: number;
+};
+
+export type CatalogRuntimeNetwork = {
+  exposure: string;
+  ports: CatalogRuntimePort[];
+};
+
+export type CatalogRuntimePort = {
+  name: string;
+  protocol: string;
+  container_port: number;
+};
+
+export type CatalogRuntimeResources = {
+  cpu_cores: number;
+  memory_mib: number;
+};
+
+export type CatalogRuntimeStorage = {
+  size_gib: number;
+  mount_path: string;
+};
+
+export type CatalogService = {
+  id: string;
+  label: string;
+  description: string;
+  kind: string;
+  docs_url: string;
+  config_schema: Record<string, unknown>;
+  default_config: Record<string, unknown>;
+  deployment_source: CatalogDeploymentSource | null;
+  runtime_contract: CatalogRuntimeContract | null;
+  required: boolean;
+  active: boolean;
+  updated_at: string;
+};
+
+export type CatalogServiceCreateInput = {
+  id: string;
+  label: string;
+  description: string;
+  kind: string;
+  docs_url: string;
+  config_schema: Record<string, unknown>;
+  default_config: Record<string, unknown>;
+  deployment_source: CatalogDeploymentSource | null;
+  runtime_contract: CatalogRuntimeContract | null;
+  required: boolean;
+  active?: boolean | null;
+};
+
+export type CatalogServiceUpdateInput = {
+  label: string;
+  description: string;
+  kind: string;
+  docs_url: string;
+  config_schema: Record<string, unknown>;
+  default_config: Record<string, unknown>;
+  deployment_source: CatalogDeploymentSource | null;
+  runtime_contract: CatalogRuntimeContract | null;
+  required: boolean;
+  active?: boolean | null;
+};
 
 export type CoverageOwn = {
   coverage: CoverageTierCustomerView | null;
@@ -284,6 +380,11 @@ export const routes = {
   "shippin.identity.ssh_key.create": "POST /v1/me/identity/ssh-keys",
   "shippin.identity.ssh_key.delete": "DELETE /v1/me/identity/ssh-keys/{sshKeyId}",
   "shippin.identity.ssh_key.list": "GET /v1/me/identity/ssh-keys",
+  "shippin.services.catalog_service.create": "POST /v1/operator/services/catalog-services",
+  "shippin.services.catalog_service.delete": "DELETE /v1/operator/services/catalog-services/{catalogServiceId}",
+  "shippin.services.catalog_service.get": "GET /v1/operator/services/catalog-services/{catalogServiceId}",
+  "shippin.services.catalog_service.list": "GET /v1/operator/services/catalog-services",
+  "shippin.services.catalog_service.update": "PUT /v1/operator/services/catalog-services/{catalogServiceId}",
   "shippin.tenancy.acquisition_source.create": "POST /v1/operator/tenancy/acquisition-sources",
   "shippin.tenancy.acquisition_source.get": "GET /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}",
   "shippin.tenancy.acquisition_source.lead.list": "GET /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}/leads",
@@ -316,6 +417,11 @@ export type ActionTypes = {
   "shippin.identity.ssh_key.create": { args: [params: Record<string, never>, body: SshKeyCreateInput & { reason?: string }]; output: SshKey; risk: "write"; event: "shippin.identity.ssh_key.created" };
   "shippin.identity.ssh_key.delete": { args: [params: { sshKeyId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.identity.ssh_key.deleted" };
   "shippin.identity.ssh_key.list": { args: [params?: Record<string, never>]; output: { items: SshKey[] }; risk: "read"; event: never };
+  "shippin.services.catalog_service.create": { args: [params: Record<string, never>, body: CatalogServiceCreateInput & { reason: string }]; output: CatalogService; risk: "write"; event: "shippin.services.catalog_service.created" };
+  "shippin.services.catalog_service.delete": { args: [params: { catalogServiceId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.services.catalog_service.deleted" };
+  "shippin.services.catalog_service.get": { args: [params: { catalogServiceId: string }]; output: CatalogService; risk: "read"; event: never };
+  "shippin.services.catalog_service.list": { args: [params?: Record<string, never>]; output: { items: CatalogService[] }; risk: "read"; event: never };
+  "shippin.services.catalog_service.update": { args: [params: { catalogServiceId: string }, body: CatalogServiceUpdateInput & { reason: string }]; output: CatalogService; risk: "write"; event: "shippin.services.catalog_service.updated" };
   "shippin.tenancy.acquisition_source.create": { args: [params: Record<string, never>, body: AcquisitionSourceCreateInput & { reason: string }]; output: AcquisitionSourceSummary; risk: "write"; event: "shippin.tenancy.acquisition_source.created" };
   "shippin.tenancy.acquisition_source.get": { args: [params: { acquisitionSourceId: string }]; output: AcquisitionSourceDetail; risk: "read"; event: never };
   "shippin.tenancy.acquisition_source.lead.list": { args: [params: { acquisitionSourceId: string }]; output: AcquisitionLeadListResult; risk: "read"; event: never };

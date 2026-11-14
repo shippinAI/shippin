@@ -43,11 +43,6 @@ const (
 
 func (h *Handler) Routes() []Route {
 	return []Route{
-		{"GET /v1/operator/catalog/services", PermPlansRead, h.listServices},
-		{"POST /v1/operator/catalog/services", PermPlansWrite, h.createService},
-		{"GET /v1/operator/catalog/services/{id}", PermPlansRead, h.getService},
-		{"PUT /v1/operator/catalog/services/{id}", PermPlansWrite, h.updateService},
-		{"DELETE /v1/operator/catalog/services/{id}", PermPlansWrite, h.deleteService},
 		{"GET /v1/operator/catalog/defaults", PermPlansRead, h.listDefaults},
 		{"PUT /v1/operator/catalog/defaults", PermDefaultsWrite, h.putDefault},
 		{"DELETE /v1/operator/catalog/defaults/{layer}/{key}", PermDefaultsWrite, h.deleteDefault},

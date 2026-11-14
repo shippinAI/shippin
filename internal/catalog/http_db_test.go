@@ -70,69 +70,6 @@ func TestCatalogAPIFlow(t *testing.T) {
 		INSERT INTO plan_services(plan_id,service_id,enabled,lock,limits) VALUES('scratch','chatmaton',true,'bounded','{"seats":3}')`); err != nil {
 		t.Fatal(err)
 	}
-	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"backup","label":"Backups","default_config":{"days":7}}`, 201)
-	do(t, mux, "GET", "/v1/operator/catalog/services/backup", "", 200)
-	source := `"deployment_source":{"kind":"oci","reference":"registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","credential_ref":"vaultix://production/runtime/registry-token"}`
-	runtime := `"runtime_contract":{"version":1,"kind":"incus_oci_container","providers":["incus"]}`
-	configSchema := `"config_schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"port":{"type":"integer","minimum":1,"maximum":65535},"password":{"type":"string","format":"shippin-secret-ref"}},"required":["password"],"additionalProperties":false},"default_config":{"port":5432,"password":"vaultix://production/postgres/password"}`
-	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"unsafe-schema","label":"Unsafe","kind":"database",`+source+`,"config_schema":{"type":"object"}}`, 400)
-	metadataOnly := do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"metadata-only","label":"Metadata only","kind":"database",`+configSchema+`,`+source+`}`, 201)
-	if metadataOnly["runtime_contract"] != nil {
-		t.Fatalf("metadata-only service unexpectedly declares a runtime: %v", metadataOnly["runtime_contract"])
-	}
-	if _, err := lastStore.Pool.Exec(t.Context(), `INSERT INTO catalog_services(id,label,kind,deployment_source,runtime_contract)
-		VALUES('invalid-runtime','Invalid','app',$1::jsonb,$2::jsonb)`,
-		`{"kind":"github","reference":"https://github.com/acme/app","commit":"0123456789abcdef0123456789abcdef01234567"}`,
-		`{"version":1,"kind":"incus_oci_container","providers":["incus"]}`); err == nil {
-		t.Fatal("database accepted an Incus OCI declaration for a Git source")
-	}
-	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"unsupported-runtime","label":"Unsafe","kind":"database",`+configSchema+`,`+source+`,"runtime_contract":{"version":1,"kind":"proxmox_cloud_init","providers":["proxmox"]}}`, 400)
-	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"plaintext-secret","label":"Unsafe","kind":"database",`+source+`,`+configSchema[:strings.Index(configSchema, `,"default_config"`)]+`,"default_config":{"port":5432,"password":"plaintext-password"}}`, 400)
-	configured := do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"postgres","label":"Postgres","kind":"database",`+configSchema+`,`+source+`,`+runtime+`}`, 201)
-	if configured["deployment_source"].(map[string]any)["kind"] != "oci" {
-		t.Fatalf("source not returned after create: %v", configured["deployment_source"])
-	}
-	if configured["runtime_contract"].(map[string]any)["kind"] != "incus_oci_container" {
-		t.Fatalf("runtime contract not returned after create: %v", configured["runtime_contract"])
-	}
-	recipe := `"runtime_contract":{"version":2,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":2,"memory_mib":2048},"storage":{"size_gib":20,"mount_path":"/var/lib/postgresql/data"},"network":{"exposure":"private","ports":[{"name":"postgres","protocol":"tcp","container_port":5432}]},"health":{"kind":"tcp","port":5432,"interval_seconds":30,"timeout_seconds":5,"failure_threshold":3}}`
-	recipeService := do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"runtime-recipe-v2","label":"Runtime recipe v2","kind":"database",`+configSchema+`,`+source+`,`+recipe+`}`, 201)
-	if got := recipeService["runtime_contract"].(map[string]any)["version"]; got != float64(2) {
-		t.Fatalf("version 2 runtime recipe not returned: %v", recipeService["runtime_contract"])
-	}
-	recipeV3 := strings.Replace(recipe, `"version":2`, `"version":3`, 1)
-	recipeV3 = strings.TrimSuffix(recipeV3, "}") + `,"environment":[{"name":"POSTGRES_PASSWORD","config_path":"/password"}]}`
-	recipeServiceV3 := do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"runtime-recipe-v3","label":"Runtime recipe v3","kind":"database",`+configSchema+`,`+source+`,`+recipeV3+`}`, 201)
-	v3Contract := recipeServiceV3["runtime_contract"].(map[string]any)
-	if got := v3Contract["version"]; got != float64(3) || len(v3Contract["environment"].([]any)) != 1 {
-		t.Fatalf("version 3 runtime binding did not persist: %v", v3Contract)
-	}
-	badBinding := strings.Replace(recipeV3, `"config_path":"/password"`, `"config_path":"/missing"`, 1)
-	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"bad-binding","label":"Bad binding","kind":"database",`+configSchema+`,`+source+`,`+badBinding+`}`, 400)
-	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"bad-recipe","label":"Bad recipe","kind":"database",`+configSchema+`,`+source+`,"runtime_contract":{"version":2,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":0,"memory_mib":2048}}}`, 400)
-	if _, err := lastStore.Pool.Exec(t.Context(), `INSERT INTO catalog_services(id,label,kind,deployment_source,runtime_contract)
-		VALUES('invalid-v2','Invalid v2','app',$1::jsonb,$2::jsonb)`,
-		`{"kind":"oci","reference":"registry.example.net/team/app@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}`,
-		`{"version":2,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":2,"memory_mib":2048}}`); err == nil {
-		t.Fatal("database accepted an incomplete version 2 runtime recipe")
-	}
-	if _, err := lastStore.Pool.Exec(t.Context(), `INSERT INTO catalog_services(id,label,kind,deployment_source,runtime_contract)
-		VALUES('invalid-v3','Invalid v3','app',$1::jsonb,$2::jsonb)`,
-		`{"kind":"oci","reference":"registry.example.net/team/app@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}`,
-		`{"version":3,"kind":"incus_oci_container","providers":["incus"],"resources":{"cpu_cores":2,"memory_mib":2048},"storage":{"size_gib":10,"mount_path":"/data"},"network":{"exposure":"private","ports":[]},"health":{"kind":"tcp","port":80,"interval_seconds":10,"timeout_seconds":2,"failure_threshold":2}}`); err == nil {
-		t.Fatal("database accepted a v3 runtime without its environment list")
-	}
-	loaded := do(t, mux, "GET", "/v1/operator/catalog/services/postgres", "", 200)
-	if loaded["deployment_source"].(map[string]any)["credential_ref"] != "vaultix://production/runtime/registry-token" {
-		t.Fatalf("source not persisted: %v", loaded["deployment_source"])
-	}
-	do(t, mux, "PUT", "/v1/operator/catalog/services/postgres", `{"label":"Postgres","deployment_source":{"kind":"github","reference":"https://github.com/acme/postgres","commit":"main"}}`, 400)
-	do(t, mux, "PUT", "/v1/operator/catalog/services/postgres", `{"label":"Postgres","kind":"database",`+configSchema+`,"deployment_source":{"kind":"oci","reference":"registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"},`+runtime+`}`, 200)
-	loaded = do(t, mux, "GET", "/v1/operator/catalog/services/postgres", "", 200)
-	if loaded["deployment_source"].(map[string]any)["credential_ref"] != nil {
-		t.Fatalf("update did not replace the source contract: %v", loaded["deployment_source"])
-	}
-
 	c := do(t, mux, "POST", "/v1/operator/customers", `{"name":"Acme","plan_id":"scratch","contacts":[{"name":"Ann","email":"ann@acme.test","role":"owner"}]}`, 201)
 	id := c["id"].(string)
 	if c["status"] != "draft" || c["idp_linked"] != false {

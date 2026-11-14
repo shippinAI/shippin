@@ -400,6 +400,31 @@
         ],
         "type": "object"
       },
+      "CatalogDeploymentSource": {
+        "additionalProperties": false,
+        "properties": {
+          "commit": {
+            "type": "string"
+          },
+          "context_path": {
+            "type": "string"
+          },
+          "credential_ref": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "reference"
+        ],
+        "type": "object"
+      },
       "CatalogLock": {
         "enum": [
           "locked",
@@ -408,6 +433,417 @@
           "bounded"
         ],
         "type": "string"
+      },
+      "CatalogRuntimeContract": {
+        "additionalProperties": false,
+        "properties": {
+          "environment": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CatalogRuntimeEnvironmentBinding"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "health": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogRuntimeHealthCheck"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "network": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogRuntimeNetwork"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "providers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "resources": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogRuntimeResources"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "storage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogRuntimeStorage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "kind",
+          "providers"
+        ],
+        "type": "object"
+      },
+      "CatalogRuntimeEnvironmentBinding": {
+        "additionalProperties": false,
+        "properties": {
+          "config_path": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "config_path"
+        ],
+        "type": "object"
+      },
+      "CatalogRuntimeHealthCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "failure_threshold": {
+            "type": "integer"
+          },
+          "interval_seconds": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "timeout_seconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "port",
+          "interval_seconds",
+          "timeout_seconds",
+          "failure_threshold"
+        ],
+        "type": "object"
+      },
+      "CatalogRuntimeNetwork": {
+        "additionalProperties": false,
+        "properties": {
+          "exposure": {
+            "type": "string"
+          },
+          "ports": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogRuntimePort"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "exposure",
+          "ports"
+        ],
+        "type": "object"
+      },
+      "CatalogRuntimePort": {
+        "additionalProperties": false,
+        "properties": {
+          "container_port": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "protocol",
+          "container_port"
+        ],
+        "type": "object"
+      },
+      "CatalogRuntimeResources": {
+        "additionalProperties": false,
+        "properties": {
+          "cpu_cores": {
+            "type": "integer"
+          },
+          "memory_mib": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cpu_cores",
+          "memory_mib"
+        ],
+        "type": "object"
+      },
+      "CatalogRuntimeStorage": {
+        "additionalProperties": false,
+        "properties": {
+          "mount_path": {
+            "type": "string"
+          },
+          "size_gib": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "size_gib",
+          "mount_path"
+        ],
+        "type": "object"
+      },
+      "CatalogService": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "config_schema": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "default_config": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "deployment_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogDeploymentSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "docs_url": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "runtime_contract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogRuntimeContract"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "kind",
+          "docs_url",
+          "config_schema",
+          "default_config",
+          "deployment_source",
+          "runtime_contract",
+          "required",
+          "active",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "CatalogServiceCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "config_schema": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "default_config": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "deployment_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogDeploymentSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "docs_url": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "runtime_contract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogRuntimeContract"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "kind",
+          "docs_url",
+          "config_schema",
+          "default_config",
+          "deployment_source",
+          "runtime_contract",
+          "required"
+        ],
+        "type": "object"
+      },
+      "CatalogServiceUpdateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "config_schema": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "default_config": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "deployment_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogDeploymentSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "docs_url": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "runtime_contract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogRuntimeContract"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "label",
+          "description",
+          "kind",
+          "docs_url",
+          "config_schema",
+          "default_config",
+          "deployment_source",
+          "runtime_contract",
+          "required"
+        ],
+        "type": "object"
       },
       "CoverageOwn": {
         "additionalProperties": false,
@@ -1686,6 +2122,304 @@
           "id": "shippin.identity.ssh_key.delete",
           "reason": false,
           "risk": "destructive"
+        }
+      }
+    },
+    "/operator/services/catalog-services": {
+      "get": {
+        "operationId": "shippin.services.catalog_service.list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/CatalogService"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the catalog's service definitions, required ones first.",
+        "tags": [
+          "services"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.services.catalog_service.list",
+          "perm": "catalog.plans.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "post": {
+        "operationId": "shippin.services.catalog_service.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CatalogServiceCreateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogService"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Add a service to the catalog with its config schema, defaults and optional pinned deployment source and runtime contract.",
+        "tags": [
+          "services"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.services.catalog_service.created",
+          "id": "shippin.services.catalog_service.create",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/services/catalog-services/{catalogServiceId}": {
+      "delete": {
+        "operationId": "shippin.services.catalog_service.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogServiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Remove a service from the catalog; plans and organizations lose it, and it is refused while a deployment uses it.",
+        "tags": [
+          "services"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.services.catalog_service.deleted",
+          "id": "shippin.services.catalog_service.delete",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "destructive"
+        }
+      },
+      "get": {
+        "operationId": "shippin.services.catalog_service.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogServiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogService"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read one catalog service definition with its config schema, defaults and pinned deployment source.",
+        "tags": [
+          "services"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.services.catalog_service.get",
+          "perm": "catalog.plans.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "put": {
+        "operationId": "shippin.services.catalog_service.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogServiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CatalogServiceUpdateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogService"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Replace a catalog service's definition: label, config schema, defaults, deployment source and runtime contract.",
+        "tags": [
+          "services"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.services.catalog_service.updated",
+          "id": "shippin.services.catalog_service.update",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "write"
         }
       }
     },

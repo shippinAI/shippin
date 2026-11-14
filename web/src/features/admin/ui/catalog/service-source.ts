@@ -1,3 +1,4 @@
+import type { CatalogDeploymentSource as SavedDeploymentSource } from "../../../../lib/api/actions.gen";
 import type { CatalogDeploymentSource } from "../../../../lib/api/catalog-types";
 
 export type DeploymentSourceDraft = {
@@ -16,8 +17,12 @@ export const emptyDeploymentSource: DeploymentSourceDraft = {
   credential_ref: "",
 };
 
-export function sourceDraft(source?: CatalogDeploymentSource | null): DeploymentSourceDraft {
-  return source ? {
+const sourceKinds: readonly string[] = ["github", "git", "oci"] satisfies CatalogDeploymentSource["kind"][];
+const isSourceKind = (kind: string): kind is CatalogDeploymentSource["kind"] => sourceKinds.includes(kind);
+
+/** The form's draft of a saved source; the server stores only the kinds it accepts. */
+export function sourceDraft(source?: SavedDeploymentSource | null): DeploymentSourceDraft {
+  return source && isSourceKind(source.kind) ? {
     kind: source.kind,
     reference: source.reference,
     commit: source.commit ?? "",
