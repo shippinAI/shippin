@@ -1,0 +1,49 @@
+name: Acquisition qualification
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  durable-import:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.11-bookworm
+        env:
+          POSTGRES_USER: acquisition_test
+          POSTGRES_PASSWORD: disposable_ci_only
+          POSTGRES_DB: acquisition_disposable
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd 'pg_isready -U acquisition_test -d acquisition_disposable'
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      SHIPPIN_TEST_ACQUISITION_DISPOSABLE: '1'
+      SHIPPIN_TEST_ACQUISITION_DSN: postgres://acquisition_test:disposable_ci_only@127.0.0.1:5432/acquisition_disposable?sslmode=disable
+      SHIPPIN_TEST_DATABASE_URL: postgres://acquisition_test:disposable_ci_only@127.0.0.1:5432/acquisition_disposable?sslmode=disable
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Actual disposable PostgreSQL and verified TLS boundary
+        run: |
+          set -euo pipefail
+          go test -p 1 -race -count=1 -v ./internal/acquisition/... ./internal/tenancy/acquisition_source/... | tee acquisition-tests.txt
+          go vet ./internal/acquisition/... ./internal/tenancy/acquisition_source/...
+      - name: Generated contract consistency
+        run: |
+          go generate ./internal/actions
+          git diff --exit-code -- internal/actions/registry_gen.go web/src/lib/api/actions.gen.ts api/openapi/actions.gen.json
+      - name: Preserve qualification output
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: acquisition-qualification-${{ github.sha }}
+          path: acquisition-tests.txt
+          retention-days: 14

@@ -99,6 +99,9 @@ GET /v1/operator/system
 GET /v1/operator/team
 GET /v1/operator/team/permission-grants
 GET /v1/operator/templates
+GET /v1/operator/tenancy/acquisition-sources
+GET /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}
+GET /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}/leads
 GET /v1/operator/tenancy/coverage-tiers
 GET /v1/operator/tenancy/coverage-tiers/{coverageTierId}
 GET /v1/operator/tenants
@@ -227,6 +230,8 @@ POST /v1/operator/team/permission-grants
 POST /v1/operator/team/requests/{requestId}/{decision}
 POST /v1/operator/team/roles
 POST /v1/operator/templates
+POST /v1/operator/tenancy/acquisition-sources
+POST /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}/sync
 POST /v1/operator/tenancy/coverage-tiers
 POST /v1/operator/tenants/{tenantId}/desktop/prepare
 POST /v1/operator/tenants/{tenantId}/projects
@@ -309,6 +314,7 @@ PUT /v1/operator/team/members/{userId}/roles
 PUT /v1/operator/team/roles/{roleKey}
 PUT /v1/operator/team/settings
 PUT /v1/operator/templates/{templateId}
+PUT /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}
 PUT /v1/operator/tenancy/coverage-tiers/{coverageTierId}
 PUT /v1/tenants/{tenantId}/db/tables/{table}/rows
 PUT /v1/tenants/{tenantId}/teams/{teamId}/members/{userId}

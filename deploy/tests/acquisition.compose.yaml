@@ -1,0 +1,76 @@
+# Disposable acquisition acceptance only; never point these services at an installation.
+name: shippin-acquisition-acceptance
+services:
+  source-db:
+    image: postgres:17.11-bookworm
+    environment:
+      POSTGRES_USER: shippin_test
+      POSTGRES_DB: shippin_signup_disposable
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes: [source-db:/var/lib/postgresql/data]
+    ports: ['127.0.0.1:25444:8443', '127.0.0.1:25443:18443']
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U shippin_test -d shippin_signup_disposable]
+      interval: 2s
+      retries: 30
+  platformdb:
+    image: postgres:17.11-bookworm
+    environment:
+      POSTGRES_USER: acquisition_fixture
+      POSTGRES_DB: acquisition_fixture
+      POSTGRES_PASSWORD: ${ACQUISITION_DB_PASSWORD:?Synthetic fixture password required}
+    volumes: [platform-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U acquisition_fixture -d acquisition_fixture]
+      interval: 2s
+      retries: 30
+  panel:
+    image: shippin-panel:acquisition-qualification
+    network_mode: service:source-db
+    environment:
+      SHIPPIN_DATABASE_URL: postgres://acquisition_fixture:${ACQUISITION_DB_PASSWORD}@platformdb:5432/acquisition_fixture?sslmode=disable
+      SHIPPIN_CONSOLE_HOST: panel
+      SHIPPIN_ORIGIN: https://127.0.0.1:25444
+      SHIPPIN_PORT: 25444
+      SHIPPIN_DEV_ACCOUNTS: admin@example.test=staff,reader@example.test=staff,denied@example.test=customer
+      SHIPPIN_DEV_ACCOUNTS_PASSWORD: ${ACQUISITION_DEV_PASSWORD:?Synthetic fixture password required}
+    volumes: [platform-state:/var/lib/shippin]
+    depends_on:
+      source-db: {condition: service_healthy}
+      platformdb: {condition: service_healthy}
+  signup:
+    image: shippin-acquisition-source:runtime
+    network_mode: service:source-db
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    volumes: [source-secrets:/secrets:ro]
+    command: [-listen, '127.0.0.1:18080', -origin, 'https://127.0.0.1:25443', -privacy-contact, 'privacy@example.test', -postgres-dsn-file, /secrets/dsn, -marketing-key-file, /secrets/key, -tenant, container, -project, signup, -lead-days, '30', -max-active-leads, '100']
+    depends_on:
+      source-db: {condition: service_healthy}
+  admin:
+    image: shippin-acquisition-source:admin
+    network_mode: service:source-db
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    volumes: [source-secrets:/secrets:ro]
+    command: [-listen, '127.0.0.1:18082', -postgres-dsn-file, /secrets/admin-dsn, -marketing-key-file, /secrets/key, -tenant, container, -project, signup, -lead-days, '30', -delegation-public-key-file, /secrets/admin-verifier, -issuer, fixture, -audience, source-admin, -tls-cert, /secrets/admin-cert, -tls-key, /secrets/admin-key]
+    depends_on:
+      source-db: {condition: service_healthy}
+  proxy:
+    image: shippin-acquisition-fixture:qualification
+    network_mode: service:source-db
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      SHIPPIN_ACQUISITION_DISPOSABLE: '1'
+    volumes: [source-secrets:/secrets:ro]
+    command: [proxy]
+    depends_on: [signup]
+volumes:
+  source-db:
+  source-secrets:
+  platform-db:
+  platform-state:
