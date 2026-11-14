@@ -1,0 +1,37 @@
+# Disposable acceptance only. Never use with an installation database.
+name: shippin-run-acceptance
+services:
+  platformdb:
+    image: postgres:17.11-bookworm
+    environment:
+      POSTGRES_USER: fixture
+      POSTGRES_DB: runner_fixture
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes: [fixture-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U fixture -d runner_fixture]
+      interval: 2s
+      retries: 30
+  panel:
+    image: shippin-panel:runner-qualification
+    environment:
+      SHIPPIN_DATABASE_URL: postgres://fixture:${DB_PASSWORD}@platformdb:5432/runner_fixture?sslmode=disable
+      SHIPPIN_CONSOLE_HOST: panel
+      SHIPPIN_ORIGIN: https://127.0.0.1:22443
+      SHIPPIN_PORT: 22443
+      SHIPPIN_DEV_ACCOUNTS: admin@example.test=staff,user@example.test=customer,denied@example.test=customer
+      SHIPPIN_DEV_ACCOUNTS_PASSWORD: ${DEV_PASSWORD}
+      SHIPPIN_RUN_GATEWAY_ORIGIN: https://gateway:8543
+      SHIPPIN_RUN_GATEWAY_CA: /trust/gateway.crt
+    volumes: [fixture-state:/var/lib/shippin, '${RUNNER_TEST_TRUST_DIR:?Set dedicated public certificate directory}:/trust:ro']
+    ports: ['127.0.0.1:22443:8443']
+    depends_on:
+      platformdb:
+        condition: service_healthy
+volumes:
+  fixture-db:
+  fixture-state:
+networks:
+  default:
+    name: shippin-run-acceptance
+
