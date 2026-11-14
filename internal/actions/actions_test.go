@@ -7,16 +7,25 @@ import (
 	"testing"
 
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/mcpl/contract"
 	"shippin.cloud/console/internal/mcpl/gen"
 )
 
-// The registry and the panel's action map are generated from the action files; this fails when they
-// are out of date, so a moved or added action can't ship without them.
+// The registry is generated from the action files, and the panel's typed map and the OpenAPI document
+// from the registry; this fails when any is out of date, so a moved or added action can't ship without
+// them.
 func TestGeneratedFilesAreCurrent(t *testing.T) {
 	root := filepath.Join("..", "..")
 	files, err := gen.Files(root)
 	if err != nil {
 		t.Fatal(err)
+	}
+	derived, err := contract.Files(All)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for p, b := range derived {
+		files[p] = b
 	}
 	for path, want := range files {
 		have, err := os.ReadFile(filepath.Join(root, path))

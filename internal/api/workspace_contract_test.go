@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"shippin.cloud/console/internal/auth"
@@ -19,11 +18,8 @@ import (
 // This bounded contract check validates methods, supported actions, status codes and
 // actual JSON required fields/types/enums. It is not a complete OpenAPI validator.
 func TestWorkspaceLifecycleContract(t *testing.T) {
-	spec := os.Getenv("OPENAPI_SPEC")
-	if spec == "" {
-		t.Skip("OPENAPI_SPEC not set")
-	}
-	cmd := exec.Command("python", "-c", `import json, pathlib, sys, yaml
+	spec, py := specFile(), pyYAML(t)
+	cmd := exec.Command(py, "-c", `import json, pathlib, sys, yaml
 p=pathlib.Path(sys.argv[1]); names=['paths/operator-runtime.yaml','paths/workspace-actions.yaml','schemas/workspaces.yaml','schemas/jobs.yaml','schemas/common.yaml']
 print(json.dumps({n:yaml.safe_load((p/n).read_text(encoding='utf-8')) for n in names}))`, filepath.Dir(spec))
 	raw, err := cmd.CombinedOutput()
@@ -45,8 +41,7 @@ print(json.dumps({n:yaml.safe_load((p/n).read_text(encoding='utf-8')) for n in n
 			t.Fatal("unsupported action", v)
 		}
 	}
-	rec := &recorder{}
-	(&API{cfg: testCfg()}).Register(rec)
+	rec := &recorder{patterns: servedPatterns(t)}
 	methodFound := false
 	for _, p := range rec.patterns {
 		if strings.HasPrefix(p, "POST ") && norm(strings.TrimPrefix(p, "POST ")) == "/tenants/{}/workspaces/{}/actions/{}" {

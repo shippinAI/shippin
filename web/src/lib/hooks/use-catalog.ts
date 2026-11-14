@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { callAction } from "../api/actions";
 import { apiGet, apiSend } from "../api/client";
-import type { CatalogService, CoverageTier, Customer, EffectiveConfig, Intent, Items, Plan, PlanService } from "../api/catalog-types";
+import type { CatalogService, Customer, EffectiveConfig, Intent, Items, Plan, PlanService } from "../api/catalog-types";
 import { toast } from "../design/components/toast/toast-queue";
 
 const base = "/v1/operator/catalog";
@@ -9,7 +9,7 @@ const get = <T,>(key: unknown[], path: string) => useQuery({ queryKey: ["catalog
 
 export const usePlans = () => get<Items<Plan>>(["plans"], `${base}/plans`);
 export const useCoverageTiers = () =>
-  useQuery({ queryKey: ["catalog", "coverage"], queryFn: () => callAction<Items<CoverageTier>>("shippin.tenancy.coverage_tier.list"), retry: false });
+  useQuery({ queryKey: ["catalog", "coverage"], queryFn: () => callAction("shippin.tenancy.coverage_tier.list"), retry: false });
 export const useServices = () => get<Items<CatalogService>>(["services"], `${base}/services`);
 export const usePlanServices = () => get<Items<PlanService>>(["plan-services"], `${base}/plan-services`);
 export const useCustomers = () => get<Items<Customer>>(["customers"], "/v1/operator/customers");

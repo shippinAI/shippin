@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/mcpl"
 )
 
@@ -18,9 +16,7 @@ import (
 // testdata/mcpl-undescribed.txt; that list may only shrink, as entities move into
 // internal/<domain>/<entity>/<verb>.go. Regenerate it with UPDATE_MCPL=1.
 func TestMCPLConformance(t *testing.T) {
-	a := gateAPI("op_superadmin")
-	a.flow = &auth.Flow{}
-	a.directory = identity.New(nil, a.cfg, nil, nil) // so local-account routes are mounted too
+	a := servedAPI()
 	rec := &patternRec{mux: http.NewServeMux()}
 	a.Register(rec)
 	served := map[string]bool{}
@@ -62,20 +58,21 @@ func TestMCPLConformance(t *testing.T) {
 			legacy = append(legacy, pat)
 		}
 	}
-	ratchet(t, "testdata/mcpl-undescribed.txt", legacy, "served /v1 routes that are not yet generated actions")
+	ratchet(t, "testdata/mcpl-undescribed.txt", legacy, "UPDATE_MCPL", "served /v1 routes that are not yet generated actions",
+		"write it as an action file instead (docs/mcpl.md)")
 	t.Logf("MCPL: %d generated actions, %d legacy routes", len(actions), len(legacy))
 }
 
-// ratchet fails on a new entry or a stale one, so a known-gaps list can only shrink.
-func ratchet(t *testing.T, file string, got []string, what string) {
+// ratchet fails on a new entry or a stale one, so a known-gaps list can only shrink. env=1 rewrites it.
+func ratchet(t *testing.T, file string, got []string, env, what, hint string) {
 	t.Helper()
 	slices.Sort(got)
-	if os.Getenv("UPDATE_MCPL") == "1" {
-		_ = os.WriteFile(file, []byte("# "+what+". This list may only shrink: move an entity to internal/<domain>/<entity>/<verb>.go, then UPDATE_MCPL=1 go test -run TestMCPLConformance ./internal/api\n"+strings.Join(got, "\n")+"\n"), 0o644)
+	if os.Getenv(env) == "1" {
+		_ = os.WriteFile(file, []byte("# "+what+". This list may only shrink: move an entity to internal/<domain>/<entity>/<verb>.go, then "+env+"=1 go test ./internal/api\n"+strings.Join(got, "\n")+"\n"), 0o644)
 	}
 	raw, err := os.ReadFile(file)
 	if err != nil {
-		t.Fatalf("%s: %v (create it with UPDATE_MCPL=1)", file, err)
+		t.Fatalf("%s: %v (create it with %s=1)", file, err, env)
 	}
 	known := map[string]bool{}
 	for _, l := range strings.Split(string(raw), "\n") {
@@ -87,12 +84,12 @@ func ratchet(t *testing.T, file string, got []string, what string) {
 	for _, g := range got {
 		have[g] = true
 		if !known[g] {
-			t.Errorf("new legacy route %s: write it as an action file instead (docs/mcpl.md)", g)
+			t.Errorf("new entry %s in %s: %s", g, file, hint)
 		}
 	}
 	for k := range known {
 		if !have[k] {
-			t.Errorf("%s lists %s, which is gone or generated now; regenerate with UPDATE_MCPL=1", file, k)
+			t.Errorf("%s lists %s, which is gone or generated now; rewrite it with %s=1", file, k, env)
 		}
 	}
 }

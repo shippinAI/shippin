@@ -22,20 +22,20 @@ func TestValidateAcceptsACanonicalAction(t *testing.T) {
 func TestValidateRefusesEachBrokenRule(t *testing.T) {
 	base := Action{ID: "shippin.tenancy.plan.update", Route: "PUT /v1/operator/catalog/plans/{id}", Access: Staff, Perm: "p", Risk: Write, Summary: "Change a plan.", Event: "shippin.tenancy.plan.updated"}
 	cases := map[string]func(a *Action){
-		"ID must be":           func(a *Action) { a.ID = "plans.update" },
-		"unknown domain":       func(a *Action) { a.ID = "shippin.billing.plan.update" },
-		"route must be":        func(a *Action) { a.Route = "PUT /operator/plans" },
-		"a write is not":       func(a *Action) { a.Route = "DELETE /v1/x/{id}" },
-		"a GET is a read":      func(a *Action) { a.Route = "GET /v1/x"; a.Risk = Write },
-		"names its":            func(a *Action) { a.Perm = "" },
-		"summary is one":       func(a *Action) { a.Summary = "no full stop" },
-		"event must be":        func(a *Action) { a.Event = "plan.updated" },
-		"event domain":         func(a *Action) { a.Event = "shippin.services.plan.updated" },
-		"risk must be":         func(a *Action) { a.Risk = "maybe" },
-		"only public and auth": func(a *Action) { a.Access = Public; a.Perm = "" },
-		"has no permission":    func(a *Action) { a.Access = SignedIn },
-		"member action's":      func(a *Action) { a.Access = Member; a.Perm = "catalog.plans.write" },
-		"a change emits":       func(a *Action) { a.Event = "" },
+		"ID must be":              func(a *Action) { a.ID = "plans.update" },
+		"unknown domain":          func(a *Action) { a.ID = "shippin.billing.plan.update" },
+		"route must be":           func(a *Action) { a.Route = "PUT /operator/plans" },
+		"update is a PUT":         func(a *Action) { a.Route = "DELETE /v1/x/{id}" },
+		"is a PUT":                func(a *Action) { a.Route = "GET /v1/x"; a.Risk = Write },
+		"names its":               func(a *Action) { a.Perm = "" },
+		"summary is one":          func(a *Action) { a.Summary = "no full stop" },
+		"event must be":           func(a *Action) { a.Event = "plan.updated" },
+		"event domain":            func(a *Action) { a.Event = "shippin.services.plan.updated" },
+		"write action, not maybe": func(a *Action) { a.Risk = "maybe" },
+		"only public and auth":    func(a *Action) { a.Access = Public; a.Perm = "" },
+		"has no permission":       func(a *Action) { a.Access = SignedIn },
+		"member action's":         func(a *Action) { a.Access = Member; a.Perm = "catalog.plans.write" },
+		"a change emits":          func(a *Action) { a.Event = "" },
 	}
 	for want, mutate := range cases {
 		a := base
@@ -89,6 +89,11 @@ func TestRouteFor(t *testing.T) {
 	}
 	if _, err := RouteFor("shippin.tenancy.coverage.list", Spec{Access: Member, Singleton: true}); err == nil {
 		t.Error("a singleton list was allowed")
+	}
+	for _, verb := range []string{"list", "get", "create", "update", "delete"} {
+		if r, err := RouteFor("shippin.tenancy.plan."+verb, Spec{Access: Staff, Collection: true}); err == nil {
+			t.Errorf("Collection on %s was allowed: %s", verb, r)
+		}
 	}
 }
 

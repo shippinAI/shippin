@@ -75,8 +75,6 @@ var (
 	idPattern    = regexp.MustCompile(`^shippin\.[a-z]+\.[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*\.[a-z][a-z_]*$`)
 	eventPattern = regexp.MustCompile(`^shippin\.[a-z]+\.[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*\.[a-z][a-z_]*$`)
 	routePattern = regexp.MustCompile(`^(GET|POST|PUT|PATCH|DELETE) /v1(/[a-z0-9{][a-zA-Z0-9_.{}-]*)+$`)
-	readVerbs    = []string{"list", "get", "check", "search", "export"}
-	deleteVerbs  = []string{"delete", "remove", "revoke", "reset", "clear"}
 )
 
 // Validate checks every action against the rules in docs/mcpl.md and returns each problem found.
@@ -105,30 +103,10 @@ func Validate(actions []Action) []error {
 		}
 		method, _, _ := strings.Cut(a.Route, " ")
 		verb := a.ID[strings.LastIndex(a.ID, ".")+1:]
-		switch a.Risk {
-		case Read:
-			if method != "GET" && !slices.Contains(readVerbs, verb) {
-				fail(a, "a read is a GET or a %v verb", readVerbs)
-			}
-		case Write:
-			if method == "GET" || method == "DELETE" {
-				fail(a, "a write is not a %s", method)
-			}
-		case Destructive:
-			if method == "GET" {
-				fail(a, "a destructive action is not a GET")
-			}
-		default:
-			fail(a, "risk must be read, write or destructive")
-		}
-		if method == "GET" && a.Risk != Read {
-			fail(a, "a GET is a read")
-		}
-		if method == "DELETE" && a.Risk != Destructive {
-			fail(a, "a DELETE is destructive")
-		}
-		if method == "DELETE" && !slices.Contains(deleteVerbs, verb) {
-			fail(a, "a DELETE's verb is one of %v", deleteVerbs)
+		if v := VerbOf(verb, Spec{}); method != v.Method {
+			fail(a, "%s is a %s (mcpl.Verbs)", verb, v.Method)
+		} else if a.Risk != v.Risk {
+			fail(a, "%s is a %s action, not %s", verb, v.Risk, a.Risk)
 		}
 		switch a.Access {
 		case Public, SignedIn:

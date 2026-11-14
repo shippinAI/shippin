@@ -1,19 +1,27 @@
 # The Shippin panel: the web bundle, the console binary and nothing about any one installation.
 # Everything a site chooses comes from the environment at run time. See compose.yaml.
 
+# Everything derived from the action files is generated again here, from the source alone: the
+# registry, the panel's typed action map and the actions' OpenAPI document (docs/mcpl.md). The image
+# is what the source says even if a committed copy is stale; the tests catch a stale copy.
+FROM golang:1.26-bookworm AS source
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN go generate ./internal/actions
+
 FROM node:24-bookworm-slim AS web
 WORKDIR /src/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY web/ ./
 COPY api/ /src/api/
-RUN npm run build
+COPY --from=source /src/web/src/lib/api/actions.gen.ts src/lib/api/actions.gen.ts
+COPY --from=source /src/api/openapi/actions.gen.json /src/api/openapi/actions.gen.json
+RUN npm run generate:openapi && npm run build
 
-FROM golang:1.26-bookworm AS server
-WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
+FROM source AS server
 # Go stamps the commit from .git, which is how the panel knows when it is behind.
 # A source archive has no .git and builds unstamped.
 RUN CGO_ENABLED=0 go build -trimpath -o /out/shippin-console ./cmd/console \

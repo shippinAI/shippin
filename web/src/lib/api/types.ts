@@ -99,7 +99,8 @@ export type WorkspaceState = "unknown" | "provisioning" | "running" | "stopped" 
 
 export type FirewallRule = { protocol: "tcp" | "udp"; port: number; source: string };
 
-export type SSHKey = { id: string; name: string; public_key: string; fingerprint: string; created_at: string };
+/** A public key on a person's account, generated from the ssh_key action types. */
+export type { SshKey as SSHKey } from "./actions.gen";
 
 export type Connect = { host: string; port: number; user: string; ssh: string; ssh_config: string; vscode: string };
 

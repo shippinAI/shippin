@@ -5,7 +5,6 @@ package coverage_tier
 
 import (
 	"context"
-	"slices"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -21,39 +20,55 @@ const (
 	permPrices = "catalog.prices.read"
 )
 
-// Allowed values, kept in step with the CHECK constraints in migration 070.
-var (
-	SignInRules     = []string{"password", "second_factor", "identity_provider"}
-	SupportHours    = []string{"business", "critical_always", "always"}
-	SupportChannels = []string{"docs", "community", "email", "chat", "phone", "video"}
-	OperationModes  = []string{"self", "assisted", "managed"}
-	ReviewCadences  = []string{"none", "quarterly", "monthly"}
-	ServiceTerms    = []string{"none", "quoted", "included"}
+// The choices a tier is made of. Each type owns its values, kept in step with the CHECK constraints in
+// migration 070; the panel's types and the OpenAPI document list them from here.
+type (
+	// SignIn is the least a member must sign in with.
+	SignIn string
+	// Hours are when support answers.
+	Hours string
+	// Channel is a way to reach support.
+	Channel string
+	// Mode is who runs day-to-day operations.
+	Mode string
+	// Cadence is how often the organization's setup is reviewed with it.
+	Cadence string
+	// Term is how an extra service comes with the tier.
+	Term string
 )
+
+func (SignIn) Values() []string { return []string{"password", "second_factor", "identity_provider"} }
+func (Hours) Values() []string  { return []string{"business", "critical_always", "always"} }
+func (Channel) Values() []string {
+	return []string{"docs", "community", "email", "chat", "phone", "video"}
+}
+func (Mode) Values() []string    { return []string{"self", "assisted", "managed"} }
+func (Cadence) Values() []string { return []string{"none", "quarterly", "monthly"} }
+func (Term) Values() []string    { return []string{"none", "quoted", "included"} }
 
 // Tier is a coverage tier as staff read it. Response targets are first-reply minutes within the support
 // hours; nil means no target. The price is absent for a caller without catalog.prices.read.
 type Tier struct {
-	ID              string   `json:"id"`
-	Label           string   `json:"label"`
-	Description     string   `json:"description"`
-	Rank            int      `json:"rank"`
-	SignIn          string   `json:"sign_in"`
-	SupportHours    string   `json:"support_hours"`
-	Channels        []string `json:"channels"`
-	CriticalMinutes *int     `json:"critical_minutes"`
-	HighMinutes     *int     `json:"high_minutes"`
-	NormalMinutes   *int     `json:"normal_minutes"`
+	ID              string    `json:"id"`
+	Label           string    `json:"label"`
+	Description     string    `json:"description"`
+	Rank            int       `json:"rank"`
+	SignIn          SignIn    `json:"sign_in"`
+	SupportHours    Hours     `json:"support_hours"`
+	Channels        []Channel `json:"channels"`
+	CriticalMinutes *int      `json:"critical_minutes"`
+	HighMinutes     *int      `json:"high_minutes"`
+	NormalMinutes   *int      `json:"normal_minutes"`
 	// UptimeTarget is a percentage such as 99.9; nil means no uptime commitment.
 	UptimeTarget      *float64 `json:"uptime_target"`
-	Operations        string   `json:"operations"`
+	Operations        Mode     `json:"operations"`
 	NamedContact      bool     `json:"named_contact"`
-	Reviews           string   `json:"reviews"`
+	Reviews           Cadence  `json:"reviews"`
 	TrainingHours     int      `json:"training_hours"`
-	Consulting        string   `json:"consulting"`
-	CustomDeployments string   `json:"custom_deployments"`
-	RemoteOperations  string   `json:"remote_operations"`
-	TeamTraining      string   `json:"team_training"`
+	Consulting        Term     `json:"consulting"`
+	CustomDeployments Term     `json:"custom_deployments"`
+	RemoteOperations  Term     `json:"remote_operations"`
+	TeamTraining      Term     `json:"team_training"`
 	// The charge is the greater of PriceCents a month and SpendPercent of the organization's plan charges.
 	PriceCents   *int      `json:"price_cents,omitempty"`
 	SpendPercent *float64  `json:"spend_percent,omitempty"`
@@ -62,30 +77,31 @@ type Tier struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
-// Fields are what create and update take. Empty choices take their defaults; Public and Active default to true.
+// Fields are what create and update take. Empty choices take their defaults; Public and Active default to
+// true. A price left out keeps the stored one, which is how a caller who may not see prices saves.
 type Fields struct {
-	Label             string   `json:"label"`
-	Description       string   `json:"description"`
-	Rank              int      `json:"rank"`
-	SignIn            string   `json:"sign_in"`
-	SupportHours      string   `json:"support_hours"`
-	Channels          []string `json:"channels"`
-	CriticalMinutes   *int     `json:"critical_minutes"`
-	HighMinutes       *int     `json:"high_minutes"`
-	NormalMinutes     *int     `json:"normal_minutes"`
-	UptimeTarget      *float64 `json:"uptime_target"`
-	Operations        string   `json:"operations"`
-	NamedContact      bool     `json:"named_contact"`
-	Reviews           string   `json:"reviews"`
-	TrainingHours     int      `json:"training_hours"`
-	Consulting        string   `json:"consulting"`
-	CustomDeployments string   `json:"custom_deployments"`
-	RemoteOperations  string   `json:"remote_operations"`
-	TeamTraining      string   `json:"team_training"`
-	PriceCents        *int     `json:"price_cents"`
-	SpendPercent      *float64 `json:"spend_percent"`
-	Public            *bool    `json:"public"`
-	Active            *bool    `json:"active"`
+	Label             string    `json:"label"`
+	Description       string    `json:"description"`
+	Rank              int       `json:"rank"`
+	SignIn            SignIn    `json:"sign_in"`
+	SupportHours      Hours     `json:"support_hours"`
+	Channels          []Channel `json:"channels"`
+	CriticalMinutes   *int      `json:"critical_minutes"`
+	HighMinutes       *int      `json:"high_minutes"`
+	NormalMinutes     *int      `json:"normal_minutes"`
+	UptimeTarget      *float64  `json:"uptime_target"`
+	Operations        Mode      `json:"operations"`
+	NamedContact      bool      `json:"named_contact"`
+	Reviews           Cadence   `json:"reviews"`
+	TrainingHours     int       `json:"training_hours"`
+	Consulting        Term      `json:"consulting"`
+	CustomDeployments Term      `json:"custom_deployments"`
+	RemoteOperations  Term      `json:"remote_operations"`
+	TeamTraining      Term      `json:"team_training"`
+	PriceCents        *int      `json:"price_cents,omitempty"`
+	SpendPercent      *float64  `json:"spend_percent,omitempty"`
+	Public            *bool     `json:"public,omitempty"`
+	Active            *bool     `json:"active,omitempty"`
 }
 
 // ByID names one tier in the route.
@@ -93,7 +109,7 @@ type ByID struct {
 	ID string `path:"coverageTierId" json:"-"`
 }
 
-func or(v, d string) string {
+func or[T ~string](v, d T) T {
 	if v == "" {
 		return d
 	}
@@ -106,21 +122,20 @@ func (f *Fields) normalize() error {
 	f.Consulting, f.CustomDeployments = or(f.Consulting, "quoted"), or(f.CustomDeployments, "quoted")
 	f.RemoteOperations, f.TeamTraining = or(f.RemoteOperations, "none"), or(f.TeamTraining, "quoted")
 	if f.Channels == nil {
-		f.Channels = []string{}
+		f.Channels = []Channel{}
 	}
-	in := slices.Contains[[]string]
 	switch {
 	case f.Label == "" || len(f.Label) > 80:
 		return mcpl.Invalid("A coverage tier needs a label of up to 80 characters.")
-	case !in(SignInRules, f.SignIn):
+	case !mcpl.Valid(f.SignIn):
 		return mcpl.Invalid("Sign-in must be password, second_factor or identity_provider.")
-	case !in(SupportHours, f.SupportHours):
+	case !mcpl.Valid(f.SupportHours):
 		return mcpl.Invalid("Support hours must be business, critical_always or always.")
-	case !in(OperationModes, f.Operations):
+	case !mcpl.Valid(f.Operations):
 		return mcpl.Invalid("Operations must be self, assisted or managed.")
-	case !in(ReviewCadences, f.Reviews):
+	case !mcpl.Valid(f.Reviews):
 		return mcpl.Invalid("Reviews must be none, quarterly or monthly.")
-	case !in(ServiceTerms, f.Consulting) || !in(ServiceTerms, f.CustomDeployments) || !in(ServiceTerms, f.RemoteOperations) || !in(ServiceTerms, f.TeamTraining):
+	case !mcpl.Valid(f.Consulting) || !mcpl.Valid(f.CustomDeployments) || !mcpl.Valid(f.RemoteOperations) || !mcpl.Valid(f.TeamTraining):
 		return mcpl.Invalid("Consulting, custom deployments, remote operations and team training must each be none, quoted or included.")
 	case f.TrainingHours < 0 || f.TrainingHours > 10000:
 		return mcpl.Invalid("Training hours must be between 0 and 10000 a year.")
@@ -135,7 +150,7 @@ func (f *Fields) normalize() error {
 		}
 	}
 	for _, ch := range f.Channels {
-		if !in(SupportChannels, ch) {
+		if !mcpl.Valid(ch) {
 			return mcpl.Invalid("Channels are docs, community, email, chat, phone and video.")
 		}
 	}
@@ -211,23 +226,23 @@ func Of(ctx context.Context, pool *pgxpool.Pool, tenantIDs []string) (map[string
 
 // CustomerView is what a member sees of their organization's tier: the service, not the price or catalog state.
 type CustomerView struct {
-	ID                string   `json:"id"`
-	Label             string   `json:"label"`
-	Description       string   `json:"description"`
-	SupportHours      string   `json:"support_hours"`
-	Channels          []string `json:"channels"`
-	CriticalMinutes   *int     `json:"critical_minutes"`
-	HighMinutes       *int     `json:"high_minutes"`
-	NormalMinutes     *int     `json:"normal_minutes"`
-	UptimeTarget      *float64 `json:"uptime_target"`
-	Operations        string   `json:"operations"`
-	NamedContact      bool     `json:"named_contact"`
-	Reviews           string   `json:"reviews"`
-	TrainingHours     int      `json:"training_hours"`
-	Consulting        string   `json:"consulting"`
-	CustomDeployments string   `json:"custom_deployments"`
-	RemoteOperations  string   `json:"remote_operations"`
-	TeamTraining      string   `json:"team_training"`
+	ID                string    `json:"id"`
+	Label             string    `json:"label"`
+	Description       string    `json:"description"`
+	SupportHours      Hours     `json:"support_hours"`
+	Channels          []Channel `json:"channels"`
+	CriticalMinutes   *int      `json:"critical_minutes"`
+	HighMinutes       *int      `json:"high_minutes"`
+	NormalMinutes     *int      `json:"normal_minutes"`
+	UptimeTarget      *float64  `json:"uptime_target"`
+	Operations        Mode      `json:"operations"`
+	NamedContact      bool      `json:"named_contact"`
+	Reviews           Cadence   `json:"reviews"`
+	TrainingHours     int       `json:"training_hours"`
+	Consulting        Term      `json:"consulting"`
+	CustomDeployments Term      `json:"custom_deployments"`
+	RemoteOperations  Term      `json:"remote_operations"`
+	TeamTraining      Term      `json:"team_training"`
 }
 
 // ForTenant is the organization's own tier (its override, else its plan's); nil when it has none.

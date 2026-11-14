@@ -1,0 +1,1527 @@
+{
+  "components": {
+    "responses": {
+      "Problem": {
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        },
+        "description": "Refused or failed."
+      }
+    },
+    "schemas": {
+      "AccessKey": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "created_at",
+          "expires_at",
+          "last_used_at"
+        ],
+        "type": "object"
+      },
+      "AccessKeyCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "AccessKeyCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "created_at",
+          "expires_at",
+          "last_used_at",
+          "token"
+        ],
+        "type": "object"
+      },
+      "CoverageOwn": {
+        "additionalProperties": false,
+        "properties": {
+          "coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CoverageTierCustomerView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "coverage"
+        ],
+        "type": "object"
+      },
+      "CoverageTier": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageTierChannel"
+            },
+            "type": "array"
+          },
+          "consulting": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "critical_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "custom_deployments": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "description": {
+            "type": "string"
+          },
+          "high_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "named_contact": {
+            "type": "boolean"
+          },
+          "normal_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operations": {
+            "$ref": "#/components/schemas/CoverageTierMode"
+          },
+          "price_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "public": {
+            "type": "boolean"
+          },
+          "rank": {
+            "type": "integer"
+          },
+          "remote_operations": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "reviews": {
+            "$ref": "#/components/schemas/CoverageTierCadence"
+          },
+          "sign_in": {
+            "$ref": "#/components/schemas/CoverageTierSignIn"
+          },
+          "spend_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "support_hours": {
+            "$ref": "#/components/schemas/CoverageTierHours"
+          },
+          "team_training": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "training_hours": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "uptime_target": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "rank",
+          "sign_in",
+          "support_hours",
+          "channels",
+          "critical_minutes",
+          "high_minutes",
+          "normal_minutes",
+          "uptime_target",
+          "operations",
+          "named_contact",
+          "reviews",
+          "training_hours",
+          "consulting",
+          "custom_deployments",
+          "remote_operations",
+          "team_training",
+          "public",
+          "active",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "CoverageTierCadence": {
+        "enum": [
+          "none",
+          "quarterly",
+          "monthly"
+        ],
+        "type": "string"
+      },
+      "CoverageTierChannel": {
+        "enum": [
+          "docs",
+          "community",
+          "email",
+          "chat",
+          "phone",
+          "video"
+        ],
+        "type": "string"
+      },
+      "CoverageTierCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageTierChannel"
+            },
+            "type": "array"
+          },
+          "consulting": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "critical_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "custom_deployments": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "description": {
+            "type": "string"
+          },
+          "high_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "named_contact": {
+            "type": "boolean"
+          },
+          "normal_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operations": {
+            "$ref": "#/components/schemas/CoverageTierMode"
+          },
+          "price_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "public": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rank": {
+            "type": "integer"
+          },
+          "remote_operations": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "reviews": {
+            "$ref": "#/components/schemas/CoverageTierCadence"
+          },
+          "sign_in": {
+            "$ref": "#/components/schemas/CoverageTierSignIn"
+          },
+          "spend_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "support_hours": {
+            "$ref": "#/components/schemas/CoverageTierHours"
+          },
+          "team_training": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "training_hours": {
+            "type": "integer"
+          },
+          "uptime_target": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "rank",
+          "sign_in",
+          "support_hours",
+          "channels",
+          "critical_minutes",
+          "high_minutes",
+          "normal_minutes",
+          "uptime_target",
+          "operations",
+          "named_contact",
+          "reviews",
+          "training_hours",
+          "consulting",
+          "custom_deployments",
+          "remote_operations",
+          "team_training"
+        ],
+        "type": "object"
+      },
+      "CoverageTierCustomerView": {
+        "additionalProperties": false,
+        "properties": {
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageTierChannel"
+            },
+            "type": "array"
+          },
+          "consulting": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "critical_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "custom_deployments": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "description": {
+            "type": "string"
+          },
+          "high_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "named_contact": {
+            "type": "boolean"
+          },
+          "normal_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operations": {
+            "$ref": "#/components/schemas/CoverageTierMode"
+          },
+          "remote_operations": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "reviews": {
+            "$ref": "#/components/schemas/CoverageTierCadence"
+          },
+          "support_hours": {
+            "$ref": "#/components/schemas/CoverageTierHours"
+          },
+          "team_training": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "training_hours": {
+            "type": "integer"
+          },
+          "uptime_target": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "support_hours",
+          "channels",
+          "critical_minutes",
+          "high_minutes",
+          "normal_minutes",
+          "uptime_target",
+          "operations",
+          "named_contact",
+          "reviews",
+          "training_hours",
+          "consulting",
+          "custom_deployments",
+          "remote_operations",
+          "team_training"
+        ],
+        "type": "object"
+      },
+      "CoverageTierHours": {
+        "enum": [
+          "business",
+          "critical_always",
+          "always"
+        ],
+        "type": "string"
+      },
+      "CoverageTierMode": {
+        "enum": [
+          "self",
+          "assisted",
+          "managed"
+        ],
+        "type": "string"
+      },
+      "CoverageTierSignIn": {
+        "enum": [
+          "password",
+          "second_factor",
+          "identity_provider"
+        ],
+        "type": "string"
+      },
+      "CoverageTierTerm": {
+        "enum": [
+          "none",
+          "quoted",
+          "included"
+        ],
+        "type": "string"
+      },
+      "CoverageTierUpdateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageTierChannel"
+            },
+            "type": "array"
+          },
+          "consulting": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "critical_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "custom_deployments": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "description": {
+            "type": "string"
+          },
+          "high_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "named_contact": {
+            "type": "boolean"
+          },
+          "normal_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operations": {
+            "$ref": "#/components/schemas/CoverageTierMode"
+          },
+          "price_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "public": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rank": {
+            "type": "integer"
+          },
+          "remote_operations": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "reviews": {
+            "$ref": "#/components/schemas/CoverageTierCadence"
+          },
+          "sign_in": {
+            "$ref": "#/components/schemas/CoverageTierSignIn"
+          },
+          "spend_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "support_hours": {
+            "$ref": "#/components/schemas/CoverageTierHours"
+          },
+          "team_training": {
+            "$ref": "#/components/schemas/CoverageTierTerm"
+          },
+          "training_hours": {
+            "type": "integer"
+          },
+          "uptime_target": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "label",
+          "description",
+          "rank",
+          "sign_in",
+          "support_hours",
+          "channels",
+          "critical_minutes",
+          "high_minutes",
+          "normal_minutes",
+          "uptime_target",
+          "operations",
+          "named_contact",
+          "reviews",
+          "training_hours",
+          "consulting",
+          "custom_deployments",
+          "remote_operations",
+          "team_training"
+        ],
+        "type": "object"
+      },
+      "Problem": {
+        "description": "Every refusal and failure, as application/problem+json; message is plain words for a person.",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "type": "object"
+      },
+      "SshKey": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "public_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "public_key",
+          "fingerprint",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "SshKeyCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "public_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "public_key"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "accessKey": {
+        "description": "An access key (shp_...) from Account \u003e AI access, or a sign-in token.",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "session": {
+        "description": "A panel sign-in.",
+        "in": "cookie",
+        "name": "shippin_session",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "Generated from internal/\u003cdomain\u003e/\u003centity\u003e/\u003cverb\u003e.go by cmd/mcplspec. Every operation is an MCPL action: the panel, this API and MCP (POST /v1/mcp) run the same handler, permission check, audit entry and event. A staff change takes a reason, kept in the audit log with it.",
+    "title": "Shippin actions",
+    "version": "1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/me/identity/access-keys": {
+      "get": {
+        "operationId": "shippin.identity.access_key.list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/AccessKey"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List your access keys, with when each expires and was last used.",
+        "tags": [
+          "identity"
+        ],
+        "x-mcpl": {
+          "access": "signed-in",
+          "id": "shippin.identity.access_key.list",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "post": {
+        "operationId": "shippin.identity.access_key.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AccessKeyCreateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessKeyCreated"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Make an access key an AI client or script uses to act as you; it is shown once.",
+        "tags": [
+          "identity"
+        ],
+        "x-mcpl": {
+          "access": "signed-in",
+          "event": "shippin.identity.access_key.created",
+          "id": "shippin.identity.access_key.create",
+          "reason": false,
+          "risk": "write"
+        }
+      }
+    },
+    "/me/identity/access-keys/{accessKeyId}": {
+      "delete": {
+        "operationId": "shippin.identity.access_key.revoke",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accessKeyId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Revoke one of your access keys; whatever uses it stops at once.",
+        "tags": [
+          "identity"
+        ],
+        "x-mcpl": {
+          "access": "signed-in",
+          "event": "shippin.identity.access_key.revoked",
+          "id": "shippin.identity.access_key.revoke",
+          "reason": false,
+          "risk": "destructive"
+        }
+      }
+    },
+    "/me/identity/ssh-keys": {
+      "get": {
+        "operationId": "shippin.identity.ssh_key.list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/SshKey"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the SSH keys on your account, which Shippin puts on the workspaces you create.",
+        "tags": [
+          "identity"
+        ],
+        "x-mcpl": {
+          "access": "signed-in",
+          "id": "shippin.identity.ssh_key.list",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "post": {
+        "operationId": "shippin.identity.ssh_key.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SshKeyCreateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKey"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Add an SSH public key to your account; it is put on your running workspaces too.",
+        "tags": [
+          "identity"
+        ],
+        "x-mcpl": {
+          "access": "signed-in",
+          "event": "shippin.identity.ssh_key.created",
+          "id": "shippin.identity.ssh_key.create",
+          "reason": false,
+          "risk": "write"
+        }
+      }
+    },
+    "/me/identity/ssh-keys/{sshKeyId}": {
+      "delete": {
+        "operationId": "shippin.identity.ssh_key.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sshKeyId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Remove an SSH key from your account and from your workspaces.",
+        "tags": [
+          "identity"
+        ],
+        "x-mcpl": {
+          "access": "signed-in",
+          "event": "shippin.identity.ssh_key.deleted",
+          "id": "shippin.identity.ssh_key.delete",
+          "reason": false,
+          "risk": "destructive"
+        }
+      }
+    },
+    "/operator/tenancy/coverage-tiers": {
+      "get": {
+        "operationId": "shippin.tenancy.coverage_tier.list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/CoverageTier"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the coverage tiers, lowest rank first.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.tenancy.coverage_tier.list",
+          "perm": "catalog.plans.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "post": {
+        "operationId": "shippin.tenancy.coverage_tier.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CoverageTierCreateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageTier"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Create a coverage tier with its support hours, response targets, services and sign-in rule.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.coverage_tier.created",
+          "id": "shippin.tenancy.coverage_tier.create",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/tenancy/coverage-tiers/{coverageTierId}": {
+      "delete": {
+        "operationId": "shippin.tenancy.coverage_tier.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "coverageTierId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Remove a coverage tier that no plan includes; organizations moved to it fall back to their plan's.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.coverage_tier.deleted",
+          "id": "shippin.tenancy.coverage_tier.delete",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "destructive"
+        }
+      },
+      "get": {
+        "operationId": "shippin.tenancy.coverage_tier.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "coverageTierId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageTier"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read one coverage tier.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.tenancy.coverage_tier.get",
+          "perm": "catalog.plans.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "put": {
+        "operationId": "shippin.tenancy.coverage_tier.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "coverageTierId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CoverageTierUpdateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageTier"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Change a coverage tier's support, services, sign-in rule or price.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.coverage_tier.updated",
+          "id": "shippin.tenancy.coverage_tier.update",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/tenants/{tenantId}/tenancy/coverage": {
+      "get": {
+        "operationId": "shippin.tenancy.coverage.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageOwn"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read what your organization's coverage includes: support hours, response targets and services.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "id": "shippin.tenancy.coverage.get",
+          "reason": false,
+          "risk": "read"
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "/v1"
+    }
+  ]
+}

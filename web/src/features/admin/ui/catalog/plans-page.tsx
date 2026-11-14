@@ -54,7 +54,7 @@ export function PlansPage() {
                     <p className="mt-2 text-sm text-fg-muted">{t.description}</p>
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       <Badge tone={t.sign_in === "password" ? "neutral" : "info"}>Sign-in: {signInLabel[t.sign_in]}</Badge>
-                      {t.price_cents !== undefined && (t.price_cents > 0 || (t.spend_percent ?? 0) > 0) && <Badge tone="primary">{coveragePrice(t.price_cents, t.spend_percent ?? 0)}</Badge>}
+                      {t.price_cents != null && (t.price_cents > 0 || (t.spend_percent ?? 0) > 0) && <Badge tone="primary">{coveragePrice(t.price_cents, t.spend_percent ?? 0)}</Badge>}
                       {!t.public && <Badge>sales only</Badge>}
                       {!t.active && <Badge tone="warning">inactive</Badge>}
                     </div>

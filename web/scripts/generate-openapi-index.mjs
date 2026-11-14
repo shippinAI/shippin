@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Builds the API explorer's operation list from the published contract in api/openapi.
+// Builds the API explorer's operation list from the published contract in api/openapi: the hand-written
+// openapi.yaml for routes that are not actions yet, and actions.gen.json, generated from the actions.
 //   node scripts/generate-openapi-index.mjs          write it
 //   node scripts/generate-openapi-index.mjs --check  fail if the committed file is out of date
 import fs from "node:fs/promises";
@@ -9,6 +10,7 @@ import { load as parseYaml } from "js-yaml";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE = path.resolve(here, "../../api/openapi/openapi.yaml");
+const ACTIONS = path.resolve(here, "../../api/openapi/actions.gen.json");
 const OUTPUT = path.resolve(here, "../src/features/api-explorer/openapi-index.json");
 const METHODS = new Set(["get", "post", "put", "patch", "delete", "head", "options"]);
 
@@ -43,15 +45,18 @@ function operationsOf(pathKey, item) {
         operationId: op.operationId ?? `${method}:${pathKey}`,
         summary: op.summary ?? "",
         tags: Array.isArray(op.tags) ? op.tags : ["untagged"],
-        implementationStatus: op["x-implementation-status"] ?? "unknown",
+        implementationStatus: op["x-implementation-status"] ?? (op["x-mcpl"] ? "registered" : "unknown"),
+        ...(op["x-mcpl"] ? { action: op["x-mcpl"].id } : {}),
         ...(op["x-shippin-feature"] ? { feature: op["x-shippin-feature"] } : {}),
       };
     });
 }
 
 const doc = await load(SOURCE);
+const generated = JSON.parse(await fs.readFile(ACTIONS, "utf8"));
 const items = await Promise.all(Object.entries(doc.paths ?? {}).map(async ([key, value]) => operationsOf(key, await resolveItem(value, path.dirname(SOURCE)))));
-const operations = items.flat().sort((a, b) => a.tags[0].localeCompare(b.tags[0]) || a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
+const actions = Object.entries(generated.paths ?? {}).map(([key, value]) => operationsOf(key, value));
+const operations = [...items, ...actions].flat().sort((a, b) => a.tags[0].localeCompare(b.tags[0]) || a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
 // No timestamp: the same contract must produce the same bytes, so a build leaves the tree clean.
 const text = `${JSON.stringify({
   basePath: doc.servers?.[0]?.url ?? "/v1",

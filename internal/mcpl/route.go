@@ -52,27 +52,51 @@ func RouteFor(id string, s Spec) (string, error) {
 	}
 	item := "/{" + param(entities[len(entities)-1]) + "}"
 	if s.Singleton {
-		if verb == "list" || verb == "create" || s.Collection {
+		if VerbOf(verb, s).Collection {
 			return "", errors.New("a singleton has no collection: it is read with get and changed with update")
 		}
 		item = ""
 	}
-	switch verb {
-	case "list":
-		return "GET " + b.String(), nil
-	case "create":
-		return "POST " + b.String(), nil
-	case "get":
-		return "GET " + b.String() + item, nil
-	case "update":
-		return "PUT " + b.String() + item, nil
-	case "delete", "remove", "revoke":
-		return "DELETE " + b.String() + item, nil
+	v, standard := VerbOf(verb, s), Verbs[verb] != (Verb{})
+	switch {
+	case standard && s.Collection:
+		return "", errors.New("Collection is for a verb of your own; " + verb + " already says what it acts on")
+	case standard && v.Collection:
+		return v.Method + " " + b.String(), nil
+	case standard:
+		return v.Method + " " + b.String() + item, nil
+	case v.Collection:
+		return v.Method + " " + b.String() + "/" + kebab(verb), nil
 	}
-	if s.Collection {
-		return "POST " + b.String() + "/" + kebab(verb), nil
+	return v.Method + " " + b.String() + item + "/" + kebab(verb), nil
+}
+
+// Verb is what a verb decides about its action: the method, whether it acts on the collection rather
+// than one item, and the risk.
+type Verb struct {
+	Method     string
+	Collection bool
+	Risk       Risk
+}
+
+// Verbs are the verbs with a method of their own. Routes, risks and validation all read this table.
+var Verbs = map[string]Verb{
+	"list":   {Method: "GET", Collection: true, Risk: Read},
+	"get":    {Method: "GET", Risk: Read},
+	"create": {Method: "POST", Collection: true, Risk: Write},
+	"update": {Method: "PUT", Risk: Write},
+	"delete": {Method: "DELETE", Risk: Destructive},
+	"remove": {Method: "DELETE", Risk: Destructive},
+	"revoke": {Method: "DELETE", Risk: Destructive},
+}
+
+// VerbOf is the verb's row in Verbs. Any other verb is a write POSTed to one item, or to the
+// collection when the spec says Collection: POST .../coverage-tiers/{coverageTierId}/publish.
+func VerbOf(verb string, s Spec) Verb {
+	if v, ok := Verbs[verb]; ok {
+		return v
 	}
-	return "POST " + b.String() + item + "/" + kebab(verb), nil
+	return Verb{Method: "POST", Collection: s.Collection, Risk: Write}
 }
 
 func kebab(s string) string { return strings.ReplaceAll(s, "_", "-") }
