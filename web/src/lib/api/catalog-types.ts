@@ -43,22 +43,9 @@ export type CatalogService = {
 
 export type PlanService = { plan_id: string; service_id: string; enabled: boolean; lock: Lock; limits: Record<string, Json> };
 
-export type Contact = { name: string; email: string; role: string };
-export type Endpoint = { kind: string; host: string; note: string };
+/** A customer, its contacts and endpoints, its provisioning requests and its merged configuration are
+ * generated from the tenancy.customer action types (contacts, endpoints and notes are left out by the API
+ * without customers.contacts.read and customers.notes.read). */
+export type { CatalogEffective, CatalogEffectiveConfig, Customer, CustomerContact, CustomerEndpoint, ProvisionIntent } from "./actions.gen";
 
-export type Customer = {
-  id: string; name: string; plan_id: string; status: string;
-  /** omitted without customers.contacts.read */ contacts?: Contact[]; endpoints?: Endpoint[];
-  /** omitted without customers.notes.read */ notes?: string;
-  idp_linked: boolean; workspaces: number; last_intent: string | null; created_at: string;
-  /** Set when the customer is moved off its plan's coverage; coverage_effective is what applies. */
-  coverage: string | null; coverage_effective: string | null;
-};
-
-export type Bounds = { min?: number; max?: number; allowed?: Json[] };
-export type Step = { layer: Layer; ref: string; value: Json; outcome: string; reason?: string };
-export type Effective = { key: string; value: Json; source: Layer; ref: string; lock: Lock; bounds?: Bounds; note?: string; flags: string[]; trail: Step[] };
-export type EffectiveConfig = { tenant_id: string; plan_id: string; layers: Layer[]; settings: Effective[]; services: Effective[]; enabled_services: string[] };
-
-export type Intent = { id: string; tenant_id: string; status: string; ticket_ref: string; created_by: string; created_at: string; enabled_services: string[] };
 export type Items<T> = { items: T[] };

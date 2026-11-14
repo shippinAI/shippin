@@ -1,10 +1,10 @@
-import type { Customer, Intent } from "../../../../lib/api/catalog-types";
+import type { Customer, ProvisionIntent } from "../../../../lib/api/catalog-types";
 import { Badge } from "../../../../lib/design/components/badge/badge";
 import { Card, CardHeader } from "../../../../lib/design/components/card/card";
 import { TermTip } from "./term-tip";
 
 /** Contacts, endpoints (only when the API returned them: customers.contacts.read) and recorded provision intents. */
-export function CustomerFacts({ customer: c, intents }: { customer: Customer; intents: Intent[] }) {
+export function CustomerFacts({ customer: c, intents }: { customer: Customer; intents: ProvisionIntent[] }) {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       {c.contacts && <Card>

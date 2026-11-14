@@ -98,6 +98,42 @@ export type AcquisitionSyncResult = {
   more: boolean;
 };
 
+export type CatalogBounds = {
+  min?: number | null;
+  max?: number | null;
+  allowed?: unknown[];
+};
+
+export type CatalogEffective = {
+  key: string;
+  value: unknown;
+  source: string;
+  ref: string;
+  lock: string;
+  bounds?: CatalogBounds | null;
+  note?: string;
+  flags: string[];
+  trail: CatalogStep[];
+};
+
+export type CatalogEffectiveConfig = {
+  tenant_id: string;
+  plan_id: string;
+  workspace_id?: string;
+  layers: string[];
+  settings: CatalogEffective[];
+  services: CatalogEffective[];
+  enabled_services: string[];
+};
+
+export type CatalogStep = {
+  layer: string;
+  ref: string;
+  value: unknown;
+  outcome: string;
+  reason?: string;
+};
+
 export type CoverageOwn = {
   coverage: CoverageTierCustomerView | null;
 };
@@ -212,6 +248,81 @@ export type CoverageTierUpdateInput = {
   active?: boolean | null;
 };
 
+export type Customer = {
+  id: string;
+  name: string;
+  plan_id: string;
+  status: string;
+  contacts?: CustomerContact[] | null;
+  endpoints?: CustomerEndpoint[] | null;
+  notes?: string | null;
+  coverage: string | null;
+  coverage_effective: string | null;
+  idp_linked: boolean;
+  created_at: string;
+  updated_at: string;
+  workspaces: number;
+  last_intent: string | null;
+};
+
+export type CustomerContact = {
+  name: string;
+  email: string;
+  role: string;
+};
+
+export type CustomerCreateInput = {
+  name: string;
+  plan_id: string;
+  coverage?: string | null;
+  contacts?: CustomerContact[];
+  endpoints?: CustomerEndpoint[];
+  notes?: string;
+};
+
+export type CustomerEndpoint = {
+  kind: string;
+  host: string;
+  note: string;
+};
+
+export type CustomerUpdateInput = {
+  name: string;
+  plan_id: string;
+  coverage?: string | null;
+  contacts?: CustomerContact[];
+  endpoints?: CustomerEndpoint[];
+  notes?: string;
+};
+
+export type ProvisionIntent = {
+  id: string;
+  tenant_id: string;
+  status: ProvisionIntentStatus;
+  ticket_ref: string;
+  created_by: string;
+  created_at: string;
+  enabled_services: string[];
+};
+
+export type ProvisionIntentCreateInput = {
+  note?: string;
+};
+
+export type ProvisionIntentStatus = "pending" | "ticketed" | "applied" | "failed" | "cancelled";
+
+export type ServiceOverride = {
+  tenant_id: string;
+  service_id: string;
+  enabled: boolean | null;
+  overrides: Record<string, unknown>;
+};
+
+export type ServiceOverrideInput = {
+  enabled?: boolean | null;
+  overrides?: Record<string, unknown>;
+};
+
 export type SshKey = {
   id: string;
   name: string;
@@ -245,6 +356,17 @@ export const routes = {
   "shippin.tenancy.coverage_tier.get": "GET /v1/operator/tenancy/coverage-tiers/{coverageTierId}",
   "shippin.tenancy.coverage_tier.list": "GET /v1/operator/tenancy/coverage-tiers",
   "shippin.tenancy.coverage_tier.update": "PUT /v1/operator/tenancy/coverage-tiers/{coverageTierId}",
+  "shippin.tenancy.customer.create": "POST /v1/operator/tenancy/customers",
+  "shippin.tenancy.customer.delete": "DELETE /v1/operator/tenancy/customers/{customerId}",
+  "shippin.tenancy.customer.effective_config.get": "GET /v1/operator/tenancy/customers/{customerId}/effective-config",
+  "shippin.tenancy.customer.get": "GET /v1/operator/tenancy/customers/{customerId}",
+  "shippin.tenancy.customer.list": "GET /v1/operator/tenancy/customers",
+  "shippin.tenancy.customer.provision_intent.create": "POST /v1/operator/tenancy/customers/{customerId}/provision-intents",
+  "shippin.tenancy.customer.provision_intent.list": "GET /v1/operator/tenancy/customers/{customerId}/provision-intents",
+  "shippin.tenancy.customer.service.delete": "DELETE /v1/operator/tenancy/customers/{customerId}/services/{serviceId}",
+  "shippin.tenancy.customer.service.list": "GET /v1/operator/tenancy/customers/{customerId}/services",
+  "shippin.tenancy.customer.service.update": "PUT /v1/operator/tenancy/customers/{customerId}/services/{serviceId}",
+  "shippin.tenancy.customer.update": "PUT /v1/operator/tenancy/customers/{customerId}",
 } as const;
 
 export type ActionId = keyof typeof routes;
@@ -270,4 +392,15 @@ export type ActionTypes = {
   "shippin.tenancy.coverage_tier.get": { args: [params: { coverageTierId: string }]; output: CoverageTier; risk: "read"; event: never };
   "shippin.tenancy.coverage_tier.list": { args: [params?: Record<string, never>]; output: { items: CoverageTier[] }; risk: "read"; event: never };
   "shippin.tenancy.coverage_tier.update": { args: [params: { coverageTierId: string }, body: CoverageTierUpdateInput & { reason: string }]; output: CoverageTier; risk: "write"; event: "shippin.tenancy.coverage_tier.updated" };
+  "shippin.tenancy.customer.create": { args: [params: Record<string, never>, body: CustomerCreateInput & { reason: string }]; output: Customer; risk: "write"; event: "shippin.tenancy.customer.created" };
+  "shippin.tenancy.customer.delete": { args: [params: { customerId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.tenancy.customer.deleted" };
+  "shippin.tenancy.customer.effective_config.get": { args: [params: { customerId: string; workspace?: string }]; output: CatalogEffectiveConfig; risk: "read"; event: never };
+  "shippin.tenancy.customer.get": { args: [params: { customerId: string }]; output: Customer; risk: "read"; event: never };
+  "shippin.tenancy.customer.list": { args: [params?: Record<string, never>]; output: { items: Customer[] }; risk: "read"; event: never };
+  "shippin.tenancy.customer.provision_intent.create": { args: [params: { customerId: string }, body: ProvisionIntentCreateInput & { reason: string }]; output: ProvisionIntent; risk: "write"; event: "shippin.tenancy.customer.provision_intent.created" };
+  "shippin.tenancy.customer.provision_intent.list": { args: [params: { customerId: string }]; output: { items: ProvisionIntent[] }; risk: "read"; event: never };
+  "shippin.tenancy.customer.service.delete": { args: [params: { customerId: string; serviceId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.tenancy.customer.service.deleted" };
+  "shippin.tenancy.customer.service.list": { args: [params: { customerId: string }]; output: { items: ServiceOverride[] }; risk: "read"; event: never };
+  "shippin.tenancy.customer.service.update": { args: [params: { customerId: string; serviceId: string }, body: ServiceOverrideInput & { reason: string }]; output: ServiceOverride; risk: "write"; event: "shippin.tenancy.customer.service.updated" };
+  "shippin.tenancy.customer.update": { args: [params: { customerId: string }, body: CustomerUpdateInput & { reason: string }]; output: Customer; risk: "write"; event: "shippin.tenancy.customer.updated" };
 };

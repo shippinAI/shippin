@@ -11,13 +11,13 @@ DELETE /v1/operator/catalog/defaults/{layer}/{key}
 DELETE /v1/operator/catalog/plan-services/{plan}/{service}
 DELETE /v1/operator/catalog/plans/{id}
 DELETE /v1/operator/catalog/services/{id}
-DELETE /v1/operator/customers/{id}
-DELETE /v1/operator/customers/{id}/services/{service}
 DELETE /v1/operator/platform-services/{serviceId}
 DELETE /v1/operator/team/permission-grants/{userId}/{permKey}
 DELETE /v1/operator/team/roles/{roleKey}
 DELETE /v1/operator/templates/{templateId}
 DELETE /v1/operator/tenancy/coverage-tiers/{coverageTierId}
+DELETE /v1/operator/tenancy/customers/{customerId}
+DELETE /v1/operator/tenancy/customers/{customerId}/services/{serviceId}
 DELETE /v1/operator/tenants/{tenantId}
 DELETE /v1/tenants/{tenantId}/ai-terminal
 DELETE /v1/tenants/{tenantId}/db/snippets/{snippetId}
@@ -81,11 +81,6 @@ GET /v1/operator/catalog/plans
 GET /v1/operator/catalog/plans/{id}
 GET /v1/operator/catalog/services
 GET /v1/operator/catalog/services/{id}
-GET /v1/operator/customers
-GET /v1/operator/customers/{id}
-GET /v1/operator/customers/{id}/effective-config
-GET /v1/operator/customers/{id}/provision-intents
-GET /v1/operator/customers/{id}/services
 GET /v1/operator/edge
 GET /v1/operator/host
 GET /v1/operator/identity
@@ -104,6 +99,11 @@ GET /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}
 GET /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}/leads
 GET /v1/operator/tenancy/coverage-tiers
 GET /v1/operator/tenancy/coverage-tiers/{coverageTierId}
+GET /v1/operator/tenancy/customers
+GET /v1/operator/tenancy/customers/{customerId}
+GET /v1/operator/tenancy/customers/{customerId}/effective-config
+GET /v1/operator/tenancy/customers/{customerId}/provision-intents
+GET /v1/operator/tenancy/customers/{customerId}/services
 GET /v1/operator/tenants
 GET /v1/operator/tenants/{tenantId}
 GET /v1/operator/tenants/{tenantId}/apps
@@ -216,8 +216,6 @@ POST /v1/operator/break-glass
 POST /v1/operator/break-glass/{grantId}/{decision}
 POST /v1/operator/catalog/plans
 POST /v1/operator/catalog/services
-POST /v1/operator/customers
-POST /v1/operator/customers/{id}/provision-intent
 POST /v1/operator/platform-services
 POST /v1/operator/platform-services/{serviceId}/check
 POST /v1/operator/recovery-key
@@ -233,6 +231,8 @@ POST /v1/operator/templates
 POST /v1/operator/tenancy/acquisition-sources
 POST /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}/sync
 POST /v1/operator/tenancy/coverage-tiers
+POST /v1/operator/tenancy/customers
+POST /v1/operator/tenancy/customers/{customerId}/provision-intents
 POST /v1/operator/tenants/{tenantId}/desktop/prepare
 POST /v1/operator/tenants/{tenantId}/projects
 POST /v1/operator/tenants/{tenantId}/provision
@@ -305,8 +305,6 @@ PUT /v1/operator/catalog/defaults
 PUT /v1/operator/catalog/plan-services/{plan}/{service}
 PUT /v1/operator/catalog/plans/{id}
 PUT /v1/operator/catalog/services/{id}
-PUT /v1/operator/customers/{id}
-PUT /v1/operator/customers/{id}/services/{service}
 PUT /v1/operator/platform-services/{serviceId}
 PUT /v1/operator/platform-settings/{key}
 PUT /v1/operator/setup-steps/{step}
@@ -316,6 +314,8 @@ PUT /v1/operator/team/settings
 PUT /v1/operator/templates/{templateId}
 PUT /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}
 PUT /v1/operator/tenancy/coverage-tiers/{coverageTierId}
+PUT /v1/operator/tenancy/customers/{customerId}
+PUT /v1/operator/tenancy/customers/{customerId}/services/{serviceId}
 PUT /v1/tenants/{tenantId}/db/tables/{table}/rows
 PUT /v1/tenants/{tenantId}/teams/{teamId}/members/{userId}
 PUT /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/token

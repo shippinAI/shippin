@@ -400,6 +400,161 @@
         ],
         "type": "object"
       },
+      "CatalogBounds": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "items": {},
+            "type": "array"
+          },
+          "max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "CatalogEffective": {
+        "additionalProperties": false,
+        "properties": {
+          "bounds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogBounds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "key": {
+            "type": "string"
+          },
+          "lock": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "trail": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogStep"
+            },
+            "type": "array"
+          },
+          "value": {}
+        },
+        "required": [
+          "key",
+          "value",
+          "source",
+          "ref",
+          "lock",
+          "flags",
+          "trail"
+        ],
+        "type": "object"
+      },
+      "CatalogEffectiveConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled_services": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "layers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "plan_id": {
+            "type": "string"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogEffective"
+            },
+            "type": "array"
+          },
+          "settings": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogEffective"
+            },
+            "type": "array"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "plan_id",
+          "layers",
+          "settings",
+          "services",
+          "enabled_services"
+        ],
+        "type": "object"
+      },
+      "CatalogStep": {
+        "additionalProperties": false,
+        "properties": {
+          "layer": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "layer",
+          "ref",
+          "value",
+          "outcome"
+        ],
+        "type": "object"
+      },
       "CoverageOwn": {
         "additionalProperties": false,
         "properties": {
@@ -1031,6 +1186,239 @@
         ],
         "type": "object"
       },
+      "Customer": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CustomerContact"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coverage_effective": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "endpoints": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CustomerEndpoint"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "idp_linked": {
+            "type": "boolean"
+          },
+          "last_intent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plan_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workspaces": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "plan_id",
+          "status",
+          "coverage",
+          "coverage_effective",
+          "idp_linked",
+          "created_at",
+          "updated_at",
+          "workspaces",
+          "last_intent"
+        ],
+        "type": "object"
+      },
+      "CustomerContact": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "role"
+        ],
+        "type": "object"
+      },
+      "CustomerCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerContact"
+            },
+            "type": "array"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endpoints": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerEndpoint"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "plan_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "plan_id"
+        ],
+        "type": "object"
+      },
+      "CustomerEndpoint": {
+        "additionalProperties": false,
+        "properties": {
+          "host": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "host",
+          "note"
+        ],
+        "type": "object"
+      },
+      "CustomerUpdateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerContact"
+            },
+            "type": "array"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endpoints": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerEndpoint"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "plan_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "plan_id"
+        ],
+        "type": "object"
+      },
       "Problem": {
         "description": "Every refusal and failure, as application/problem+json; message is plain words for a person.",
         "properties": {
@@ -1051,6 +1439,117 @@
           "status",
           "message"
         ],
+        "type": "object"
+      },
+      "ProvisionIntent": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "enabled_services": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProvisionIntentStatus"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "ticket_ref": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "status",
+          "ticket_ref",
+          "created_by",
+          "created_at",
+          "enabled_services"
+        ],
+        "type": "object"
+      },
+      "ProvisionIntentCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ProvisionIntentStatus": {
+        "enum": [
+          "pending",
+          "ticketed",
+          "applied",
+          "failed",
+          "cancelled"
+        ],
+        "type": "string"
+      },
+      "ServiceOverride": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "overrides": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "service_id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "service_id",
+          "enabled",
+          "overrides"
+        ],
+        "type": "object"
+      },
+      "ServiceOverrideInput": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "overrides": {
+            "additionalProperties": {},
+            "type": "object"
+          }
+        },
         "type": "object"
       },
       "SshKey": {
@@ -2105,6 +2604,708 @@
           "event": "shippin.tenancy.coverage_tier.updated",
           "id": "shippin.tenancy.coverage_tier.update",
           "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/tenancy/customers": {
+      "get": {
+        "operationId": "shippin.tenancy.customer.list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/Customer"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the customers: each organization's plan, coverage, contacts and provisioning state, oldest first.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.tenancy.customer.list",
+          "perm": "customers.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "post": {
+        "operationId": "shippin.tenancy.customer.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CustomerCreateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Add a draft customer on a plan, before its organization is provisioned.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.customer.created",
+          "id": "shippin.tenancy.customer.create",
+          "perm": "customers.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/tenancy/customers/{customerId}": {
+      "delete": {
+        "operationId": "shippin.tenancy.customer.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Remove a draft customer that was never provisioned and has no workspaces.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.customer.deleted",
+          "id": "shippin.tenancy.customer.delete",
+          "perm": "customers.write",
+          "reason": true,
+          "risk": "destructive"
+        }
+      },
+      "get": {
+        "operationId": "shippin.tenancy.customer.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read one customer.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.tenancy.customer.get",
+          "perm": "customers.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "put": {
+        "operationId": "shippin.tenancy.customer.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CustomerUpdateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Change a customer's name, plan, coverage, contacts, endpoints or notes.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.customer.updated",
+          "id": "shippin.tenancy.customer.update",
+          "perm": "customers.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/tenancy/customers/{customerId}/effective-config": {
+      "get": {
+        "operationId": "shippin.tenancy.customer.effective_config.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "workspace",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogEffectiveConfig"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Show the settings and services a customer ends up with once every layer is merged, and why.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.tenancy.customer.effective_config.get",
+          "perm": "config.effective.read",
+          "reason": false,
+          "risk": "read"
+        }
+      }
+    },
+    "/operator/tenancy/customers/{customerId}/provision-intents": {
+      "get": {
+        "operationId": "shippin.tenancy.customer.provision_intent.list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/ProvisionIntent"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List a customer's latest provisioning requests, newest first.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.tenancy.customer.provision_intent.list",
+          "perm": "customers.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "post": {
+        "operationId": "shippin.tenancy.customer.provision_intent.create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ProvisionIntentCreateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisionIntent"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Record the customer's merged configuration as the state to provision; an operator applies it later.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.customer.provision_intent.created",
+          "id": "shippin.tenancy.customer.provision_intent.create",
+          "perm": "provision.intent.create",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/tenancy/customers/{customerId}/services": {
+      "get": {
+        "operationId": "shippin.tenancy.customer.service.list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/ServiceOverride"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List a customer's own settings for catalog services, over what its plan gives.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.tenancy.customer.service.list",
+          "perm": "customers.read",
+          "reason": false,
+          "risk": "read"
+        }
+      }
+    },
+    "/operator/tenancy/customers/{customerId}/services/{serviceId}": {
+      "delete": {
+        "operationId": "shippin.tenancy.customer.service.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Drop a customer's own settings for a service, so its plan decides again.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.customer.service.deleted",
+          "id": "shippin.tenancy.customer.service.delete",
+          "perm": "customers.services.write",
+          "reason": true,
+          "risk": "destructive"
+        }
+      },
+      "put": {
+        "operationId": "shippin.tenancy.customer.service.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ServiceOverrideInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceOverride"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Turn a catalog service on or off for one customer, or override its settings.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.customer.service.updated",
+          "id": "shippin.tenancy.customer.service.update",
+          "perm": "customers.services.write",
           "reason": true,
           "risk": "write"
         }
