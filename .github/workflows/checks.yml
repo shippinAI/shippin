@@ -71,6 +71,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: bash install/check-public-tree.sh
+      - run: node --test scripts/check-docs.test.mjs
       - run: node scripts/check-docs.mjs
   gitleaks:
     runs-on: ubuntu-latest
