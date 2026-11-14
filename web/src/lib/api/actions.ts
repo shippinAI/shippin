@@ -11,13 +11,21 @@ const split = (id: ActionId) => {
   return { method: route.slice(0, at) as "GET" | "POST" | "PUT" | "DELETE", path: route.slice(at + 1) };
 };
 
-/** An action's path with its {parameters} filled in. Paths come from the generated map, never from a string here. */
-export function actionPath(id: ActionId, params: Record<string, string> = {}): string {
-  return split(id).path.replace(/\{(\w+)\}/g, (_, name: string) => {
+/** An action's path with its {parameters} filled in, and its other parameters (the query ones its Go
+ * input declares, which the types allow) as the query string. Paths come from the generated map, never
+ * from a string here. */
+export function actionPath(id: ActionId, params: Record<string, string | undefined> = {}): string {
+  const used = new Set<string>();
+  const path = split(id).path.replace(/\{(\w+)\}/g, (_, name: string) => {
     const v = params[name];
     if (v === undefined) throw new Error(`${id} needs ${name}`);
+    used.add(name);
     return encodeURIComponent(v);
   });
+  const query = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (!used.has(k) && v !== undefined) query.set(k, v);
+  const q = query.toString();
+  return q ? `${path}?${q}` : path;
 }
 
 /** Runs an action by its MCPL ID, as a person in the panel and an AI client both do. Its parameters, body

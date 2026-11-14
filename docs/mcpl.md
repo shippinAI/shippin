@@ -202,6 +202,12 @@ var PushToWorkspaces = mcpl.Reaction{
 #### Output
 
 - A list is `mcpl.Items` (`{"items": [...]}`), `create` answers 201, and `mcpl.None` answers 204.
+- A field whose shape is genuinely open (a JSON Schema, the defaults it describes) is a named
+  `map[string]json.RawMessage` type with an `UnmarshalJSON` that refuses anything but an object. It
+  is typed `Record<string, unknown>` in the panel, and keeps the values exactly as sent.
+- A type reused from another package is named after that package (`catalog.RuntimeContract` is
+  `CatalogRuntimeContract`). Two Go types that would share a name stop generation, so name a nested
+  entity's input for what it is (`plan/service` takes a `Cell`).
 
 #### Errors
 
@@ -292,6 +298,14 @@ written. The factory never overwrites a file.
 `-singleton` makes an entity there is one of in its parent. `-collection` makes a custom verb act on
 the whole collection. A nested entity is a deeper path: `tenancy/plan/service/create`.
 
+Two shapes the first entities settled:
+- When the panel shows every parent's children at once (the plan and service matrix), the parent's
+  read carries them (`Plan.services`) and the nested entity has only its changes. A nested `list`
+  would cost one request per parent.
+- A link whose identity is all in the path (a plan's settings for one service) is set with `update`,
+  which creates it when it is missing; there is no separate `create`.
+- A nested action answers 404 when its parent does not exist, for reads too.
+
 `mcplgen react` starts a reaction in an existing entity:
 
 ```sh
@@ -311,8 +325,8 @@ The same list names action IDs, events, UI actions and, later, the per-domain MC
 
 | Piece | State |
 | --- | --- |
-| Generated actions | Staff: `tenancy.coverage_tier` (list, get, create, update, delete). Member: `tenancy.coverage` (get). Signed-in: `identity.ssh_key` (list, create, delete). Each has a database test. |
-| Legacy routes | 340 served `/v1` routes are not yet action files or declared transports. `internal/api/testdata/mcpl-undescribed.txt` lists them; `TestMCPLConformance` fails on a new one and on a stale entry, so the list only shrinks. |
+| Generated actions | Staff: `tenancy.coverage_tier`, `tenancy.plan`, `services.catalog_service` and `tenancy.customer` (each list, get, create, update, delete); `tenancy.plan.service` (update, delete); `tenancy.customer.service` (list, update, delete), `tenancy.customer.effective_config` (get) and `tenancy.customer.provision_intent` (list, create); `tenancy.acquisition_source`. Member: `tenancy.coverage` (get). Signed-in: `identity.ssh_key` (list, create, delete) and `identity.access_key`. Each has a database test. |
+| Legacy routes | 315 served `/v1` routes are not yet action files or declared transports. `internal/api/testdata/mcpl-undescribed.txt` lists them; `TestMCPLConformance` fails on a new one and on a stale entry, so the list only shrinks. The catalog's layered defaults stay legacy for now: a default is keyed by layer, reference and key together, and saving one is an upsert to the collection, which no single entity ID or standard verb describes yet. |
 | Mounting | Every audience: staff, member, signed-in and public. |
 | Events | Emitted by every change after commit, with a stream at `GET /v1/me/mcpl/events`. |
 | Reactions and services | Declared in the entity's folder and generated into `actions.Reactions` and `actions.Providers`; host ports in `internal/ports`. SSH keys push to workspaces through a reaction; acquisition sources provide their own repository and fetcher. |
@@ -341,7 +355,7 @@ Each disappears as its routes become action files.
    services and transports, with SSH keys and an organization's coverage moved.
 2. **Entity by entity, in the [code map](architecture.md)'s order.** Move each into
    `internal/<domain>/<entity>/`, switch its panel calls to `callAction`, and shrink the list in the
-   same commit. Plans, catalog services and customers come next, then Access.
+   same commit. Coverage, plans, catalog services and customers are done; Access is next.
 3. **Done.** MCP from the registry, with access keys as how an AI client signs in as a person.
 4. **Done.** Typed panel calls and OpenAPI generated from the registry, the factory, and generation in
    the image build.
@@ -357,5 +371,7 @@ Each disappears as its routes become action files.
    change is a reaction file.
 4. In the panel, call it with `callAction("<id>", params, body)`: the compiler checks the parameters
    and body, and the answer is typed.
-5. Moving a legacy route: remove its path from `api/openapi/openapi.yaml`, switch the panel's calls,
-   and shrink both ratchet files in the same commit (`UPDATE_MCPL=1 UPDATE_OPENAPI=1 go test ./internal/api`).
+5. Moving a legacy route: remove its path from `api/openapi/openapi.yaml` (and any schema nothing
+   references any more), switch the panel's calls, and shrink the ratchet files in the same commit:
+   `UPDATE_MCPL=1 UPDATE_OPENAPI=1 UPDATE_UNAUTH=1 go test ./internal/api -run 'MCPL|OpenAPI|Unauth'`
+   (no database needed). `deploy/tests/unauth-routes.txt` changes too, since the route moved.
