@@ -1,3 +1,4 @@
+import { RunnerConfiguration } from "./runner-configuration";
 import { RunnerResource } from "./runner-resource";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "../../../lib/router/router";
@@ -27,7 +28,7 @@ export function RunnersPage() {
         { id: "overview", label: t("runners.overview"), content: <div className="space-y-3"><h2 className="text-lg font-semibold">{project.name}</h2><p>{t("runners.overviewDescription")}</p><p className="text-fg-muted">{t("runners.capacityNotice")}</p></div> },
         { id: "runs", label: t("runners.runs"), content: <RunnerResource key={`${tenantId}:${project.id}:runs`} tenant={tenantId} project={project} resource="runs" /> },
         { id: "connections", label: t("runners.connections"), content: <RunnerResource key={`${tenantId}:${project.id}:connectors`} tenant={tenantId} project={project} resource="connectors" /> },
-        { id: "configuration", label: t("runners.configuration"), content: <p>{t("runners.configurationNotice")}</p> },
+        { id: "configuration", label: t("runners.configuration"), content: <RunnerConfiguration key={`${tenantId}:${project.id}`} tenant={tenantId} project={project} /> },
       ]} /></Card>}
     </div>}
   </>;

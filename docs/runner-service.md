@@ -22,8 +22,7 @@ upstream cookies and private headers stripped. The runner gateway rechecks live
 platform identity and project authority before issuing scoped control requests.
 
 The panel uses live authorized project discovery, filters by selected tenant, and
-shows permission-aware reads. Configuration writes and rotation are unavailable
-until their backend contracts and audited flows exist. There is no fixture account
+shows permission-aware reads. Profile configuration uses scoped, versioned templates. Credential rotation remains unavailable until its provider-bound mTLS runtime is activated. There is no fixture account
 picker and no fabricated healthy runner pool.
 
 Qualification: focused Go tests cover real TLS upstream forwarding, credential
@@ -103,3 +102,42 @@ and same-origin cancellation by the read-only fixture grant (401/403). A subsequ
 real read verified unchanged run state and cancellation flag. Actual run-response
 objects were recursively checked for prohibited credential fields. These checks
 passed without changing the authorization policy.
+
+
+
+## Versioned profile configuration
+
+Configuration now renders the canonical runner-profile schema and only the profile
+IDs discovered for profiles:read. A write grant additionally enables Save. The
+seven allowed fields contain resource limits and pinned build identifiers, never
+credentials. Unset optional values remain unset so canonical defaults are visible
+without being mistaken for explicit user choices.
+
+New templates use expected revision 0; updates use the loaded revision. A 409 means
+another writer changed it: retain edits, block blind retry and offer explicit
+Reload and discard edits. Uncertain failures likewise require reconciliation,
+not automatic resubmission. Every successful save says worker application is
+unreported. This UI does not configure pools or apply templates to running workers.
+
+For isolated configuration qualification add the reader fixture in the Compose
+template and run reader-prepare; existing fixture IDs are preserved. Activate only
+its synthetic tenant and grant profiles:read for read-only-profile. Give the writer
+fixture profiles:read/profiles:write for fixture-profile, keeping denied/admin
+without grants. Prepare the reader template using runner
+TestSeedReadOnlyPlatformProfile with the same isolated DSN opt-in and the reader's
+actual fixture tenant/project IDs. Then run the browser harness configuration
+phase; it stores a nonsecret exact-revision receipt. After replacing only control,
+rerun with RUNNER_TEST_PROFILE_PERSISTENCE=1 before any further write.
+
+Observed actual browser run: create revision 1; competing writer saved revision 2;
+stale UI save returned 409 and kept edits 120 while stored value was 150; explicit
+reload observed 150; subsequent UI save persisted 140 at revision 3. Unknown secret
+fields returned 400 and out-of-grant writes were denied without changing stored
+revision. A separate read-only identity rendered its real stored revision 1 and
+could not write via UI or a direct API call. These are isolated fixture results.
+Credential rotation remains explicitly unavailable and accepts no key input.
+
+The post-replacement browser pass verified exact revision 3 and template values,
+including timeout 140, before any further successful write. Reader revision 1 and
+the earlier persisted run regression also passed. No worker-applied claim follows.
+

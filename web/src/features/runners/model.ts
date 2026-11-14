@@ -1,6 +1,6 @@
 import { apiGet, ApiError } from "../../lib/api/client";
 
-export type RunnerProject = { id: string; tenant_id: string; name: string; scopes: string[] };
+export type RunnerProject = { id: string; tenant_id: string; name: string; scopes: string[]; profiles?: string[] };
 export type RunnerRun = { id: string; project: string; repository: string; profile: string; state: string; projected_at: string; cancel_requested: boolean };
 export type Runs = { items: RunnerRun[]; consistency: string; next_cursor?: string };
 export type Connections = { github: { state: string }; execution_hosts: { state: string; workers: { id: string; state: string; repository: string; last_seen?: string }[]; truncated: boolean } };

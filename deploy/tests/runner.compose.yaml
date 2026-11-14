@@ -19,7 +19,7 @@ services:
       SHIPPIN_CONSOLE_HOST: panel
       SHIPPIN_ORIGIN: https://127.0.0.1:22443
       SHIPPIN_PORT: 22443
-      SHIPPIN_DEV_ACCOUNTS: admin@example.test=staff,user@example.test=customer,denied@example.test=customer
+      SHIPPIN_DEV_ACCOUNTS: admin@example.test=staff,user@example.test=customer,denied@example.test=customer,reader@example.test=customer
       SHIPPIN_DEV_ACCOUNTS_PASSWORD: ${DEV_PASSWORD}
       SHIPPIN_RUN_GATEWAY_ORIGIN: https://gateway:8543
       SHIPPIN_RUN_GATEWAY_CA: /trust/gateway.crt
@@ -34,4 +34,5 @@ volumes:
 networks:
   default:
     name: shippin-run-acceptance
+
 

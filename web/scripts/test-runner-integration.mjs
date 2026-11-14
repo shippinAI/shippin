@@ -24,7 +24,7 @@ const baseURL = origin.origin;
 const password = required("RUNNER_TEST_PASSWORD");
 const idsFile = required("RUNNER_TEST_IDS_FILE");
 const phase = process.argv[2];
-assert.ok(["bootstrap", "prepare", "verify"].includes(phase));
+assert.ok(["bootstrap", "prepare", "reader-prepare", "configuration", "verify"].includes(phase));
 const load = createRequire(resolve(required("RUNNER_TEST_PLAYWRIGHT_ROOT"), "package.json"));
 const { chromium, request } = load("playwright");
 const tls = process.env.RUNNER_TEST_SELF_SIGNED === "1";
@@ -33,6 +33,7 @@ const identities = {
   admin: process.env.RUNNER_TEST_ADMIN ?? "admin@example.test",
   user: process.env.RUNNER_TEST_USER ?? "user@example.test",
   denied: process.env.RUNNER_TEST_DENIED ?? "denied@example.test",
+  reader: process.env.RUNNER_TEST_READER ?? "reader@example.test",
 };
 for (const name of Object.values(identities)) assert.ok(name.endsWith("@example.test"), "Only test identities allowed");
 function status(response, expected, action) {
@@ -55,9 +56,11 @@ if (phase === "bootstrap") {
     status(result, 200, "Synthetic installation setup");
     console.log("PASS bootstrap: real setup API completed on disposable database; restart panel to seed development accounts.");
   } finally { await api.dispose(); }
-} else if (phase === "prepare") {
-  const fixtures = {};
+} else if (phase === "prepare" || phase === "reader-prepare") {
+  let fixtures = {};
+  try { fixtures = JSON.parse(await readFile(idsFile, "utf8")); } catch (error) { if (error.code !== "ENOENT") throw error; }
   for (const [kind, identifier] of Object.entries(identities)) {
+    if ((phase === "reader-prepare" && kind !== "reader") || fixtures[kind]) continue;
     const api = await apiSession(identifier);
     try {
       const meResponse = await api.get("/v1/me");
@@ -81,6 +84,9 @@ if (phase === "bootstrap") {
   }
   await writeFile(idsFile, JSON.stringify(fixtures, null, 2), { mode: 0o600 });
   console.log("PASS prepare: real admin/customer logins and customer project creation; only subject/tenant/project IDs saved.");
+} else if (phase === "configuration") {
+  const { qualifyProfiles } = await import("./test-runner-profile.mjs");
+  await qualifyProfiles({ chromium, baseURL, tls, identities, password, idsFile });
 } else {
   const ids = JSON.parse(await readFile(idsFile, "utf8"));
   const browser = await chromium.launch({ headless: true });
@@ -178,7 +184,7 @@ if (phase === "bootstrap") {
       status(await connectionResponse, 200, "Real runner connections through platform gateway");
       await page.getByText("Enrollment and connection state do not prove available capacity or a successful job.", { exact: true }).waitFor();
       await page.getByRole("tab", { name: "Configuration", exact: true }).click();
-      await page.getByText(/Configuration editing is not available in this panel yet/).waitFor();
+      await page.getByText("Credential rotation is not available in this panel. No secrets are displayed or accepted here.", { exact: true }).waitFor();
       assert.equal(await page.locator('input[type="password"]').count(), 0);
       await page.reload();
       await page.getByRole("tab", { name: "Configuration", exact: true, selected: true }).waitFor();
