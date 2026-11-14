@@ -230,7 +230,17 @@ func (a *API) opMCPL(w http.ResponseWriter, r *http.Request, c *caller) {
 		}
 		rows = append(rows, row{x, allowed})
 	}
-	writeJSON(w, map[string]any{"mcpl": mcpl.Version, "domains": mcpl.Domains, "actions": rows})
+	// Reactions are listed so staff and their AI clients can see what follows a change.
+	type reaction struct {
+		ID      string   `json:"id"`
+		On      []string `json:"on"`
+		Summary string   `json:"summary"`
+	}
+	reactions := []reaction{}
+	for _, r := range actions.Reactions {
+		reactions = append(reactions, reaction{r.ID, r.On, r.Summary})
+	}
+	writeJSON(w, map[string]any{"mcpl": mcpl.Version, "domains": mcpl.Domains, "actions": rows, "reactions": reactions})
 }
 
 func (a *API) mcplRoutes() []opRoute {

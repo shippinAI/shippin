@@ -146,3 +146,29 @@ func TestInputSchema(t *testing.T) {
 		t.Errorf("a read takes no body or reason: %v", rp)
 	}
 }
+
+func TestValidateReactions(t *testing.T) {
+	acts := []Registered{{Action: Action{ID: "shippin.identity.ssh_key.create", Event: "shippin.identity.ssh_key.created"}}}
+	run := func(*Call, Event) error { return nil }
+	ok := React("shippin.identity.ssh_key.push", Reaction{On: []string{"shippin.identity.ssh_key.created"}, Summary: "Push them.", Run: run})
+	if errs := ValidateReactions([]RegisteredReaction{ok}, acts); len(errs) != 0 {
+		t.Fatal(errs)
+	}
+	for want, r := range map[string]RegisteredReaction{
+		"no action emits":  React("shippin.identity.ssh_key.push", Reaction{On: []string{"shippin.identity.ssh_key.updated"}, Summary: "Push them.", Run: run}),
+		"follows no event": React("shippin.identity.ssh_key.push", Reaction{Summary: "Push them.", Run: run}),
+		"has no Run":       React("shippin.identity.ssh_key.push", Reaction{On: ok.On, Summary: "Push them."}),
+		"summary is one":   React("shippin.identity.ssh_key.push", Reaction{On: ok.On, Summary: "no stop", Run: run}),
+		"shares its ID":    React("shippin.identity.ssh_key.create", Reaction{On: ok.On, Summary: "Push them.", Run: run}),
+		"unknown domain":   React("shippin.billing.key.push", Reaction{On: ok.On, Summary: "Push them.", Run: run}),
+	} {
+		errs := ValidateReactions([]RegisteredReaction{r}, acts)
+		found := false
+		for _, e := range errs {
+			found = found || strings.Contains(e.Error(), want)
+		}
+		if !found {
+			t.Errorf("%q not reported: %v", want, errs)
+		}
+	}
+}

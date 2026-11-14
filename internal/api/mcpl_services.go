@@ -1,20 +1,75 @@
 package api
 
 import (
-	"shippin.cloud/console/internal/acquisition"
+	"context"
+	"errors"
+	"fmt"
+	"log"
+
+	"shippin.cloud/console/internal/actions"
+	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/ports"
 )
 
-// provideServices hands actions what they Need besides the database. An action package declares the
-// interface it uses; the implementation is provided here under that interface, from this API's own
-// stores and clients, so actions never import the API and tests give them fakes.
+// provideServices hands actions and reactions what they Need besides the database. Each entity
+// provides its own (actions.Providers, generated from `var Services = mcpl.Provider(...)` in its
+// folder); the panel adds only the host ports of internal/ports, which need its keys or its hosts.
+// Nothing here names an entity, so adding one never changes this file.
 func (a *API) provideServices(s mcpl.Services) {
-	mcpl.Provide[acquisition.Repository](s, acquisition.PostgresRepository{})
-	mcpl.Provide[acquisition.RetentionRepository](s, acquisition.PostgresRepository{})
-	mcpl.Provide[acquisition.Fetcher](s, acquisition.HTTPFetcher{})
-	// Create the platform sealer only when actions are first requested. A missing
-	// key means secret-bearing actions fail closed through mcpl.Need.
-	if seal, err := a.sealer(); err == nil {
-		mcpl.Provide[acquisition.Sealer](s, seal)
+	for _, p := range actions.Providers {
+		p(s)
 	}
+	mcpl.Provide[ports.Workspaces](s, workspacePort{a})
+	// Create the sealer only when actions are first requested. A missing key means secret-bearing
+	// actions fail closed through mcpl.Need.
+	if seal, err := a.sealer(); err == nil {
+		mcpl.Provide[ports.Sealer](s, seal)
+	}
+}
+
+// mountReactions runs every generated reaction on the events it follows, as the event's actor in the
+// event's organization, after the change is committed.
+func (a *API) mountReactions() {
+	for _, r := range actions.Reactions {
+		for _, on := range r.On {
+			a.events.On(on, func(ctx context.Context, e mcpl.Event) {
+				c := &mcpl.Call{Ctx: ctx, Actor: e.Actor, Via: "reaction", Tenant: e.Tenant, Services: a.actionServices(), Publish: a.events.Publish}
+				if a.db != nil {
+					c.Pool = a.db.Pool
+				}
+				if err := r.Run(c, e); err != nil {
+					log.Printf("reaction %s on %s: %v", r.ID, e.ID, err)
+				}
+			})
+		}
+	}
+}
+
+// workspacePort is ports.Workspaces on this panel's database and hosts.
+type workspacePort struct{ a *API }
+
+// GiveKeys stores the keys on each of the person's workspaces and applies them to the running ones.
+// One workspace failing does not stop the others; every failure is returned together.
+func (p workspacePort) GiveKeys(ctx context.Context, sub string, keys []string) error {
+	a := p.a
+	wss, err := a.db.WorkspacesByCreator(ctx, sub)
+	if err != nil {
+		return err
+	}
+	var errs []error
+	for _, ws := range wss {
+		if err := a.db.SetWorkspaceKeys(ctx, ws.ID, keys); err != nil {
+			errs = append(errs, fmt.Errorf("workspace %s: %w", ws.ID, err))
+			continue
+		}
+		if ws.State == "running" {
+			ws.SSHKeys = keys
+			t := tenantView{Tenant: db.Tenant{ID: ws.TenantID}}
+			if err := a.host.Action(ctx, ws.TenantID, ws.ID, "keys", a.hostReq(&t, ws)); err != nil {
+				errs = append(errs, fmt.Errorf("workspace %s: stored, not applied until it restarts: %w", ws.ID, err))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
