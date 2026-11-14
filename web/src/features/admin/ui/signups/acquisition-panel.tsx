@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Input as AriaInput, Label, Text as AriaText, TextField as AriaTextField } from "react-aria-components";
 import { callAction, type ActionOutput } from "../../../../lib/api/actions";
 import { ApiError } from "../../../../lib/api/client";
 import { Badge } from "../../../../lib/design/components/badge/badge";
@@ -53,19 +52,28 @@ function validSeed(value: string) {
   }
 }
 
-/** Secret input stays uncontrolled, outside React state and query/mutation caches. */
-function SigningSeedField({ label, description, inputRef, required = false }: {
+function clearSeedNode(input: HTMLInputElement | null) {
+  if (!input) return;
+  input.value = "";
+  input.defaultValue = "";
+  input.removeAttribute("value");
+}
+
+/** Secret stays in the live native input only, outside React state and query/mutation caches. */
+function SigningSeedField({ label, description, inputRef, required = false, disabled = false }: {
   label: string;
   description: string;
-  inputRef: React.RefObject<HTMLInputElement | null>;
+  inputRef: React.RefCallback<HTMLInputElement>;
   required?: boolean;
+  disabled?: boolean;
 }) {
+  const id = useId();
   return (
-    <AriaTextField isRequired={required} className="flex flex-col gap-1.5">
-      <Label className="text-sm font-medium text-fg">{label}</Label>
-      <AriaInput ref={inputRef} type="password" autoComplete="new-password" spellCheck={false} className={`${fieldClass} h-9 font-mono text-xs`} />
-      <AriaText slot="description" className="text-xs text-fg-subtle">{description}</AriaText>
-    </AriaTextField>
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-sm font-medium text-fg">{label}</label>
+      <input id={id} ref={inputRef} type="password" autoComplete="new-password" spellCheck={false} required={required} disabled={disabled} aria-describedby={`${id}-description`} className={`${fieldClass} h-9 font-mono text-xs`} />
+      <p id={`${id}-description`} className="text-xs text-fg-subtle">{description}</p>
+    </div>
   );
 }
 
@@ -102,6 +110,29 @@ export function AcquisitionPanel() {
   const [stale, setStale] = useState(false);
   const createSigner = useRef<HTMLInputElement>(null);
   const updateSigner = useRef<HTMLInputElement>(null);
+  const createSignerNode = useRef<HTMLInputElement | null>(null);
+  const updateSignerNode = useRef<HTMLInputElement | null>(null);
+  const mounted = useRef(false);
+  const [createSignerGeneration, setCreateSignerGeneration] = useState(0);
+  const [updateSignerGeneration, setUpdateSignerGeneration] = useState(0);
+  const bindCreateSigner = useCallback((node: HTMLInputElement | null) => {
+    if (node === null) clearSeedNode(createSignerNode.current);
+    createSigner.current = node;
+    createSignerNode.current = node;
+  }, []);
+  const bindUpdateSigner = useCallback((node: HTMLInputElement | null) => {
+    if (node === null) clearSeedNode(updateSignerNode.current);
+    updateSigner.current = node;
+    updateSignerNode.current = node;
+  }, []);
+  function resetCreateSigner() {
+    clearSeedNode(createSigner.current ?? createSignerNode.current);
+    if (mounted.current) setCreateSignerGeneration((generation) => generation + 1);
+  }
+  function resetUpdateSigner() {
+    clearSeedNode(updateSigner.current ?? updateSignerNode.current);
+    if (mounted.current) setUpdateSignerGeneration((generation) => generation + 1);
+  }
 
   const sources = useQuery<SourceList>({
     queryKey: sourceListKey,
@@ -127,13 +158,22 @@ export function AcquisitionPanel() {
     if (!selectedID && sources.data?.items[0]) setSelectedID(sources.data.items[0].id);
   }, [selectedID, sources.data]);
   useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      clearSeedNode(createSignerNode.current);
+      clearSeedNode(updateSignerNode.current);
+    };
+  }, []);
+  useEffect(() => {
     setLoadedID("");
     setLoadedGeneration(null);
     setUpdateDraft(emptyUpdate);
     setUpdateReason("");
     setUpdateNotice(null);
     setStale(false);
-    if (updateSigner.current) updateSigner.current.value = "";
+    resetUpdateSigner();
+    resetCreateSigner();
   }, [selectedID]);
   useEffect(() => {
     if (caps.sourceConfigure && selectedID && detail.data?.summary.id === selectedID && loadedID !== selectedID) {
@@ -147,12 +187,6 @@ export function AcquisitionPanel() {
     // Keep the CAS guard quiet while a save/pause is in flight, then compare after loadedGeneration updates.
     if (!updateBusy && loadedID === selectedID && detail.data?.summary.config_generation !== undefined && sourceDraftIsStale(loadedGeneration, detail.data.summary.config_generation)) setStale(true);
   }, [detail.data?.summary.config_generation, loadedGeneration, loadedID, selectedID, updateBusy]);
-  useEffect(() => () => {
-    if (createSigner.current) createSigner.current.value = "";
-    if (updateSigner.current) updateSigner.current.value = "";
-  }, []);
-
-
   function renderSourceState(source: AcquisitionSourceSummary) {
     const state = acquisitionSourceState(source);
     const badge = state === "paused" ? t("signups.acquisition.paused") : state === "never-synced" ? t("signups.acquisition.neverSynced") : t("signups.acquisition.synced", { time: formatTimestamp(source.latest_success_at) });
@@ -181,7 +215,7 @@ export function AcquisitionPanel() {
           <TextField label={t("signups.acquisition.project")} value={createDraft.source_project} onChange={(v) => update("source_project", v)} isRequired />
           <TextField label={t("signups.acquisition.issuer")} value={createDraft.issuer} onChange={(v) => update("issuer", v)} isRequired />
           <TextField label={t("signups.acquisition.audience")} value={createDraft.audience} onChange={(v) => update("audience", v)} isRequired />
-          <div className="md:col-span-2"><SigningSeedField label={t("signups.acquisition.signer")} description={t("signups.acquisition.signerHelp")} inputRef={createSigner} required /></div>
+          <div className="md:col-span-2"><SigningSeedField key={createSignerGeneration} label={t("signups.acquisition.signer")} description={t("signups.acquisition.signerHelp")} inputRef={bindCreateSigner} required disabled={createBusy} /></div>
         </>}
       </div>
     );
@@ -192,7 +226,7 @@ export function AcquisitionPanel() {
   }
 
   function closeCreate() {
-    if (createSigner.current) createSigner.current.value = "";
+    resetCreateSigner();
     setCreateDraft(emptyCreate);
     setCreateReason("");
     setCreateNotice(null);
@@ -202,17 +236,21 @@ export function AcquisitionPanel() {
   async function createSource(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setCreateNotice(null);
+    let signingKey = createSigner.current?.value ?? "";
+    resetCreateSigner();
     const port = Number(createDraft.port);
     if (!validSourceOriginPort(createDraft.origin.trim(), createDraft.port)) {
+      signingKey = "";
       setCreateNotice({ kind: "error", text: t(createDraft.origin.trim().startsWith("https://") ? "signups.acquisition.portMismatch" : "signups.acquisition.invalidOrigin") });
       return;
     }
     if (!createReason.trim() || createReason.trim().length < 5) {
+      signingKey = "";
       setCreateNotice({ kind: "error", text: t("signups.acquisition.reasonRequired") });
       return;
     }
-    let signingKey = createSigner.current?.value ?? "";
     if (!validSeed(signingKey)) {
+      signingKey = "";
       setCreateNotice({ kind: "error", text: t("signups.acquisition.signerRequired") });
       return;
     }
@@ -223,7 +261,6 @@ export function AcquisitionPanel() {
         ca_pem: createDraft.ca_pem.trim(), source_tenant: createDraft.source_tenant.trim(), source_project: createDraft.source_project.trim(),
         issuer: createDraft.issuer.trim(), audience: createDraft.audience.trim(), signing_key: signingKey, reason: createReason.trim(),
       });
-      if (createSigner.current) createSigner.current.value = "";
       signingKey = "";
       const created = await request;
       setSelectedID(created.id);
@@ -232,10 +269,10 @@ export function AcquisitionPanel() {
       setSourceNotice({ kind: "status", text: t("signups.acquisition.createSuccess") });
       await qc.invalidateQueries({ queryKey: sourceListKey });
     } catch (error) {
-      if (createSigner.current) createSigner.current.value = "";
+      resetCreateSigner();
       setCreateNotice(submitError(error, t("signups.acquisition.createFailed")));
     } finally {
-      if (createSigner.current) createSigner.current.value = "";
+      resetCreateSigner();
       signingKey = "";
       setCreateBusy(false);
     }
@@ -245,20 +282,24 @@ export function AcquisitionPanel() {
     event.preventDefault();
     const setNotice = stateChange ? setStateNotice : setUpdateNotice;
     setNotice(null);
-    if (!selectedID || !selected || !detail.data || stale || loadedGeneration === null) return;
+    let signingKey = stateChange ? "" : updateSigner.current?.value ?? "";
+    resetUpdateSigner();
+    if (!selectedID || !selected || !detail.data || stale || loadedGeneration === null) { signingKey = ""; return; }
     const currentDraft = stateChange ? { label: detail.data.summary.label, origin: detail.data.origin, dial_ip: detail.data.dial_ip, port: String(detail.data.port), ca_pem: detail.data.ca_pem } : updateDraft;
     const portText = currentDraft.port;
     const port = Number(portText);
     if (!validSourceOriginPort(currentDraft.origin.trim(), portText)) {
+      signingKey = "";
       setNotice({ kind: "error", text: t(currentDraft.origin.trim().startsWith("https://") ? "signups.acquisition.portMismatch" : "signups.acquisition.invalidOrigin") });
       return;
     }
     if (reason.trim().length < 5) {
+      signingKey = "";
       setNotice({ kind: "error", text: t("signups.acquisition.reasonRequired") });
       return;
     }
-    let signingKey = stateChange ? "" : updateSigner.current?.value ?? "";
     if (signingKey && !validSeed(signingKey)) {
+      signingKey = "";
       setNotice({ kind: "error", text: t("signups.acquisition.signerRequired") });
       return;
     }
@@ -269,7 +310,6 @@ export function AcquisitionPanel() {
         : { expected_config_generation: loadedGeneration, label: currentDraft.label.trim(), origin: currentDraft.origin.trim(), dial_ip: currentDraft.dial_ip.trim(), port,
           ca_pem: currentDraft.ca_pem.trim(), paused, reason: reason.trim(), ...(signingKey ? { signing_key: signingKey } : {}) };
       const request = callAction("shippin.tenancy.acquisition_source.update", { acquisitionSourceId: selectedID }, input);
-      if (updateSigner.current) updateSigner.current.value = "";
       signingKey = "";
       const updated = await request;
       setStale(false);
@@ -288,7 +328,7 @@ export function AcquisitionPanel() {
       if (error instanceof ApiError && error.status === 409) setStale(true);
       setNotice(submitError(error, t("signups.acquisition.updateFailed")));
     } finally {
-      if (updateSigner.current) updateSigner.current.value = "";
+      resetUpdateSigner();
       signingKey = "";
       setUpdateBusy(false);
     }
@@ -321,6 +361,7 @@ export function AcquisitionPanel() {
   }
 
   async function reloadAfterConflict() {
+    resetUpdateSigner();
     const result = await detail.refetch();
     if (result.data) {
       setUpdateDraft({ label: result.data.summary.label, origin: result.data.origin, dial_ip: result.data.dial_ip, port: String(result.data.port), ca_pem: result.data.ca_pem });
@@ -365,9 +406,9 @@ export function AcquisitionPanel() {
             </dl>
             <p className="text-xs text-fg-subtle">{t("signups.acquisition.immutable")}</p>
             <form aria-label={t("signups.acquisition.editTitle")} onSubmit={(event) => void updateSource(event, selected.paused, updateReason, false)} className="space-y-4 rounded-lg border border-line bg-canvas/30 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="font-semibold text-fg">{t("signups.acquisition.editTitle")}</h4><Button type="button" variant="ghost" tooltip={t("signups.acquisition.edit")} onPress={() => { setLoadedID(""); void detail.refetch(); }}>{t("signups.acquisition.edit")}</Button></div>
+              <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="font-semibold text-fg">{t("signups.acquisition.editTitle")}</h4><Button type="button" variant="ghost" tooltip={t("signups.acquisition.edit")} onPress={() => { resetUpdateSigner(); setLoadedID(""); setLoadedGeneration(null); void detail.refetch(); }}>{t("signups.acquisition.edit")}</Button></div>
               {sourceFormFields(updateDraft, (key, value) => setUpdateDraft((draft) => ({ ...draft, [key]: value })), false)}
-              <SigningSeedField label={t("signups.acquisition.signerOptional")} description={t("signups.acquisition.signerHelp")} inputRef={updateSigner} />
+              <SigningSeedField key={updateSignerGeneration} label={t("signups.acquisition.signerOptional")} description={t("signups.acquisition.signerHelp")} inputRef={bindUpdateSigner} disabled={updateBusy} />
               <TextField label={t("signups.acquisition.reason")} value={updateReason} onChange={setUpdateReason} isRequired />
               {stale && <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-warning"><span>{t("signups.acquisition.stale")}</span><Button type="button" variant="ghost" tooltip={t("signups.acquisition.refresh")} onPress={() => void reloadAfterConflict()}>{t("signups.acquisition.refresh")}</Button></div>}
               {updateNotice && <p role={updateNotice.kind === "error" ? "alert" : "status"} className={`text-sm ${updateNotice.kind === "error" ? "text-danger" : "text-success"}`}>{updateNotice.text}</p>}
@@ -438,7 +479,13 @@ export function AcquisitionPanel() {
       <Tabs tabs={[
         { id: "source", label: t("signups.acquisition.tab.source"), content: renderSourceTab() },
         { id: "leads", label: t("signups.acquisition.tab.leads"), content: renderLeadsTab() },
-      ]} label={t("signups.acquisition.title")} selected={activeTab} onSelect={setActiveTab} />
+      ]} label={t("signups.acquisition.title")} selected={activeTab} onSelect={(tab) => {
+        if (tab !== activeTab) {
+          resetCreateSigner();
+          resetUpdateSigner();
+        }
+        setActiveTab(tab);
+      }} />
     </Card>
   );
 }

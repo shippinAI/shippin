@@ -133,3 +133,52 @@ the signup proxy received a separate generated P-256 test certificate; private
 source TLS verification, source signing keys and encryption keys were unchanged.
 No public site, real owner access, production signer provisioning, automatic source
 restore recovery or runner capacity is established by these tests.
+
+### Separated-source browser qualification and signer lifecycle fix, 2026-11-14
+
+The preserved fixture was subsequently qualified against Shippin Run PR4's
+separated-authority source (d47aad0), not just the earlier generic admin source.
+The existing importer ID, immutable issuer/audience/scope and cursor were retained.
+Certificate-only renewal preserved the TLS private key and backed up the old
+certificate. A successful old-endpoint pull established transport before cutover.
+The new endpoint required a verified-TLS exporter GET200 and old/management-key
+GET401 probe before the browser could count a failed old-signer import as an
+authorization result. The actual panel performed a generation-fenced signer-only
+replacement without replacing the source or resetting its cursor.
+
+This run found a real UI defect: imperative live-value clearing left the submitted
+signing seed in serialized DOM. The acquisition field now uses a local native
+uncontrolled password input, clears live/default value and the value attribute,
+and scrubs captured nodes on detachment. The rebuilt panel passed actual create
+and update success, HTTP400 rejection, custom invalid-seed validation, cancellation,
+source/tab switching and sidebar navigation checks. Tests retained removed nodes
+and checked value, defaultValue, attributes and markup, as well as document/storage
+and response checks. These observations do not claim JavaScript heap zeroization or
+coverage of every native HTML constraint-validation event.
+
+Acceptance was staged, not one uninterrupted successful run. The first failed save
+had already changed configuration generation; its effects were inspected and the
+synthetic original signer was restored through the UI without changing cursor/data.
+Both historical baselines were retained. A later navigation assertion initially
+ran when the URL changed, before lazy route rendering completed; it now waits for
+the actual destination heading and still requires the retained node to be detached
+and scrubbed. The explicit resume phase verifies preserved binding/cursor/data and
+working exporter authority rather than pretending to repeat the prior key cutover.
+Real authentication throttling was allowed to expire, never disabled or reset to
+make a test pass.
+
+The resumed browser journey passed fresh consent signup into the same source,
+repeat-import deduplication, wrong TLS/signer, cross-origin and reader/customer/
+anonymous denials. Recreating the fixture application processes with unchanged
+volumes preserved the exact source summary, binding and imported record. The
+private helper verified exporter read, rejected forged exporter management writes
+and admin export reads, then deleted only the recorded synthetic lead with admin
+authority. Browser tombstone import and repeat suppression passed. Exact database
+checks confirmed terminal deletion, advanced revisions, NULL platform sealed
+payload/expiry and NULL source ciphertext/email hash. Extra paused lifecycle-test
+sources and historical data were preserved.
+
+The normal acquisition CI remains real-PostgreSQL backend qualification; this
+cross-repository browser evidence is a separately observed local Docker run.
+Real-owner activation, actual signing/DB-role provisioning, private routing,
+public hosting/DNS, backup recovery and runner capacity remain separate gates.

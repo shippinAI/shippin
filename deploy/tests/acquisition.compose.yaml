@@ -55,7 +55,7 @@ services:
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     volumes: [source-secrets:/secrets:ro]
-    command: [-listen, '127.0.0.1:18082', -postgres-dsn-file, /secrets/admin-dsn, -marketing-key-file, /secrets/key, -tenant, container, -project, signup, -lead-days, '30', -delegation-public-key-file, /secrets/admin-verifier, -issuer, fixture, -audience, source-admin, -tls-cert, /secrets/admin-cert, -tls-key, /secrets/admin-key]
+    command: [-mode, separated, -export-postgres-dsn-file, /secrets/export-dsn, -export-delegation-public-key-file, /secrets/export-verifier, -export-issuer, fixture, -export-audience, source-admin, -listen, '127.0.0.1:18082', -postgres-dsn-file, /secrets/admin-dsn, -marketing-key-file, /secrets/key, -tenant, container, -project, signup, -lead-days, '30', -delegation-public-key-file, /secrets/admin-verifier, -issuer, fixture-management, -audience, source-management, -tls-cert, /secrets/admin-cert, -tls-key, /secrets/admin-key]
     depends_on:
       source-db: {condition: service_healthy}
   proxy:

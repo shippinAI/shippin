@@ -20,7 +20,7 @@ async function main() {
   assert.equal(requireEnv('ACQUISITION_TEST_ISOLATED'),'1');
   const baseURL=fixtureOrigin(requireEnv('ACQUISITION_TEST_ORIGIN'));
   const phase=process.argv[2];
-  assert.ok(['bootstrap','prepare','verify','persistence','tombstone'].includes(phase));
+  assert.ok(['bootstrap','prepare','verify','baseline','migrate','resume','restore','persistence','tombstone'].includes(phase));
   const password=(await readFile(requireEnv('ACQUISITION_TEST_PASSWORD_FILE'),'utf8')).trim();
   assert.ok(password.length>=12);
   const load=createRequire(resolve(requireEnv('ACQUISITION_TEST_PLAYWRIGHT_ROOT'),'package.json'));
@@ -81,5 +81,5 @@ async function main() {
   await qualify({phase,baseURL,tls,headers,password,identities,idsFile,chromium,request,session});
 }
 if(process.argv[1] && resolve(process.argv[1])===resolve(fileURLToPath(import.meta.url))) {
-  main().catch(()=>{console.error('FAIL acquisition qualification; sensitive diagnostic detail suppressed.');process.exitCode=1;});
+  main().catch(error=>{console.error('FAIL acquisition qualification; sensitive diagnostic detail suppressed.');console.error(String(error?.name||'Error'));for(const frame of String(error?.stack||'').split('\n').filter(line=>/^\s+at /.test(line)).slice(0,2))if(/^\s+at /.test(frame))console.error(frame);process.exitCode=1;});
 }
