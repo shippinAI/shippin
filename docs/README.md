@@ -9,6 +9,7 @@ running.
 - [Roadmap](roadmap.md): what exists today, and the order toward the friends-and-family launch and then a commercial cloud.
 - [Design system](design-system.md): tokens, accessibility and speed rules for the panel.
 - [MCPL](mcpl.md): one canonical action surface for people, the API and an AI acting for a person; the rules every route and input follows.
+- [Build runners](runners.md): customers' GitHub Actions jobs on single-use runner VMs, per organization and within their plan (RUN-01).
 - [Code map](architecture.md): the contexts, where the code stands against them, and the order of the rewrite.
 
 ## Run it and change it

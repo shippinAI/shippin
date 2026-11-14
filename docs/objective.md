@@ -329,6 +329,36 @@ CAT-01 above is the catalog. Each entry also follows these rules:
 
   Source and build provenance, logs and recovery state are kept.
 
+### Build runners
+
+- **RUN-01** Runners are a service the provider runs for each customer, not only
+  something a customer deploys:
+  - An organization connects its GitHub account or organization to Shippin and
+    assigns repositories to its workspaces and projects. Disconnecting removes
+    Shippin's access and never touches the customer's repositories.
+  - A workflow job that asks for a Shippin runner by size gets a fresh machine
+    for that job alone, inside a VM boundary (VM-01). It is removed when the job
+    ends. A runner never serves two organizations, and one workspace's jobs never
+    see another's files or secrets.
+  - Runners are placed on the provider's capacity, a public cloud (HYB-01) or the
+    customer's own server (BYO-01). The organization chooses where its own
+    capacity may be used.
+  - The plan sets the sizes offered, how many jobs run at once and how many runner
+    minutes are included (SUB-01). Usage is recorded per organization, workspace
+    and project, ready for metering.
+  - Customers see their connected repositories, the queue, running jobs and job
+    history, with logs, in their workspace. Staff see runner capacity, images and
+    every organization's use within their access scope (INF-02).
+  - Runner machine images are provider settings in the panel, versioned, with
+    their provenance kept.
+  - A customer may also deploy a self-hosted runner onto their own machine from
+    the catalog (CAT-01). It registers the same way and is labelled
+    customer-owned (SVC-02).
+
+  Every operation is an MCPL action, and GitHub's events arrive at one declared
+  route that is checked before anything is read. The design is in
+  [Build runners](runners.md).
+
 ## Workspaces and AI
 
 - **AI-01** A workspace offers *Activate Claude subscription*. It starts the user's
