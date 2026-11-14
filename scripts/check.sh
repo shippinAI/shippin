@@ -29,6 +29,7 @@ step "panel (budget)" web npm run budget
 step "panel (tokens)" web npm run tokens
 step "governance (install)" governance npm ci --no-audit --no-fund
 step "governance (test)" governance npm test
+step "docs (regression)" . node --test scripts/check-docs.test.mjs
 step "docs (links)" . node scripts/check-docs.mjs
 
 if [ "${#failed[@]}" -gt 0 ]; then
