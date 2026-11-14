@@ -21,6 +21,7 @@ import (
 	"shippin.cloud/console/internal/devaccounts"
 	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/mail"
+	"shippin.cloud/console/internal/runnerbridge"
 	"shippin.cloud/console/internal/spa"
 	"shippin.cloud/console/internal/tlsfile"
 )
@@ -48,7 +49,12 @@ func main() {
 		log.Fatalf("sessions: %v", err)
 	}
 	flow := auth.NewFlow(cfg, store)
+	runnerGateway, err := runnerbridge.New(os.Getenv("SHIPPIN_RUN_GATEWAY_ORIGIN"), os.Getenv("SHIPPIN_RUN_GATEWAY_CA"))
+	if err != nil {
+		log.Fatal("runner gateway configuration is invalid; check its origin and CA file")
+	}
 	mux := http.NewServeMux()
+	runnerGateway.Register(mux)
 	consoleAPI := api.New(cfg, flow, database)
 	directory := identity.New(database.Pool, cfg, mailSender(cfg), captcha(cfg))
 	if cfg.RedisURL != "" {
