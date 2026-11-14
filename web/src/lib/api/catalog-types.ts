@@ -1,10 +1,13 @@
-export type Lock = "locked" | "overridable" | "mergeable" | "bounded";
+import type { CatalogLock } from "./actions.gen";
+
+/** A lock mode, generated from catalog.Lock. */
+export type Lock = CatalogLock;
 export type Layer = "system" | "plan" | "tenant" | "workspace";
 export type Json = string | number | boolean | null | Json[] | { [k: string]: Json };
 
-export type Plan = { id: string; label: string; description: string; rank: number; /** omitted by the API without catalog.prices.read */ price_cents?: number; public: boolean; active: boolean;
-  /** The coverage tier this plan includes. */
-  coverage: string };
+/** A plan with its services (the plan x service matrix), generated from the tenancy/plan action types. The
+ * price is left out without catalog.prices.read. */
+export type { Plan, PlanService } from "./actions.gen";
 
 /** Support and operation sold beside a plan, generated from the coverage_tier action types. */
 export type { CoverageTier } from "./actions.gen";
@@ -40,8 +43,6 @@ export type CatalogService = {
   default_config: Record<string, Json>; deployment_source: CatalogDeploymentSource | null;
   runtime_contract?: CatalogRuntimeContract | null; required: boolean; active: boolean;
 };
-
-export type PlanService = { plan_id: string; service_id: string; enabled: boolean; lock: Lock; limits: Record<string, Json> };
 
 export type Contact = { name: string; email: string; role: string };
 export type Endpoint = { kind: string; host: string; note: string };

@@ -72,7 +72,7 @@ export function PlansPage() {
                   </div>
                   <p className="mt-2 text-sm text-fg-muted">{p.description}</p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
-                    {p.price_cents !== undefined && <Badge tone="primary">{price(p.price_cents)}</Badge>}
+                    {p.price_cents != null && <Badge tone="primary">{price(p.price_cents)}</Badge>}
                     {p.coverage && <Badge tone="info">Includes {tierLabel(p.coverage)}</Badge>}
                     {!p.public && <Badge>sales only</Badge>}
                     {!p.active && <Badge tone="warning">inactive</Badge>}

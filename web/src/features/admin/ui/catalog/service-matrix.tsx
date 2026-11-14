@@ -2,21 +2,20 @@ import { Check, Minus } from "lucide-react";
 import { useState } from "react";
 import { Button } from "react-aria-components";
 import type { Plan, PlanService } from "../../../../lib/api/catalog-types";
-import { usePlanServices, useServices } from "../../../../lib/hooks/use-catalog";
+import { useServices } from "../../../../lib/hooks/use-catalog";
 import { QueryView } from "../query-view";
 import { MatrixCellDialog } from "./matrix-cell-dialog";
 
 const brief = (l: PlanService["limits"]) => Object.entries(l).map(([k, v]) => `${k} ${v}`).join(" · ");
 
-/** Services (rows) x plans (columns); each cell shows inclusion, lock and limits. */
+/** Services (rows) x plans (columns); each cell shows inclusion, lock and limits. Each plan carries its own cells. */
 export function ServiceMatrix({ plans, canEdit }: { plans: Plan[]; canEdit: boolean }) {
   const svcs = useServices();
-  const cells = usePlanServices();
   const [open, setOpen] = useState<{ plan: Plan; service: string; cell?: PlanService } | null>(null);
-  const find = (p: string, s: string) => cells.data?.items.find((c) => c.plan_id === p && c.service_id === s);
+  const find = (p: Plan, s: string) => p.services.find((c) => c.service_id === s);
   return (
     <>
-    <QueryView isPending={svcs.isPending || cells.isPending} error={svcs.error ?? cells.error} onRetry={() => { void svcs.refetch(); void cells.refetch(); }}>
+    <QueryView isPending={svcs.isPending} error={svcs.error} onRetry={() => void svcs.refetch()}>
       {() => (
         <div className="overflow-x-auto">
           <table className="w-full min-w-180 text-base">
@@ -30,7 +29,7 @@ export function ServiceMatrix({ plans, canEdit }: { plans: Plan[]; canEdit: bool
                   <th scope="row" className="px-5 py-3 text-left font-medium text-fg">{s.label}
                     {s.required && <div className="text-2xs font-normal text-fg-subtle">required</div>}</th>
                   {plans.map((p) => {
-                    const c = find(p.id, s.id);
+                    const c = find(p, s.id);
                     return (
                       <td key={p.id} className="px-2 py-2">
                         <Button aria-label={`${s.label} on ${p.label}`} isDisabled={!canEdit} onPress={() => setOpen({ plan: p, service: s.id, cell: c })}

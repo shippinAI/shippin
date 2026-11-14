@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 187,
+  "operationCount": 194,
   "tags": [
     "agents-runtime",
     "audit",
@@ -1712,6 +1712,83 @@
       ],
       "implementationStatus": "registered",
       "action": "shippin.tenancy.coverage_tier.update"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/plans",
+      "operationId": "shippin.tenancy.plan.list",
+      "summary": "List the plans, lowest rank first, each with the services it includes.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenancy/plans",
+      "operationId": "shippin.tenancy.plan.create",
+      "summary": "Create a plan with its label, price, rank and the coverage tier it includes.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/tenancy/plans/{planId}",
+      "operationId": "shippin.tenancy.plan.delete",
+      "summary": "Remove a plan that no customer is on.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/plans/{planId}",
+      "operationId": "shippin.tenancy.plan.get",
+      "summary": "Read one plan with the services it includes.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/tenancy/plans/{planId}",
+      "operationId": "shippin.tenancy.plan.update",
+      "summary": "Change a plan's label, description, price, rank, visibility or coverage tier.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.update"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/tenancy/plans/{planId}/services/{serviceId}",
+      "operationId": "shippin.tenancy.plan.service.delete",
+      "summary": "Stop a plan from including a catalog service.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.service.delete"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/tenancy/plans/{planId}/services/{serviceId}",
+      "operationId": "shippin.tenancy.plan.service.update",
+      "summary": "Include a catalog service in a plan, or change its lock mode and limits there.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.service.update"
     },
     {
       "method": "GET",

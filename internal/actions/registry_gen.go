@@ -10,6 +10,8 @@ import (
 	tenancy_acquisition_source_lead "shippin.cloud/console/internal/tenancy/acquisition_source/lead"
 	tenancy_coverage "shippin.cloud/console/internal/tenancy/coverage"
 	tenancy_coverage_tier "shippin.cloud/console/internal/tenancy/coverage_tier"
+	tenancy_plan "shippin.cloud/console/internal/tenancy/plan"
+	tenancy_plan_service "shippin.cloud/console/internal/tenancy/plan/service"
 )
 
 // All is every action, in ID order.
@@ -32,4 +34,11 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.tenancy.coverage_tier.get", tenancy_coverage_tier.Get),
 	mcpl.Register("shippin.tenancy.coverage_tier.list", tenancy_coverage_tier.List),
 	mcpl.Register("shippin.tenancy.coverage_tier.update", tenancy_coverage_tier.Update),
+	mcpl.Register("shippin.tenancy.plan.create", tenancy_plan.Create),
+	mcpl.Register("shippin.tenancy.plan.delete", tenancy_plan.Delete),
+	mcpl.Register("shippin.tenancy.plan.get", tenancy_plan.Get),
+	mcpl.Register("shippin.tenancy.plan.list", tenancy_plan.List),
+	mcpl.Register("shippin.tenancy.plan.service.delete", tenancy_plan_service.Delete),
+	mcpl.Register("shippin.tenancy.plan.service.update", tenancy_plan_service.Update),
+	mcpl.Register("shippin.tenancy.plan.update", tenancy_plan.Update),
 }

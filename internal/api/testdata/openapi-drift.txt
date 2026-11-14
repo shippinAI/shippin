@@ -68,10 +68,6 @@ code /operator/built-in-services
 code /operator/built-in-services/clickhouse
 code /operator/catalog/defaults
 code /operator/catalog/defaults/{}/{}
-code /operator/catalog/plan-services
-code /operator/catalog/plan-services/{}/{}
-code /operator/catalog/plans
-code /operator/catalog/plans/{}
 code /operator/customers
 code /operator/customers/{}
 code /operator/customers/{}/effective-config

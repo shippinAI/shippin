@@ -8,14 +8,7 @@ import (
 // can is the field-level check for the current caller (nil Can = loopback demo: allow).
 func (h *Handler) can(r *http.Request, perm string) bool { return h.Can == nil || h.Can(r, perm) }
 
-// hiddenPlanFields / hiddenCustomerFields name the JSON keys a caller may not see.
-func (h *Handler) hiddenPlanFields(r *http.Request) []string {
-	if h.can(r, PermPricesRead) {
-		return nil
-	}
-	return []string{"price_cents"}
-}
-
+// hiddenCustomerFields names the JSON keys a caller may not see.
 func (h *Handler) hiddenCustomerFields(r *http.Request) []string {
 	var out []string
 	if !h.can(r, PermContactsRead) {
