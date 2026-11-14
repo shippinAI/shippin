@@ -17,7 +17,7 @@ jobs:
           POSTGRES_DB: acquisition_disposable
         ports: ['5432:5432']
         options: >-
-          --health-cmd 'pg_isready -U acquisition_test -d acquisition_disposable'
+          --health-cmd "pg_isready -U acquisition_test -d acquisition_disposable"
           --health-interval 3s --health-timeout 3s --health-retries 20
     env:
       SHIPPIN_TEST_ACQUISITION_DISPOSABLE: '1'
