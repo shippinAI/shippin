@@ -11,6 +11,10 @@ import (
 	tenancy_acquisition_source_lead "shippin.cloud/console/internal/tenancy/acquisition_source/lead"
 	tenancy_coverage "shippin.cloud/console/internal/tenancy/coverage"
 	tenancy_coverage_tier "shippin.cloud/console/internal/tenancy/coverage_tier"
+	tenancy_customer "shippin.cloud/console/internal/tenancy/customer"
+	tenancy_customer_effective_config "shippin.cloud/console/internal/tenancy/customer/effective_config"
+	tenancy_customer_provision_intent "shippin.cloud/console/internal/tenancy/customer/provision_intent"
+	tenancy_customer_service "shippin.cloud/console/internal/tenancy/customer/service"
 	tenancy_plan "shippin.cloud/console/internal/tenancy/plan"
 	tenancy_plan_service "shippin.cloud/console/internal/tenancy/plan/service"
 )
@@ -40,6 +44,17 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.tenancy.coverage_tier.get", tenancy_coverage_tier.Get),
 	mcpl.Register("shippin.tenancy.coverage_tier.list", tenancy_coverage_tier.List),
 	mcpl.Register("shippin.tenancy.coverage_tier.update", tenancy_coverage_tier.Update),
+	mcpl.Register("shippin.tenancy.customer.create", tenancy_customer.Create),
+	mcpl.Register("shippin.tenancy.customer.delete", tenancy_customer.Delete),
+	mcpl.Register("shippin.tenancy.customer.effective_config.get", tenancy_customer_effective_config.Get),
+	mcpl.Register("shippin.tenancy.customer.get", tenancy_customer.Get),
+	mcpl.Register("shippin.tenancy.customer.list", tenancy_customer.List),
+	mcpl.Register("shippin.tenancy.customer.provision_intent.create", tenancy_customer_provision_intent.Create),
+	mcpl.Register("shippin.tenancy.customer.provision_intent.list", tenancy_customer_provision_intent.List),
+	mcpl.Register("shippin.tenancy.customer.service.delete", tenancy_customer_service.Delete),
+	mcpl.Register("shippin.tenancy.customer.service.list", tenancy_customer_service.List),
+	mcpl.Register("shippin.tenancy.customer.service.update", tenancy_customer_service.Update),
+	mcpl.Register("shippin.tenancy.customer.update", tenancy_customer.Update),
 	mcpl.Register("shippin.tenancy.plan.create", tenancy_plan.Create),
 	mcpl.Register("shippin.tenancy.plan.delete", tenancy_plan.Delete),
 	mcpl.Register("shippin.tenancy.plan.get", tenancy_plan.Get),

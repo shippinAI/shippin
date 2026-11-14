@@ -1,10 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { callAction } from "../api/actions";
-import { apiGet, apiSend } from "../api/client";
-import type { Customer, EffectiveConfig, Intent, Items } from "../api/catalog-types";
 import { toast } from "../design/components/toast/toast-queue";
-
-const get = <T,>(key: unknown[], path: string) => useQuery({ queryKey: ["catalog", ...key], queryFn: () => apiGet<T>(path), retry: false });
 
 /** The plans, each with its services: the plan x service matrix in one read. */
 export const usePlans = () =>
@@ -13,23 +9,14 @@ export const useCoverageTiers = () =>
   useQuery({ queryKey: ["catalog", "coverage"], queryFn: () => callAction("shippin.tenancy.coverage_tier.list"), retry: false });
 export const useServices = () =>
   useQuery({ queryKey: ["catalog", "services"], queryFn: () => callAction("shippin.services.catalog_service.list"), retry: false });
-export const useCustomers = () => get<Items<Customer>>(["customers"], "/v1/operator/customers");
-export const useCustomer = (id: string) => get<Customer>(["customers", id], `/v1/operator/customers/${id}`);
-export const useEffective = (id: string) => get<EffectiveConfig>(["effective", id], `/v1/operator/customers/${id}/effective-config`);
-export const useIntents = (id: string) => get<Items<Intent>>(["intents", id], `/v1/operator/customers/${id}/provision-intents`);
-
-type Send = { method: "POST" | "PUT" | "DELETE"; path: string; body?: unknown };
-
-/** One mutation for every catalog write; refreshes all catalog queries and toasts the result. */
-export function useCatalogWrite(done: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (s: Send) => apiSend<unknown>(s.method, s.path, s.body),
-    onSuccess: () => toast.success(done),
-    onError: (e) => toast.error("Not saved", e.message),
-    onSettled: () => void qc.invalidateQueries({ queryKey: ["catalog"] }),
-  });
-}
+export const useCustomers = () =>
+  useQuery({ queryKey: ["catalog", "customers"], queryFn: () => callAction("shippin.tenancy.customer.list"), retry: false });
+export const useCustomer = (customerId: string) =>
+  useQuery({ queryKey: ["catalog", "customers", customerId], queryFn: () => callAction("shippin.tenancy.customer.get", { customerId }), retry: false });
+export const useEffective = (customerId: string) =>
+  useQuery({ queryKey: ["catalog", "effective", customerId], queryFn: () => callAction("shippin.tenancy.customer.effective_config.get", { customerId }), retry: false });
+export const useIntents = (customerId: string) =>
+  useQuery({ queryKey: ["catalog", "intents", customerId], queryFn: () => callAction("shippin.tenancy.customer.provision_intent.list", { customerId }), retry: false });
 
 /** One mutation for catalog changes made through actions (callAction); refreshes all catalog queries and toasts the result. */
 export function useCatalogAction(done: string) {
@@ -41,9 +28,3 @@ export function useCatalogAction(done: string) {
     onSettled: () => void qc.invalidateQueries({ queryKey: ["catalog"] }),
   });
 }
-
-export const catalogPaths = {
-  customer: (id?: string) => (id ? `/v1/operator/customers/${id}` : "/v1/operator/customers"),
-  tenantService: (id: string, svc: string) => `/v1/operator/customers/${id}/services/${svc}`,
-  intent: (id: string) => `/v1/operator/customers/${id}/provision-intent`,
-};

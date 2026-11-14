@@ -28,17 +28,10 @@ type Route struct {
 // Granular permissions (internal/api/perm_catalog.go): deny by default, Owner preset or a
 // direct grant only. Route gates are enforced by the console; field gates here.
 const (
-	PermPlansRead      = "catalog.plans.read"
-	PermPricesRead     = "catalog.prices.read"
-	PermPlansWrite     = "catalog.plans.write"
-	PermDefaultsWrite  = "config.defaults.write"
-	PermCustomersRead  = "customers.read"
-	PermContactsRead   = "customers.contacts.read"
-	PermNotesRead      = "customers.notes.read"
-	PermCustomersWrite = "customers.write"
-	PermServicesWrite  = "customers.services.write"
-	PermEffectiveRead  = "config.effective.read"
-	PermIntentCreate   = "provision.intent.create"
+	PermPlansRead     = "catalog.plans.read"
+	PermPricesRead    = "catalog.prices.read"
+	PermPlansWrite    = "catalog.plans.write"
+	PermDefaultsWrite = "config.defaults.write"
 )
 
 func (h *Handler) Routes() []Route {
@@ -46,17 +39,6 @@ func (h *Handler) Routes() []Route {
 		{"GET /v1/operator/catalog/defaults", PermPlansRead, h.listDefaults},
 		{"PUT /v1/operator/catalog/defaults", PermDefaultsWrite, h.putDefault},
 		{"DELETE /v1/operator/catalog/defaults/{layer}/{key}", PermDefaultsWrite, h.deleteDefault},
-		{"GET /v1/operator/customers", PermCustomersRead, h.listCustomers},
-		{"POST /v1/operator/customers", PermCustomersWrite, h.createCustomer},
-		{"GET /v1/operator/customers/{id}", PermCustomersRead, h.getCustomer},
-		{"PUT /v1/operator/customers/{id}", PermCustomersWrite, h.updateCustomer},
-		{"DELETE /v1/operator/customers/{id}", PermCustomersWrite, h.deleteCustomer},
-		{"GET /v1/operator/customers/{id}/services", PermCustomersRead, h.listTenantServices},
-		{"PUT /v1/operator/customers/{id}/services/{service}", PermServicesWrite, h.putTenantService},
-		{"DELETE /v1/operator/customers/{id}/services/{service}", PermServicesWrite, h.deleteTenantService},
-		{"GET /v1/operator/customers/{id}/effective-config", PermEffectiveRead, h.effective},
-		{"GET /v1/operator/customers/{id}/provision-intents", PermCustomersRead, h.listIntents},
-		{"POST /v1/operator/customers/{id}/provision-intent", PermIntentCreate, h.provisionIntent},
 	}
 }
 

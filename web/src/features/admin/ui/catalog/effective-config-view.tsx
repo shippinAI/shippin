@@ -1,6 +1,6 @@
 import { Disclosure, DisclosurePanel, Button as RacButton, Heading } from "react-aria-components";
 import { ChevronRight } from "lucide-react";
-import type { Effective } from "../../../../lib/api/catalog-types";
+import type { CatalogEffective, Layer, Lock } from "../../../../lib/api/catalog-types";
 import { Badge } from "../../../../lib/design/components/badge/badge";
 import { useEffective } from "../../../../lib/hooks/use-catalog";
 import { QueryView } from "../query-view";
@@ -8,7 +8,7 @@ import { LayerBadge, LockBadge } from "./layer-badge";
 
 const show = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
 
-function Row({ e }: { e: Effective }) {
+function Row({ e }: { e: CatalogEffective }) {
   return (
     <Disclosure className="border-b border-line last:border-0">
       <Heading className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 py-2.5">
@@ -17,8 +17,8 @@ function Row({ e }: { e: Effective }) {
           <span className="truncate font-mono text-sm text-fg">{e.key}</span>
         </RacButton>
         <span className="max-w-full truncate font-mono text-sm text-primary">{show(e.value)}</span>
-        <LayerBadge layer={e.source} refId={e.ref} />
-        <LockBadge lock={e.lock} />
+        <LayerBadge layer={e.source as Layer} refId={e.ref} />
+        <LockBadge lock={e.lock as Lock} />
         {e.flags.length > 0 && <Badge tone="warning">clamped</Badge>}
         {e.trail.some((s) => s.outcome === "rejected") && <Badge tone="danger">override rejected</Badge>}
       </Heading>
@@ -37,8 +37,8 @@ function Row({ e }: { e: Effective }) {
 }
 
 /** Tenant effective-config viewer: services first, then settings, each with its source layer. */
-export function EffectiveConfigView({ tenantId }: { tenantId: string }) {
-  const q = useEffective(tenantId);
+export function EffectiveConfigView({ customerId }: { customerId: string }) {
+  const q = useEffective(customerId);
   return (
     <QueryView isPending={q.isPending} error={q.error} onRetry={() => void q.refetch()}>
       {() => q.data && (
