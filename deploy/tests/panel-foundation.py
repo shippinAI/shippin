@@ -71,7 +71,7 @@ def run(restart=None):
     assert system["organization"]["name"] == "Smoke Operations"
     assert request(owner, "GET", "/v1/settings/public")["brand"]["name"] == "Smoke Cloud"
     print("PASS setup validation, replay rejection, internal ownership and saved branding")
-    plans = request(owner, "GET", "/v1/operator/catalog/plans")["items"]
+    plans = request(owner, "GET", "/v1/operator/tenancy/plans")["items"]
     plan = next(p["id"] for p in plans if p["active"])
     key = str(uuid.uuid4())
     body = {"name": "Customer One", "owner_user_id": installed["user_id"], "plan_id": plan}

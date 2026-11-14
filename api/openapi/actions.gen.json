@@ -400,6 +400,15 @@
         ],
         "type": "object"
       },
+      "CatalogLock": {
+        "enum": [
+          "locked",
+          "overridable",
+          "mergeable",
+          "bounded"
+        ],
+        "type": "string"
+      },
       "CoverageOwn": {
         "additionalProperties": false,
         "properties": {
@@ -1031,6 +1040,210 @@
         ],
         "type": "object"
       },
+      "Plan": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "coverage": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "price_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "public": {
+            "type": "boolean"
+          },
+          "rank": {
+            "type": "integer"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/PlanService"
+            },
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "rank",
+          "public",
+          "active",
+          "coverage",
+          "updated_at",
+          "services"
+        ],
+        "type": "object"
+      },
+      "PlanCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coverage": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "price_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "public": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rank": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "rank",
+          "coverage"
+        ],
+        "type": "object"
+      },
+      "PlanService": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "limits": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "lock": {
+            "$ref": "#/components/schemas/CatalogLock"
+          },
+          "plan_id": {
+            "type": "string"
+          },
+          "service_id": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_id",
+          "service_id",
+          "enabled",
+          "lock",
+          "limits",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "PlanUpdateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coverage": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "price_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "public": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rank": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "description",
+          "rank",
+          "coverage"
+        ],
+        "type": "object"
+      },
       "Problem": {
         "description": "Every refusal and failure, as application/problem+json; message is plain words for a person.",
         "properties": {
@@ -1051,6 +1264,26 @@
           "status",
           "message"
         ],
+        "type": "object"
+      },
+      "ServiceCell": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limits": {},
+          "lock": {
+            "$ref": "#/components/schemas/CatalogLock"
+          }
+        },
         "type": "object"
       },
       "SshKey": {
@@ -2104,6 +2337,456 @@
           "access": "staff",
           "event": "shippin.tenancy.coverage_tier.updated",
           "id": "shippin.tenancy.coverage_tier.update",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/tenancy/plans": {
+      "get": {
+        "operationId": "shippin.tenancy.plan.list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/Plan"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the plans, lowest rank first, each with the services it includes.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.tenancy.plan.list",
+          "perm": "catalog.plans.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "post": {
+        "operationId": "shippin.tenancy.plan.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/PlanCreateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plan"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Create a plan with its label, price, rank and the coverage tier it includes.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.plan.created",
+          "id": "shippin.tenancy.plan.create",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/tenancy/plans/{planId}": {
+      "delete": {
+        "operationId": "shippin.tenancy.plan.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Remove a plan that no customer is on.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.plan.deleted",
+          "id": "shippin.tenancy.plan.delete",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "destructive"
+        }
+      },
+      "get": {
+        "operationId": "shippin.tenancy.plan.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plan"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read one plan with the services it includes.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.tenancy.plan.get",
+          "perm": "catalog.plans.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "put": {
+        "operationId": "shippin.tenancy.plan.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/PlanUpdateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plan"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Change a plan's label, description, price, rank, visibility or coverage tier.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.plan.updated",
+          "id": "shippin.tenancy.plan.update",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/tenancy/plans/{planId}/services/{serviceId}": {
+      "delete": {
+        "operationId": "shippin.tenancy.plan.service.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Stop a plan from including a catalog service.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.plan.service.deleted",
+          "id": "shippin.tenancy.plan.service.delete",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "destructive"
+        }
+      },
+      "put": {
+        "operationId": "shippin.tenancy.plan.service.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ServiceCell"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanService"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Include a catalog service in a plan, or change its lock mode and limits there.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.plan.service.updated",
+          "id": "shippin.tenancy.plan.service.update",
           "perm": "catalog.plans.write",
           "reason": true,
           "risk": "write"

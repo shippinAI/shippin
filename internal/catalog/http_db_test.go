@@ -64,20 +64,12 @@ func do(t *testing.T, mux *http.ServeMux, method, path, body string, want int) m
 
 func TestCatalogAPIFlow(t *testing.T) {
 	mux := testServer(t)
-	plans := do(t, mux, "GET", "/v1/operator/catalog/plans", "", 200)["items"].([]any)
-	if len(plans) != 13 { // 011 canonical (5, includes founder) + 014 ladder except the founder row (8); 070 moved 069's tiers to coverage
-		t.Fatalf("seed plans: %d", len(plans))
+	// Plans and their services are tenancy/plan actions now (internal/tenancy/plan); this flow only
+	// needs a plan that includes chatmaton with at most 3 seats.
+	if _, err := lastStore.Pool.Exec(t.Context(), `INSERT INTO plans(id,label,rank,coverage) VALUES('scratch','Scratch',5,'foundational');
+		INSERT INTO plan_services(plan_id,service_id,enabled,lock,limits) VALUES('scratch','chatmaton',true,'bounded','{"seats":3}')`); err != nil {
+		t.Fatal(err)
 	}
-	created := do(t, mux, "POST", "/v1/operator/catalog/plans", `{"id":"scratch","label":"Scratch","rank":5}`, 201)
-	if created["coverage"] != "foundational" {
-		t.Fatalf("a plan without coverage takes the lowest tier: %v", created["coverage"])
-	}
-	do(t, mux, "POST", "/v1/operator/catalog/plans", `{"id":"nocover","label":"x","coverage":"nope"}`, 400)
-	do(t, mux, "POST", "/v1/operator/catalog/plans", `{"id":"scratch","label":"Dup"}`, 409)
-	do(t, mux, "POST", "/v1/operator/catalog/plans", `{"id":"Bad Id","label":"x"}`, 400)
-	do(t, mux, "PUT", "/v1/operator/catalog/plans/scratch", `{"label":"Scratch+","price_cents":900}`, 200)
-	do(t, mux, "PUT", "/v1/operator/catalog/plan-services/scratch/chatmaton", `{"enabled":true,"lock":"bounded","limits":{"seats":3}}`, 200)
-	do(t, mux, "PUT", "/v1/operator/catalog/plan-services/starter/chatmaton", `{"lock":"weird"}`, 400)
 	do(t, mux, "POST", "/v1/operator/catalog/services", `{"id":"backup","label":"Backups","default_config":{"days":7}}`, 201)
 	do(t, mux, "GET", "/v1/operator/catalog/services/backup", "", 200)
 	source := `"deployment_source":{"kind":"oci","reference":"registry.example.net/data/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","credential_ref":"vaultix://production/runtime/registry-token"}`
@@ -159,7 +151,6 @@ func TestCatalogAPIFlow(t *testing.T) {
 	if back["coverage"] != nil || back["coverage_effective"] != "foundational" {
 		t.Fatalf("an empty coverage returns to the plan's: %v", back)
 	}
-	do(t, mux, "DELETE", "/v1/operator/catalog/plans/scratch", "", 409)
 	do(t, mux, "PUT", "/v1/operator/customers/"+id+"/services/chatmaton", `{"overrides":{"seats":99}}`, 200)
 	do(t, mux, "PUT", "/v1/operator/catalog/defaults", `{"layer":"tenant","ref":"`+id+`","key":"workspace.idle_shutdown_min","value":9999}`, 200)
 	do(t, mux, "PUT", "/v1/operator/catalog/defaults", `{"layer":"tenant","key":"x","value":1}`, 400)
@@ -193,5 +184,4 @@ func TestCatalogAPIFlow(t *testing.T) {
 	do(t, mux, "GET", "/v1/operator/customers/00000000-0000-0000-0000-000000000000/effective-config", "", 404)
 	do(t, mux, "PUT", "/v1/operator/customers/"+id, `{"name":"Acme Inc","plan_id":"pro"}`, 200)
 	do(t, mux, "DELETE", "/v1/operator/customers/"+id, "", 204)
-	do(t, mux, "DELETE", "/v1/operator/catalog/plans/scratch", "", 204)
 }

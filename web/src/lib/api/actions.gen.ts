@@ -98,6 +98,8 @@ export type AcquisitionSyncResult = {
   more: boolean;
 };
 
+export type CatalogLock = "locked" | "overridable" | "mergeable" | "bounded";
+
 export type CoverageOwn = {
   coverage: CoverageTierCustomerView | null;
 };
@@ -212,6 +214,55 @@ export type CoverageTierUpdateInput = {
   active?: boolean | null;
 };
 
+export type Plan = {
+  id: string;
+  label: string;
+  description: string;
+  rank: number;
+  price_cents?: number | null;
+  public: boolean;
+  active: boolean;
+  coverage: string;
+  updated_at: string;
+  services: PlanService[];
+};
+
+export type PlanCreateInput = {
+  id: string;
+  label: string;
+  description: string;
+  rank: number;
+  price_cents?: number | null;
+  public?: boolean | null;
+  active?: boolean | null;
+  coverage: string;
+};
+
+export type PlanService = {
+  plan_id: string;
+  service_id: string;
+  enabled: boolean;
+  lock: CatalogLock;
+  limits: Record<string, unknown>;
+  updated_at: string;
+};
+
+export type PlanUpdateInput = {
+  label: string;
+  description: string;
+  rank: number;
+  price_cents?: number | null;
+  public?: boolean | null;
+  active?: boolean | null;
+  coverage: string;
+};
+
+export type ServiceCell = {
+  enabled?: boolean | null;
+  lock?: CatalogLock;
+  limits?: unknown;
+};
+
 export type SshKey = {
   id: string;
   name: string;
@@ -245,6 +296,13 @@ export const routes = {
   "shippin.tenancy.coverage_tier.get": "GET /v1/operator/tenancy/coverage-tiers/{coverageTierId}",
   "shippin.tenancy.coverage_tier.list": "GET /v1/operator/tenancy/coverage-tiers",
   "shippin.tenancy.coverage_tier.update": "PUT /v1/operator/tenancy/coverage-tiers/{coverageTierId}",
+  "shippin.tenancy.plan.create": "POST /v1/operator/tenancy/plans",
+  "shippin.tenancy.plan.delete": "DELETE /v1/operator/tenancy/plans/{planId}",
+  "shippin.tenancy.plan.get": "GET /v1/operator/tenancy/plans/{planId}",
+  "shippin.tenancy.plan.list": "GET /v1/operator/tenancy/plans",
+  "shippin.tenancy.plan.service.delete": "DELETE /v1/operator/tenancy/plans/{planId}/services/{serviceId}",
+  "shippin.tenancy.plan.service.update": "PUT /v1/operator/tenancy/plans/{planId}/services/{serviceId}",
+  "shippin.tenancy.plan.update": "PUT /v1/operator/tenancy/plans/{planId}",
 } as const;
 
 export type ActionId = keyof typeof routes;
@@ -270,4 +328,11 @@ export type ActionTypes = {
   "shippin.tenancy.coverage_tier.get": { args: [params: { coverageTierId: string }]; output: CoverageTier; risk: "read"; event: never };
   "shippin.tenancy.coverage_tier.list": { args: [params?: Record<string, never>]; output: { items: CoverageTier[] }; risk: "read"; event: never };
   "shippin.tenancy.coverage_tier.update": { args: [params: { coverageTierId: string }, body: CoverageTierUpdateInput & { reason: string }]; output: CoverageTier; risk: "write"; event: "shippin.tenancy.coverage_tier.updated" };
+  "shippin.tenancy.plan.create": { args: [params: Record<string, never>, body: PlanCreateInput & { reason: string }]; output: Plan; risk: "write"; event: "shippin.tenancy.plan.created" };
+  "shippin.tenancy.plan.delete": { args: [params: { planId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.tenancy.plan.deleted" };
+  "shippin.tenancy.plan.get": { args: [params: { planId: string }]; output: Plan; risk: "read"; event: never };
+  "shippin.tenancy.plan.list": { args: [params?: Record<string, never>]; output: { items: Plan[] }; risk: "read"; event: never };
+  "shippin.tenancy.plan.service.delete": { args: [params: { planId: string; serviceId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.tenancy.plan.service.deleted" };
+  "shippin.tenancy.plan.service.update": { args: [params: { planId: string; serviceId: string }, body: ServiceCell & { reason: string }]; output: PlanService; risk: "write"; event: "shippin.tenancy.plan.service.updated" };
+  "shippin.tenancy.plan.update": { args: [params: { planId: string }, body: PlanUpdateInput & { reason: string }]; output: Plan; risk: "write"; event: "shippin.tenancy.plan.updated" };
 };

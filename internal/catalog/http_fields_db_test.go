@@ -28,17 +28,6 @@ func limited(t *testing.T, missing ...string) *http.ServeMux {
 
 func TestFieldPermissionsEnforcedByTheAPI(t *testing.T) {
 	mux := limited(t, PermPricesRead, PermContactsRead, PermNotesRead)
-	for _, p := range do(t, mux, "GET", "/v1/operator/catalog/plans", "", 200)["items"].([]any) {
-		if _, ok := p.(map[string]any)["price_cents"]; ok {
-			t.Fatal("price_cents returned without catalog.prices.read")
-		}
-	}
-	do(t, mux, "POST", "/v1/operator/catalog/plans", `{"id":"cheap","label":"Cheap","price_cents":100}`, 403)
-	do(t, mux, "PUT", "/v1/operator/catalog/plans/pro", `{"label":"Pro 2","price_cents":1}`, 200)
-	var price int
-	if err := lastStore.Pool.QueryRow(t.Context(), `SELECT price_cents FROM plans WHERE id='pro'`).Scan(&price); err != nil || price != 2900 {
-		t.Fatalf("price must be kept on update without catalog.prices.read: %d %v", price, err)
-	}
 	do(t, mux, "POST", "/v1/operator/customers", `{"name":"Acme","plan_id":"pro","notes":"vip"}`, 403)
 	c := do(t, mux, "POST", "/v1/operator/customers", `{"name":"Acme","plan_id":"pro"}`, 201)
 	for _, k := range []string{"contacts", "endpoints", "notes"} {

@@ -155,27 +155,12 @@ func (s *Store) DeleteService(ctx context.Context, id string) error {
 	return s.exec(ctx, `DELETE FROM catalog_services WHERE id=$1`, id)
 }
 
-// PlanService is one cell of the plan x service matrix.
+// PlanService is one cell of the plan x service matrix, as the effective-config merge reads it. The
+// cells are changed by the tenancy/plan/service actions.
 type PlanService struct {
 	PlanID    string          `json:"plan_id"`
 	ServiceID string          `json:"service_id"`
 	Enabled   bool            `json:"enabled"`
 	Lock      string          `json:"lock"`
 	Limits    json.RawMessage `json:"limits"`
-}
-
-func (s *Store) PlanServices(ctx context.Context) (json.RawMessage, error) {
-	return s.listJSON(ctx, `SELECT plan_id, service_id, enabled, lock, limits, updated_at FROM plan_services ORDER BY plan_id, service_id`)
-}
-
-// PutPlanService upserts a matrix cell.
-func (s *Store) PutPlanService(ctx context.Context, p PlanService) error {
-	_, err := s.Pool.Exec(ctx, `INSERT INTO plan_services(plan_id,service_id,enabled,lock,limits) VALUES($1,$2,$3,$4,$5)
-		ON CONFLICT (plan_id,service_id) DO UPDATE SET enabled=$3, lock=$4, limits=$5, updated_at=now()`,
-		p.PlanID, p.ServiceID, p.Enabled, p.Lock, p.Limits)
-	return err
-}
-
-func (s *Store) DeletePlanService(ctx context.Context, plan, svc string) error {
-	return s.exec(ctx, `DELETE FROM plan_services WHERE plan_id=$1 AND service_id=$2`, plan, svc)
 }
