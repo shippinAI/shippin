@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 181,
+  "operationCount": 187,
   "tags": [
     "agents-runtime",
     "audit",
@@ -1591,6 +1591,72 @@
       ],
       "implementationStatus": "registered",
       "feature": "feature.ai"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/acquisition-sources",
+      "operationId": "shippin.tenancy.acquisition_source.list",
+      "summary": "List configured acquisition sources without exposing source credentials or lead contact data.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenancy/acquisition-sources",
+      "operationId": "shippin.tenancy.acquisition_source.create",
+      "summary": "Register a private acquisition source with pinned TLS and a write-only signer key.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.create"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/acquisition-sources/{acquisitionSourceId}",
+      "operationId": "shippin.tenancy.acquisition_source.get",
+      "summary": "Read a source's nonsecret connection and trust configuration.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/tenancy/acquisition-sources/{acquisitionSourceId}",
+      "operationId": "shippin.tenancy.acquisition_source.update",
+      "summary": "Update a source endpoint or trust settings with an expected generation and explicit pause state.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.update"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/acquisition-sources/{acquisitionSourceId}/leads",
+      "operationId": "shippin.tenancy.acquisition_source.lead.list",
+      "summary": "Review up to 100 current acquisition leads with consent details and explicit unverified status.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.lead.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenancy/acquisition-sources/{acquisitionSourceId}/sync",
+      "operationId": "shippin.tenancy.acquisition_source.sync",
+      "summary": "Import one bounded page from an authorized acquisition source.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.sync"
     },
     {
       "method": "GET",

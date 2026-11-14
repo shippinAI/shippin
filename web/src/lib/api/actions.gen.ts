@@ -25,6 +25,79 @@ export type AccessKeyCreated = {
   token: string;
 };
 
+export type AcquisitionLeadListResult = {
+  items: AcquisitionLeadPreview[];
+  total: number;
+  truncated: boolean;
+};
+
+export type AcquisitionLeadPreview = {
+  id: string;
+  revision: number;
+  email: string;
+  email_verified: boolean;
+  status: string;
+  consent_version: string;
+  created_at: string;
+  consent_at: string;
+  updated_at: string;
+  expires_at: string;
+};
+
+export type AcquisitionSourceCreateInput = {
+  label: string;
+  origin: string;
+  dial_ip: string;
+  port: number;
+  ca_pem: string;
+  source_tenant: string;
+  source_project: string;
+  issuer: string;
+  audience: string;
+  signing_key: string;
+};
+
+export type AcquisitionSourceDetail = {
+  summary: AcquisitionSourceSummary;
+  origin: string;
+  dial_ip: string;
+  port: number;
+  source_tenant: string;
+  source_project: string;
+  issuer: string;
+  audience: string;
+  ca_pem: string;
+};
+
+export type AcquisitionSourceSummary = {
+  id: string;
+  label: string;
+  paused: boolean;
+  config_generation: number;
+  cursor: number;
+  latest_success_at?: string | null;
+  active_lead_count: number;
+  signer_configured: boolean;
+  ca_configured: boolean;
+};
+
+export type AcquisitionSourceUpdateInput = {
+  expected_config_generation: number;
+  label: string;
+  origin: string;
+  dial_ip: string;
+  port: number;
+  ca_pem: string;
+  signing_key?: string;
+  paused: boolean | null;
+};
+
+export type AcquisitionSyncResult = {
+  applied: number;
+  cursor: number;
+  more: boolean;
+};
+
 export type CoverageOwn = {
   coverage: CoverageTierCustomerView | null;
 };
@@ -160,6 +233,12 @@ export const routes = {
   "shippin.identity.ssh_key.create": "POST /v1/me/identity/ssh-keys",
   "shippin.identity.ssh_key.delete": "DELETE /v1/me/identity/ssh-keys/{sshKeyId}",
   "shippin.identity.ssh_key.list": "GET /v1/me/identity/ssh-keys",
+  "shippin.tenancy.acquisition_source.create": "POST /v1/operator/tenancy/acquisition-sources",
+  "shippin.tenancy.acquisition_source.get": "GET /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}",
+  "shippin.tenancy.acquisition_source.lead.list": "GET /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}/leads",
+  "shippin.tenancy.acquisition_source.list": "GET /v1/operator/tenancy/acquisition-sources",
+  "shippin.tenancy.acquisition_source.sync": "POST /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}/sync",
+  "shippin.tenancy.acquisition_source.update": "PUT /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}",
   "shippin.tenancy.coverage.get": "GET /v1/tenants/{tenantId}/tenancy/coverage",
   "shippin.tenancy.coverage_tier.create": "POST /v1/operator/tenancy/coverage-tiers",
   "shippin.tenancy.coverage_tier.delete": "DELETE /v1/operator/tenancy/coverage-tiers/{coverageTierId}",
@@ -179,6 +258,12 @@ export type ActionTypes = {
   "shippin.identity.ssh_key.create": { args: [params: Record<string, never>, body: SshKeyCreateInput & { reason?: string }]; output: SshKey; risk: "write"; event: "shippin.identity.ssh_key.created" };
   "shippin.identity.ssh_key.delete": { args: [params: { sshKeyId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.identity.ssh_key.deleted" };
   "shippin.identity.ssh_key.list": { args: [params?: Record<string, never>]; output: { items: SshKey[] }; risk: "read"; event: never };
+  "shippin.tenancy.acquisition_source.create": { args: [params: Record<string, never>, body: AcquisitionSourceCreateInput & { reason: string }]; output: AcquisitionSourceSummary; risk: "write"; event: "shippin.tenancy.acquisition_source.created" };
+  "shippin.tenancy.acquisition_source.get": { args: [params: { acquisitionSourceId: string }]; output: AcquisitionSourceDetail; risk: "read"; event: never };
+  "shippin.tenancy.acquisition_source.lead.list": { args: [params: { acquisitionSourceId: string }]; output: AcquisitionLeadListResult; risk: "read"; event: never };
+  "shippin.tenancy.acquisition_source.list": { args: [params?: Record<string, never>]; output: { items: AcquisitionSourceSummary[] }; risk: "read"; event: never };
+  "shippin.tenancy.acquisition_source.sync": { args: [params: { acquisitionSourceId: string }, body: { reason: string }]; output: AcquisitionSyncResult; risk: "write"; event: "shippin.tenancy.acquisition_source.synced" };
+  "shippin.tenancy.acquisition_source.update": { args: [params: { acquisitionSourceId: string }, body: AcquisitionSourceUpdateInput & { reason: string }]; output: AcquisitionSourceSummary; risk: "write"; event: "shippin.tenancy.acquisition_source.updated" };
   "shippin.tenancy.coverage.get": { args: [params: { tenantId: string }]; output: CoverageOwn; risk: "read"; event: never };
   "shippin.tenancy.coverage_tier.create": { args: [params: Record<string, never>, body: CoverageTierCreateInput & { reason: string }]; output: CoverageTier; risk: "write"; event: "shippin.tenancy.coverage_tier.created" };
   "shippin.tenancy.coverage_tier.delete": { args: [params: { coverageTierId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.tenancy.coverage_tier.deleted" };

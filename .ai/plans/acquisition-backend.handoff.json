@@ -1,0 +1,224 @@
+{
+  "schema_version": "clyffy.handoff.v1",
+  "id": "acquisition-backend-20261114",
+  "status": "ready",
+  "objective": "Implement a private, platform-owned durable acquisition import backend for the existing Shippin panel, without treating early-access leads as verified waitlist entries or deploying anything.",
+  "baseline_commit": "6f68686c43fccf4caee360b78a909b4476db1a1a",
+  "evidence": [
+    {
+      "kind": "source",
+      "location": "docs/mcpl.md",
+      "claim": "Reviewed for current action, access, persistence, lifecycle or canonical panel contract."
+    },
+    {
+      "kind": "source",
+      "location": "internal/mcpl/run.go",
+      "claim": "Reviewed for current action, access, persistence, lifecycle or canonical panel contract."
+    },
+    {
+      "kind": "source",
+      "location": "internal/mcpl/route.go",
+      "claim": "Reviewed for current action, access, persistence, lifecycle or canonical panel contract."
+    },
+    {
+      "kind": "source",
+      "location": "internal/api/mcpl_services.go",
+      "claim": "Reviewed for current action, access, persistence, lifecycle or canonical panel contract."
+    },
+    {
+      "kind": "source",
+      "location": "internal/api/perm_catalog.go",
+      "claim": "Reviewed for current action, access, persistence, lifecycle or canonical panel contract."
+    },
+    {
+      "kind": "source",
+      "location": "internal/api/platform_agenthub.go",
+      "claim": "Reviewed for current action, access, persistence, lifecycle or canonical panel contract."
+    },
+    {
+      "kind": "source",
+      "location": "internal/servers/seal.go",
+      "claim": "Reviewed for current action, access, persistence, lifecycle or canonical panel contract."
+    },
+    {
+      "kind": "source",
+      "location": "internal/api/access_sweep.go",
+      "claim": "Reviewed for current action, access, persistence, lifecycle or canonical panel contract."
+    },
+    {
+      "kind": "source",
+      "location": "cmd/console/main.go",
+      "claim": "Reviewed for current action, access, persistence, lifecycle or canonical panel contract."
+    },
+    {
+      "kind": "source",
+      "location": "internal/api/signups.go",
+      "claim": "Reviewed for current action, access, persistence, lifecycle or canonical panel contract."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/features/admin/ui/signups/signups-page.tsx",
+      "claim": "Reviewed for current action, access, persistence, lifecycle or canonical panel contract."
+    },
+    {
+      "kind": "source",
+      "location": "internal/db/migrations/025_teams.sql",
+      "claim": "Reviewed for current action, access, persistence, lifecycle or canonical panel contract."
+    },
+    {
+      "kind": "source",
+      "location": "internal/db/staff_seed.go",
+      "claim": "Reviewed fresh owner role seed for explicit owner-only acquisition permission defaults."
+    }
+  ],
+  "constraints": [
+    "No live provisioning, deployment, network changes, external communications or real credentials.",
+    "Only disposable synthetic test data; no source database access from platform.",
+    "Never claim imported leads are verified waitlist members or customers.",
+    "Security review is required before real trust endpoint/signing-key use; no automatic restore detection.",
+    "No unsanctioned changes to unrelated PR20 or runner source worktrees.",
+    "mcpltest.Serve does not enforce Staff or Perm; only real canonical API-gate integration tests can prove authorization. Root owns those and the browser harness."
+  ],
+  "authorized_scope": [
+    "internal/acquisition",
+    "internal/tenancy/acquisition_source",
+    "internal/db/migrations/073_shippin_acquisition.sql",
+    "internal/api/acquisition_services.go",
+    "internal/api/mcpl_services.go",
+    "internal/api/perm_catalog.go",
+    "internal/api/access_sweep.go",
+    "cmd/console/main.go",
+    "internal/devaccounts",
+    "internal/actions",
+    "api/openapi/actions.gen.json",
+    "web/src/lib/api/actions.gen.ts",
+    "internal/db/staff_seed.go"
+  ],
+  "anchors": [
+    {
+      "path": "docs/mcpl.md",
+      "sha256": "347a3a8af7b2f9e0870fd966e02bd419a079b2e94959f14b9323e46c1deb6e64"
+    },
+    {
+      "path": "internal/mcpl/run.go",
+      "sha256": "22e48cb4d77ac40e9ca5fc2927804a3031e6602fe81b538976a5aa196b5d3978"
+    },
+    {
+      "path": "internal/mcpl/route.go",
+      "sha256": "23369afb054217756bede64f0f44a82cf20581d55e9e56b7173062b5eb01f668"
+    },
+    {
+      "path": "internal/api/mcpl_services.go",
+      "sha256": "3d7befa401b5885a25157afb6010c90e34bc7e5c4f3249f1c9ad54b77d7b8d30"
+    },
+    {
+      "path": "internal/api/perm_catalog.go",
+      "sha256": "f6bd30adef5f8f1a70c9b853a982e2e8043d273c915c87b0cdf7f8c55ff71000"
+    },
+    {
+      "path": "internal/api/platform_agenthub.go",
+      "sha256": "4d9c21d001e8bce7eee4bb0ac1b4012d8f494c275b3831c636084380ae7317f5"
+    },
+    {
+      "path": "internal/servers/seal.go",
+      "sha256": "ad740650a976fcac7932cb41a5dd43e5fb5eae241d3c3c2af08d0d039657d031"
+    },
+    {
+      "path": "internal/api/access_sweep.go",
+      "sha256": "4f1d116222ff77900c650dc7163105e34a6165caf2b5ddde179ba65561dc3498"
+    },
+    {
+      "path": "cmd/console/main.go",
+      "sha256": "06339256342c7cfda41c4d3317d3d4916f381a5555a6bdc4dd4600e511105e79"
+    },
+    {
+      "path": "internal/api/signups.go",
+      "sha256": "29277a0675a88207f22fb1bbfdd741a47848751c9ccde3c32125e7de263e8a63"
+    },
+    {
+      "path": "web/src/features/admin/ui/signups/signups-page.tsx",
+      "sha256": "c064177b38d84525521cd6cf8c36a4e07cdb8aaa57008cca0287d0aebe770305"
+    },
+    {
+      "path": "internal/db/migrations/025_teams.sql",
+      "sha256": "2687654bdc41bdf6f0eb1e59608876932d4ce36fec921cfec335f0e944cd95a8"
+    },
+    {
+      "path": "internal/db/staff_seed.go",
+      "sha256": "dbf6697eb7618f33050ade0a27fe4807af4415d64efdafc4415f4509bc40f976"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "acquisition-backend",
+      "title": "Scoped durable source import backend",
+      "status": "pending",
+      "paths": [
+        "internal/acquisition",
+        "internal/tenancy/acquisition_source",
+        "internal/db/migrations/073_shippin_acquisition.sql",
+        "internal/api/acquisition_services.go",
+        "internal/api/mcpl_services.go",
+        "internal/api/perm_catalog.go",
+        "internal/api/access_sweep.go",
+        "cmd/console/main.go",
+        "internal/devaccounts",
+        "internal/actions",
+        "api/openapi/actions.gen.json",
+        "web/src/lib/api/actions.gen.ts",
+        "internal/db/staff_seed.go"
+      ],
+      "depends_on": [],
+      "steps": [
+        "Create internal/acquisition service and PostgreSQL migration 073 using shippin_ tables: source registration with immutable source tenant/project/issuer/audience, source ID, config generation, cursor and pause state; sealed source credentials and sealed per-source lead payloads keyed by immutable source/lead ID and revision. Add acquisition.read and acquisition.sync to permission catalog, sync marked high-risk and both explicitly grantable. Grant owner preset only, including migration and fresh owner seed as appropriate. Ensure development account auto-grants do not implicitly gain either permission.",
+        "Implement narrow generated MCPL staff actions under internal/tenancy/acquisition_source: list/create/update/sync and nested lead/list. List sources under acquisition.read returns safe metadata only. Lead list uses acquisition.read. Create/update uses platform.settings.write; inputs validated, secrets write-only; updates increment config generation and explicitly pause/resume. Sync uses acquisition.sync; output only aggregate count/cursor/more, never email. No source identity rewrite, cursor reset or source deletion workflow in this slice. Root owns generated artifacts coordination and UI; agree output structs before integration.",
+        "Wire lazy platform sealing through internal/api/acquisition_services.go and provideServices in internal/api/mcpl_services.go. Use a.sealer() with distinct stable AAD bound to acquisition source ID plus kind and lead ID; fail closed if no key. Seal signer and lead payloads, never store bearer JWT. Read-only list returns only unexpired entries, decryption failures fail closed; never log secret, bearer, URL query, raw response, email, or decrypted values. Existing session key rotation renders sealed content unavailable and is a documented recovery risk.",
+        "Implement a narrowly validated source v1 HTTP client in internal/acquisition. Source origin must be HTTPS without userinfo, path/query/fragment; dial an explicitly configured numeric IP and port with proxy disabled, no DNS, original TLS server name and explicitly configured CA, no redirects, bounded timeouts and response bytes. Reject unspecified/multicast/link-local and cloud metadata destinations; allow an explicitly configured loopback or private address. Validate TLS hostname and certificate, then mint a 120-second Ed25519 JWT server-side from encrypted signer per request for exact issuer/audience/tenant/project and only marketing:read, never expose key or token. Endpoint and key trust are security-review prerequisites, not production identity proof.",
+        "Fetch at most one bounded page per manual sync. Validate version=1, retention 1..730, maximum 1 MiB and 100 records, 32-hex IDs, monotonically increasing revisions, cursor equality to last item, timestamp/consent/status constraints, and tombstones without PII while permitting zero timestamps. Decrypt/sign and perform network call with no source row lock held. Because MCPL begins a write transaction before Run, fetch occurs within that open transaction with strict timeout; after fetch acquire row lock or compare-and-swap expected cursor+generation+unpaused state. Apply all records, source-scoped dedup and cursor in the same c.DB transaction and let MCPL atomically audit/commit. A failed CAS or any item failure applies nothing. Reject stale config and concurrent competing pages; tombstones clear ciphertext and record revision floor.",
+        "Read filters expiry on every request. Add context-bound console lifecycle RunAcquisitionRetention analogous to RunSweeper: immediate then periodic bounded idempotent deletion of expired sealed lead payloads, independent of source availability, safe across replicas, stop on cancellation and log sanitized failures. Keep enough source-scoped deletion suppression/revision floors for the reviewed reconciliation policy; never claim physical purge while platform process is stopped. Tests must prove expiration after a source outage and startup purge.",
+        "Source v1 has no epoch, high-water mark or scope identity: never infer restore from an empty page and never silently reset cursor or unpause. An operator who knows source was restored must pause/quarantine it; stale in-flight requests fail generation CAS. Reconciliation/reset and durable replay suppression beyond this bounded initial slice remain explicit security-review follow-up; do not implement a blind reset or claim automatic restore detection.",
+        "Run focused Go tests and generation; use explicitly disposable synthetic Postgres/TLS/source credentials. Negative tests include anonymous/customer/nonstaff/inactive/wrong permission and wrong project; no real service access, no provisioning. Coordinate UI contract and cross-process integration with root. Stop if lifecycle wiring, sealer, generator, trust or role semantics contradict these anchors."
+      ],
+      "checks": [
+        {
+          "argv": [
+            "go",
+            "test",
+            "./internal/acquisition/...",
+            "./internal/tenancy/acquisition_source/..."
+          ],
+          "expected": "Pass all applicable focused backend tests; explicitly report opt-in skips."
+        },
+        {
+          "argv": [
+            "go",
+            "generate",
+            "./internal/actions"
+          ],
+          "expected": "Regenerate registry, typed action map and OpenAPI consistently."
+        },
+        {
+          "argv": [
+            "go",
+            "test",
+            "./internal/actions"
+          ],
+          "expected": "Generated action conformance passes."
+        }
+      ],
+      "acceptance": [
+        "Only explicitly authorized staff can configure, sync or view; no accidental ordinary or dev-account grants.",
+        "Source pages are atomically applied with cursor/config-generation CAS and audit, encrypted PII, deduplication, deletion and independent expiry.",
+        "Synthetic private TLS and real disposable PostgreSQL tests establish actual storage/retry/error behavior, or limitations remain open.",
+        "No production identity, public deployment, live provider, browser end-to-end, or automatic restore safety is claimed."
+      ]
+    }
+  ],
+  "next_task": "acquisition-backend",
+  "escalation_triggers": [
+    "Source anchors or baseline change before dispatch.",
+    "Permission, signer, sealing, retention, SSRF, restoration, consent or authorization ambiguity.",
+    "Requested live access, provisioning or cross-repository implementation.",
+    "Lifecycle ownership or generated-action contract cannot be met within authorized files."
+  ]
+}

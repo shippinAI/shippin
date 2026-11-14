@@ -17,6 +17,11 @@ func TestOnlyOwnerPresetHoldsCatalogPerms(t *testing.T) {
 	if len(gran) != 13 {
 		t.Fatalf("want 13 granular catalog permissions, got %d: %v", len(gran), gran)
 	}
+	for _, p := range gran {
+		if p == "acquisition.read" || p == "acquisition.sync" {
+			t.Fatalf("new acquisition grants must not be inherited by dev accounts: %s", p)
+		}
+	}
 	for _, p := range db.StaffPresets {
 		got := permsFor(db.StaffPresets, []string{p.Key})
 		for _, g := range gran {
@@ -28,6 +33,24 @@ func TestOnlyOwnerPresetHoldsCatalogPerms(t *testing.T) {
 	for _, k := range []string{"billing.read", "billing.write"} {
 		if !permIndex[k].Reserved {
 			t.Errorf("%s must be reserved again (grants nothing)", k)
+		}
+	}
+}
+
+func TestAcquisitionPermissionsAreGrantableAndOwnerPresetOnly(t *testing.T) {
+	for _, key := range []string{"acquisition.read", "acquisition.sync"} {
+		p, ok := permIndex[key]
+		if !ok || !p.Grantable {
+			t.Fatalf("%s is not grantable", key)
+		}
+		wantRisk := key == "acquisition.sync"
+		if p.Risk != wantRisk {
+			t.Errorf("%s high-risk=%v, want %v", key, p.Risk, wantRisk)
+		}
+		for _, role := range db.StaffPresets {
+			if slices.Contains(role.Permissions, key) != (role.Key == "staff.owner") {
+				t.Errorf("%s in role %s incorrectly", key, role.Key)
+			}
 		}
 	}
 }

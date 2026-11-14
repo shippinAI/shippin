@@ -116,6 +116,290 @@
         ],
         "type": "object"
       },
+      "AcquisitionLeadListResult": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AcquisitionLeadPreview"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "truncated"
+        ],
+        "type": "object"
+      },
+      "AcquisitionLeadPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "consent_version": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "email_verified": {
+            "type": "boolean"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "email",
+          "email_verified",
+          "status",
+          "consent_version",
+          "created_at",
+          "consent_at",
+          "updated_at",
+          "expires_at"
+        ],
+        "type": "object"
+      },
+      "AcquisitionSourceCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "ca_pem": {
+            "type": "string"
+          },
+          "dial_ip": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "signing_key": {
+            "type": "string"
+          },
+          "source_project": {
+            "type": "string"
+          },
+          "source_tenant": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "origin",
+          "dial_ip",
+          "port",
+          "ca_pem",
+          "source_tenant",
+          "source_project",
+          "issuer",
+          "audience",
+          "signing_key"
+        ],
+        "type": "object"
+      },
+      "AcquisitionSourceDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "ca_pem": {
+            "type": "string"
+          },
+          "dial_ip": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "source_project": {
+            "type": "string"
+          },
+          "source_tenant": {
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AcquisitionSourceSummary"
+          }
+        },
+        "required": [
+          "summary",
+          "origin",
+          "dial_ip",
+          "port",
+          "source_tenant",
+          "source_project",
+          "issuer",
+          "audience",
+          "ca_pem"
+        ],
+        "type": "object"
+      },
+      "AcquisitionSourceSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "active_lead_count": {
+            "type": "integer"
+          },
+          "ca_configured": {
+            "type": "boolean"
+          },
+          "config_generation": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "latest_success_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "signer_configured": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "paused",
+          "config_generation",
+          "cursor",
+          "active_lead_count",
+          "signer_configured",
+          "ca_configured"
+        ],
+        "type": "object"
+      },
+      "AcquisitionSourceUpdateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "ca_pem": {
+            "type": "string"
+          },
+          "dial_ip": {
+            "type": "string"
+          },
+          "expected_config_generation": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "paused": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "port": {
+            "type": "integer"
+          },
+          "signing_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_config_generation",
+          "label",
+          "origin",
+          "dial_ip",
+          "port",
+          "ca_pem",
+          "paused"
+        ],
+        "type": "object"
+      },
+      "AcquisitionSyncResult": {
+        "additionalProperties": false,
+        "properties": {
+          "applied": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "integer"
+          },
+          "more": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "applied",
+          "cursor",
+          "more"
+        ],
+        "type": "object"
+      },
       "CoverageOwn": {
         "additionalProperties": false,
         "properties": {
@@ -1169,6 +1453,362 @@
           "id": "shippin.identity.ssh_key.delete",
           "reason": false,
           "risk": "destructive"
+        }
+      }
+    },
+    "/operator/tenancy/acquisition-sources": {
+      "get": {
+        "operationId": "shippin.tenancy.acquisition_source.list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/AcquisitionSourceSummary"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List configured acquisition sources without exposing source credentials or lead contact data.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.tenancy.acquisition_source.list",
+          "perm": "acquisition.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "post": {
+        "operationId": "shippin.tenancy.acquisition_source.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AcquisitionSourceCreateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcquisitionSourceSummary"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Register a private acquisition source with pinned TLS and a write-only signer key.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.acquisition_source.created",
+          "id": "shippin.tenancy.acquisition_source.create",
+          "perm": "platform.settings.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/tenancy/acquisition-sources/{acquisitionSourceId}": {
+      "get": {
+        "operationId": "shippin.tenancy.acquisition_source.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "acquisitionSourceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcquisitionSourceDetail"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read a source's nonsecret connection and trust configuration.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.tenancy.acquisition_source.get",
+          "perm": "platform.settings.write",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "put": {
+        "operationId": "shippin.tenancy.acquisition_source.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "acquisitionSourceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AcquisitionSourceUpdateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcquisitionSourceSummary"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Update a source endpoint or trust settings with an expected generation and explicit pause state.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.acquisition_source.updated",
+          "id": "shippin.tenancy.acquisition_source.update",
+          "perm": "platform.settings.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/tenancy/acquisition-sources/{acquisitionSourceId}/leads": {
+      "get": {
+        "operationId": "shippin.tenancy.acquisition_source.lead.list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "acquisitionSourceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcquisitionLeadListResult"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Review up to 100 current acquisition leads with consent details and explicit unverified status.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.tenancy.acquisition_source.lead.list",
+          "perm": "acquisition.read",
+          "reason": false,
+          "risk": "read"
+        }
+      }
+    },
+    "/operator/tenancy/acquisition-sources/{acquisitionSourceId}/sync": {
+      "post": {
+        "operationId": "shippin.tenancy.acquisition_source.sync",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "acquisitionSourceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcquisitionSyncResult"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Import one bounded page from an authorized acquisition source.",
+        "tags": [
+          "tenancy"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.tenancy.acquisition_source.synced",
+          "id": "shippin.tenancy.acquisition_source.sync",
+          "perm": "acquisition.sync",
+          "reason": true,
+          "risk": "write"
         }
       }
     },

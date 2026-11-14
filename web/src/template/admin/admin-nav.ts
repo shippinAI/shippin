@@ -40,7 +40,7 @@ export const adminGroups: AdminGroup[] = [
     items: [
       { id: "admin.tenants", label: "Tenants", icon: Building2, to: "/admin/tenants", hue: "var(--color-primary)", cap: "tenants.read" },
       { id: "admin.customers", label: "Customers", icon: Contact, to: "/admin/customers", hue: "var(--color-primary)", cap: "customers.read", feature: "catalog" },
-      { id: "admin.signups", label: "Sign-ups", icon: UserPlus, to: "/admin/signups", hue: "var(--color-primary)", cap: "customers.read" },
+      { id: "admin.signups", label: "Sign-ups", icon: UserPlus, to: "/admin/signups", hue: "var(--color-primary)", cap: "customers.read|acquisition.read|platform.settings.write" },
       { id: "admin.plans", label: "Plans & tiers", icon: Layers, to: "/admin/plans", hue: "var(--color-hue-ai)", cap: "catalog.plans.read", feature: "catalog" },
       { id: "admin.services", label: "Service catalog", icon: Blocks, to: "/admin/services", hue: "var(--color-hue-data)", cap: "catalog.plans.read", feature: "catalog" },
       { id: "admin.workspaces", label: "Workspaces", icon: Boxes, to: "/admin/workspaces", hue: "var(--color-hue-workspaces)", cap: "workspaces.read", feature: "workspaces" },
