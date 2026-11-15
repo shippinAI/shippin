@@ -1,7 +1,8 @@
 # Host shell (design, not built)
 
 A shell on an Incus or Proxmox host, opened from the control plane by the owner and named
-staff. It serves INF-01 and INF-03 under IAM-01 and IAM-02, in roadmap stage 4 ("Control plane
+staff. It follows standard privileged-access practice: the privilege is granted per person and
+per host, for a stated time, with documented minimum requirements, and every use is recorded. It serves INF-01 and INF-03 under IAM-01 and IAM-02, in roadmap stage 4 ("Control plane
 access"). Nothing here is implemented: `internal/hv` returns `ErrUnsupported` for console and
 exec, and hostd's routes and `run.go` commands are closed sets.
 
@@ -17,18 +18,47 @@ design changes four things:
   address, a Proxmox ticket or hostd.
 - **No root by default.** On Incus hosts the shell runs as a configured unprivileged account.
   Its sudo rights are the owner's host policy, not something Shippin grants.
-- **A deliberate session.** A risky permission, a reason, a fresh second factor, short limits,
-  open and close audit entries, and optionally a recording.
+- **A granted, bounded session.** A privileged permission granted in a dialog with its scope and
+  duration, a reason, a fresh second factor, limits, open and close audit entries, and optionally
+  a recording.
 - **Off unless switched on** in hostd's config.
 
 ## Who may open it
 
-- A new permission, `host.shell` ("Open a shell on a server"), with `Risk: true` and
-  `Grantable: false`. Only the Owner preset holds it. The owner may add it to a role for named
-  staff. No other permission implies it.
+- A privileged permission, `host.shell` ("Open a shell on a server"). It is flagged as
+  privileged in the permission catalog, so it is never part of a preset other than Owner and is
+  never implied by another permission. The owner grants it to named staff.
 - Never tenants. It is an operator route. Tenant membership, tenant roles and tenant access
-  grants (break-glass included) do not count: they cover customer workspaces, not hosts.
+  grants do not count: they cover customer workspaces, not hosts.
 - Only people: no tokens, device sessions, MCP or AI agents. Automation gets narrow actions.
+
+## Granting it
+
+The owner grants it from **Staff > (person) > Privileged access > Grant host shell**, a dialog
+whose fields are all choices, with the minimum requirements stated beside them:
+
+| Field | Choices | Minimum |
+| --- | --- | --- |
+| Hosts | All hosts, a site, or chosen hosts | At least one host |
+| Run as | The accounts configured for those hosts (`host_shell.users`), root only where a host allows it | An account that exists on each chosen host |
+| Duration | 1 hour, 8 hours, 7 days, 30 days, or until removed | Owner only for "until removed" |
+| Session limits | Idle 10 or 30 minutes; maximum 1 or 4 hours | Within the installation's bounds |
+| Approval | None, or a second staff member approves each open | Required for root |
+| Recording | Output, output and input, or none | The installation's policy may require output |
+| Reason | Text | `access.reason_min` characters |
+
+The grant is itself audited, shows on the person's page with its expiry, can be removed at once,
+and ends by itself when its duration runs out. The same dialog shows what the person can already
+do, so a grant never widens access unseen.
+
+## Impersonation and escalation
+
+- Impersonating a staff member or a customer never carries `host.shell`: an impersonated session
+  is refused, whoever is impersonated.
+- A staff member without the grant asks for it from the host's page. The request names the host,
+  the account and the reason and goes to the owner, or to staff the owner allows to approve.
+  Approving fills the same dialog; nothing is granted by the request alone.
+- An approver cannot approve their own request.
 
 ## Opening a session
 
@@ -38,7 +68,8 @@ design changes four things:
    ticket that expires in 30 seconds.
 2. The checks run in this order:
    - origin;
-   - `host.shell`;
+   - `host.shell`, granted for this host and account and not expired;
+   - not an impersonated session;
    - the staff account is active;
    - the host is attached and enabled;
    - a second factor (a passkey or an identity provider) on this session;
@@ -100,7 +131,8 @@ for API tokens is unverified: check it on the local Proxmox rig.
 
 ## What it must refuse
 
-- A tenant member or owner. Staff who hold only a tenant grant.
+- A tenant member or owner. Staff who hold only a tenant grant. An impersonated session.
+- A grant that does not cover this host or account, or has expired.
 - Staff without `host.shell`, a deactivated account, or an expired role.
 - A missing or short reason. No second factor, or a stale sign-in.
 - Tokens, device sessions, MCP and agents. A cross-origin page. A reused or expired ticket.
@@ -127,9 +159,9 @@ for API tokens is unverified: check it on the local Proxmox rig.
 
 ## Open decisions for the owner
 
-1. Should a second staff member approve each open, as for break-glass, or only for root?
-2. Recording: on by default? Input too? Where is it stored, and for how long?
-3. Which account do Incus hosts use by default? Is root ever allowed, per host or globally?
-4. Are the limits right: 10 minutes idle, 1 hour maximum, re-authentication within 10 minutes?
-5. Should customers get this later on servers they bring (BYO-01)? If so, scoped to those
-   servers and with a separate permission.
+1. Approval: which grants need a second staff member's approval for each open, beyond root?
+2. Recording: the installation's default, and how long recordings are kept.
+3. The default account on Incus hosts, and whether root is ever allowed.
+4. The bounds for the session limits and grant durations above.
+5. Whether customers get this later on servers they bring (BYO-01), with its own permission
+   scoped to those servers.
