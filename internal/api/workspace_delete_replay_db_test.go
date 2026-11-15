@@ -12,7 +12,7 @@ import (
 func TestWorkspaceActionReplaysDeletedWorkspace(t *testing.T) {
 	a, d, tn := notifyAPI(t)
 	a.jobs = jobs.NewStore(d.Pool)
-	a.runner = jobs.NewRunner(a.jobs, jobs.Settings{})
+	a.runner.Store(jobs.NewRunner(a.jobs, jobs.Settings{}))
 	a.cfg.Jobs.IdempotencyHours = 1
 	ws := provisioningWS(t, a, d, tn)
 	if e := d.SetWorkspaceState(t.Context(), ws.ID, "running", "", ""); e != nil {

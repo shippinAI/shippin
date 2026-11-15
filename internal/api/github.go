@@ -1,13 +1,13 @@
 package api
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -30,32 +30,20 @@ func (a *API) githubRoutes(mux Router) {
 	mux.HandleFunc("POST /v1/github/webhook", a.githubWebhook)
 }
 
-// newGitHub builds the App client from config; nil (feature off) when disabled or misconfigured.
-func newGitHub(g config.GitHub) *gh.App {
-	if !g.Enabled {
-		return nil
-	}
-	app, err := gh.New(g.ClientID, g.ClientSecret, g.PrivateKey, g.APIBase, g.WebBase)
-	if err != nil {
-		log.Printf("github: disabled: %v", err)
-		return nil
-	}
-	return app
-}
-
 // installReturns are the panel pages the install flow may send someone back to, by name. Only a
 // name travels, inside the signed state, so the redirect can't be pointed anywhere else.
 var installReturns = map[string]string{"projects": "projects?source=github", "runners": "runners/repositories"}
 
 // stateFor signs tenant|account|nonce|expiry|return so the setup redirect can't be replayed or
 // retargeted. An unknown return is the projects page.
-func (a *API) stateFor(tenant, account, ret string, now time.Time) string {
+func (a *API) stateFor(ctx context.Context, tenant, account, ret string, now time.Time) string {
 	if _, ok := installReturns[ret]; !ok {
 		ret = "projects"
 	}
 	nonce := make([]byte, 12)
 	_, _ = rand.Read(nonce)
-	exp := now.Add(time.Duration(a.cfg.GitHub.StateMinutes) * time.Minute).Unix()
+	_, g := a.github(ctx)
+	exp := now.Add(time.Duration(g.StateMinutes) * time.Minute).Unix()
 	body := fmt.Sprintf("%s.%s.%s.%d.%s", tenant, account, base64.RawURLEncoding.EncodeToString(nonce), exp, ret)
 	return body + "." + a.stateMAC(body)
 }
@@ -90,7 +78,11 @@ func (a *API) checkState(state, account string, now time.Time) (tenant, ret stri
 // brings them back to the build runners page afterwards; the default is the projects page.
 func (a *API) githubInstall(w http.ResponseWriter, r *http.Request) {
 	c, t, ok := a.tenantCtx(w, r)
-	if !ok || !a.githubFor(w, t) {
+	if !ok {
+		return
+	}
+	_, g, ok := a.githubFor(w, r, t)
+	if !ok {
 		return
 	}
 	if !c.canDecide(t) {
@@ -102,8 +94,8 @@ func (a *API) githubInstall(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusServiceUnavailable, "GitHub is unavailable right now.")
 		return
 	}
-	u := fmt.Sprintf("%s/apps/%s/installations/new?state=%s", a.cfg.GitHub.WebBase, a.cfg.GitHub.AppSlug,
-		url.QueryEscape(a.stateFor(t.ID, acct, r.URL.Query().Get("return"), time.Now())))
+	u := fmt.Sprintf("%s/apps/%s/installations/new?state=%s", g.WebBase, g.AppSlug,
+		url.QueryEscape(a.stateFor(r.Context(), t.ID, acct, r.URL.Query().Get("return"), time.Now())))
 	http.Redirect(w, r, u, http.StatusFound)
 }
 
@@ -118,16 +110,17 @@ func (a *API) githubSetup(w http.ResponseWriter, r *http.Request) {
 	acct, err := a.db.UpsertAccount(r.Context(), c.id.Sub, c.id.Email)
 	tenant, ret, serr := a.checkState(q.Get("state"), acct, time.Now())
 	inst, ierr := strconv.ParseInt(q.Get("installation_id"), 10, 64)
-	if err != nil || serr != nil || ierr != nil || inst <= 0 || q.Get("code") == "" || a.gh == nil {
+	app, g := a.github(r.Context())
+	if err != nil || serr != nil || ierr != nil || inst <= 0 || q.Get("code") == "" || app == nil {
 		auth.Problem(w, http.StatusBadRequest, "This GitHub link expired or is invalid. Start again from Shippin.")
 		return
 	}
 	t := c.grantedTenant(tenant)
-	if t == nil || !c.canDecide(t) || !a.cfg.GitHub.Allows(t.ID) {
+	if t == nil || !c.canDecide(t) || !g.Allows(t.ID) {
 		auth.Problem(w, http.StatusForbidden, "Connecting GitHub needs the org owner or admin role.")
 		return
 	}
-	in, err := a.gh.VerifyInstall(r.Context(), q.Get("code"), inst)
+	in, err := app.VerifyInstall(r.Context(), q.Get("code"), inst)
 	if err != nil {
 		auth.Problem(w, http.StatusForbidden, "That GitHub installation isn't yours.")
 		return
@@ -141,11 +134,12 @@ func (a *API) githubSetup(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/t/"+t.ID+"/"+installReturns[ret], http.StatusFound)
 }
 
-// githubFor fails closed when the feature is off for t.
-func (a *API) githubFor(w http.ResponseWriter, t *tenantView) bool {
-	if a.gh == nil || !a.cfg.GitHub.Allows(t.ID) || !t.member() {
+// githubFor is the App and its section for t, or answers 404 (ok false) when the feature is off for t.
+func (a *API) githubFor(w http.ResponseWriter, r *http.Request, t *tenantView) (*gh.App, config.GitHub, bool) {
+	app, g := a.github(r.Context())
+	if app == nil || !g.Allows(t.ID) || !t.member() {
 		auth.Problem(w, http.StatusNotFound, "GitHub import isn't available in this tenant.")
-		return false
+		return nil, g, false
 	}
-	return true
+	return app, g, true
 }

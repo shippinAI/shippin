@@ -24,7 +24,7 @@ func TestRunnerWebhookQueuesStartAndRemoval(t *testing.T) {
 	a, d, tn, _ := githubAPI(t)
 	ctx := context.Background()
 	a.jobs = jobs.NewStore(d.Pool)
-	a.runner = jobs.NewRunner(a.jobs, jobs.Settings{Workers: 1})
+	a.runner.Store(jobs.NewRunner(a.jobs, jobs.Settings{Workers: 1}))
 	a.cfg.Jobs = config.Jobs{Enabled: true, MaxAttempts: 3}
 	fleet, host, other := uuid.NewString(), uuid.NewString(), uuid.NewString()
 	a.cfg.Runners = config.Runners{Enabled: true, Fleet: fleet, JobLimitMinutes: 60}

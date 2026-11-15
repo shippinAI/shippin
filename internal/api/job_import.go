@@ -51,14 +51,14 @@ func (a *API) runImportJob(ctx context.Context, j *jobs.Job, step func(string)) 
 	if err := a.db.CreateWorkspace(ctx, &ws, a.cfg.Workspaces.PortMin, a.cfg.Workspaces.PortMax); err != nil {
 		return nil, err
 	}
-	if a.runner == nil {
+	if a.jobRunner() == nil {
 		tn, err := a.db.TenantByID(ctx, j.TenantID)
 		if err != nil || tn == nil {
 			return nil, errors.New("tenant lookup failed")
 		}
 		a.provisionWorkspace(tenantView{Tenant: *tn}, ws)
 	} else {
-		a.enqueue(ctx, a.workspaceJob(ws, j.CreatedBy))
+		a.enqueue(ctx, a.workspaceJob(ctx, ws, j.CreatedBy))
 	}
 	return map[string]string{"workspace_id": ws.ID}, nil
 }

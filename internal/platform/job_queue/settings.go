@@ -9,8 +9,8 @@ import (
 	"shippin.cloud/console/internal/settings"
 )
 
-// Settings is the job queue. Turning it on starts the workers at once; changing a timing restarts them
-// after the jobs they hold finish.
+// Settings is the job queue. Turning it on starts the workers at once and turning it off stops them
+// after the jobs they hold finish; changing a timing starts new workers while the old ones finish theirs.
 var Settings = settings.Section{
 	Key:     "jobs",
 	Title:   "Job queue",

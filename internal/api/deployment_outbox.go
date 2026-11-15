@@ -34,7 +34,7 @@ func (a *API) relayDeploymentOutbox(ctx context.Context) {
 		}
 		targetID := item.DeploymentID + ":" + strconv.FormatInt(item.Generation, 10)
 		job, _, err := a.jobs.Enqueue(ctx, jobs.Job{TenantID: item.TenantID, Kind: jobs.KindDeploymentReconcile,
-			TargetType: "deployment_generation", TargetID: targetID, MaxAttempts: a.cfg.Jobs.MaxAttempts,
+			TargetType: "deployment_generation", TargetID: targetID, MaxAttempts: a.liveJobs(ctx).MaxAttempts,
 			Payload: payload, CreatedBy: item.CreatedBy})
 		if err != nil {
 			log.Printf("reconcile: deployment enqueue %s: %v", item.ID, err)
@@ -44,8 +44,8 @@ func (a *API) relayDeploymentOutbox(ctx context.Context) {
 			log.Printf("reconcile: deployment outbox receipt %s: %v", item.ID, err)
 			continue
 		}
-		if a.runner != nil {
-			a.runner.Wake()
+		if r := a.jobRunner(); r != nil {
+			r.Wake()
 		}
 	}
 }

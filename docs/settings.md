@@ -61,7 +61,12 @@ and long key (multi-line, such as a PEM private key).
 1. The settings store, history and retired-key outbox; the secret store entity and its Vaultix port;
    the section generator.
 2. First sections: build runners, the job queue (live start and stop), the GitHub App (its client
-   ID, client secret, private key and webhook secret go to Vaultix).
+   ID, client secret, private key and webhook secret go to Vaultix). The panel reads each where it is
+   used. The job queue follows its section: turned on, the workers and the reconciler start; turned off,
+   they take no more work and finish what they hold, and new work runs in the request; a changed timing
+   starts new ones while the old finish. The GitHub App client is built from the section and its keys
+   and kept until the section's version changes; with the section off, or a key that can't be read, every
+   GitHub route answers as when the file turns GitHub off.
 3. The panel pages: secret store, sections, history.
 4. The rest of the file sections and environment keys, one owner at a time: mail, AI, identity
    provider tokens, staff team token, authorization, tenant databases, the customer Vaultix product,

@@ -72,8 +72,8 @@ func (a *API) opSetupRRFlow(w http.ResponseWriter, r *http.Request, c *caller) {
 			auth.Problem(w, http.StatusServiceUnavailable, "rrflow could not be moved right now.")
 			return
 		}
-		if a.runner != nil {
-			a.runner.Wake()
+		if runner := a.jobRunner(); runner != nil {
+			runner.Wake()
 		}
 	}
 	a.setupRRFlow(w, r, t, c.id.Sub, displayName(c))

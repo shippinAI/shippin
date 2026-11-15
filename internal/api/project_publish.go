@@ -19,7 +19,10 @@ import (
 // one, repo_id), then git init/commit/remote/push in the devspace through hostd's allowlisted git op.
 func (a *API) publishProject(w http.ResponseWriter, r *http.Request) {
 	c, t, ok := a.tenantCtx(w, r)
-	if !ok || !a.githubFor(w, t) {
+	if !ok {
+		return
+	}
+	if _, _, ok := a.githubFor(w, r, t); !ok {
 		return
 	}
 	if !c.canDecide(t) {
@@ -62,14 +65,18 @@ func (a *API) publishRepo(ctx context.Context, tenant string, inst, repoID int64
 	if err != nil || i < 0 {
 		return nil, http.StatusNotFound, "That GitHub installation isn't connected to this tenant."
 	}
+	app, g, err := a.githubOn(ctx)
+	if err != nil {
+		return nil, http.StatusNotFound, "GitHub import isn't available in this tenant."
+	}
 	if repoID != 0 {
-		repo, err := a.gh.Repo(ctx, inst, repoID, a.cfg.GitHub.MaxRepos)
+		repo, err := app.Repo(ctx, inst, repoID, g.MaxRepos)
 		if err != nil || repo == nil {
 			return nil, http.StatusNotFound, "Shippin can't see that repository."
 		}
 		return repo, 0, ""
 	}
-	repo, err := a.gh.CreateOrgRepo(ctx, inst, ins[i].AccountLogin, ins[i].AccountType, slug)
+	repo, err := app.CreateOrgRepo(ctx, inst, ins[i].AccountLogin, ins[i].AccountType, slug)
 	switch {
 	case errors.Is(err, gh.ErrUserAccount):
 		return nil, http.StatusUnprocessableEntity, "GitHub lets an App create repositories only in organizations. Create an empty repository named " + slug + " on GitHub, then link it."
@@ -81,7 +88,11 @@ func (a *API) publishRepo(ctx context.Context, tenant string, inst, repoID int64
 
 // pushFolder pushes the folder to repo and records the remote and the GitHub source.
 func (a *API) pushFolder(ctx context.Context, tenant string, src *projects.Source, inst int64, repo *gh.Repo) error {
-	tok, err := a.gh.PushToken(ctx, inst, repo.ID, true)
+	app, _, err := a.githubOn(ctx)
+	if err != nil {
+		return err
+	}
+	tok, err := app.PushToken(ctx, inst, repo.ID, true)
 	if err != nil {
 		return err
 	}

@@ -82,9 +82,23 @@ type Services map[reflect.Type]any
 // Provide makes v available to actions that Need a T.
 func Provide[T any](s Services, v T) { s[reflect.TypeFor[T]()] = v }
 
-// Need is the T this install provides, or a plain 503 when it has none (mail not set up, no IdP).
+// Switchable is a service that can be turned off while the panel runs, such as a client built from a
+// settings section. While it is Off, Need answers as if the install did not provide it.
+type Switchable interface {
+	Off(ctx context.Context) bool
+}
+
+// Need is the T this install provides, or a plain 503 when it has none (mail not set up, no IdP) or
+// the one it has is switched off.
 func Need[T any](c *Call) (T, error) {
 	v, ok := c.Services[reflect.TypeFor[T]()].(T)
+	if sw, can := any(v).(Switchable); ok && can {
+		ctx := c.Ctx
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		ok = !sw.Off(ctx)
+	}
 	if !ok {
 		var zero T
 		return zero, &Error{http.StatusServiceUnavailable, "This install isn't set up for that yet."}
