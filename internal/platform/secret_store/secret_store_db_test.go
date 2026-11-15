@@ -17,7 +17,9 @@ import (
 )
 
 // fakeVaultix answers the Vaultix calls the store makes, for one identity, one project and one
-// environment, and keeps secrets by folder and name.
+// environment, and keeps secrets by folder and name. Its answers follow a real Vaultix (proved in
+// rig_test.go): creating a folder or a secret that exists is a 400 naming it, and a missing secret or
+// folder is a 404 with a message.
 type fakeVaultix struct {
 	mu      sync.Mutex
 	secrets map[string]string
@@ -62,17 +64,29 @@ func (f *fakeVaultix) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	switch {
 	case r.URL.Path == "/api/v1/folders":
-		f.folders[strings.TrimSuffix(in["path"], "/")+"/"+in["name"]] = true
+		p := strings.TrimSuffix(in["path"], "/") + "/" + in["name"]
+		if f.folders[p] {
+			w.WriteHeader(400)
+			_, _ = w.Write([]byte(`{"message":"Folder with name '` + in["name"] + `' already exists in path '` + in["path"] + `'","error":"BadRequest"}`))
+			return
+		}
+		f.folders[p] = true
 	case r.URL.Path == "/api/v3/secrets/raw" && r.Method == "GET":
 		_, _ = w.Write([]byte(`{"secrets":[]}`))
 	case strings.HasPrefix(r.URL.Path, "/api/v3/secrets/raw/"):
 		k := path + "/" + strings.TrimPrefix(r.URL.Path, "/api/v3/secrets/raw/")
 		if !f.folders[path] {
 			w.WriteHeader(404)
+			_, _ = w.Write([]byte(`{"message":"Folder with path '` + path + `' in environment with slug 'prod' not found"}`))
 			return
 		}
 		switch r.Method {
 		case "POST":
+			if _, ok := f.secrets[k]; ok {
+				w.WriteHeader(400)
+				_, _ = w.Write([]byte(`{"message":"Secret already exists","error":"BadRequest"}`))
+				return
+			}
 			f.secrets[k] = in["secretValue"]
 			_, _ = w.Write([]byte(`{"secret":{}}`))
 		case "GET":
@@ -154,6 +168,10 @@ func TestConnectChecksFirstAndNeverReturnsTheSecret(t *testing.T) {
 	}
 	if got, err := v.Read(t.Context(), where); got != "whs-1" || err != nil {
 		t.Fatalf("read: %q %v", got, err)
+	}
+	// Names are written once; a new value goes under a new name.
+	if err := v.Write(t.Context(), where, "whs-2"); err == nil || !strings.Contains(err.Error(), "already exists") {
+		t.Fatalf("a second write of one name is refused: %v", err)
 	}
 	if err := v.Delete(t.Context(), where); err != nil {
 		t.Fatal(err)
