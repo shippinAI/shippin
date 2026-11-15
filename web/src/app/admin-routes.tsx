@@ -17,6 +17,8 @@ const AdminCustomers = lazy(() => import("../features/admin/ui/catalog/customers
 const AdminCustomer = lazy(() => import("../features/admin/ui/catalog/customer-detail-page").then((m) => ({ default: m.CustomerDetailPage })));
 const AdminStaffMode = lazy(() => import("../features/admin/ui/staff-mode/staff-mode-page").then((m) => ({ default: m.StaffModePage })));
 const AdminPlatform = lazy(() => import("../features/admin/ui/platform/platform-settings-page").then((m) => ({ default: m.PlatformSettingsPage })));
+const AdminSettings = lazy(() => import("../features/admin/ui/settings/settings-sections-page").then((m) => ({ default: m.SettingsSectionsPage })));
+const AdminSecretStore = lazy(() => import("../features/admin/ui/settings/secret-store-page").then((m) => ({ default: m.SecretStorePage })));
 const AdminInterface = lazy(() => import("../features/admin/ui/interface/interface-page").then((m) => ({ default: m.InterfacePage })));
 const AdminApi = lazy(() => import("../features/api-explorer/ui/api-explorer-page").then((m) => ({ default: m.ApiExplorerPage })));
 const AdminSignups = lazy(() => import("../features/admin/ui/signups/signups-page").then((m) => ({ default: m.SignupsPage })));
@@ -44,6 +46,9 @@ export const adminRoutes: RouteObject[] = [
   { path: "runner-sizes", element: <AdminRunnerSizes /> },
   { path: "access", element: <AdminAccess /> },
   { path: "team", element: <AdminTeam /> },
+  { path: "settings", element: <AdminSettings /> },
+  { path: "settings/:section", element: <AdminSettings /> },
+  { path: "secret-store", element: <AdminSecretStore /> },
   { path: "platform", element: <AdminPlatform /> },
   { path: "interface", element: <AdminInterface /> },
   { path: "api", element: <AdminApi /> },
