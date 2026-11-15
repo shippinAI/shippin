@@ -86,7 +86,7 @@ func (s *Sampler) Status() ports.Sampling {
 	return st
 }
 
-// Run samples until ctx ends: once at once, then every interval, and again whenever kick fires (a
+// Run samples until ctx ends: once at the start, then every interval, and again whenever kick fires (a
 // settings save). While sampling is off it looks at its settings again every settings.Fresh.
 func (s *Sampler) Run(ctx context.Context, kick <-chan struct{}) {
 	defer s.Lead.Release()
@@ -428,9 +428,9 @@ func (l *PGLeader) Hold(ctx context.Context) (bool, error) {
 		if _, err := l.conn.Exec(ctx, "SELECT 1"); err == nil {
 			return true, nil
 		}
-		// The session is gone, and its lock with it.
-		l.conn.Release()
-		l.conn = nil
+		// The session may be gone, or only slow: close it rather than return it to the pool, where a
+		// lock it still held would be kept by whatever query borrowed it next.
+		l.drop()
 	}
 	if l.Pool == nil {
 		return false, errors.New("metric: no database")
@@ -457,7 +457,18 @@ func (l *PGLeader) Release() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, _ = l.conn.Exec(ctx, `SELECT pg_advisory_unlock($1)`, l.Key)
+	if _, err := l.conn.Exec(ctx, `SELECT pg_advisory_unlock($1)`, l.Key); err != nil {
+		l.drop()
+		return
+	}
 	l.conn.Release()
+	l.conn = nil
+}
+
+// drop closes the lead's connection instead of pooling it; closing the session frees its lock.
+func (l *PGLeader) drop() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = l.conn.Hijack().Close(ctx)
 	l.conn = nil
 }

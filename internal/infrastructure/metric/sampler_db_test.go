@@ -36,6 +36,33 @@ func TestOneProcessHoldsTheLead(t *testing.T) {
 	b.Release()
 }
 
+// A lead whose check fails (here a context already ended, as on a slow database) is closed, not put
+// back in the pool still holding the lock, so another process can take it.
+func TestALeadInDoubtIsClosedNotPooled(t *testing.T) {
+	pool := mcpltest.DB(t)
+	ctx := context.Background()
+	key := time.Now().UnixNano()
+	a, b := &metric.PGLeader{Pool: pool, Key: key}, &metric.PGLeader{Pool: pool, Key: key}
+	if ok, err := a.Hold(ctx); err != nil || !ok {
+		t.Fatalf("a: %v %v", ok, err)
+	}
+	done, cancel := context.WithCancel(ctx)
+	cancel()
+	if ok, _ := a.Hold(done); ok {
+		t.Fatal("a kept a lead it could not check")
+	}
+	// Nothing may still hold the lock: a pooled session holding it would hand the lead to whichever
+	// code borrowed that connection next, and the same session can take an advisory lock twice.
+	var held int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND objid = ($1::bigint & 4294967295)::oid AND granted`, key).Scan(&held); err != nil || held != 0 {
+		t.Fatalf("no advisory lock is left held: %d %v", held, err)
+	}
+	if ok, err := b.Hold(ctx); err != nil || !ok {
+		t.Fatalf("b after a's lead was in doubt: %v %v", ok, err)
+	}
+	b.Release()
+}
+
 type hostOnly struct {
 	hv.Driver
 	cpu float64
