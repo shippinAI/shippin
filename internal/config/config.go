@@ -144,6 +144,7 @@ type Config struct {
 	Directory         Directory         `json:"directory"`
 	Mail              Mail              `json:"mail"`
 	Jobs              Jobs              `json:"jobs"`
+	Runners           Runners           `json:"runners"`
 	AI                AI                `json:"ai"`
 	GitHub            GitHub            `json:"github"`
 	Connect           Connect           `json:"connect"`
@@ -232,10 +233,13 @@ func (c *Config) Check() error {
 	if c.ProbeConcurrency != 0 && (c.ProbeConcurrency < 1 || c.ProbeConcurrency > MaxProbeConcurrency) {
 		return fmt.Errorf("probe_concurrency must be between 1 and %d", MaxProbeConcurrency)
 	}
-	for _, check := range []func() error{func() error { return c.Roles.Check(c.Operator.Role) }, c.Staff.Check, c.Access.Check, c.Mail.Check, c.Jobs.Check, c.AI.Check, c.GitHub.Check, c.Prompt.Check, c.Agents.Check, c.Authz.Check, c.Vaultix.Check, c.Bridge.Check, c.Chat.Check, c.Connect.Check, c.Servers.Check, c.Orgs.Check} {
+	for _, check := range []func() error{func() error { return c.Roles.Check(c.Operator.Role) }, c.Staff.Check, c.Access.Check, c.Mail.Check, c.Jobs.Check, c.Runners.Check, c.AI.Check, c.GitHub.Check, c.Prompt.Check, c.Agents.Check, c.Authz.Check, c.Vaultix.Check, c.Bridge.Check, c.Chat.Check, c.Connect.Check, c.Servers.Check, c.Orgs.Check} {
 		if err := check(); err != nil {
 			return err
 		}
+	}
+	if c.Runners.Enabled && !c.Jobs.Enabled {
+		return errors.New("runners.enabled needs jobs.enabled: runner machines are started and removed by durable jobs")
 	}
 	c.IdentityDefaults()
 	c.DirectoryDefaults()

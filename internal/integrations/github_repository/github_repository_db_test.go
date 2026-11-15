@@ -24,6 +24,10 @@ func (g *github) Repositories(_ context.Context, inst int64) ([]ports.GitHubRepo
 	return g.reach[inst], nil
 }
 
+func (g *github) JITConfig(context.Context, int64, int64, string, string, []string) (string, int64, error) {
+	return "", 0, errors.New("not used here")
+}
+
 const (
 	acme   = "01a14149-0000-7000-8000-00000000000a"
 	globex = "01a14149-0000-7000-8000-00000000000b"

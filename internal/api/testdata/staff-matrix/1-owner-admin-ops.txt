@@ -62,6 +62,7 @@ POST /v1/operator/tenants/{tenantId}/resume
 GET /v1/operator/tenants/{tenantId}/vm
 GET /v1/operator/tenants/{tenantId}/apps
 GET /v1/operator/boundaries
+GET /v1/operator/runtime/runners
 POST /v1/operator/tenants/{tenantId}/vm
 POST /v1/operator/tenants/{tenantId}/vm/{action}
 POST /v1/operator/tenants/{tenantId}/vm/harden
@@ -83,3 +84,5 @@ GET /v1/operator/mcpl
 GET /v1/operator/staff-mode
 POST /v1/operator/staff-mode
 POST /v1/operator/staff-mode/exit
+GET /v1/operator/runtime/runners
+DELETE /v1/operator/runtime/runners/{runnerId}

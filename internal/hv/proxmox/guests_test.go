@@ -3,6 +3,7 @@ package proxmox
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -109,6 +110,10 @@ func TestCreateRefusesBeforeSendingAnything(t *testing.T) {
 	}
 	if sent != nil {
 		t.Fatalf("nothing should have been sent: %v", sent)
+	}
+	_, err := c.CreateGuest(context.Background(), hv.GuestSpec{Kind: hv.KindVM, Name: "web", Storage: "local", Network: "vmbr0", Disk: 8, UserData: "#cloud-config"})
+	if !errors.Is(err, hv.ErrUnsupported) || sent != nil {
+		t.Fatalf("user data must be refused as unsupported before anything is sent: %v %v", err, sent)
 	}
 }
 

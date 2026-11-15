@@ -9,6 +9,7 @@ DELETE /v1/me/identity/ssh-keys/{sshKeyId}
 DELETE /v1/operator/backups/{name}
 DELETE /v1/operator/catalog/defaults/{layer}/{key}
 DELETE /v1/operator/platform-services/{serviceId}
+DELETE /v1/operator/runtime/runners/{runnerId}
 DELETE /v1/operator/services/catalog-services/{catalogServiceId}
 DELETE /v1/operator/services/runner-sizes/{runnerSizeId}
 DELETE /v1/operator/team/permission-grants/{userId}/{permKey}
@@ -85,6 +86,7 @@ GET /v1/operator/mcpl
 GET /v1/operator/platform-services
 GET /v1/operator/platform-services/{serviceId}/observations
 GET /v1/operator/platform-settings
+GET /v1/operator/runtime/runners
 GET /v1/operator/services/catalog-services
 GET /v1/operator/services/catalog-services/{catalogServiceId}
 GET /v1/operator/services/runner-sizes

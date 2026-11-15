@@ -21,6 +21,7 @@ func (a *API) provideServices(s mcpl.Services) {
 		p(s)
 	}
 	mcpl.Provide[ports.Workspaces](s, workspacePort{a})
+	mcpl.Provide[ports.Machines](s, machinePort{a})
 	if a.gh != nil {
 		mcpl.Provide[ports.GitHub](s, githubPort{a})
 	}
