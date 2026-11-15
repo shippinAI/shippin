@@ -393,6 +393,19 @@ export type CustomerUpdateInput = {
   notes?: string;
 };
 
+export type GithubInstallation = {
+  id: string;
+  account_login: string;
+  account_type: string;
+  suspended: boolean;
+  created_at: string;
+};
+
+export type GithubInstallationConnections = {
+  items: GithubInstallation[];
+  can_connect: boolean;
+};
+
 export type GithubRepository = {
   id: string;
   installation_id: string;
@@ -561,6 +574,7 @@ export const routes = {
   "shippin.identity.ssh_key.create": "POST /v1/me/identity/ssh-keys",
   "shippin.identity.ssh_key.delete": "DELETE /v1/me/identity/ssh-keys/{sshKeyId}",
   "shippin.identity.ssh_key.list": "GET /v1/me/identity/ssh-keys",
+  "shippin.integrations.github_installation.list": "GET /v1/tenants/{tenantId}/integrations/github-installations",
   "shippin.integrations.github_repository.delete": "DELETE /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
   "shippin.integrations.github_repository.list": "GET /v1/tenants/{tenantId}/integrations/github-repositories",
   "shippin.integrations.github_repository.update": "PUT /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
@@ -619,6 +633,7 @@ export type ActionTypes = {
   "shippin.identity.ssh_key.create": { args: [params: Record<string, never>, body: SshKeyCreateInput & { reason?: string }]; output: SshKey; risk: "write"; event: "shippin.identity.ssh_key.created" };
   "shippin.identity.ssh_key.delete": { args: [params: { sshKeyId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.identity.ssh_key.deleted" };
   "shippin.identity.ssh_key.list": { args: [params?: Record<string, never>]; output: { items: SshKey[] }; risk: "read"; event: never };
+  "shippin.integrations.github_installation.list": { args: [params: { tenantId: string }]; output: GithubInstallationConnections; risk: "read"; event: never };
   "shippin.integrations.github_repository.delete": { args: [params: { tenantId: string; githubRepositoryId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.integrations.github_repository.deleted" };
   "shippin.integrations.github_repository.list": { args: [params: { tenantId: string }]; output: { items: GithubRepository[] }; risk: "read"; event: never };
   "shippin.integrations.github_repository.update": { args: [params: { tenantId: string; githubRepositoryId: string }, body: GithubRepositoryUpdateInput & { reason?: string }]; output: GithubRepository; risk: "write"; event: "shippin.integrations.github_repository.updated" };

@@ -10,11 +10,11 @@ import { DataTable, type ColumnDef } from "../../../lib/design/components/data-t
 import { ConfirmDialog } from "../../../lib/design/components/dialog/confirm-dialog";
 import { EmptyState } from "../../../lib/design/components/empty-state/empty-state";
 import { Skeleton } from "../../../lib/design/components/skeleton/skeleton";
-import { githubInstallURL, useGitHubRepos } from "../../../lib/hooks/use-github";
+import { githubInstallURL } from "../../../lib/hooks/use-github";
 import { useProjects } from "../../../lib/hooks/use-projects";
 import { useOrganizationWorkspaces } from "../../workspaces/use-organization-workspaces";
 import { problemText, repositoryState } from "../model";
-import { useRunnerChange, useRunnerRepositories } from "../use-runners";
+import { useGitHubConnections, useRunnerChange, useRunnerRepositories } from "../use-runners";
 import { AssignDialog } from "./assign-dialog";
 
 type Props = { tenantId: string; canManage: boolean };
@@ -23,19 +23,19 @@ type Props = { tenantId: string; canManage: boolean };
  * project and allow its jobs on Shippin runners. Everyone else reads. */
 export function RepositoriesTab({ tenantId, canManage }: Props) {
   const repos = useRunnerRepositories(tenantId);
-  const conn = useGitHubRepos(tenantId, true);
+  const conn = useGitHubConnections(tenantId);
   const workspaces = useOrganizationWorkspaces(tenantId);
   const projects = useProjects(tenantId);
   const unassign = useRunnerChange(tenantId, "Repository unassigned");
   const [editing, setEditing] = useState<GithubRepository>();
   const [removing, setRemoving] = useState<GithubRepository>();
-  const installs = conn.data?.installations ?? [];
-  const canInstall = !!conn.data?.can_install;
+  const installs = conn.data?.items ?? [];
+  const canInstall = !!conn.data?.can_connect;
   const wsName = (id: string | null) => workspaces.data?.find((w) => w.id === id)?.name ?? (id ? "A removed workspace" : "");
   const projectName = (id: string | null) => projects.data?.find((p) => p.id === id)?.name ?? (id ? "A removed project" : "");
   const connect = canInstall && (
     <Button variant={installs.length ? "secondary" : "primary"} size="sm" tooltip="Install the Shippin GitHub App on GitHub and choose which repositories it can reach"
-      onPress={() => window.location.assign(githubInstallURL(tenantId))}>
+      onPress={() => window.location.assign(githubInstallURL(tenantId, "runners"))}>
       <ExternalLink className="size-4" aria-hidden /> {installs.length ? "Add repositories on GitHub" : "Connect GitHub"}
     </Button>
   );

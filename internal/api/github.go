@@ -43,12 +43,20 @@ func newGitHub(g config.GitHub) *gh.App {
 	return app
 }
 
-// stateFor signs tenant|account|nonce|expiry so the setup redirect can't be replayed or retargeted.
-func (a *API) stateFor(tenant, account string, now time.Time) string {
+// installReturns are the panel pages the install flow may send someone back to, by name. Only a
+// name travels, inside the signed state, so the redirect can't be pointed anywhere else.
+var installReturns = map[string]string{"projects": "projects?source=github", "runners": "runners/repositories"}
+
+// stateFor signs tenant|account|nonce|expiry|return so the setup redirect can't be replayed or
+// retargeted. An unknown return is the projects page.
+func (a *API) stateFor(tenant, account, ret string, now time.Time) string {
+	if _, ok := installReturns[ret]; !ok {
+		ret = "projects"
+	}
 	nonce := make([]byte, 12)
 	_, _ = rand.Read(nonce)
 	exp := now.Add(time.Duration(a.cfg.GitHub.StateMinutes) * time.Minute).Unix()
-	body := fmt.Sprintf("%s.%s.%s.%d", tenant, account, base64.RawURLEncoding.EncodeToString(nonce), exp)
+	body := fmt.Sprintf("%s.%s.%s.%d.%s", tenant, account, base64.RawURLEncoding.EncodeToString(nonce), exp, ret)
 	return body + "." + a.stateMAC(body)
 }
 
@@ -60,21 +68,26 @@ func (a *API) stateMAC(body string) string {
 	return base64.RawURLEncoding.EncodeToString(m.Sum(nil))
 }
 
-// checkState returns the tenant a valid, unexpired state was issued for to account.
-func (a *API) checkState(state, account string, now time.Time) (string, error) {
+// checkState returns the tenant a valid, unexpired state was issued for to account, and the page to
+// return to.
+func (a *API) checkState(state, account string, now time.Time) (tenant, ret string, err error) {
 	i := strings.LastIndex(state, ".")
 	if i < 0 || a.cfg.SessionKey == "" || !hmac.Equal([]byte(state[i+1:]), []byte(a.stateMAC(state[:i]))) {
-		return "", errors.New("bad state")
+		return "", "", errors.New("bad state")
 	}
 	f := strings.Split(state[:i], ".")
-	exp, err := strconv.ParseInt(f[len(f)-1], 10, 64)
-	if len(f) != 4 || err != nil || now.Unix() > exp || f[1] != account {
-		return "", errors.New("expired or foreign state")
+	if len(f) != 5 || installReturns[f[4]] == "" {
+		return "", "", errors.New("bad state")
 	}
-	return f[0], nil
+	exp, err := strconv.ParseInt(f[3], 10, 64)
+	if err != nil || now.Unix() > exp || f[1] != account {
+		return "", "", errors.New("expired or foreign state")
+	}
+	return f[0], f[4], nil
 }
 
-// githubInstall sends an org owner/admin to GitHub to install the App for this tenant.
+// githubInstall sends an org owner/admin to GitHub to install the App for this tenant. ?return=runners
+// brings them back to the build runners page afterwards; the default is the projects page.
 func (a *API) githubInstall(w http.ResponseWriter, r *http.Request) {
 	c, t, ok := a.tenantCtx(w, r)
 	if !ok || !a.githubFor(w, t) {
@@ -90,7 +103,7 @@ func (a *API) githubInstall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := fmt.Sprintf("%s/apps/%s/installations/new?state=%s", a.cfg.GitHub.WebBase, a.cfg.GitHub.AppSlug,
-		url.QueryEscape(a.stateFor(t.ID, acct, time.Now())))
+		url.QueryEscape(a.stateFor(t.ID, acct, r.URL.Query().Get("return"), time.Now())))
 	http.Redirect(w, r, u, http.StatusFound)
 }
 
@@ -103,7 +116,7 @@ func (a *API) githubSetup(w http.ResponseWriter, r *http.Request) {
 	}
 	q := r.URL.Query()
 	acct, err := a.db.UpsertAccount(r.Context(), c.id.Sub, c.id.Email)
-	tenant, serr := a.checkState(q.Get("state"), acct, time.Now())
+	tenant, ret, serr := a.checkState(q.Get("state"), acct, time.Now())
 	inst, ierr := strconv.ParseInt(q.Get("installation_id"), 10, 64)
 	if err != nil || serr != nil || ierr != nil || inst <= 0 || q.Get("code") == "" || a.gh == nil {
 		auth.Problem(w, http.StatusBadRequest, "This GitHub link expired or is invalid. Start again from Shippin.")
@@ -125,7 +138,7 @@ func (a *API) githubSetup(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusConflict, "That GitHub installation is already connected to another Shippin tenant.")
 		return
 	}
-	http.Redirect(w, r, "/t/"+t.ID+"/projects?source=github", http.StatusFound)
+	http.Redirect(w, r, "/t/"+t.ID+"/"+installReturns[ret], http.StatusFound)
 }
 
 // githubFor fails closed when the feature is off for t.

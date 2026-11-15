@@ -14,6 +14,15 @@ export const useRunnerRepositories = (tenantId: string) =>
     retry: false,
   });
 
+/** The organization's GitHub connections, read from the panel without asking GitHub, and whether the caller may add one. */
+export const useGitHubConnections = (tenantId: string) =>
+  useQuery({
+    queryKey: [...key(tenantId), "connections"],
+    queryFn: () => callAction("shippin.integrations.github_installation.list", { tenantId }),
+    enabled: !!tenantId,
+    retry: false,
+  });
+
 /** The organization's runner jobs, newest first, optionally one workspace's. Refreshes while any is waiting or running. */
 export const useRunnerJobs = (tenantId: string, workspace: string) =>
   useQuery({

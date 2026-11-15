@@ -78,11 +78,11 @@ func TestGitHubSetupVerifiesStateAndInstallation(t *testing.T) {
 	a, d, tn, owner := githubAPI(t)
 	ctx := context.Background()
 	acct, _ := d.UpsertAccount(ctx, owner.id.Sub, "")
-	state := a.stateFor(tn.ID, acct, time.Now())
+	state := a.stateFor(tn.ID, acct, "runners", time.Now())
 	if w := setup(a, owner, url.Values{"state": {state + "x"}, "installation_id": {"7"}, "code": {"c"}}); w.Code != 400 {
 		t.Fatalf("tampered state: %d", w.Code)
 	}
-	if w := setup(a, owner, url.Values{"state": {a.stateFor(tn.ID, acct, time.Now().Add(-time.Hour))}, "installation_id": {"7"}, "code": {"c"}}); w.Code != 400 {
+	if w := setup(a, owner, url.Values{"state": {a.stateFor(tn.ID, acct, "", time.Now().Add(-time.Hour))}, "installation_id": {"7"}, "code": {"c"}}); w.Code != 400 {
 		t.Fatalf("expired state: %d", w.Code)
 	}
 	if w := setup(a, owner, url.Values{"state": {state}, "installation_id": {"8"}, "code": {"c"}}); w.Code != 403 {
@@ -92,8 +92,16 @@ func TestGitHubSetupVerifiesStateAndInstallation(t *testing.T) {
 	if w := setup(a, other, url.Values{"state": {state}, "installation_id": {"7"}, "code": {"c"}}); w.Code != 400 {
 		t.Fatalf("state issued to someone else: %d", w.Code)
 	}
-	if w := setup(a, owner, url.Values{"state": {state}, "installation_id": {"7"}, "code": {"c"}}); w.Code != 302 {
-		t.Fatalf("setup: %d %s", w.Code, w.Body)
+	if w := setup(a, owner, url.Values{"state": {state}, "installation_id": {"7"}, "code": {"c"}}); w.Code != 302 ||
+		w.Header().Get("Location") != "/t/"+tn.ID+"/runners/repositories" {
+		t.Fatalf("setup: %d %s %s", w.Code, w.Header().Get("Location"), w.Body)
+	}
+	// The return page is signed with the rest: changing it breaks the state.
+	if _, _, err := a.checkState(strings.Replace(state, ".runners.", ".projects.", 1), acct, time.Now()); err == nil {
+		t.Fatal("a state with a changed return page was accepted")
+	}
+	if s := a.stateFor(tn.ID, acct, "https://evil.example", time.Now()); !strings.Contains(s, ".projects.") {
+		t.Fatalf("an unknown return page is the projects page: %s", s)
 	}
 	if ins, _ := d.Installations(ctx, tn.ID); len(ins) != 1 || ins[0].AccountLogin != "operator" {
 		t.Fatalf("installation %+v", ins)

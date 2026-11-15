@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 215,
+  "operationCount": 216,
   "tags": [
     "agents-runtime",
     "audit",
@@ -876,6 +876,17 @@
         "identity"
       ],
       "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/integrations/github-installations",
+      "operationId": "shippin.integrations.github_installation.list",
+      "summary": "List the organization's GitHub connections, and whether you may add one.",
+      "tags": [
+        "integrations"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.integrations.github_installation.list"
     },
     {
       "method": "GET",

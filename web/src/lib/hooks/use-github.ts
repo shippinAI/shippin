@@ -12,7 +12,9 @@ export const useGitHubRepos = (tenantId: string, enabled: boolean) =>
   });
 
 /** Where an org owner/admin starts installing the Shippin GitHub App (server-side redirect). */
-export const githubInstallURL = (tenantId: string) => `/v1/tenants/${tenantId}/github/install`;
+/** GitHub's install page for this organization; `return` names the panel page to come back to. */
+export const githubInstallURL = (tenantId: string, back?: "runners") =>
+  `/v1/tenants/${tenantId}/github/install${back ? `?return=${back}` : ""}`;
 
 export function useImportRepo(tenantId: string) {
   const qc = useQueryClient();

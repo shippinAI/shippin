@@ -146,6 +146,7 @@ GET /v1/tenants/{tenantId}/desktop
 GET /v1/tenants/{tenantId}/github/install
 GET /v1/tenants/{tenantId}/github/repos
 GET /v1/tenants/{tenantId}/identity/agents
+GET /v1/tenants/{tenantId}/integrations/github-installations
 GET /v1/tenants/{tenantId}/integrations/github-repositories
 GET /v1/tenants/{tenantId}/members
 GET /v1/tenants/{tenantId}/organization-workspaces

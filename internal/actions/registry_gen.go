@@ -5,6 +5,7 @@ package actions
 import (
 	identity_access_key "shippin.cloud/console/internal/identity/access_key"
 	identity_ssh_key "shippin.cloud/console/internal/identity/ssh_key"
+	integrations_github_installation "shippin.cloud/console/internal/integrations/github_installation"
 	integrations_github_repository "shippin.cloud/console/internal/integrations/github_repository"
 	"shippin.cloud/console/internal/mcpl"
 	runtime_runner_job "shippin.cloud/console/internal/runtime/runner_job"
@@ -30,6 +31,7 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.identity.ssh_key.create", identity_ssh_key.Create),
 	mcpl.Register("shippin.identity.ssh_key.delete", identity_ssh_key.Delete),
 	mcpl.Register("shippin.identity.ssh_key.list", identity_ssh_key.List),
+	mcpl.Register("shippin.integrations.github_installation.list", integrations_github_installation.List),
 	mcpl.Register("shippin.integrations.github_repository.delete", integrations_github_repository.Delete),
 	mcpl.Register("shippin.integrations.github_repository.list", integrations_github_repository.List),
 	mcpl.Register("shippin.integrations.github_repository.update", integrations_github_repository.Update),

@@ -1864,6 +1864,54 @@
         ],
         "type": "object"
       },
+      "GithubInstallation": {
+        "additionalProperties": false,
+        "properties": {
+          "account_login": {
+            "type": "string"
+          },
+          "account_type": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "suspended": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "account_login",
+          "account_type",
+          "suspended",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "GithubInstallationConnections": {
+        "additionalProperties": false,
+        "properties": {
+          "can_connect": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GithubInstallation"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "can_connect"
+        ],
+        "type": "object"
+      },
       "GithubRepository": {
         "additionalProperties": false,
         "properties": {
@@ -5370,6 +5418,54 @@
           "perm": "catalog.plans.write",
           "reason": true,
           "risk": "write"
+        }
+      }
+    },
+    "/tenants/{tenantId}/integrations/github-installations": {
+      "get": {
+        "operationId": "shippin.integrations.github_installation.list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubInstallationConnections"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the organization's GitHub connections, and whether you may add one.",
+        "tags": [
+          "integrations"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "id": "shippin.integrations.github_installation.list",
+          "reason": false,
+          "risk": "read"
         }
       }
     },
