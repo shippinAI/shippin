@@ -69,6 +69,17 @@ and long key (multi-line, such as a PEM private key).
 5. The bootstrap file shrinks to what CFG-01 allows: database, ClickHouse and cache addresses and
    credentials, the session key, the listen address and TLS files.
 
+## Proved against a real Vaultix
+
+`internal/platform/secret_store/rig_test.go` runs the check and the port's write, read and delete
+against a disposable Vaultix (`deploy/vaultix/proof-secret-store.mjs`, see its README) and is skipped
+without one. What it shows a real Vaultix does: a wrong client secret is a 401 at sign-in; an identity
+outside the project is a 403 naming the missing membership; a missing environment, project, folder or
+secret is a 404 whose message says which; creating a folder that exists is a 400 (taken as made);
+creating a secret name that exists is a 400, so a name is written once; deleting a missing secret is a
+404 (taken as done). The project's member role is enough for the panel's identity. Not covered: TLS,
+token expiry and renewal, rate limits, and a Vaultix that restarts mid-save.
+
 ## Not decided here
 
 - Rotating the machine identity's own client secret from the panel, through the Vaultix API, rather
