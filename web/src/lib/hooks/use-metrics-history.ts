@@ -1,12 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "../api/client";
+import { callAction } from "../api/actions";
 
 // Sampled history for one host or one guest (OBS-01), from the metrics range action
 // (shippin.infrastructure.metric.list, GET /v1/operator/infrastructure/metrics, staff infra.read).
 // This file is the only place that knows the action; screens use the types below, which mirror its output
-// (MetricRange, MetricSeries, MetricBucket, MetricSamplerState in actions.gen.ts once the action is on main).
-// Wiring it is this file only: make `rangeActionAvailable` return true (or call the generated action in `fetchRange`).
-// Until then the hook fetches nothing and screens show their empty state.
+// (MetricRange and friends in actions.gen.ts), narrowed where the generated types are plain strings.
 
 export type MetricName =
   | "cpu" | "load1" | "memory_used_bytes" | "memory_total_bytes" | "disk_used_bytes" | "disk_total_bytes"
@@ -63,17 +61,14 @@ export function rangeQuery(target: MetricsTarget, range: HistoryRange, now = Dat
   });
 }
 
-/** Whether the range action is deployed with this panel. */
-const rangeActionAvailable = (): boolean => false;
-
-const fetchRange = (target: MetricsTarget, range: HistoryRange) =>
-  apiGet<MetricRange>(`/v1/operator/infrastructure/metrics?${rangeQuery(target, range)}`);
+const fetchRange = async (target: MetricsTarget, range: HistoryRange): Promise<MetricRange> =>
+  (await callAction("shippin.infrastructure.metric.list", Object.fromEntries(rangeQuery(target, range)))) as MetricRange;
 
 export type MetricsHistoryResult = { data: MetricRange | undefined; isPending: boolean; error: Error | null };
 
 /** History for one host, or one of its guests, over a range. No data, and not pending, when nothing records history yet. */
 export function useMetricsHistory(target: MetricsTarget, range: HistoryRange): MetricsHistoryResult {
-  const enabled = rangeActionAvailable() && !!target.serverId;
+  const enabled = !!target.serverId;
   const q = useQuery({
     queryKey: ["metrics", "history", target.serverId, target.guest ?? "", range],
     queryFn: () => fetchRange(target, range),
