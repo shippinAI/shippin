@@ -100,10 +100,24 @@ async function watch(input) {
   const checks = await waitRun('Checks', sha, cwd);
   if (!checks) return;
   if (checks.conclusion !== 'success') failure('Checks', checks, cwd);
-  if ((branch ?? checks.headBranch).startsWith('queue/')) {
-    const gate = await waitRun('Gate', sha, cwd, { appear: 120_000, finish: 600_000 });
-    if (gate && gate.conclusion !== 'success') failure('Gate (promotion to main)', gate, cwd);
+  if ((branch ?? checks.headBranch).startsWith('queue/')) await promoted(sha, checks, cwd);
+}
+
+// A Gate run is filed under main's commit at the time, not the queued one, so promotion is judged by
+// where main ends up: at the pushed commit is success; a Gate run started after these Checks that fails
+// while main is elsewhere is a failure.
+async function promoted(sha, checks, cwd) {
+  const ran = JSON.parse(gh(['run', 'view', String(checks.databaseId), '--json', 'updatedAt'], cwd)).updatedAt;
+  const start = Date.now();
+  while (Date.now() - start < 900_000) {
+    if (git(['ls-remote', 'origin', 'refs/heads/main'], cwd).split(/\s/)[0] === sha) return;
+    const gates = JSON.parse(gh(['run', 'list', '--workflow', 'Gate', '--limit', '10', '--json', 'databaseId,status,conclusion,createdAt,headBranch,url'], cwd));
+    const failed = gates.find(g => g.createdAt >= ran && g.status === 'completed' && g.conclusion !== 'success');
+    if (failed) failure('Gate (promotion to main)', failed, cwd);
+    await sleep(15_000);
   }
+  process.stderr.write(`CI STUCK: Checks passed on ${sha.slice(0, 12)} but main did not move to it within 15 minutes. Look at the Gate workflow.\n`);
+  process.exit(2);
 }
 
 function testEdit(input) {
