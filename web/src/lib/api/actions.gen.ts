@@ -393,6 +393,23 @@ export type CustomerUpdateInput = {
   notes?: string;
 };
 
+export type GithubRepository = {
+  id: string;
+  installation_id: string;
+  full_name: string;
+  private: boolean;
+  workspace_id: string | null;
+  project_id: string | null;
+  runners: boolean;
+  updated_at: string | null;
+};
+
+export type GithubRepositoryUpdateInput = {
+  workspace_id: string;
+  project_id?: string | null;
+  runners: boolean;
+};
+
 export type Plan = {
   id: string;
   label: string;
@@ -452,6 +469,59 @@ export type ProvisionIntentCreateInput = {
 
 export type ProvisionIntentStatus = "pending" | "ticketed" | "applied" | "failed" | "cancelled";
 
+export type RunnerJob = {
+  id: string;
+  github_job_id: string;
+  run_id: string;
+  repository_id: string;
+  repository: string;
+  workspace_id: string | null;
+  project_id: string | null;
+  name: string;
+  labels: string[];
+  size: string | null;
+  status: RunnerJobStatus;
+  reason: string;
+  conclusion: string;
+  runner_name: string;
+  queued_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  seconds: number | null;
+};
+
+export type RunnerJobStatus = "queued" | "refused" | "in_progress" | "completed" | "canceled";
+
+export type RunnerSize = {
+  id: string;
+  label: string;
+  cores: number;
+  memory_mib: number;
+  disk_gib: number;
+  image: string;
+  active: boolean;
+  updated_at: string;
+};
+
+export type RunnerSizeCreateInput = {
+  id: string;
+  label: string;
+  cores: number;
+  memory_mib: number;
+  disk_gib: number;
+  image: string;
+  active?: boolean | null;
+};
+
+export type RunnerSizeUpdateInput = {
+  label: string;
+  cores: number;
+  memory_mib: number;
+  disk_gib: number;
+  image: string;
+  active?: boolean | null;
+};
+
 export type ServiceCell = {
   enabled?: boolean | null;
   lock?: CatalogLock;
@@ -491,11 +561,21 @@ export const routes = {
   "shippin.identity.ssh_key.create": "POST /v1/me/identity/ssh-keys",
   "shippin.identity.ssh_key.delete": "DELETE /v1/me/identity/ssh-keys/{sshKeyId}",
   "shippin.identity.ssh_key.list": "GET /v1/me/identity/ssh-keys",
+  "shippin.integrations.github_repository.delete": "DELETE /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
+  "shippin.integrations.github_repository.list": "GET /v1/tenants/{tenantId}/integrations/github-repositories",
+  "shippin.integrations.github_repository.update": "PUT /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
+  "shippin.runtime.runner_job.get": "GET /v1/tenants/{tenantId}/runtime/runner-jobs/{runnerJobId}",
+  "shippin.runtime.runner_job.list": "GET /v1/tenants/{tenantId}/runtime/runner-jobs",
   "shippin.services.catalog_service.create": "POST /v1/operator/services/catalog-services",
   "shippin.services.catalog_service.delete": "DELETE /v1/operator/services/catalog-services/{catalogServiceId}",
   "shippin.services.catalog_service.get": "GET /v1/operator/services/catalog-services/{catalogServiceId}",
   "shippin.services.catalog_service.list": "GET /v1/operator/services/catalog-services",
   "shippin.services.catalog_service.update": "PUT /v1/operator/services/catalog-services/{catalogServiceId}",
+  "shippin.services.runner_size.create": "POST /v1/operator/services/runner-sizes",
+  "shippin.services.runner_size.delete": "DELETE /v1/operator/services/runner-sizes/{runnerSizeId}",
+  "shippin.services.runner_size.get": "GET /v1/operator/services/runner-sizes/{runnerSizeId}",
+  "shippin.services.runner_size.list": "GET /v1/operator/services/runner-sizes",
+  "shippin.services.runner_size.update": "PUT /v1/operator/services/runner-sizes/{runnerSizeId}",
   "shippin.tenancy.acquisition_source.create": "POST /v1/operator/tenancy/acquisition-sources",
   "shippin.tenancy.acquisition_source.get": "GET /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}",
   "shippin.tenancy.acquisition_source.lead.list": "GET /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}/leads",
@@ -539,11 +619,21 @@ export type ActionTypes = {
   "shippin.identity.ssh_key.create": { args: [params: Record<string, never>, body: SshKeyCreateInput & { reason?: string }]; output: SshKey; risk: "write"; event: "shippin.identity.ssh_key.created" };
   "shippin.identity.ssh_key.delete": { args: [params: { sshKeyId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.identity.ssh_key.deleted" };
   "shippin.identity.ssh_key.list": { args: [params?: Record<string, never>]; output: { items: SshKey[] }; risk: "read"; event: never };
+  "shippin.integrations.github_repository.delete": { args: [params: { tenantId: string; githubRepositoryId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.integrations.github_repository.deleted" };
+  "shippin.integrations.github_repository.list": { args: [params: { tenantId: string }]; output: { items: GithubRepository[] }; risk: "read"; event: never };
+  "shippin.integrations.github_repository.update": { args: [params: { tenantId: string; githubRepositoryId: string }, body: GithubRepositoryUpdateInput & { reason?: string }]; output: GithubRepository; risk: "write"; event: "shippin.integrations.github_repository.updated" };
+  "shippin.runtime.runner_job.get": { args: [params: { tenantId: string; runnerJobId: string }]; output: RunnerJob; risk: "read"; event: never };
+  "shippin.runtime.runner_job.list": { args: [params: { tenantId: string; workspace?: string }]; output: { items: RunnerJob[] }; risk: "read"; event: never };
   "shippin.services.catalog_service.create": { args: [params: Record<string, never>, body: CatalogServiceCreateInput & { reason: string }]; output: CatalogService; risk: "write"; event: "shippin.services.catalog_service.created" };
   "shippin.services.catalog_service.delete": { args: [params: { catalogServiceId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.services.catalog_service.deleted" };
   "shippin.services.catalog_service.get": { args: [params: { catalogServiceId: string }]; output: CatalogService; risk: "read"; event: never };
   "shippin.services.catalog_service.list": { args: [params?: Record<string, never>]; output: { items: CatalogService[] }; risk: "read"; event: never };
   "shippin.services.catalog_service.update": { args: [params: { catalogServiceId: string }, body: CatalogServiceUpdateInput & { reason: string }]; output: CatalogService; risk: "write"; event: "shippin.services.catalog_service.updated" };
+  "shippin.services.runner_size.create": { args: [params: Record<string, never>, body: RunnerSizeCreateInput & { reason: string }]; output: RunnerSize; risk: "write"; event: "shippin.services.runner_size.created" };
+  "shippin.services.runner_size.delete": { args: [params: { runnerSizeId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.services.runner_size.deleted" };
+  "shippin.services.runner_size.get": { args: [params: { runnerSizeId: string }]; output: RunnerSize; risk: "read"; event: never };
+  "shippin.services.runner_size.list": { args: [params?: Record<string, never>]; output: { items: RunnerSize[] }; risk: "read"; event: never };
+  "shippin.services.runner_size.update": { args: [params: { runnerSizeId: string }, body: RunnerSizeUpdateInput & { reason: string }]; output: RunnerSize; risk: "write"; event: "shippin.services.runner_size.updated" };
   "shippin.tenancy.acquisition_source.create": { args: [params: Record<string, never>, body: AcquisitionSourceCreateInput & { reason: string }]; output: AcquisitionSourceSummary; risk: "write"; event: "shippin.tenancy.acquisition_source.created" };
   "shippin.tenancy.acquisition_source.get": { args: [params: { acquisitionSourceId: string }]; output: AcquisitionSourceDetail; risk: "read"; event: never };
   "shippin.tenancy.acquisition_source.lead.list": { args: [params: { acquisitionSourceId: string }]; output: AcquisitionLeadListResult; risk: "read"; event: never };

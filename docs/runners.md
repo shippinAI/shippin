@@ -22,7 +22,7 @@ Nothing here is a second process or a second GitHub integration.
 | GitHub sign-in, tokens, webhooks | `internal/gh`: the GitHub App, narrowed installation tokens cached per installation, signature checks. `github_installations` maps each installation to one organization; `github_deliveries` drops repeated deliveries. `POST /v1/github/webhook` is the one route GitHub calls. |
 | Runner machines | `internal/hv`: `GuestManager.CreateGuest` and `DeleteGuest` on Incus and Proxmox now, public clouds (HYB-01) and customers' own servers (BYO-01) later. Placement follows [VM-first tenants](reference/vm-first-tenants.md). |
 | Doing the work reliably | `internal/jobs`: the durable queue, claimed under a lease, so a runner is started and removed once, across restarts. |
-| Plan limits | The plan matrix: a `runners` catalog service, whose cell on each plan holds its limits (`sizes`, `concurrent`, `minutes`). |
+| Plan limits | The plan matrix: a `runners` catalog service, whose cell on each plan holds its limits (`sizes`, `concurrent`, `minutes`). `concurrent` 0 runs nothing; `minutes` 0 sets no monthly cap. |
 | Actions, events, audit | MCPL: every operation is an action file; events drive reactions; staff changes need a reason. |
 
 ## Entities
@@ -67,10 +67,20 @@ installed, built from a pinned release whose checksum is verified, with its prov
 Customers' own runners (catalog entry, CAT-01) install the same pinned release on their machine and
 are labelled customer-owned.
 
+## What the GitHub App needs
+
+The panel's GitHub App (configured as for project import) must also:
+- subscribe to the **Workflow job** event, with **Actions: read**, for jobs to reach the panel;
+- have **Administration: read and write** on repositories, for just-in-time runner configurations
+  (stage 2).
+
 ## Order
 
-1. Sizes, repository assignment, and `queued` jobs recorded against the organization with plan
-   limits, tested against a fake GitHub.
+1. **Done 2026-11-15.** Sizes (`services/runner_size`), repository assignment
+   (`integrations/github_repository`), and jobs (`runtime/runner_job`): a `queued` job is recorded
+   against its organization, waiting or refused with the reason, then moved on by `in_progress` and
+   `completed`. Database tests with a fake GitHub cover two organizations side by side; the webhook
+   route is tested with signed and unsigned deliveries.
 2. Dispatch: JIT configuration and a VM per job on Incus in the local rig, then removal.
 3. The panel: the workspace's runner pages and staff's runner list, on generated calls.
 4. Proxmox, then public clouds and customers' own servers as they land.

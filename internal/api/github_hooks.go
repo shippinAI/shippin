@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	"shippin.cloud/console/internal/gh"
+	"shippin.cloud/console/internal/runtime/runner_job"
 )
 
 // webhookMax caps a webhook body; GitHub's are far smaller for the events subscribed.
@@ -49,7 +50,8 @@ func (a *API) githubWebhook(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// applyEvent maps installation, installation_repositories and repository events onto sources.
+// applyEvent maps installation, installation_repositories and repository events onto sources, and
+// workflow_job events onto the organization's runner jobs (internal/runtime/runner_job).
 func (a *API) applyEvent(ctx context.Context, kind string, e *gh.Event) {
 	inst := e.Installation.ID
 	var err error
@@ -68,6 +70,15 @@ func (a *API) applyEvent(ctx context.Context, kind string, e *gh.Event) {
 		err = a.db.RevokeRepos(ctx, inst, ids)
 	case kind == "repository" && e.Action == "renamed" && e.Repository != nil:
 		err = a.db.RenameRepo(ctx, e.Repository.ID, e.Repository.FullName)
+	case kind == "workflow_job" && e.WorkflowJob != nil && e.Repository != nil:
+		j := e.WorkflowJob
+		var out runner_job.Outcome
+		out, err = runner_job.Receive(ctx, a.db.Pool, runner_job.Webhook{Action: e.Action, InstallationID: inst,
+			RepositoryID: e.Repository.ID, Repository: e.Repository.FullName, JobID: j.ID, RunID: j.RunID, Name: j.Name,
+			Labels: j.Labels, RunnerName: j.RunnerName, Conclusion: j.Conclusion, StartedAt: j.StartedAt, CompletedAt: j.CompletedAt})
+		if err == nil && out.Status == runner_job.Refused {
+			log.Printf("github webhook: runner job %s refused: %s", out.JobID, out.Reason)
+		}
 	}
 	if err != nil {
 		log.Printf("github webhook %s/%s: %v", kind, e.Action, err)

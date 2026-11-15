@@ -5,8 +5,11 @@ package actions
 import (
 	identity_access_key "shippin.cloud/console/internal/identity/access_key"
 	identity_ssh_key "shippin.cloud/console/internal/identity/ssh_key"
+	integrations_github_repository "shippin.cloud/console/internal/integrations/github_repository"
 	"shippin.cloud/console/internal/mcpl"
+	runtime_runner_job "shippin.cloud/console/internal/runtime/runner_job"
 	services_catalog_service "shippin.cloud/console/internal/services/catalog_service"
+	services_runner_size "shippin.cloud/console/internal/services/runner_size"
 	tenancy_acquisition_source "shippin.cloud/console/internal/tenancy/acquisition_source"
 	tenancy_acquisition_source_lead "shippin.cloud/console/internal/tenancy/acquisition_source/lead"
 	tenancy_coverage "shippin.cloud/console/internal/tenancy/coverage"
@@ -27,11 +30,21 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.identity.ssh_key.create", identity_ssh_key.Create),
 	mcpl.Register("shippin.identity.ssh_key.delete", identity_ssh_key.Delete),
 	mcpl.Register("shippin.identity.ssh_key.list", identity_ssh_key.List),
+	mcpl.Register("shippin.integrations.github_repository.delete", integrations_github_repository.Delete),
+	mcpl.Register("shippin.integrations.github_repository.list", integrations_github_repository.List),
+	mcpl.Register("shippin.integrations.github_repository.update", integrations_github_repository.Update),
+	mcpl.Register("shippin.runtime.runner_job.get", runtime_runner_job.Get),
+	mcpl.Register("shippin.runtime.runner_job.list", runtime_runner_job.List),
 	mcpl.Register("shippin.services.catalog_service.create", services_catalog_service.Create),
 	mcpl.Register("shippin.services.catalog_service.delete", services_catalog_service.Delete),
 	mcpl.Register("shippin.services.catalog_service.get", services_catalog_service.Get),
 	mcpl.Register("shippin.services.catalog_service.list", services_catalog_service.List),
 	mcpl.Register("shippin.services.catalog_service.update", services_catalog_service.Update),
+	mcpl.Register("shippin.services.runner_size.create", services_runner_size.Create),
+	mcpl.Register("shippin.services.runner_size.delete", services_runner_size.Delete),
+	mcpl.Register("shippin.services.runner_size.get", services_runner_size.Get),
+	mcpl.Register("shippin.services.runner_size.list", services_runner_size.List),
+	mcpl.Register("shippin.services.runner_size.update", services_runner_size.Update),
 	mcpl.Register("shippin.tenancy.acquisition_source.create", tenancy_acquisition_source.Create),
 	mcpl.Register("shippin.tenancy.acquisition_source.get", tenancy_acquisition_source.Get),
 	mcpl.Register("shippin.tenancy.acquisition_source.lead.list", tenancy_acquisition_source_lead.List),

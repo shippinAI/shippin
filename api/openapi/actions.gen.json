@@ -1864,6 +1864,94 @@
         ],
         "type": "object"
       },
+      "GithubRepository": {
+        "additionalProperties": false,
+        "properties": {
+          "full_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "installation_id": {
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runners": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "workspace_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "installation_id",
+          "full_name",
+          "private",
+          "workspace_id",
+          "project_id",
+          "runners",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "GithubRepositoryUpdateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runners": {
+            "type": "boolean"
+          },
+          "workspace_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "runners"
+        ],
+        "type": "object"
+      },
       "Plan": {
         "additionalProperties": false,
         "properties": {
@@ -2148,6 +2236,265 @@
           "cancelled"
         ],
         "type": "string"
+      },
+      "RunnerJob": {
+        "additionalProperties": false,
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conclusion": {
+            "type": "string"
+          },
+          "github_job_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "queued_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "runner_name": {
+            "type": "string"
+          },
+          "seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "size": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunnerJobStatus"
+          },
+          "workspace_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "github_job_id",
+          "run_id",
+          "repository_id",
+          "repository",
+          "workspace_id",
+          "project_id",
+          "name",
+          "labels",
+          "size",
+          "status",
+          "reason",
+          "conclusion",
+          "runner_name",
+          "queued_at",
+          "started_at",
+          "completed_at",
+          "seconds"
+        ],
+        "type": "object"
+      },
+      "RunnerJobStatus": {
+        "enum": [
+          "queued",
+          "refused",
+          "in_progress",
+          "completed",
+          "canceled"
+        ],
+        "type": "string"
+      },
+      "RunnerSize": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "cores": {
+            "type": "integer"
+          },
+          "disk_gib": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "memory_mib": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "cores",
+          "memory_mib",
+          "disk_gib",
+          "image",
+          "active",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "RunnerSizeCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cores": {
+            "type": "integer"
+          },
+          "disk_gib": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "memory_mib": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "cores",
+          "memory_mib",
+          "disk_gib",
+          "image"
+        ],
+        "type": "object"
+      },
+      "RunnerSizeUpdateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cores": {
+            "type": "integer"
+          },
+          "disk_gib": {
+            "type": "integer"
+          },
+          "image": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "memory_mib": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "cores",
+          "memory_mib",
+          "disk_gib",
+          "image"
+        ],
+        "type": "object"
       },
       "ServiceCell": {
         "additionalProperties": false,
@@ -2916,6 +3263,304 @@
           "access": "staff",
           "event": "shippin.services.catalog_service.updated",
           "id": "shippin.services.catalog_service.update",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/services/runner-sizes": {
+      "get": {
+        "operationId": "shippin.services.runner_size.list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/RunnerSize"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the runner sizes customers' jobs can ask for.",
+        "tags": [
+          "services"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.services.runner_size.list",
+          "perm": "catalog.plans.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "post": {
+        "operationId": "shippin.services.runner_size.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RunnerSizeCreateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunnerSize"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Offer a runner size: its label, cores, memory, disk and image.",
+        "tags": [
+          "services"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.services.runner_size.created",
+          "id": "shippin.services.runner_size.create",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/services/runner-sizes/{runnerSizeId}": {
+      "delete": {
+        "operationId": "shippin.services.runner_size.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runnerSizeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Remove a runner size no waiting or running job needs.",
+        "tags": [
+          "services"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.services.runner_size.deleted",
+          "id": "shippin.services.runner_size.delete",
+          "perm": "catalog.plans.write",
+          "reason": true,
+          "risk": "destructive"
+        }
+      },
+      "get": {
+        "operationId": "shippin.services.runner_size.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runnerSizeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunnerSize"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read one runner size.",
+        "tags": [
+          "services"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.services.runner_size.get",
+          "perm": "catalog.plans.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "put": {
+        "operationId": "shippin.services.runner_size.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runnerSizeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RunnerSizeUpdateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunnerSize"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Change a runner size, or stop offering it.",
+        "tags": [
+          "services"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.services.runner_size.updated",
+          "id": "shippin.services.runner_size.update",
           "perm": "catalog.plans.write",
           "reason": true,
           "risk": "write"
@@ -4725,6 +5370,335 @@
           "perm": "catalog.plans.write",
           "reason": true,
           "risk": "write"
+        }
+      }
+    },
+    "/tenants/{tenantId}/integrations/github-repositories": {
+      "get": {
+        "operationId": "shippin.integrations.github_repository.list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/GithubRepository"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the organization's GitHub repositories and where each is assigned.",
+        "tags": [
+          "integrations"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "id": "shippin.integrations.github_repository.list",
+          "reason": false,
+          "risk": "read"
+        }
+      }
+    },
+    "/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}": {
+      "delete": {
+        "operationId": "shippin.integrations.github_repository.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "githubRepositoryId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Unassign a GitHub repository, so its jobs no longer get Shippin runners.",
+        "tags": [
+          "integrations"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "event": "shippin.integrations.github_repository.deleted",
+          "id": "shippin.integrations.github_repository.delete",
+          "perm": "manage",
+          "reason": false,
+          "risk": "destructive"
+        }
+      },
+      "put": {
+        "operationId": "shippin.integrations.github_repository.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "githubRepositoryId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GithubRepositoryUpdateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubRepository"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Assign a GitHub repository to a workspace or project, and allow its jobs on Shippin runners.",
+        "tags": [
+          "integrations"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "event": "shippin.integrations.github_repository.updated",
+          "id": "shippin.integrations.github_repository.update",
+          "perm": "manage",
+          "reason": false,
+          "risk": "write"
+        }
+      }
+    },
+    "/tenants/{tenantId}/runtime/runner-jobs": {
+      "get": {
+        "operationId": "shippin.runtime.runner_job.list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "workspace",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/RunnerJob"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the organization's runner jobs, newest first.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "id": "shippin.runtime.runner_job.list",
+          "reason": false,
+          "risk": "read"
+        }
+      }
+    },
+    "/tenants/{tenantId}/runtime/runner-jobs/{runnerJobId}": {
+      "get": {
+        "operationId": "shippin.runtime.runner_job.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runnerJobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunnerJob"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read one runner job: its repository, size, state and timing.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "id": "shippin.runtime.runner_job.get",
+          "reason": false,
+          "risk": "read"
         }
       }
     },

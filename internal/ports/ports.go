@@ -19,6 +19,21 @@ type Sealer interface {
 	Open(box []byte, aad string) ([]byte, error)
 }
 
+// GitHub is the panel's GitHub App, which organizations install on their GitHub accounts. Which
+// installation belongs to which organization is in github_installations; a port call trusts its
+// caller to have checked that.
+type GitHub interface {
+	// Repositories are the repositories one installation can reach.
+	Repositories(ctx context.Context, installation int64) ([]GitHubRepository, error)
+}
+
+// GitHubRepository is one repository an installation can reach.
+type GitHubRepository struct {
+	ID       int64
+	FullName string
+	Private  bool
+}
+
 // Workspaces is the runtime's view of the workspaces people create.
 type Workspaces interface {
 	// GiveKeys sets the SSH keys on every workspace the person created and applies them to the running

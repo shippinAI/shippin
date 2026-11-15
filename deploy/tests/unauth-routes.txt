@@ -10,6 +10,7 @@ DELETE /v1/operator/backups/{name}
 DELETE /v1/operator/catalog/defaults/{layer}/{key}
 DELETE /v1/operator/platform-services/{serviceId}
 DELETE /v1/operator/services/catalog-services/{catalogServiceId}
+DELETE /v1/operator/services/runner-sizes/{runnerSizeId}
 DELETE /v1/operator/team/permission-grants/{userId}/{permKey}
 DELETE /v1/operator/team/roles/{roleKey}
 DELETE /v1/operator/templates/{templateId}
@@ -23,6 +24,7 @@ DELETE /v1/tenants/{tenantId}/ai-terminal
 DELETE /v1/tenants/{tenantId}/db/snippets/{snippetId}
 DELETE /v1/tenants/{tenantId}/db/tables/{table}/rows
 DELETE /v1/tenants/{tenantId}/deployments/{deploymentId}
+DELETE /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}
 DELETE /v1/tenants/{tenantId}/members/{userId}
 DELETE /v1/tenants/{tenantId}/organization-workspaces/{groupId}
 DELETE /v1/tenants/{tenantId}/projects/{projectId}
@@ -85,6 +87,8 @@ GET /v1/operator/platform-services/{serviceId}/observations
 GET /v1/operator/platform-settings
 GET /v1/operator/services/catalog-services
 GET /v1/operator/services/catalog-services/{catalogServiceId}
+GET /v1/operator/services/runner-sizes
+GET /v1/operator/services/runner-sizes/{runnerSizeId}
 GET /v1/operator/setup-steps
 GET /v1/operator/staff-mode
 GET /v1/operator/system
@@ -142,6 +146,7 @@ GET /v1/tenants/{tenantId}/desktop
 GET /v1/tenants/{tenantId}/github/install
 GET /v1/tenants/{tenantId}/github/repos
 GET /v1/tenants/{tenantId}/identity/agents
+GET /v1/tenants/{tenantId}/integrations/github-repositories
 GET /v1/tenants/{tenantId}/members
 GET /v1/tenants/{tenantId}/organization-workspaces
 GET /v1/tenants/{tenantId}/organization-workspaces/{groupId}
@@ -153,6 +158,8 @@ GET /v1/tenants/{tenantId}/projects/{projectId}/services
 GET /v1/tenants/{tenantId}/projects/{projectId}/services/{serviceId}/rrflow/{kind}
 GET /v1/tenants/{tenantId}/projects/{projectId}/workspaces
 GET /v1/tenants/{tenantId}/prompt/options
+GET /v1/tenants/{tenantId}/runtime/runner-jobs
+GET /v1/tenants/{tenantId}/runtime/runner-jobs/{runnerJobId}
 GET /v1/tenants/{tenantId}/servers
 GET /v1/tenants/{tenantId}/servers/{serverId}/guests
 GET /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}
@@ -217,6 +224,7 @@ POST /v1/operator/platform-services
 POST /v1/operator/platform-services/{serviceId}/check
 POST /v1/operator/recovery-key
 POST /v1/operator/services/catalog-services
+POST /v1/operator/services/runner-sizes
 POST /v1/operator/staff-mode
 POST /v1/operator/staff-mode/exit
 POST /v1/operator/team/members
@@ -304,6 +312,7 @@ PUT /v1/operator/catalog/defaults
 PUT /v1/operator/platform-services/{serviceId}
 PUT /v1/operator/platform-settings/{key}
 PUT /v1/operator/services/catalog-services/{catalogServiceId}
+PUT /v1/operator/services/runner-sizes/{runnerSizeId}
 PUT /v1/operator/setup-steps/{step}
 PUT /v1/operator/team/members/{userId}/roles
 PUT /v1/operator/team/roles/{roleKey}
@@ -316,6 +325,7 @@ PUT /v1/operator/tenancy/customers/{customerId}/services/{serviceId}
 PUT /v1/operator/tenancy/plans/{planId}
 PUT /v1/operator/tenancy/plans/{planId}/services/{serviceId}
 PUT /v1/tenants/{tenantId}/db/tables/{table}/rows
+PUT /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}
 PUT /v1/tenants/{tenantId}/teams/{teamId}/members/{userId}
 PUT /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/token
 PUT /v1/tenants/{tenantId}/workspaces/{workspaceId}/domains

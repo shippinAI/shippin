@@ -21,6 +21,9 @@ func (a *API) provideServices(s mcpl.Services) {
 		p(s)
 	}
 	mcpl.Provide[ports.Workspaces](s, workspacePort{a})
+	if a.gh != nil {
+		mcpl.Provide[ports.GitHub](s, githubPort{a})
+	}
 	// Create the sealer only when actions are first requested. A missing key means secret-bearing
 	// actions fail closed through mcpl.Need.
 	if seal, err := a.sealer(); err == nil {
@@ -72,4 +75,16 @@ func (p workspacePort) GiveKeys(ctx context.Context, sub string, keys []string) 
 		}
 	}
 	return errors.Join(errs...)
+}
+
+// githubPort is ports.GitHub on this panel's GitHub App.
+type githubPort struct{ a *API }
+
+func (p githubPort) Repositories(ctx context.Context, installation int64) ([]ports.GitHubRepository, error) {
+	rs, err := p.a.gh.Repos(ctx, installation, p.a.cfg.GitHub.MaxRepos)
+	out := make([]ports.GitHubRepository, 0, len(rs))
+	for _, r := range rs {
+		out = append(out, ports.GitHubRepository{ID: r.ID, FullName: r.FullName, Private: r.Private})
+	}
+	return out, err
 }

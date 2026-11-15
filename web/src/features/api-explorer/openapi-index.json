@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 205,
+  "operationCount": 215,
   "tags": [
     "agents-runtime",
     "audit",
@@ -14,6 +14,7 @@
     "folders",
     "github-runtime",
     "identity",
+    "integrations",
     "jobs",
     "managed-runtime",
     "me",
@@ -22,6 +23,7 @@
     "platform",
     "projects-runtime",
     "rrflow",
+    "runtime",
     "secrets",
     "services",
     "settings",
@@ -877,6 +879,39 @@
     },
     {
       "method": "GET",
+      "path": "/tenants/{tenantId}/integrations/github-repositories",
+      "operationId": "shippin.integrations.github_repository.list",
+      "summary": "List the organization's GitHub repositories and where each is assigned.",
+      "tags": [
+        "integrations"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.integrations.github_repository.list"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
+      "operationId": "shippin.integrations.github_repository.delete",
+      "summary": "Unassign a GitHub repository, so its jobs no longer get Shippin runners.",
+      "tags": [
+        "integrations"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.integrations.github_repository.delete"
+    },
+    {
+      "method": "PUT",
+      "path": "/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
+      "operationId": "shippin.integrations.github_repository.update",
+      "summary": "Assign a GitHub repository to a workspace or project, and allow its jobs on Shippin runners.",
+      "tags": [
+        "integrations"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.integrations.github_repository.update"
+    },
+    {
+      "method": "GET",
       "path": "/jobs",
       "operationId": "listJobs",
       "summary": "List jobs visible to the caller",
@@ -1335,6 +1370,28 @@
     },
     {
       "method": "GET",
+      "path": "/tenants/{tenantId}/runtime/runner-jobs",
+      "operationId": "shippin.runtime.runner_job.list",
+      "summary": "List the organization's runner jobs, newest first.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.runner_job.list"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/runtime/runner-jobs/{runnerJobId}",
+      "operationId": "shippin.runtime.runner_job.get",
+      "summary": "Read one runner job: its repository, size, state and timing.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.runner_job.get"
+    },
+    {
+      "method": "GET",
       "path": "/tenants/{tenantId}/secrets/{env}",
       "operationId": "listSecrets",
       "summary": "List secret metadata in an environment (values never listed)",
@@ -1442,6 +1499,61 @@
       ],
       "implementationStatus": "registered",
       "action": "shippin.services.catalog_service.update"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/services/runner-sizes",
+      "operationId": "shippin.services.runner_size.list",
+      "summary": "List the runner sizes customers' jobs can ask for.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.runner_size.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/services/runner-sizes",
+      "operationId": "shippin.services.runner_size.create",
+      "summary": "Offer a runner size: its label, cores, memory, disk and image.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.runner_size.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/services/runner-sizes/{runnerSizeId}",
+      "operationId": "shippin.services.runner_size.delete",
+      "summary": "Remove a runner size no waiting or running job needs.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.runner_size.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/services/runner-sizes/{runnerSizeId}",
+      "operationId": "shippin.services.runner_size.get",
+      "summary": "Read one runner size.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.runner_size.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/services/runner-sizes/{runnerSizeId}",
+      "operationId": "shippin.services.runner_size.update",
+      "summary": "Change a runner size, or stop offering it.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.runner_size.update"
     },
     {
       "method": "GET",

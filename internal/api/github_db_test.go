@@ -129,3 +129,44 @@ func TestGitHubWebhook(t *testing.T) {
 		t.Fatal("installation.deleted applied")
 	}
 }
+
+// A signed workflow_job delivery reaches the organization's runner jobs through the one webhook route;
+// an unsigned one changes nothing. The intake's rules are tested in internal/runtime/runner_job.
+func TestGitHubWebhookRecordsRunnerJobs(t *testing.T) {
+	a, d, tn, _ := githubAPI(t)
+	ctx := context.Background()
+	inst := time.Now().UnixNano()%1_000_000_000 + 1
+	job := time.Now().UnixNano()%1_000_000_000 + 1
+	_ = d.BindInstallation(ctx, db.GitHubInstallation{ID: inst, TenantID: tn.ID}, "")
+	body := fmt.Sprintf(`{"action":"queued","installation":{"id":%d},"repository":{"id":%d,"full_name":"operator/app"},
+	  "workflow_job":{"id":%d,"run_id":5,"name":"build","labels":["shippin-2x"]}}`, inst, job, job)
+	send := func(sig string) int {
+		r := httptest.NewRequest("POST", "/v1/github/webhook", strings.NewReader(body))
+		r.Header.Set("X-Hub-Signature-256", sig)
+		r.Header.Set("X-GitHub-Delivery", uuid.NewString())
+		r.Header.Set("X-GitHub-Event", "workflow_job")
+		w := httptest.NewRecorder()
+		a.githubWebhook(w, r)
+		return w.Code
+	}
+	count := func() (n int, status, reason string) {
+		_ = d.Pool.QueryRow(ctx, `SELECT count(*), coalesce(max(status),''), coalesce(max(reason),'') FROM shippin_runner_jobs WHERE github_job_id=$1 AND tenant_id=$2`,
+			job, tn.ID).Scan(&n, &status, &reason)
+		return
+	}
+	if code := send("sha256=00"); code != 401 {
+		t.Fatalf("unsigned: %d", code)
+	}
+	if n, _, _ := count(); n != 0 {
+		t.Fatal("an unsigned delivery recorded a job")
+	}
+	m := hmac.New(sha256.New, []byte("whs"))
+	m.Write([]byte(body))
+	good := "sha256=" + hex.EncodeToString(m.Sum(nil))
+	if send(good) != 204 || send(good) != 204 {
+		t.Fatal("signed deliveries are acknowledged")
+	}
+	if n, status, reason := count(); n != 1 || status != "refused" || !strings.Contains(reason, "not assigned") {
+		t.Fatalf("the job: %d %q %q, want one, refused because the repository is not assigned", n, status, reason)
+	}
+}
