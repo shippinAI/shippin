@@ -13,6 +13,32 @@ Updated 2026-11-11 from the owner's direction:
 - They get a terminal anyone can use, and DevPulse syncs with their cloud workspace.
 - Friends and family are the first customers.
 
+## Every request, in one place
+
+Updated 2026-11-15. Each request from the owner, the requirement it falls under in [What Shippin is](objective.md), and where it really stands. **Done** means seen working on the review deploy or a real system; **built** means tests pass but it has not been seen working for real; **designed** means a written design only.
+
+| Request | Requirement | Status |
+| --- | --- | --- |
+| A Lovable-like hosted space where a solo developer builds on their own AI subscriptions | SOLO-01, DEV-01, AI-01 | **Not started as a product.** Pieces exist: workspaces with Zellij, AI app cards, the AI-01 runner design. No workspace has run on the current build. |
+| The infrastructure under that space: where each space runs, its limits, its cost | VM-01, PLAN-01, INF-01 | **Not started.** Workspaces are Incus containers placed by hostd; nothing yet proves one runs here, sizes it from a plan, or stops it when idle. |
+| A free tier that is cheap: VM-like spaces without a VM's weight | VM-01, PLAN-01 | **Not started.** The approach: system containers, idle spaces stopped, copy-on-write images, shared databases, limits from the plan. |
+| One workspace screen: VS Code, the Zellij terminal, the person's AI apps | IDE-01 | **Not started.** Unverified: Claude desktop and ChatGPT desktop run on macOS and Windows, not in a Linux space; the command-line agents do. |
+| Shippin.AI as the first sign-in, through Nomen, that the developer can extend to their own apps | IDP-01 | **Not started.** Sign-in to the panel exists; sign-in for a customer's own apps (one client per app) is not in the contract yet. |
+| Instructions, hooks and governance that onboard a developer after sign-in | GUIDE-01 | **Not started.** |
+| shippin.bot: knows the page and the person's permissions, runs known flows without the model, its own repo | GUIDE-01, COACH-01 | **Not started.** Waiting on the repo's name and visibility. |
+| shippin.hub: connects Shippin to Lovable and Replit with connectors kept in Vaultix | SYNC-01, EXT-01 | **Not started.** Device sign-in for `shippin-bridge` exists. |
+| A free self-hosted edition for one owner, separate from the multi-tenant cloud | OPEN-01, SOLO-01 | **Not started.** Decided: one codebase, the edition is configuration. |
+| Vaultix, Wardenclyffe and Nomen offered as services | CAT-01 | **Not started.** Stage 7. |
+| Every setting edited in the panel, keys saved to the installation's Vaultix | CFG-01 | **Done** for build runners, the job queue and the GitHub App, on the review deploy and against a real Vaultix. The owner's Vaultix account is not connected yet. The other sections are next in stage 2. |
+| Add a server: the panel works out Incus or Proxmox from the address and the operator confirms | INF-03 | **Done** on the review deploy against real Incus and Proxmox VE 9.2. The dialog has not been seen in a browser. |
+| Dashboards: CPU, memory, disk and network, live and over time, stored in ClickHouse | OBS-01 | **Done for samples:** real Incus and Proxmox hosts are sampled into ClickHouse every 30 seconds and read back with gaps kept. **Built** for the charts and fleet view (not seen in a browser). Incus does not report host CPU or load; the Proxmox rig's CPU reads 0, not yet explained. |
+| PostgreSQL and ClickHouse built and deployed properly | CORE-01, CAT-01 | **Done** for the panel's own (install, health, backup). **Not started** for deploying them onto a customer's machine (stage 7). |
+| Infrastructure VMs assigned to an account that staff can change | VM-01, INF-01 | **Partly.** A machine per organization can be enabled, started and stopped. Reassigning and resizing do not exist; proving them needs a host that can run VMs. |
+| The workspace terminal: the enhanced Zellij session, for that workspace only | TERM-01, IDE-01 | **Built:** follows the window size, reconnects by itself, records how each session ended, refuses anyone outside the workspace. Not run on a real workspace. |
+| A shell on the server itself, in the control plane, as granted privileged access | INF-03, IAM-01 | **Designed:** [Host shell](host-shell.md), with the grant dialog and limited impersonation. Five decisions are the owner's. |
+| CI: main only moves on green, failures are loud and make the AI fix them, tests are not weakened to pass | ENG-01 | **Done.** Pushes go to `queue/main`; the Gate promoted the first one to main by itself. The failure alarm has not been triggered for real yet. |
+| A personal lexicon and prompt recipes from the owner's own chats | (tooling, later COACH-01) | **Done** as tooling (`governance/lexicon.mjs`). 16 terms and 14 recipes wait for the owner to confirm them. |
+
 ## Where it stands
 
 | Area | Today | Missing |
@@ -42,6 +68,20 @@ Code is rewritten into its contexts as each stage reaches them, in the order in
 the [code map](architecture.md). The first milestone is the friends-and-family
 launch: the [acceptance journey](objective.md#acceptance-journey-friends-and-family)
 on our own Incus and Proxmox hosts. Public clouds and billing come after it.
+
+### The hosted development space, first
+
+The 2026-11-13 direction puts the hosted space first. These steps come before the stages below, in this order, each closed only by its proof:
+
+| Step | Result someone can see | Proof required |
+| --- | --- | --- |
+| D1. A workspace runs | A workspace is created, started and opened in the browser terminal on a real Incus host, here, from the current build. | Create, open the Zellij terminal, type, resize, reconnect, stop, remove; another person is refused. |
+| D2. Sign up as Shippin.AI | A solo developer signs up through Nomen and lands in their own space. | A new person, one sign-in, a space that is theirs; a second person cannot see it. |
+| D3. One screen | VS Code, the terminal and an AI panel in one focused screen (IDE-01). | Edit, run and see the change from the one screen. |
+| D4. Their own AI | Claude Code and Codex signed in with the person's own subscription in their runner (AI-01). | Their sign-in, never pooled; revoking it stops it. |
+| D5. Preview and publish | What they built is previewed, then published at an address (PUB-01). | A change reaches the live address; rollback works. |
+| D6. Cheap spaces | Spaces sized by plan, stopped when idle and woken on use; the cost of an idle free space is measured (VM-01, PLAN-01). | Density and idle cost measured on a real host. |
+| D7. Guided | Explanations from events and shippin.bot on each page (GUIDE-01, COACH-01). | A first-time person completes the first build with its help. |
 
 ### Milestone 1: friends and family
 
