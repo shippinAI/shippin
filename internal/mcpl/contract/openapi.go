@@ -127,9 +127,9 @@ func schema(n *node) obj {
 	case "integer", "number", "boolean":
 		return obj{"type": n.kind}
 	case "array":
-		return obj{"type": "array", "items": schema(n.elem)}
+		return obj{"type": "array", "items": nullable(schema(n.elem), n.nullElem)}
 	case "map":
-		return obj{"type": "object", "additionalProperties": schema(n.elem)}
+		return obj{"type": "object", "additionalProperties": nullable(schema(n.elem), n.nullElem)}
 	case "ref":
 		return ref(n.ref)
 	case "object":
@@ -151,4 +151,12 @@ func schema(n *node) obj {
 		return out
 	}
 	return obj{}
+}
+
+// nullable lets s also be null, for a pointer element.
+func nullable(s obj, null bool) obj {
+	if !null {
+		return s
+	}
+	return obj{"anyOf": []obj{s, {"type": "null"}}}
 }

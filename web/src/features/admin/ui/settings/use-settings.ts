@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { SettingUpdateInput, SettingsView } from "../../../../lib/api/actions.gen";
+import type { SettingsView } from "../../../../lib/api/actions.gen";
 import { callAction } from "../../../../lib/api/actions";
 import { toast } from "../../../../lib/design/components/toast/toast-queue";
 import { useAdminAccess } from "../../../../lib/hooks/use-admin";
@@ -86,9 +86,8 @@ export const useSettingHistory = (settingId: string, enabled: boolean) =>
 export function useSaveSetting(settingId: string) {
   const qc = useQueryClient();
   return useMutation({
-    // The generated body types keys as strings; the server reads null as "remove this key".
     mutationFn: ({ patch, reason }: { patch: SettingPatch; reason: string }) =>
-      callAction("shippin.platform.setting.update", { settingId }, { ...(patch as SettingUpdateInput), reason }),
+      callAction("shippin.platform.setting.update", { settingId }, { ...patch, reason }),
     onSuccess: (v: SettingsView) => {
       qc.setQueryData([...settingsKey, "one", settingId], v);
       toast.success(`${v.title} saved`, "It takes effect without a restart.");

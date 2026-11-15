@@ -15,12 +15,13 @@ type Shade string
 func (Shade) Values() []string { return []string{"light", "dark"} }
 
 type Item struct {
-	ID      string    `json:"id"`
-	Shade   Shade     `json:"shade"`
-	Note    *string   `json:"note"`
-	Price   *int      `json:"price,omitempty"`
-	Tags    []string  `json:"tags"`
-	At      time.Time `json:"at"`
+	ID      string             `json:"id"`
+	Shade   Shade              `json:"shade"`
+	Note    *string            `json:"note"`
+	Price   *int               `json:"price,omitempty"`
+	Tags    []string           `json:"tags"`
+	Keys    map[string]*string `json:"keys"`
+	At      time.Time          `json:"at"`
 	private string
 }
 
@@ -57,6 +58,7 @@ func TestFiles(t *testing.T) {
 		"note: string | null;",                          // a pointer is always sent, maybe null
 		"price?: number | null;",                        // omitempty may be absent
 		"tags: string[];",
+		"keys: Record<string, string | null>;", // a pointer element may be null
 		"at: string;",
 		`"shippin.platform.contract.list": { args: [params?: Record<string, never>]; output: { items: ContractItem[] }; risk: "read"; event: never };`,
 		`"shippin.platform.contract.update": { args: [params: { contractId: string }, body: ContractUpdateInput & { reason: string }]; output: ContractItem; risk: "write"; event: "shippin.platform.contract.updated" };`,
@@ -86,7 +88,7 @@ func TestFiles(t *testing.T) {
 	if e := doc.Components.Schemas["ContractShade"]["enum"]; e == nil {
 		t.Errorf("enum schema: %v", doc.Components.Schemas["ContractShade"])
 	}
-	if req := doc.Components.Schemas["ContractItem"]["required"].([]any); len(req) != 5 {
+	if req := doc.Components.Schemas["ContractItem"]["required"].([]any); len(req) != 6 {
 		t.Errorf("required fields: %v (price is omitempty)", req)
 	}
 }

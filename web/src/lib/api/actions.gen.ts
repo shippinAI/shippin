@@ -606,7 +606,7 @@ export type ServiceOverrideInput = {
 export type SettingUpdateInput = {
   version: number;
   values?: Record<string, unknown>;
-  keys?: Record<string, string>;
+  keys?: Record<string, string | null>;
   import?: string[];
 };
 
