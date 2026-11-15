@@ -9,6 +9,9 @@ export const useCoverageTiers = () =>
   useQuery({ queryKey: ["catalog", "coverage"], queryFn: () => callAction("shippin.tenancy.coverage_tier.list"), retry: false });
 export const useServices = () =>
   useQuery({ queryKey: ["catalog", "services"], queryFn: () => callAction("shippin.services.catalog_service.list"), retry: false });
+/** The runner sizes customers' build jobs can ask for (runs-on: shippin-<id>). */
+export const useRunnerSizes = () =>
+  useQuery({ queryKey: ["catalog", "runner-sizes"], queryFn: () => callAction("shippin.services.runner_size.list"), retry: false });
 export const useCustomers = () =>
   useQuery({ queryKey: ["catalog", "customers"], queryFn: () => callAction("shippin.tenancy.customer.list"), retry: false });
 export const useCustomer = (customerId: string) =>

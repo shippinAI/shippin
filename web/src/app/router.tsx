@@ -41,6 +41,7 @@ const VaultixPage = lazy(() => import("../features/vaultix/ui/vaultix-page").the
 const TeamPage = lazy(() => import("../features/team/ui/team-page").then((m) => ({ default: m.TeamPage })));
 const DesktopPage = lazy(() => import("../features/apps/ui/desktop-page").then((m) => ({ default: m.DesktopPage })));
 const OnboardingPage = lazy(() => import("../features/onboarding/ui/onboarding-page").then((m) => ({ default: m.OnboardingPage })));
+const RunnersPage = lazy(() => import("../features/runners/ui/runners-page").then((m) => ({ default: m.RunnersPage })));
 const DatabasePage = lazy(() => import("../features/database/ui/database-page").then((m) => ({ default: m.DatabasePage })));
 export const router = createBrowserRouter([
   {
@@ -66,6 +67,8 @@ export const router = createBrowserRouter([
               { path: "/t/:tenantId/projects", element: <ProjectsPage /> },
               { path: "/t/:tenantId/database", element: <Suspense fallback={null}><DatabasePage /></Suspense> },
               { path: "/t/:tenantId/deployments", element: <Suspense fallback={null}><DeploymentsPage /></Suspense> },
+              { path: "/t/:tenantId/runners", element: <Suspense fallback={null}><RunnersPage /></Suspense> },
+              { path: "/t/:tenantId/runners/:tab", element: <Suspense fallback={null}><RunnersPage /></Suspense> },
               { path: "/t/:tenantId/projects/:projectId", element: <DevspacePage /> },
               { path: "/t/:tenantId/workspaces", element: <OrganizationWorkspacesPage /> },
               { path: "/t/:tenantId/workspaces/:groupId/projects", element: <ProjectsPage /> },
