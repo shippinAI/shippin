@@ -35,6 +35,7 @@ export const tenantNav: NavItem[] = [
   { id: "tenant.terminal", label: "Terminal", icon: SquareTerminal, to: "go/terminal", hue: "var(--color-hue-workspaces)", feature: "workspaces" },
   { id: "tenant.connect", label: "Connect accounts", icon: KeyRound, to: "go/connect", hue: "var(--color-hue-secrets)", feature: "workspaces" },
   { id: "tenant.publish", label: "Publish", icon: Globe, to: "go/publish", hue: "var(--color-hue-edge)", feature: "workspaces" },
+  { id: "tenant.runners", label: "Build runners", icon: Cpu, to: "runners", hue: "var(--color-hue-workspaces)", feature: "workspaces", prefix: true },
   { id: "tenant.usage", label: "Usage", icon: BarChart3, to: "go/usage", hue: "var(--color-hue-data)", feature: "workspaces" },
   { id: "tenant.secrets", label: "Secrets", icon: KeyRound, to: "/vaultix", hue: "var(--color-hue-secrets)", feature: "secrets" },
   { id: "tenant.servers", label: "Servers", icon: Server, to: "servers", hue: "var(--color-hue-edge)", feature: "servers" },

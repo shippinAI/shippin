@@ -7,6 +7,8 @@ import { TextField } from "../../../../lib/design/components/field/text-field";
 import { Select } from "../../../../lib/design/components/select/select";
 import { Switch } from "../../../../lib/design/components/switch/switch";
 import { useCatalogAction } from "../../../../lib/hooks/use-catalog";
+import { RunnerLimitsFields } from "./runner-limits-fields";
+import { runnersService } from "./runner-sizes";
 import { explain } from "./term-tip";
 
 const locks: Lock[] = ["bounded", "overridable", "mergeable", "locked"];
@@ -30,6 +32,7 @@ export function MatrixCellDialog({ plan, service, cell, onClose }: { plan: Plan;
         <TextField label="Reason (audited)" value={reason} onChange={setReason} placeholder="Why this changes" description="Kept in the audit log with the change. At least 5 characters." />
         <Switch isSelected={enabled} onChange={setEnabled} tooltip="Off keeps the row but disables the service for this tier">Included</Switch>
         <Select label="Lock mode" value={lock} onChange={(v) => setLock(v as Lock)} options={locks.map((l) => ({ id: l, label: l }))} />
+        {service === runnersService && <RunnerLimitsFields limits={valid ? (parsed as Record<string, unknown>) : null} onChange={(next) => setLimits(JSON.stringify(next, null, 2))} />}
         <TextField label="Limits" description={valid ? "Numbers become maximums under bounded." : "Must be a JSON object"} multiline mono value={limits} onChange={setLimits} />
       </div>
       <div className="flex gap-2 border-t border-line px-6 py-4">

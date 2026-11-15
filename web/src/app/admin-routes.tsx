@@ -24,6 +24,7 @@ const AdminPlans = lazy(() => import("../features/admin/ui/catalog/plans-page").
 const AdminStart = lazy(() => import("../features/platform/ui/get-started-page").then((m) => ({ default: m.GetStartedPage })));
 const AdminBuiltIn = lazy(() => import("../features/platform/ui/built-in-services-page").then((m) => ({ default: m.BuiltInServicesPage })));
 const AdminInfrastructure = lazy(() => import("../features/infrastructure/ui/infrastructure-page").then((m) => ({ default: m.InfrastructurePage })));
+const AdminRunnerSizes = lazy(() => import("../features/admin/ui/catalog/runner-sizes-page").then((m) => ({ default: m.RunnerSizesPage })));
 const AdminServices = lazy(() => import("../features/admin/ui/catalog/services-page").then((m) => ({ default: m.ServicesPage })));
 
 export const adminRoutes: RouteObject[] = [
@@ -40,6 +41,7 @@ export const adminRoutes: RouteObject[] = [
   { path: "plans", element: <AdminPlans /> },
   { path: "signups", element: <AdminSignups /> },
   { path: "services", element: <AdminServices /> },
+  { path: "runner-sizes", element: <AdminRunnerSizes /> },
   { path: "access", element: <AdminAccess /> },
   { path: "team", element: <AdminTeam /> },
   { path: "platform", element: <AdminPlatform /> },

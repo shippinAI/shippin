@@ -5,8 +5,10 @@ import type { Plan, PlanService } from "../../../../lib/api/catalog-types";
 import { useServices } from "../../../../lib/hooks/use-catalog";
 import { QueryView } from "../query-view";
 import { MatrixCellDialog } from "./matrix-cell-dialog";
+import { runnerLimitsBrief, runnersService } from "./runner-sizes";
 
-const brief = (l: PlanService["limits"]) => Object.entries(l).map(([k, v]) => `${k} ${v}`).join(" · ");
+const brief = (service: string, l: PlanService["limits"]) =>
+  service === runnersService ? runnerLimitsBrief(l) : Object.entries(l).map(([k, v]) => `${k} ${v}`).join(" · ");
 
 /** Services (rows) x plans (columns); each cell shows inclusion, lock and limits. Each plan carries its own cells. */
 export function ServiceMatrix({ plans, canEdit }: { plans: Plan[]; canEdit: boolean }) {
@@ -38,7 +40,7 @@ export function ServiceMatrix({ plans, canEdit }: { plans: Plan[]; canEdit: bool
                             {c?.enabled ? <Check className="size-4 text-success" /> : <Minus className="size-4 text-fg-subtle" />}
                             <span className="text-xs text-fg-muted">{c ? c.lock : "not included"}</span>
                           </div>
-                          {c && <div className="mt-1 text-2xs text-fg-subtle">{brief(c.limits) || "no limits"}</div>}
+                          {c && <div className="mt-1 text-2xs text-fg-subtle">{brief(s.id, c.limits) || "no limits"}</div>}
                         </Button>
                       </td>
                     );
