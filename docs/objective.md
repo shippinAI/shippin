@@ -162,7 +162,9 @@ holds only what the panel needs before it can reach its own database:
 
 Everything else is stored in PostgreSQL. It is validated before it is saved, takes
 effect without a restart, and goes in the audit log with who, when and why. A
-setting without a panel form is unfinished work.
+setting without a panel form is unfinished work. Keys entered in the panel are
+saved to the installation's secret store, its Vaultix account connected in the
+panel with a machine identity, and never shown again ([design](settings.md)).
 
 **ENG-01 Nothing is hardcoded.** No installation's hosts, addresses, domains,
 tenants, credentials or product URLs appear in code, defaults, migrations or tests.

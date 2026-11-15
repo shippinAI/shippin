@@ -26,13 +26,18 @@ import (
 	"shippin.cloud/console/internal/mail"
 	"shippin.cloud/console/internal/managed"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/platform/secret_store"
 	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/settings"
 	"shippin.cloud/console/internal/subs"
 	"shippin.cloud/console/internal/tenantdb"
 )
 
 type API struct {
-	cfg          *config.Config
+	cfg *config.Config
+	// settings are the sections edited in the panel; secrets is the Vaultix store their keys go to.
+	settings     *settings.Store
+	secrets      *secret_store.Vaultix
 	flow         *auth.Flow
 	db           *db.DB
 	host         *hostclient.Client
@@ -123,6 +128,7 @@ func New(cfg *config.Config, flow *auth.Flow, d *db.DB) *API {
 			return access_key.Resolve(ctx, d.Pool, token)
 		}
 	}
+	a.newSettings()
 	a.tenantDB = tenantdb.NewGate(tenantdb.DialerFrom(cfg.TenantDB.Host, cfg.TenantDB.PortOrDefault(), cfg.TenantDB.SSL(), cfg.TenantDB.Timeout(), cfg.TenantDBSecrets),
 		tenantdb.Guard{Timeout: cfg.TenantDB.Timeout(), MaxRows: cfg.TenantDB.Rows()})
 	importCtx, cancelImport := context.WithTimeout(context.Background(), 10*time.Second)

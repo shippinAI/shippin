@@ -2673,6 +2673,109 @@
         ],
         "type": "string"
       },
+      "SecretStoreConnection": {
+        "additionalProperties": false,
+        "properties": {
+          "api_url": {
+            "type": "string"
+          },
+          "check_error": {
+            "type": "string"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "has_client_secret": {
+            "type": "boolean"
+          },
+          "keys_held": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_by": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "connected",
+          "kind",
+          "api_url",
+          "project_id",
+          "environment",
+          "path",
+          "client_id",
+          "has_client_secret",
+          "keys_held"
+        ],
+        "type": "object"
+      },
+      "SecretStoreFields": {
+        "additionalProperties": false,
+        "properties": {
+          "api_url": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_url",
+          "project_id",
+          "environment",
+          "path",
+          "client_id"
+        ],
+        "type": "object"
+      },
       "ServiceCell": {
         "additionalProperties": false,
         "properties": {
@@ -2745,6 +2848,174 @@
         },
         "type": "object"
       },
+      "SettingUpdateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "import": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "keys": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "values": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "type": "object"
+      },
+      "SettingsFieldView": {
+        "additionalProperties": false,
+        "properties": {
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/SettingsOption"
+            },
+            "type": "array"
+          },
+          "env": {
+            "type": "string"
+          },
+          "file_value": {},
+          "help": {
+            "type": "string"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SettingsKeyState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "max": {
+            "type": "integer"
+          },
+          "min": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "optional": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "name",
+          "label",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "SettingsKeyState": {
+        "additionalProperties": false,
+        "properties": {
+          "in": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "saved": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "saved",
+          "in"
+        ],
+        "type": "object"
+      },
+      "SettingsOption": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "label"
+        ],
+        "type": "object"
+      },
+      "SettingsView": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/SettingsFieldView"
+            },
+            "type": "array"
+          },
+          "key": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_by": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "summary",
+          "fields",
+          "version",
+          "source"
+        ],
+        "type": "object"
+      },
       "SshKey": {
         "additionalProperties": false,
         "properties": {
@@ -2787,6 +3058,40 @@
         "required": [
           "name",
           "public_key"
+        ],
+        "type": "object"
+      },
+      "Version": {
+        "additionalProperties": false,
+        "properties": {
+          "changed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "changed_by": {
+            "type": "string"
+          },
+          "keys_changed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "values": {},
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "values",
+          "keys_changed",
+          "changed_by",
+          "reason",
+          "changed_at"
         ],
         "type": "object"
       }
@@ -3145,6 +3450,453 @@
           "id": "shippin.identity.ssh_key.delete",
           "reason": false,
           "risk": "destructive"
+        }
+      }
+    },
+    "/operator/platform/secret-store": {
+      "delete": {
+        "operationId": "shippin.platform.secret_store.delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Disconnect the secret store, once no setting keeps a key there.",
+        "tags": [
+          "platform"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.platform.secret_store.deleted",
+          "id": "shippin.platform.secret_store.delete",
+          "perm": "platform.settings.write",
+          "reason": true,
+          "risk": "destructive"
+        }
+      },
+      "get": {
+        "operationId": "shippin.platform.secret_store.get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecretStoreConnection"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "See where this installation keeps the keys entered in the panel.",
+        "tags": [
+          "platform"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.platform.secret_store.get",
+          "perm": "platform.settings.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "put": {
+        "operationId": "shippin.platform.secret_store.update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SecretStoreFields"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecretStoreConnection"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Connect this installation to its Vaultix account with a machine identity, or change the identity.",
+        "tags": [
+          "platform"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.platform.secret_store.updated",
+          "id": "shippin.platform.secret_store.update",
+          "perm": "platform.settings.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/platform/secret-store/test": {
+      "post": {
+        "operationId": "shippin.platform.secret_store.test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecretStoreConnection"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Check that the panel can still sign in to its secret store and write, read and delete a value there.",
+        "tags": [
+          "platform"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.platform.secret_store.tested",
+          "id": "shippin.platform.secret_store.test",
+          "perm": "platform.settings.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/platform/settings": {
+      "get": {
+        "operationId": "shippin.platform.setting.list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/SettingsView"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the installation's settings sections, with each value and where it comes from.",
+        "tags": [
+          "platform"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.platform.setting.list",
+          "perm": "platform.settings.read",
+          "reason": false,
+          "risk": "read"
+        }
+      }
+    },
+    "/operator/platform/settings/{settingId}": {
+      "get": {
+        "operationId": "shippin.platform.setting.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "settingId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsView"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read one settings section.",
+        "tags": [
+          "platform"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.platform.setting.get",
+          "perm": "platform.settings.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "put": {
+        "operationId": "shippin.platform.setting.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "settingId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SettingUpdateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsView"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Change a settings section. Keys go to the secret store, never the database.",
+        "tags": [
+          "platform"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.platform.setting.updated",
+          "id": "shippin.platform.setting.update",
+          "perm": "platform.settings.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/platform/settings/{settingId}/versions": {
+      "get": {
+        "operationId": "shippin.platform.setting.version.list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "settingId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/Version"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "See who changed a settings section, when and why.",
+        "tags": [
+          "platform"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.platform.setting.version.list",
+          "perm": "platform.settings.read",
+          "reason": false,
+          "risk": "read"
         }
       }
     },

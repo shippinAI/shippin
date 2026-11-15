@@ -10,7 +10,10 @@
 // small interface in that entity's package, provided by its own Services.
 package ports
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 // Sealer is the panel's at-rest encryption. Callers pass distinct associated data for each purpose,
 // so a box sealed for one thing cannot be opened as another.
@@ -60,6 +63,33 @@ type Machine struct {
 	// UserData is its cloud-init user data, which may carry a credential for its first boot.
 	UserData string
 }
+
+// Secrets is the installation's secret store: its Vaultix account, connected in the panel
+// (docs/settings.md). Keys entered in the panel are kept there and nowhere else; the database keeps
+// only a SecretRef.
+type Secrets interface {
+	// Where is the folder new keys are written to. It fails with ErrNoSecretStore while none is
+	// connected.
+	Where(ctx context.Context) (SecretRef, error)
+	// Write creates the key ref names with value. A name is written once: a changed value gets a new
+	// name, so the one in use is never overwritten.
+	Write(ctx context.Context, ref SecretRef, value string) error
+	// Read returns a key's value. Callers never log or return it.
+	Read(ctx context.Context, ref SecretRef) (string, error)
+	// Delete removes a key. One that is already gone is not an error.
+	Delete(ctx context.Context, ref SecretRef) error
+}
+
+// SecretRef is where one key is kept, never its value.
+type SecretRef struct {
+	Project     string `json:"project"`
+	Environment string `json:"environment"`
+	Path        string `json:"path"`
+	Name        string `json:"name"`
+}
+
+// ErrNoSecretStore is Secrets.Where with no secret store connected.
+var ErrNoSecretStore = errors.New("no secret store is connected: connect Vaultix in Settings > Secret store first")
 
 // Workspaces is the runtime's view of the workspaces people create.
 type Workspaces interface {

@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 218,
+  "operationCount": 226,
   "tags": [
     "agents-runtime",
     "audit",
@@ -1182,6 +1182,94 @@
         "platform"
       ],
       "implementationStatus": "unknown"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/platform/secret-store",
+      "operationId": "shippin.platform.secret_store.delete",
+      "summary": "Disconnect the secret store, once no setting keeps a key there.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.secret_store.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/platform/secret-store",
+      "operationId": "shippin.platform.secret_store.get",
+      "summary": "See where this installation keeps the keys entered in the panel.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.secret_store.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/platform/secret-store",
+      "operationId": "shippin.platform.secret_store.update",
+      "summary": "Connect this installation to its Vaultix account with a machine identity, or change the identity.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.secret_store.update"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/platform/secret-store/test",
+      "operationId": "shippin.platform.secret_store.test",
+      "summary": "Check that the panel can still sign in to its secret store and write, read and delete a value there.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.secret_store.test"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/platform/settings",
+      "operationId": "shippin.platform.setting.list",
+      "summary": "List the installation's settings sections, with each value and where it comes from.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.setting.list"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/platform/settings/{settingId}",
+      "operationId": "shippin.platform.setting.get",
+      "summary": "Read one settings section.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.setting.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/platform/settings/{settingId}",
+      "operationId": "shippin.platform.setting.update",
+      "summary": "Change a settings section. Keys go to the secret store, never the database.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.setting.update"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/platform/settings/{settingId}/versions",
+      "operationId": "shippin.platform.setting.version.list",
+      "summary": "See who changed a settings section, when and why.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.setting.version.list"
     },
     {
       "method": "GET",

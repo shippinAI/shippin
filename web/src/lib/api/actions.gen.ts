@@ -560,6 +560,31 @@ export type RunnerSizeUpdateInput = {
 
 export type RunnerState = "starting" | "running" | "removing" | "removed" | "failed";
 
+export type SecretStoreConnection = {
+  connected: boolean;
+  kind: string;
+  api_url: string;
+  project_id: string;
+  environment: string;
+  path: string;
+  client_id: string;
+  has_client_secret: boolean;
+  updated_by?: string;
+  updated_at?: string | null;
+  checked_at?: string | null;
+  check_error?: string;
+  keys_held: number;
+};
+
+export type SecretStoreFields = {
+  api_url: string;
+  project_id: string;
+  environment: string;
+  path: string;
+  client_id: string;
+  client_secret?: string;
+};
+
 export type ServiceCell = {
   enabled?: boolean | null;
   lock?: CatalogLock;
@@ -578,6 +603,51 @@ export type ServiceOverrideInput = {
   overrides?: Record<string, unknown>;
 };
 
+export type SettingUpdateInput = {
+  version: number;
+  values?: Record<string, unknown>;
+  keys?: Record<string, string>;
+  import?: string[];
+};
+
+export type SettingsFieldView = {
+  name: string;
+  label: string;
+  help?: string;
+  kind: string;
+  min?: number;
+  max?: number;
+  choices?: SettingsOption[];
+  optional?: boolean;
+  source?: string;
+  env?: string;
+  value?: unknown;
+  file_value?: unknown;
+  key?: SettingsKeyState | null;
+};
+
+export type SettingsKeyState = {
+  saved: boolean;
+  in: string;
+  name?: string;
+};
+
+export type SettingsOption = {
+  value: string;
+  label: string;
+};
+
+export type SettingsView = {
+  key: string;
+  title: string;
+  summary: string;
+  fields: SettingsFieldView[];
+  version: number;
+  source: string;
+  updated_by?: string;
+  updated_at?: string | null;
+};
+
 export type SshKey = {
   id: string;
   name: string;
@@ -589,6 +659,15 @@ export type SshKey = {
 export type SshKeyCreateInput = {
   name: string;
   public_key: string;
+};
+
+export type Version = {
+  version: number;
+  values: unknown;
+  keys_changed: string[];
+  changed_by: string;
+  reason: string;
+  changed_at: string;
 };
 
 /** Each action's route, "METHOD /path": all callAction needs at run time. */
@@ -603,6 +682,14 @@ export const routes = {
   "shippin.integrations.github_repository.delete": "DELETE /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
   "shippin.integrations.github_repository.list": "GET /v1/tenants/{tenantId}/integrations/github-repositories",
   "shippin.integrations.github_repository.update": "PUT /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
+  "shippin.platform.secret_store.delete": "DELETE /v1/operator/platform/secret-store",
+  "shippin.platform.secret_store.get": "GET /v1/operator/platform/secret-store",
+  "shippin.platform.secret_store.test": "POST /v1/operator/platform/secret-store/test",
+  "shippin.platform.secret_store.update": "PUT /v1/operator/platform/secret-store",
+  "shippin.platform.setting.get": "GET /v1/operator/platform/settings/{settingId}",
+  "shippin.platform.setting.list": "GET /v1/operator/platform/settings",
+  "shippin.platform.setting.update": "PUT /v1/operator/platform/settings/{settingId}",
+  "shippin.platform.setting.version.list": "GET /v1/operator/platform/settings/{settingId}/versions",
   "shippin.runtime.runner.delete": "DELETE /v1/operator/runtime/runners/{runnerId}",
   "shippin.runtime.runner.list": "GET /v1/operator/runtime/runners",
   "shippin.runtime.runner_job.get": "GET /v1/tenants/{tenantId}/runtime/runner-jobs/{runnerJobId}",
@@ -664,6 +751,14 @@ export type ActionTypes = {
   "shippin.integrations.github_repository.delete": { args: [params: { tenantId: string; githubRepositoryId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.integrations.github_repository.deleted" };
   "shippin.integrations.github_repository.list": { args: [params: { tenantId: string }]; output: { items: GithubRepository[] }; risk: "read"; event: never };
   "shippin.integrations.github_repository.update": { args: [params: { tenantId: string; githubRepositoryId: string }, body: GithubRepositoryUpdateInput & { reason?: string }]; output: GithubRepository; risk: "write"; event: "shippin.integrations.github_repository.updated" };
+  "shippin.platform.secret_store.delete": { args: [params: Record<string, never>, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.platform.secret_store.deleted" };
+  "shippin.platform.secret_store.get": { args: [params?: Record<string, never>]; output: SecretStoreConnection; risk: "read"; event: never };
+  "shippin.platform.secret_store.test": { args: [params: Record<string, never>, body: { reason: string }]; output: SecretStoreConnection; risk: "write"; event: "shippin.platform.secret_store.tested" };
+  "shippin.platform.secret_store.update": { args: [params: Record<string, never>, body: SecretStoreFields & { reason: string }]; output: SecretStoreConnection; risk: "write"; event: "shippin.platform.secret_store.updated" };
+  "shippin.platform.setting.get": { args: [params: { settingId: string }]; output: SettingsView; risk: "read"; event: never };
+  "shippin.platform.setting.list": { args: [params?: Record<string, never>]; output: { items: SettingsView[] }; risk: "read"; event: never };
+  "shippin.platform.setting.update": { args: [params: { settingId: string }, body: SettingUpdateInput & { reason: string }]; output: SettingsView; risk: "write"; event: "shippin.platform.setting.updated" };
+  "shippin.platform.setting.version.list": { args: [params: { settingId: string }]; output: { items: Version[] }; risk: "read"; event: never };
   "shippin.runtime.runner.delete": { args: [params: { runnerId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.runtime.runner.deleted" };
   "shippin.runtime.runner.list": { args: [params?: { state?: string }]; output: { items: Runner[] }; risk: "read"; event: never };
   "shippin.runtime.runner_job.get": { args: [params: { tenantId: string; runnerJobId: string }]; output: RunnerJob; risk: "read"; event: never };

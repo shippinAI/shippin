@@ -5,13 +5,19 @@ package actions
 import (
 	identity_access_key "shippin.cloud/console/internal/identity/access_key"
 	identity_ssh_key "shippin.cloud/console/internal/identity/ssh_key"
+	integrations_github_app "shippin.cloud/console/internal/integrations/github_app"
 	integrations_github_installation "shippin.cloud/console/internal/integrations/github_installation"
 	integrations_github_repository "shippin.cloud/console/internal/integrations/github_repository"
 	"shippin.cloud/console/internal/mcpl"
+	platform_job_queue "shippin.cloud/console/internal/platform/job_queue"
+	platform_secret_store "shippin.cloud/console/internal/platform/secret_store"
+	platform_setting "shippin.cloud/console/internal/platform/setting"
+	platform_setting_version "shippin.cloud/console/internal/platform/setting/version"
 	runtime_runner "shippin.cloud/console/internal/runtime/runner"
 	runtime_runner_job "shippin.cloud/console/internal/runtime/runner_job"
 	services_catalog_service "shippin.cloud/console/internal/services/catalog_service"
 	services_runner_size "shippin.cloud/console/internal/services/runner_size"
+	"shippin.cloud/console/internal/settings"
 	tenancy_acquisition_source "shippin.cloud/console/internal/tenancy/acquisition_source"
 	tenancy_acquisition_source_lead "shippin.cloud/console/internal/tenancy/acquisition_source/lead"
 	tenancy_coverage "shippin.cloud/console/internal/tenancy/coverage"
@@ -36,6 +42,14 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.integrations.github_repository.delete", integrations_github_repository.Delete),
 	mcpl.Register("shippin.integrations.github_repository.list", integrations_github_repository.List),
 	mcpl.Register("shippin.integrations.github_repository.update", integrations_github_repository.Update),
+	mcpl.Register("shippin.platform.secret_store.delete", platform_secret_store.Delete),
+	mcpl.Register("shippin.platform.secret_store.get", platform_secret_store.Get),
+	mcpl.Register("shippin.platform.secret_store.test", platform_secret_store.Test),
+	mcpl.Register("shippin.platform.secret_store.update", platform_secret_store.Update),
+	mcpl.Register("shippin.platform.setting.get", platform_setting.Get),
+	mcpl.Register("shippin.platform.setting.list", platform_setting.List),
+	mcpl.Register("shippin.platform.setting.update", platform_setting.Update),
+	mcpl.Register("shippin.platform.setting.version.list", platform_setting_version.List),
 	mcpl.Register("shippin.runtime.runner.delete", runtime_runner.Delete),
 	mcpl.Register("shippin.runtime.runner.list", runtime_runner.List),
 	mcpl.Register("shippin.runtime.runner_job.get", runtime_runner_job.Get),
@@ -85,10 +99,18 @@ var All = []mcpl.Registered{
 // Reactions is every reaction, in ID order.
 var Reactions = []mcpl.RegisteredReaction{
 	mcpl.React("shippin.identity.ssh_key.push_to_workspaces", identity_ssh_key.PushToWorkspaces),
+	mcpl.React("shippin.platform.setting.remove_retired", platform_setting.RemoveRetired),
 	mcpl.React("shippin.runtime.runner.remove_machine", runtime_runner.RemoveMachine),
 }
 
 // Providers are the entities' own services, by package.
 var Providers = []mcpl.Provider{
 	tenancy_acquisition_source.Services,
+}
+
+// Settings are the entities' settings sections, by package (docs/settings.md).
+var Settings = []settings.Section{
+	integrations_github_app.Settings,
+	platform_job_queue.Settings,
+	runtime_runner.Settings,
 }

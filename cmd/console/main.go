@@ -76,6 +76,7 @@ func main() {
 	consoleAPI.RegisterHub(mux)
 	consoleAPI.RegisterVaultixHosted(mux)
 	go consoleAPI.RunSweeper(ctx)
+	go consoleAPI.RunSettings(ctx)
 	go consoleAPI.RunNetworkInventory(ctx)
 	go consoleAPI.RunPlatformHealth(ctx)
 	go consoleAPI.RunAcquisitionRetention(ctx)

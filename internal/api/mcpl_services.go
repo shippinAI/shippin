@@ -10,6 +10,7 @@ import (
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/ports"
+	"shippin.cloud/console/internal/settings"
 )
 
 // provideServices hands actions and reactions what they Need besides the database. Each entity
@@ -29,6 +30,13 @@ func (a *API) provideServices(s mcpl.Services) {
 	// actions fail closed through mcpl.Need.
 	if seal, err := a.sealer(); err == nil {
 		mcpl.Provide[ports.Sealer](s, seal)
+	}
+	// The settings and the secret store their keys go to (docs/settings.md).
+	if a.settings != nil {
+		mcpl.Provide[*settings.Store](s, a.settings)
+	}
+	if st := a.secretStore(); st != nil {
+		mcpl.Provide[ports.Secrets](s, st)
 	}
 }
 
