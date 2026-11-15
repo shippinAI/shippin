@@ -482,6 +482,29 @@ export type ProvisionIntentCreateInput = {
 
 export type ProvisionIntentStatus = "pending" | "ticketed" | "applied" | "failed" | "cancelled";
 
+export type Runner = {
+  id: string;
+  tenant_id: string;
+  organization: string;
+  runner_job_id: string;
+  github_job_id: string;
+  repository: string;
+  assigned_job_id: string | null;
+  server_id: string | null;
+  server: string;
+  name: string;
+  guest: string;
+  size: string;
+  state: RunnerState;
+  attempt: number;
+  error: string;
+  removal_reason: string;
+  created_at: string;
+  started_at: string | null;
+  removed_at: string | null;
+  age_seconds: number;
+};
+
 export type RunnerJob = {
   id: string;
   github_job_id: string;
@@ -535,6 +558,8 @@ export type RunnerSizeUpdateInput = {
   active?: boolean | null;
 };
 
+export type RunnerState = "starting" | "running" | "removing" | "removed" | "failed";
+
 export type ServiceCell = {
   enabled?: boolean | null;
   lock?: CatalogLock;
@@ -578,6 +603,8 @@ export const routes = {
   "shippin.integrations.github_repository.delete": "DELETE /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
   "shippin.integrations.github_repository.list": "GET /v1/tenants/{tenantId}/integrations/github-repositories",
   "shippin.integrations.github_repository.update": "PUT /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
+  "shippin.runtime.runner.delete": "DELETE /v1/operator/runtime/runners/{runnerId}",
+  "shippin.runtime.runner.list": "GET /v1/operator/runtime/runners",
   "shippin.runtime.runner_job.get": "GET /v1/tenants/{tenantId}/runtime/runner-jobs/{runnerJobId}",
   "shippin.runtime.runner_job.list": "GET /v1/tenants/{tenantId}/runtime/runner-jobs",
   "shippin.services.catalog_service.create": "POST /v1/operator/services/catalog-services",
@@ -637,6 +664,8 @@ export type ActionTypes = {
   "shippin.integrations.github_repository.delete": { args: [params: { tenantId: string; githubRepositoryId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.integrations.github_repository.deleted" };
   "shippin.integrations.github_repository.list": { args: [params: { tenantId: string }]; output: { items: GithubRepository[] }; risk: "read"; event: never };
   "shippin.integrations.github_repository.update": { args: [params: { tenantId: string; githubRepositoryId: string }, body: GithubRepositoryUpdateInput & { reason?: string }]; output: GithubRepository; risk: "write"; event: "shippin.integrations.github_repository.updated" };
+  "shippin.runtime.runner.delete": { args: [params: { runnerId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.runtime.runner.deleted" };
+  "shippin.runtime.runner.list": { args: [params?: { state?: string }]; output: { items: Runner[] }; risk: "read"; event: never };
   "shippin.runtime.runner_job.get": { args: [params: { tenantId: string; runnerJobId: string }]; output: RunnerJob; risk: "read"; event: never };
   "shippin.runtime.runner_job.list": { args: [params: { tenantId: string; workspace?: string }]; output: { items: RunnerJob[] }; risk: "read"; event: never };
   "shippin.services.catalog_service.create": { args: [params: Record<string, never>, body: CatalogServiceCreateInput & { reason: string }]; output: CatalogService; risk: "write"; event: "shippin.services.catalog_service.created" };

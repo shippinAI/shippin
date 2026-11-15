@@ -8,6 +8,7 @@ import (
 	integrations_github_installation "shippin.cloud/console/internal/integrations/github_installation"
 	integrations_github_repository "shippin.cloud/console/internal/integrations/github_repository"
 	"shippin.cloud/console/internal/mcpl"
+	runtime_runner "shippin.cloud/console/internal/runtime/runner"
 	runtime_runner_job "shippin.cloud/console/internal/runtime/runner_job"
 	services_catalog_service "shippin.cloud/console/internal/services/catalog_service"
 	services_runner_size "shippin.cloud/console/internal/services/runner_size"
@@ -35,6 +36,8 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.integrations.github_repository.delete", integrations_github_repository.Delete),
 	mcpl.Register("shippin.integrations.github_repository.list", integrations_github_repository.List),
 	mcpl.Register("shippin.integrations.github_repository.update", integrations_github_repository.Update),
+	mcpl.Register("shippin.runtime.runner.delete", runtime_runner.Delete),
+	mcpl.Register("shippin.runtime.runner.list", runtime_runner.List),
 	mcpl.Register("shippin.runtime.runner_job.get", runtime_runner_job.Get),
 	mcpl.Register("shippin.runtime.runner_job.list", runtime_runner_job.List),
 	mcpl.Register("shippin.services.catalog_service.create", services_catalog_service.Create),
@@ -82,6 +85,7 @@ var All = []mcpl.Registered{
 // Reactions is every reaction, in ID order.
 var Reactions = []mcpl.RegisteredReaction{
 	mcpl.React("shippin.identity.ssh_key.push_to_workspaces", identity_ssh_key.PushToWorkspaces),
+	mcpl.React("shippin.runtime.runner.remove_machine", runtime_runner.RemoveMachine),
 }
 
 // Providers are the entities' own services, by package.

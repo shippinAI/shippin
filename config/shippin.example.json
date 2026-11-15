@@ -223,6 +223,12 @@
     "idempotency_hours": 24,
     "provision_planned_boundaries": false
   },
+  "runners": {
+    "enabled": false,
+    "fleet": "",
+    "storage": "",
+    "job_limit_minutes": 360
+  },
   "ai": {
     "enabled": false,
     "providers": [

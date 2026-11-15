@@ -51,7 +51,8 @@ func (a *API) githubWebhook(w http.ResponseWriter, r *http.Request) {
 }
 
 // applyEvent maps installation, installation_repositories and repository events onto sources, and
-// workflow_job events onto the organization's runner jobs (internal/runtime/runner_job).
+// workflow_job events onto the organization's runner jobs (internal/runtime/runner_job) and their
+// machines (internal/runtime/runner).
 func (a *API) applyEvent(ctx context.Context, kind string, e *gh.Event) {
 	inst := e.Installation.ID
 	var err error
@@ -73,11 +74,16 @@ func (a *API) applyEvent(ctx context.Context, kind string, e *gh.Event) {
 	case kind == "workflow_job" && e.WorkflowJob != nil && e.Repository != nil:
 		j := e.WorkflowJob
 		var out runner_job.Outcome
-		out, err = runner_job.Receive(ctx, a.db.Pool, runner_job.Webhook{Action: e.Action, InstallationID: inst,
+		hook := runner_job.Webhook{Action: e.Action, InstallationID: inst,
 			RepositoryID: e.Repository.ID, Repository: e.Repository.FullName, JobID: j.ID, RunID: j.RunID, Name: j.Name,
-			Labels: j.Labels, RunnerName: j.RunnerName, Conclusion: j.Conclusion, StartedAt: j.StartedAt, CompletedAt: j.CompletedAt})
+			Labels: j.Labels, RunnerName: j.RunnerName, Conclusion: j.Conclusion, StartedAt: j.StartedAt, CompletedAt: j.CompletedAt}
+		out, err = runner_job.Receive(ctx, a.db.Pool, hook)
 		if err == nil && out.Status == runner_job.Refused {
 			log.Printf("github webhook: runner job %s refused: %s", out.JobID, out.Reason)
+		}
+		if err == nil {
+			// Start a waiting job's machine, or remove the machine of one that ended (internal/runtime/runner).
+			a.runnerJobMoved(ctx, hook, out)
 		}
 	}
 	if err != nil {

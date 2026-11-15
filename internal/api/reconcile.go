@@ -53,6 +53,7 @@ func (a *API) reconcileOnce(ctx context.Context, drift bool) bool {
 	}
 	a.stopIdleTerminals(ctx)
 	a.githubMaintenance(ctx)
+	a.sweepRunners(ctx)
 	if _, err := a.jobs.Prune(ctx, config.Sec(j.KeepDays*86400)); err != nil {
 		log.Printf("reconcile: prune jobs: %v", err)
 	}

@@ -37,4 +37,6 @@ func (a *API) registerJobs(r *jobs.Runner) {
 	r.Register(jobs.KindAgentStart, a.runAgentStartJob)
 	r.Register(jobs.KindServiceProvision, a.runServiceJob)
 	r.Register(jobs.KindDeploymentReconcile, a.runDeploymentReconcileJob)
+	r.Register(jobs.KindRunnerProvision, a.runRunnerProvision)
+	r.Register(jobs.KindRunnerRemove, a.runRunnerRemove)
 }

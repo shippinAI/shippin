@@ -30,6 +30,10 @@ const (
 	KindAgentStart          = "agent.start"          // M4: deliver the prompt and start the user's own CLI agent
 	KindServiceProvision    = "service.provision"    // managed service instance (rrflow/state) + binding
 	KindDeploymentReconcile = "deployment.reconcile" // desired deployment state; payload is identifier-only
+	// Build runners (internal/runtime/runner): start the machine for one runner job, and remove one
+	// machine. Each handler is safe to run again.
+	KindRunnerProvision = "runner.provision"
+	KindRunnerRemove    = "runner.remove"
 )
 
 var (

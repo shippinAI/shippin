@@ -46,6 +46,7 @@ POST /v1/operator/staff-mode/exit
 GET /v1/operator/tenants/{tenantId}/vm
 GET /v1/operator/tenants/{tenantId}/apps
 GET /v1/operator/boundaries
+GET /v1/operator/runtime/runners
 GET /v1/operator/workspaces
 GET /v1/operator/identity
 GET /v1/operator/templates
@@ -70,6 +71,7 @@ POST /v1/operator/staff-mode/exit
 GET /v1/operator/tenants/{tenantId}/vm
 GET /v1/operator/tenants/{tenantId}/apps
 GET /v1/operator/boundaries
+GET /v1/operator/runtime/runners
 GET /v1/operator/workspaces
 GET /v1/operator/templates
 GET /v1/operator/host

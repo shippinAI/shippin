@@ -52,6 +52,55 @@ Nothing here is a second process or a second GitHub integration.
    the minutes, and a `runner.remove` job deletes the VM. A VM older than the job time limit is
    removed regardless.
 
+### As built (stage 2)
+
+Code: `internal/runtime/runner` (`dispatch.go`, the staff entity, the removal reaction), with the
+host ports `ports.GitHub.JITConfig` and `ports.Machines` provided by the panel
+(`internal/api/runners.go`).
+
+- **Machines.** `shippin_runner_machines` (migration 075) holds one row per runner job, ever
+  (`runner_job_id` is unique), so a job is never started twice. The row carries the organization in
+  its reference to the job, the host, the hypervisor's id (`guest`, which is also the runner's name
+  on GitHub), the attempt and the state: `starting`, `running`, `removing`, `removed`, `failed`.
+  The runner configuration is never in it.
+- **Starting.** `runner.provision` (target: the runner job) is queued when a job is recorded as
+  waiting, and by the sweep. Under a per-organization lock it starts the job only if the
+  organization has fewer machines not yet removed than its plan's `svc.runners.concurrent`
+  (`catalog.EffectiveFor`; a plan without runners, or 0, runs nothing) and no earlier waiting job of
+  the organization would be passed over. It places the machine on the least loaded host of the
+  configured fleet, records it, then registers the runner, makes the VM with cloud-init user data
+  and records it running. An attempt holds the machine for 15 minutes, so a second run of the same
+  job finds it busy; a failed attempt is carried on by the next with a new runner name, after
+  deleting what it left; the last failed attempt leaves the machine `failed` and the job says
+  Shippin could not start a runner.
+- **Fairness.** The sweep queues starts for each organization's room only, taking one job from each
+  organization in turn, so one organization's backlog never queues ahead of another's first job.
+- **Removal.** `workflow_job` `completed` (or `cancelled`) marks for removal the machine whose
+  runner ran the job (by runner name) and the machine started for the job if its runner never took
+  another, then queues `runner.remove` (target: the machine). GitHub may give a waiting runner any
+  queued job of the same repository and labels, which is why `in_progress` records the job each
+  runner took. A failed delete leaves the machine `failed` with the error; the sweep tries again.
+  After a removal the organization's next waiting jobs are queued.
+- **Sweep.** The reconciler runs it every `jobs.reconcile_seconds`: machines older than
+  `runners.job_limit_minutes` are marked for removal, removals that failed or were cut short are
+  queued again, and waiting jobs are queued where there is room.
+- **Staff.** `runtime/runner` list (`infra.read`) and delete (`infra.guests.manage`, with a reason);
+  the reaction `remove_machine` deletes it from its host once the change is committed. Machine
+  creates and deletes are in the host's change history as "Build runners".
+- **Configuration.** `runners` in the panel's configuration: `enabled` (needs `jobs.enabled`),
+  `fleet` (the fleet whose hosts run runner machines; staff add hosts to it in the panel), `storage`
+  (the pool for the root disk sized from the runner size; empty keeps the profile's) and
+  `job_limit_minutes`. Which organizations get runners, which sizes and how many at once stay plan
+  settings.
+- **Providers.** Incus passes the user data as `cloud-init.user-data` and sizes the root disk when
+  a pool is set. Proxmox refuses user data as unsupported for now; a bare server has no guest API.
+
+Known limits: a job canceled while the machine started for it has just been given another job,
+before GitHub says so, can take that machine with it; a host that stays down fails a job's start
+after its attempts and the job then waits without a runner until GitHub gives up on it; removing a
+machine does not yet delete an unused runner registration on GitHub (GitHub drops single-use
+runners that never connect).
+
 ## Isolation
 
 - One VM per job, per organization. Runners are never pooled, reused or shared.
@@ -64,6 +113,10 @@ Nothing here is a second process or a second GitHub integration.
 
 A runner image is a provider setting: an Incus or Proxmox image with the GitHub Actions runner
 installed, built from a pinned release whose checksum is verified, with its provenance recorded.
+Dispatch expects, in a VM image with cloud-init: the runner unpacked in `/opt/actions-runner`, a
+user `runner` that owns it, and `runuser`. The first boot writes the configuration root-only to
+`/run/shippin-runner/config`, runs `./run.sh --jitconfig` once as `runner`, removes the
+configuration and powers off. No such image is built yet.
 Customers' own runners (catalog entry, CAT-01) install the same pinned release on their machine and
 are labelled customer-owned.
 
@@ -72,7 +125,9 @@ are labelled customer-owned.
 The panel's GitHub App (configured as for project import) must also:
 - subscribe to the **Workflow job** event, with **Actions: read**, for jobs to reach the panel;
 - have **Administration: read and write** on repositories, for just-in-time runner configurations
-  (stage 2).
+  (stage 2). Each configuration is asked for with an installation token narrowed to the job's one
+  repository and `administration: write`, and the runner joins the repository's default runner
+  group (id 1).
 
 ## Order
 
@@ -81,7 +136,12 @@ The panel's GitHub App (configured as for project import) must also:
    against its organization, waiting or refused with the reason, then moved on by `in_progress` and
    `completed`. Database tests with a fake GitHub cover two organizations side by side; the webhook
    route is tested with signed and unsigned deliveries.
-2. Dispatch: JIT configuration and a VM per job on Incus in the local rig, then removal.
+2. **Built 2026-11-15, on a branch.** Dispatch: JIT configuration and a VM per job, then removal
+   (As built, above). Database tests with a fake GitHub and fake hosts cover arrival order, the
+   limit per organization, fairness between two organizations, no double start, removal on
+   completion, cancellation and timeout, failures, and organizations kept apart. On the local Incus
+   rig a cloud-init container (the rig cannot run VMs) was made with the dispatch user data, ran it
+   and powered off, and was removed. Not yet proved: a VM, a runner image, and a real GitHub job.
 3. The panel: the workspace's runner pages and staff's runner list, on generated calls.
 4. Proxmox, then public clouds and customers' own servers as they land.
 5. The catalog entry for a customer's own runner; usage records for metering (stage 14).

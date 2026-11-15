@@ -38,6 +38,10 @@ type GuestSpec struct {
 	Cores         int
 	Disk          int // GiB
 	Start         bool
+	// UserData is cloud-init user data for the guest's first boot. It may carry a credential, so a
+	// driver passes it only to the guest and never puts it in an error or a log. A driver that cannot
+	// deliver it refuses the guest with ErrUnsupported rather than making it without.
+	UserData string
 }
 
 // Image is something a guest can be made from.

@@ -2285,6 +2285,125 @@
         ],
         "type": "string"
       },
+      "Runner": {
+        "additionalProperties": false,
+        "properties": {
+          "age_seconds": {
+            "type": "integer"
+          },
+          "assigned_job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attempt": {
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "github_job_id": {
+            "type": "string"
+          },
+          "guest": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "organization": {
+            "type": "string"
+          },
+          "removal_reason": {
+            "type": "string"
+          },
+          "removed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repository": {
+            "type": "string"
+          },
+          "runner_job_id": {
+            "type": "string"
+          },
+          "server": {
+            "type": "string"
+          },
+          "server_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "size": {
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/RunnerState"
+          },
+          "tenant_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "organization",
+          "runner_job_id",
+          "github_job_id",
+          "repository",
+          "assigned_job_id",
+          "server_id",
+          "server",
+          "name",
+          "guest",
+          "size",
+          "state",
+          "attempt",
+          "error",
+          "removal_reason",
+          "created_at",
+          "started_at",
+          "removed_at",
+          "age_seconds"
+        ],
+        "type": "object"
+      },
       "RunnerJob": {
         "additionalProperties": false,
         "properties": {
@@ -2543,6 +2662,16 @@
           "image"
         ],
         "type": "object"
+      },
+      "RunnerState": {
+        "enum": [
+          "starting",
+          "running",
+          "removing",
+          "removed",
+          "failed"
+        ],
+        "type": "string"
       },
       "ServiceCell": {
         "additionalProperties": false,
@@ -3015,6 +3144,128 @@
           "event": "shippin.identity.ssh_key.deleted",
           "id": "shippin.identity.ssh_key.delete",
           "reason": false,
+          "risk": "destructive"
+        }
+      }
+    },
+    "/operator/runtime/runners": {
+      "get": {
+        "operationId": "shippin.runtime.runner.list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/Runner"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List every runner machine, with its organization, job, host, state and age.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.runtime.runner.list",
+          "perm": "infra.read",
+          "reason": false,
+          "risk": "read"
+        }
+      }
+    },
+    "/operator/runtime/runners/{runnerId}": {
+      "delete": {
+        "operationId": "shippin.runtime.runner.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runnerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Remove a stuck runner machine, with a reason.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.runtime.runner.deleted",
+          "id": "shippin.runtime.runner.delete",
+          "perm": "infra.guests.manage",
+          "reason": true,
           "risk": "destructive"
         }
       }
