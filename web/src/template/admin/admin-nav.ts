@@ -1,4 +1,4 @@
-import { Blocks, Boxes, Braces, Building2, Contact, Cpu, Database, Layers, Fingerprint, Globe, LayoutTemplate, Palette, Rocket, Server, ShieldCheck, SlidersHorizontal, UserPlus, UsersRound } from "lucide-react";
+import { Blocks, Boxes, Braces, Building2, Contact, Cpu, Database, Layers, Fingerprint, Globe, KeyRound, LayoutTemplate, Palette, Rocket, Server, ShieldCheck, SlidersHorizontal, UserPlus, UsersRound } from "lucide-react";
 import type { NavItem, NavSection } from "../nav-items";
 
 export type AdminGroup = NavSection & { items: NavItem[] };
@@ -23,6 +23,8 @@ export const adminGroups: AdminGroup[] = [
     id: "admin.platform", label: "Platform",
     items: [
       { id: "admin.built-in", label: "Built-in services", icon: Database, to: "/admin/built-in", hue: "var(--color-hue-data)", cap: "platform.settings.read" },
+      { id: "admin.settings", label: "Settings", icon: SlidersHorizontal, to: "/admin/settings", hue: "var(--color-hue-data)", cap: "platform.settings.read", prefix: true },
+      { id: "admin.secret-store", label: "Secret store", icon: KeyRound, to: "/admin/secret-store", hue: "var(--color-hue-secrets)", cap: "platform.settings.read" },
       { id: "admin.platform", label: "Platform settings", icon: SlidersHorizontal, to: "/admin/platform", hue: "var(--color-hue-data)", cap: "platform.settings.read" },
       { id: "admin.interface", label: "Interface", icon: Palette, to: "/admin/interface", hue: "var(--color-hue-data)", cap: "platform.settings.read" },
     ],

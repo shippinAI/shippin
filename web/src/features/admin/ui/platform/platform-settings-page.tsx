@@ -1,3 +1,4 @@
+import { LinkButton } from "../../../../lib/design/components/button/link-button";
 import { Card, CardHeader } from "../../../../lib/design/components/card/card";
 import { usePlatformSettings } from "../../../../lib/hooks/use-platform-settings";
 import { useAdminAccess } from "../../../../lib/hooks/use-admin";
@@ -12,7 +13,9 @@ export function PlatformSettingsPage() {
   const canWrite = (useAdminAccess().data?.staff?.permissions ?? []).includes("platform.settings.write");
   return (
     <>
-      <PageHeader title="Platform settings" description="Overrides of selected config keys. Every change needs a reason and is audited." />
+      <PageHeader title="Platform settings"
+        description="Overrides of selected config keys. Every change needs a reason and is audited. Sections such as build runners, the job queue and the GitHub App are edited on the Settings page, and more move there over time."
+        actions={<LinkButton href="/admin/settings" variant="secondary" size="sm" tooltip="Edit this installation's settings sections, with keys kept in Vaultix">Settings</LinkButton>} />
       {q.isError && <p role="alert" className="text-base text-danger">{q.error.message}</p>}
       {q.data && (
         <Card>
