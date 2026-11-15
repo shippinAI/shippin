@@ -43,6 +43,9 @@ type caller struct {
 }
 
 func (a *API) caller(w http.ResponseWriter, r *http.Request) (*caller, bool) {
+	if a.resolveCaller != nil { // tests only
+		return a.resolveCaller(w, r)
+	}
 	var c *caller
 	var err error
 	if uid := auth.LocalUser(r.Context()); uid != "" && auth.FromContext(r.Context()) == "" {

@@ -1,11 +1,24 @@
 #!/bin/bash
 # The console Terminal view's shell (hostd runs it as the workspace user, in its home).
-#   shippin-term          attach to (or create) the Zellij session "shippin"
-#   shippin-term plain    a plain login shell, no multiplexer
+#   shippin-term [zellij] [name]   attach to (or create) the Zellij session "shippin"
+#   shippin-term plain             a plain login shell, no multiplexer
 # Falls back to bash -l when Zellij is missing or the user set SHIPPIN_TERM=plain.
+# name is the workspace's name (hostd passes a valid label only). A new session names its first
+# tab after it, so the bar at the bottom shows which workspace this is. An existing session
+# keeps its own layout: Zellij applies --layout only when it creates the session.
 export ZELLIJ_CONFIG_DIR=${ZELLIJ_CONFIG_DIR:-/etc/zellij}
 [ -r ~/.config/shippin/term ] && . ~/.config/shippin/term   # optional: SHIPPIN_TERM=plain
 if [ "${1:-zellij}" = plain ] || [ "${SHIPPIN_TERM:-zellij}" = plain ] || ! command -v zellij >/dev/null || [ -n "${ZELLIJ:-}" ]; then
   exec bash -l
 fi
-exec bash -lc 'exec zellij --layout shippin attach --create shippin'
+layout=shippin
+name=${2:-}
+case $name in ''|*[!a-z0-9-]*) name= ;; esac
+src=$ZELLIJ_CONFIG_DIR/layouts/shippin.kdl
+if [ -n "$name" ] && [ -r "$src" ]; then
+  dir=${XDG_CACHE_HOME:-$HOME/.cache}/shippin
+  if mkdir -p "$dir" && sed "s/^\( *\)tab name=\"shell\"/\1tab name=\"$name\"/" "$src" > "$dir/zellij-layout.kdl"; then
+    layout=$dir/zellij-layout.kdl
+  fi
+fi
+exec bash -lc 'exec zellij --layout "$1" attach --create shippin' shippin-term "$layout"
