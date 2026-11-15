@@ -18,3 +18,7 @@ An entry is `proposed` until the person confirms it (`confirm ID`). `import` rea
 ```
 
 Put that in `.claude/settings.local.json` for one project, or in `~/.claude/settings.json` with the script's absolute path for every project. The format can later become COACH-01's notes on a person, which belong to that person.
+
+### Prompt recipes
+
+A recipe is a kind of request the person makes often, drawn from their own clearest prompts. It holds the phrases that signal it, the questions to settle before work starts (each with why it matters, and where the answer can be gathered instead of asked), the standing rules for that kind of work, and what it produces: an objective, ordered tasks and the checks that mean done. Files are `recipes/<status>/<id>.json` in either store (`schema_version` 1; `checkRecipe` in `lexicon.mjs` is the contract), proposed until the person confirms them with `recipe-confirm ID`. When a prompt reads like a confirmed recipe, the hook adds its questions and checks so the missing inputs are asked for together, once, before work starts. `recipe-match TEXT` shows what it would add.

@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { Lexicon, matches, hookOutput, importChats, sync, redact, ownWords, distance, misspellings, words } from '../lexicon.mjs';
+import { Lexicon, matches, hookOutput, importChats, sync, redact, ownWords, distance, misspellings, words, checkRecipe, recipeFor } from '../lexicon.mjs';
 
 const cli = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'lexicon.mjs');
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'lexicon-'));
@@ -165,4 +165,42 @@ test('sync copies only this project\'s chats into its ignored folder', async () 
   assert.equal(r.prompts, 1);
   assert.equal(fs.readFileSync(path.join(root, '.ai', 'lexicon', 'chats.jsonl'), 'utf8').includes('not mine'), false);
   assert.ok(JSON.parse(fs.readFileSync(path.join(home, 'projects.json'), 'utf8'))[root]);
+});
+
+const recipe = {
+  schema_version: 1, id: 'plan-first', title: 'Plan first', intent: 'Get a plan before building.', status: 'proposed',
+  triggers: { phrases: ['plan this out', 'before we build'], contexts: [] },
+  asks: [
+    { name: 'goal', question: 'What should be true when this is done?', type: 'text', required: true, default_from: null },
+    { name: 'gate', question: 'Read-only until approved?', type: 'choice', choices: ['yes', 'no'], required: true, default_from: 'AGENTS.md' },
+  ],
+  produces: { objective: 'Plan {goal}.', tasks: ['Read the code.'], checks: ['Every step cites a file.'] },
+  guards: ['Do not guess.'], examples: [],
+};
+const put = (dir, r) => { const d = path.join(dir, 'recipes', r.status); fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, `${r.id}.json`), JSON.stringify(r)); };
+
+test('a recipe is checked whole and its placeholders must be asked for', () => {
+  assert.doesNotThrow(() => checkRecipe(recipe));
+  assert.throws(() => checkRecipe({ ...recipe, produces: { ...recipe.produces, objective: 'Plan {nothing}.' } }), /\{nothing\}/);
+  assert.throws(() => checkRecipe({ ...recipe, asks: [{ ...recipe.asks[1], choices: ['only'] }] }), /choices/);
+  assert.throws(() => checkRecipe({ ...recipe, triggers: { phrases: [] } }), /phrases/);
+  assert.throws(() => checkRecipe({ ...recipe, asks: [recipe.asks[0], recipe.asks[0]] }), /two asks/);
+});
+
+test('only a confirmed recipe shapes the hook, and confirming moves its file', () => {
+  const home = tmp();
+  const lex = new Lexicon({ home, root: project() });
+  put(home, recipe);
+  assert.equal(hookOutput(lex, { prompt: 'plan this out before we build it' }), '', 'a proposed recipe is not used');
+  const moved = lex.setRecipeStatus('plan-first', 'confirmed');
+  assert.ok(moved.file.endsWith(path.join('recipes', 'confirmed', 'plan-first.json')));
+  assert.ok(!fs.existsSync(path.join(home, 'recipes', 'proposed', 'plan-first.json')));
+  assert.equal(recipeFor('please plan this out', lex.recipes()).id, 'plan-first');
+  assert.equal(recipeFor('ship it now', lex.recipes()), null);
+  const ctx = JSON.parse(hookOutput(lex, { prompt: 'plan this out before we build it' })).hookSpecificOutput.additionalContext;
+  assert.match(ctx, /"Plan first" request/);
+  assert.match(ctx, /Read-only until approved\? \(yes \/ no\) Gather from AGENTS\.md first/);
+  assert.match(ctx, /Done means: Every step cites a file\./);
+  fs.writeFileSync(path.join(home, 'recipes', 'confirmed', 'plan-first.json'), JSON.stringify({ ...recipe, status: 'proposed' }));
+  assert.throws(() => lex.recipes(), /in the confirmed folder/);
 });

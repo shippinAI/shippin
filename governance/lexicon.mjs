@@ -225,14 +225,106 @@ export function matches(text, entries) {
     .sort((a, b) => a.at - b.at);
 }
 
+// ---- prompt recipes ----
+// A recipe is a kind of request the person makes often: what signals it, what to ask before starting
+// (and where an answer can be gathered instead of asked), and what it produces. Files live in
+// <store>/recipes/<status>/<id>.json, global or project; a project's recipe wins.
+
+const ASK_TYPES = ['text', 'choice', 'list', 'boolean', 'path', 'url'];
+const strs = (v, label, fail, { min = 0 } = {}) => {
+  if (!Array.isArray(v) || v.length < min || v.some(s => typeof s !== 'string' || !s.trim())) fail(`${label} is a list of text${min ? ` with at least ${min}` : ''}`);
+};
+export function checkRecipe(r) {
+  const fail = m => { throw new Error(`recipe ${r?.id ?? '?'}: ${m}`); };
+  if (!r || typeof r !== 'object' || r.schema_version !== 1) fail('schema_version must be 1');
+  if (!ID.test(r.id ?? '')) fail('id must be lower-case letters, digits and dashes');
+  for (const k of ['title', 'intent']) if (typeof r[k] !== 'string' || !r[k].trim()) fail(`${k} is required`);
+  if (!STATUSES.includes(r.status)) fail(`status is one of ${STATUSES.join(', ')}`);
+  strs(r.triggers?.phrases, 'triggers.phrases', fail, { min: 1 });
+  strs(r.triggers?.contexts ?? [], 'triggers.contexts', fail);
+  if (!Array.isArray(r.asks) || !r.asks.length) fail('at least one ask');
+  const names = new Set();
+  for (const a of r.asks) {
+    if (!/^[a-z][a-z0-9_]*$/.test(a.name ?? '')) fail('an ask name is snake_case');
+    if (names.has(a.name)) fail(`two asks named ${a.name}`);
+    names.add(a.name);
+    if (typeof a.question !== 'string' || !a.question.trim()) fail(`${a.name}: question is required`);
+    if (!ASK_TYPES.includes(a.type)) fail(`${a.name}: type is one of ${ASK_TYPES.join(', ')}`);
+    if (a.type === 'choice') strs(a.choices, `${a.name}: choices`, fail, { min: 2 });
+    if (typeof a.required !== 'boolean') fail(`${a.name}: required is true or false`);
+    if (a.default_from !== null && a.default_from !== undefined && typeof a.default_from !== 'string') fail(`${a.name}: default_from is text or null`);
+  }
+  if (typeof r.produces?.objective !== 'string') fail('produces.objective is required');
+  strs(r.produces.tasks, 'produces.tasks', fail, { min: 1 });
+  strs(r.produces.checks, 'produces.checks', fail, { min: 1 });
+  for (const m of JSON.stringify(r.produces).matchAll(/\{([a-z][a-z0-9_]*)\}/g)) if (!names.has(m[1])) fail(`produces names {${m[1]}}, which no ask provides`);
+  strs(r.guards ?? [], 'guards', fail);
+  if (!Array.isArray(r.examples ?? [])) fail('examples is a list');
+  return r;
+}
+function recipeFiles(dir) {
+  const out = [];
+  for (const status of STATUSES) {
+    const d = path.join(dir, 'recipes', status);
+    let names = [];
+    try { names = fs.readdirSync(d).filter(n => n.endsWith('.json')); } catch { continue; }
+    for (const n of names) out.push({ file: path.join(d, n), status });
+  }
+  return out;
+}
+Lexicon.prototype.recipes = function recipes() {
+  const seen = new Set(), out = [];
+  for (const scope of ['project', 'global']) for (const { file, status } of recipeFiles(this.dirs[scope])) {
+    const r = checkRecipe(readJSON(file));
+    if (r.status !== status) throw new Error(`${file}: status ${r.status} is in the ${status} folder`);
+    if (seen.has(r.id)) continue;
+    seen.add(r.id);
+    out.push({ ...r, scope, file });
+  }
+  return out;
+};
+Lexicon.prototype.setRecipeStatus = function setRecipeStatus(id, status) {
+  if (!STATUSES.includes(status)) throw new Error('unknown status');
+  const r = this.recipes().find(x => x.id === id);
+  if (!r) throw new Error(`no recipe ${id}`);
+  if (r.scope === 'project' && !projectIgnored(this.root)) throw new Error(`Git does not ignore ${this.dirs.project}: add /.ai/lexicon/ to .gitignore first`);
+  const { scope, file, ...recipe } = r;
+  const to = path.join(this.dirs[scope], 'recipes', status, `${id}.json`);
+  writeJSON(to, checkRecipe({ ...recipe, status, updated_at: now() }));
+  if (to !== file) fs.unlinkSync(file);
+  return { ...recipe, status, scope, file: to };
+};
+
+// The confirmed recipe a prompt reads like: the most trigger phrases found, at least one.
+export function recipeFor(text, recipes) {
+  const t = prose(text).toLowerCase().replace(/\s+/g, ' ');
+  let best = null;
+  for (const r of recipes) {
+    const n = r.triggers.phrases.filter(p => t.includes(p.toLowerCase())).length;
+    if (n && (!best || n > best.n)) best = { recipe: r, n };
+  }
+  return best?.recipe ?? null;
+}
+function recipeContext(r) {
+  const asks = r.asks.map(a => `- ${a.question}${a.type === 'choice' ? ` (${a.choices.join(' / ')})` : ''}${a.default_from ? ` Gather from ${a.default_from} first; ask only if it isn't there.` : ''}${a.required ? '' : ' Optional.'}`);
+  return [`This reads like their "${r.title}" request: ${r.intent}`,
+    'Before starting, make sure these are known. Ask for the missing ones together in one short message, as choices with a recommended answer where there are choices; do not ask for what the prompt already says.',
+    ...asks,
+    ...(r.guards?.length ? ['Their standing rules for this kind of work:', ...r.guards.map(g => `- ${g}`)] : []),
+    `Done means: ${r.produces.checks.join(' ')}`].join('\n');
+}
+
 // ---- the prompt hook ----
 
 export function hookOutput(lex, input) {
   const prompt = String(input?.prompt ?? '');
   if (!prompt) return '';
   const { text } = ownWords(prompt);
+  const parts = [];
+  const recipe = recipeFor(text, lex.recipes().filter(r => r.status === 'confirmed'));
+  if (recipe) parts.push(recipeContext(recipe));
   const hits = matches(prose(text), lex.entries().filter(e => e.status === 'confirmed'));
-  if (!hits.length) return '';
+  if (!hits.length) return parts.length ? JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: parts.join('\n\n') } }) : '';
   const evidence = lex.evidence();
   const seen = new Set();
   const lines = [];
@@ -247,8 +339,8 @@ export function hookOutput(lex, input) {
   }
   fs.mkdirSync(lex.home, { recursive: true, mode: 0o700 });
   fs.appendFileSync(path.join(lex.home, 'sightings.jsonl'), sightings.map(s => JSON.stringify(s)).join('\n') + '\n', { mode: 0o600 });
-  const context = 'Lexicon: terms this person has confirmed. Read their words with these meanings, use the preferred term, and name each correction once, briefly, without lecturing.\n' + lines.join('\n');
-  return JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: context } });
+  parts.push('Lexicon: terms this person has confirmed. Read their words with these meanings, use the preferred term, and name each correction once, briefly, without lecturing.\n' + lines.join('\n'));
+  return JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: parts.join('\n\n') } });
 }
 
 // ---- importing chats ----
@@ -522,6 +614,9 @@ const USAGE = `node governance/lexicon.mjs <command>
   check TEXT...                 which entries the text uses (all statuses)
   import [--claude-code DIR]... [--codex DIR]... [--claude-export PATH]... [--chatgpt-export PATH]... [--no-defaults]
                                 reads chats into the global corpus; defaults: ~/.claude/projects and ~/.codex
+  recipes [--status S]          prompt recipes, project first (recipes/<status>/<id>.json in either store)
+  recipe ID | recipe-confirm ID | recipe-retire ID | recipe-propose ID
+  recipe-match TEXT...          which confirmed recipe a prompt reads like, and what the hook would add
   sync                          copies this project's chats and sightings into its .ai/lexicon
   hook                          Claude Code UserPromptSubmit hook: reads the prompt on stdin, cites confirmed entries`;
 
@@ -580,6 +675,18 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
         log: m => process.stderr.write(`reading ${m}\n`),
       });
       print(result);
+      return 0;
+    }
+    case 'recipes':
+      for (const r of lex.recipes().filter(x => !o.status || x.status === o.status)) print(`${r.status.padEnd(9)} ${r.scope.padEnd(7)} ${r.id}: ${r.intent}`);
+      return 0;
+    case 'recipe': { const r = lex.recipes().find(x => x.id === args[0]); if (!r) throw new Error(`no recipe ${args[0]}`); print(r); return 0; }
+    case 'recipe-confirm': print(lex.setRecipeStatus(args[0], 'confirmed').file); return 0;
+    case 'recipe-retire': print(lex.setRecipeStatus(args[0], 'retired').file); return 0;
+    case 'recipe-propose': print(lex.setRecipeStatus(args[0], 'proposed').file); return 0;
+    case 'recipe-match': {
+      const r = recipeFor(args.join(' '), lex.recipes().filter(x => x.status === 'confirmed'));
+      print(r ? recipeContext(r) : 'no confirmed recipe matches');
       return 0;
     }
     case 'sync': print(sync(lex)); return 0;
