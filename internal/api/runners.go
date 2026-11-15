@@ -17,15 +17,19 @@ import (
 // runnerActor is who the infrastructure history names for machines build runners start and remove.
 const runnerActor = "system:runners"
 
-// runnersOn says whether this panel starts runner machines: runners configured, jobs running, and a
-// database and GitHub App to work with.
-func (a *API) runnersOn() bool {
-	return a.cfg.Runners.Enabled && a.runner != nil && a.db != nil && a.gh != nil
+// runnersOn says whether this panel starts runner machines: the build runners section on, the job
+// queue running, and a database and GitHub App to work with.
+func (a *API) runnersOn(ctx context.Context) bool {
+	if a.jobRunner() == nil || a.db == nil || !a.liveRunners(ctx).Enabled {
+		return false
+	}
+	app, _ := a.github(ctx)
+	return app != nil
 }
 
-func (a *API) runnerDeps() runner.Deps {
+func (a *API) runnerDeps(ctx context.Context) runner.Deps {
 	return runner.Deps{Pool: a.db.Pool, GitHub: githubPort{a}, Machines: machinePort{a},
-		JobLimit: time.Duration(a.cfg.Runners.JobLimitMinutes) * time.Minute}
+		JobLimit: time.Duration(a.liveRunners(ctx).JobLimitMinutes) * time.Minute}
 }
 
 // enqueueRunner adds a runner job to the durable queue, joining a live one for the same target.
@@ -35,9 +39,9 @@ func (a *API) enqueueRunner(ctx context.Context, kind, tenant, target string) er
 		targetType = "runner_machine"
 	}
 	_, created, err := a.jobs.Enqueue(ctx, jobs.Job{TenantID: tenant, Kind: kind, TargetType: targetType, TargetID: target,
-		MaxAttempts: a.cfg.Jobs.MaxAttempts, CreatedBy: runnerActor})
-	if err == nil && created && a.runner != nil {
-		a.runner.Wake()
+		MaxAttempts: a.liveJobs(ctx).MaxAttempts, CreatedBy: runnerActor})
+	if r := a.jobRunner(); err == nil && created && r != nil {
+		r.Wake()
 	}
 	return err
 }
@@ -45,13 +49,13 @@ func (a *API) enqueueRunner(ctx context.Context, kind, tenant, target string) er
 // runRunnerProvision is the runner.provision job: start the machine for one runner job.
 func (a *API) runRunnerProvision(ctx context.Context, j *jobs.Job, step func(string)) (any, error) {
 	step("Starting a runner machine")
-	return runner.Provision(ctx, a.runnerDeps(), j.TargetID, j.Attempts >= j.MaxAttempts)
+	return runner.Provision(ctx, a.runnerDeps(ctx), j.TargetID, j.Attempts >= j.MaxAttempts)
 }
 
 // runRunnerRemove is the runner.remove job: delete one machine, then start what was waiting for its room.
 func (a *API) runRunnerRemove(ctx context.Context, j *jobs.Job, step func(string)) (any, error) {
 	step("Removing a runner machine")
-	tenant, err := runner.Remove(ctx, a.runnerDeps(), j.TargetID)
+	tenant, err := runner.Remove(ctx, a.runnerDeps(ctx), j.TargetID)
 	if err != nil {
 		return nil, err
 	}
@@ -65,10 +69,10 @@ func (a *API) runRunnerRemove(ctx context.Context, j *jobs.Job, step func(string
 
 // sweepRunners is the reconciler's pass over runner machines.
 func (a *API) sweepRunners(ctx context.Context) {
-	if !a.runnersOn() {
+	if !a.runnersOn(ctx) {
 		return
 	}
-	if err := runner.Sweep(ctx, a.runnerDeps(), a.enqueueRunner); err != nil {
+	if err := runner.Sweep(ctx, a.runnerDeps(ctx), a.enqueueRunner); err != nil {
 		log.Printf("reconcile: runners: %v", err)
 	}
 }
@@ -76,7 +80,7 @@ func (a *API) sweepRunners(ctx context.Context) {
 // runnerJobMoved follows a workflow_job delivery Receive recorded: a waiting job is queued to start,
 // and a job that ended has its machine removed.
 func (a *API) runnerJobMoved(ctx context.Context, w runner_job.Webhook, out runner_job.Outcome) {
-	if !a.runnersOn() || out.JobID == "" {
+	if out.JobID == "" || !a.runnersOn(ctx) {
 		return
 	}
 	var tenant string
@@ -103,18 +107,23 @@ func (a *API) runnerJobMoved(ctx context.Context, w runner_job.Webhook, out runn
 
 // JITConfig registers a single-use runner through the panel's GitHub App.
 func (p githubPort) JITConfig(ctx context.Context, installation, repository int64, fullName, runnerName string, labels []string) (string, int64, error) {
-	return p.a.gh.GenerateJITConfig(ctx, installation, repository, fullName, runnerName, labels)
+	app, _, err := p.a.githubOn(ctx)
+	if err != nil {
+		return "", 0, err
+	}
+	return app.GenerateJITConfig(ctx, installation, repository, fullName, runnerName, labels)
 }
 
 // machinePort is ports.Machines on the hosts of the fleet configured for runners.
 type machinePort struct{ a *API }
 
 func (p machinePort) Hosts(ctx context.Context) ([]string, error) {
-	if !p.a.cfg.Runners.Enabled || p.a.db == nil {
+	rc := p.a.liveRunners(ctx)
+	if !rc.Enabled || p.a.db == nil {
 		return nil, nil
 	}
 	rows, err := p.a.db.Pool.Query(ctx, `SELECT id::text FROM servers WHERE fleet_id::text=$1 AND hv_kind IS NOT NULL AND state <> 'revoked' ORDER BY slug`,
-		p.a.cfg.Runners.Fleet)
+		rc.Fleet)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +151,7 @@ func (p machinePort) Create(ctx context.Context, server string, m ports.Machine)
 		return "", err
 	}
 	spec := hv.GuestSpec{Kind: hv.KindVM, Name: m.Name, Image: m.Image, Cores: m.Cores, Memory: m.MemoryMiB, Disk: m.DiskGiB,
-		Storage: a.cfg.Runners.Storage, UserData: m.UserData, Start: true}
+		Storage: a.liveRunners(ctx).Storage, UserData: m.UserData, Start: true}
 	if remote, alias, ok := a.uiConfig(ctx).ImageRemote(ep.Kind, m.Image); ok {
 		spec.Image, spec.ImageServer, spec.ImageProtocol = alias, remote.Server, remote.Protocol
 	}

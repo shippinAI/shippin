@@ -48,7 +48,7 @@ func (a *API) runPromptJob(ctx context.Context, j *jobs.Job, step func(string)) 
 	_ = a.runs.SetWorkspace(ctx, run.ID, ws.ID)
 	if ws.State == "provisioning" {
 		_ = a.runs.SetState(ctx, run.ID, agentruns.Provisioning, "")
-		wj := a.workspaceJob(*ws, j.CreatedBy)
+		wj := a.workspaceJob(ctx, *ws, j.CreatedBy)
 		wj.Attempts, wj.MaxAttempts = j.Attempts, j.MaxAttempts
 		if _, err := a.runWorkspaceJob(ctx, &wj, step); err != nil {
 			if jobs.IsPermanent(err) || j.Attempts >= j.MaxAttempts {

@@ -19,7 +19,8 @@ var deliveryRe = regexp.MustCompile(`^[A-Za-z0-9-]{1,64}$`)
 // githubWebhook: no session; the HMAC signature is the only authentication. Replays (same
 // X-GitHub-Delivery) are acknowledged and ignored.
 func (a *API) githubWebhook(w http.ResponseWriter, r *http.Request) {
-	if a.gh == nil {
+	app, g := a.github(r.Context())
+	if app == nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -28,7 +29,7 @@ func (a *API) githubWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "body too large", http.StatusRequestEntityTooLarge)
 		return
 	}
-	if !gh.VerifySignature(a.cfg.GitHub.WebhookSecret, body, r.Header.Get("X-Hub-Signature-256")) {
+	if !gh.VerifySignature(g.WebhookSecret, body, r.Header.Get("X-Hub-Signature-256")) {
 		http.Error(w, "bad signature", http.StatusUnauthorized)
 		return
 	}

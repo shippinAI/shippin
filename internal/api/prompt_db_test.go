@@ -26,7 +26,7 @@ func TestPromptProjectFlow(t *testing.T) {
 	ctx := context.Background()
 	a.runs = &agentruns.Store{Pool: d.Pool}
 	a.jobs = jobs.NewStore(d.Pool)
-	a.runner = jobs.NewRunner(a.jobs, jobs.Settings{})
+	a.runner.Store(jobs.NewRunner(a.jobs, jobs.Settings{}))
 	a.cfg.Jobs.MaxAttempts = 3
 	a.cfg.Prompt = config.Prompt{Enabled: true, MaxBytes: 8192, Agents: []string{"claude", "codex"}, DefaultTemplate: "blank",
 		TermPath: "/_term/"}

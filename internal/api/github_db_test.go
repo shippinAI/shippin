@@ -21,7 +21,6 @@ import (
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/gh"
 )
 
 // fakeGitHub answers the App endpoints Shippin uses; the signing-in user can see installation 7.
@@ -54,14 +53,14 @@ func githubAPI(t *testing.T) (*API, *db.DB, db.Tenant, *caller) {
 	srv := fakeGitHub(t)
 	key, _ := rsa.GenerateKey(rand.Reader, 2048)
 	p := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	// The App is built from the section, here still the file's: its keys as the environment gives them.
 	a.cfg.GitHub = config.GitHub{Enabled: true, AppSlug: "shippin", APIBase: srv.URL, WebBase: srv.URL, StateMinutes: 15,
-		MaxRepos: 100, RefreshMinutes: 45, PollMinutes: 10, WebhookSecret: "whs", TokenPermissions: map[string]string{"contents": "write"}}
+		MaxRepos: 100, RefreshMinutes: 45, PollMinutes: 10, WebhookSecret: "whs", TokenPermissions: map[string]string{"contents": "write"},
+		ClientID: "Iv1.x", ClientSecret: "cs", PrivateKey: string(p)}
 	a.cfg.SessionKey = "test-session-key"
-	app, err := gh.New("Iv1.x", "cs", string(p), srv.URL, srv.URL)
-	if err != nil {
-		t.Fatal(err)
+	if app, _ := a.github(context.Background()); app == nil {
+		t.Fatal("the App is built from the file's section")
 	}
-	a.gh = app
 	owner := &caller{id: &auth.Identity{Sub: "sub-" + uuid.NewString()}, managers: []string{"org_owner"},
 		tenants: []tenantView{{Tenant: tn, Roles: []string{"org_owner"}}}}
 	return a, d, tn, owner
@@ -78,11 +77,11 @@ func TestGitHubSetupVerifiesStateAndInstallation(t *testing.T) {
 	a, d, tn, owner := githubAPI(t)
 	ctx := context.Background()
 	acct, _ := d.UpsertAccount(ctx, owner.id.Sub, "")
-	state := a.stateFor(tn.ID, acct, "runners", time.Now())
+	state := a.stateFor(ctx, tn.ID, acct, "runners", time.Now())
 	if w := setup(a, owner, url.Values{"state": {state + "x"}, "installation_id": {"7"}, "code": {"c"}}); w.Code != 400 {
 		t.Fatalf("tampered state: %d", w.Code)
 	}
-	if w := setup(a, owner, url.Values{"state": {a.stateFor(tn.ID, acct, "", time.Now().Add(-time.Hour))}, "installation_id": {"7"}, "code": {"c"}}); w.Code != 400 {
+	if w := setup(a, owner, url.Values{"state": {a.stateFor(ctx, tn.ID, acct, "", time.Now().Add(-time.Hour))}, "installation_id": {"7"}, "code": {"c"}}); w.Code != 400 {
 		t.Fatalf("expired state: %d", w.Code)
 	}
 	if w := setup(a, owner, url.Values{"state": {state}, "installation_id": {"8"}, "code": {"c"}}); w.Code != 403 {
@@ -100,7 +99,7 @@ func TestGitHubSetupVerifiesStateAndInstallation(t *testing.T) {
 	if _, _, err := a.checkState(strings.Replace(state, ".runners.", ".projects.", 1), acct, time.Now()); err == nil {
 		t.Fatal("a state with a changed return page was accepted")
 	}
-	if s := a.stateFor(tn.ID, acct, "https://evil.example", time.Now()); !strings.Contains(s, ".projects.") {
+	if s := a.stateFor(ctx, tn.ID, acct, "https://evil.example", time.Now()); !strings.Contains(s, ".projects.") {
 		t.Fatalf("an unknown return page is the projects page: %s", s)
 	}
 	if ins, _ := d.Installations(ctx, tn.ID); len(ins) != 1 || ins[0].AccountLogin != "operator" {

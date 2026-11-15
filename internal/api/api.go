@@ -16,7 +16,6 @@ import (
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/deployments"
-	"shippin.cloud/console/internal/gh"
 	"shippin.cloud/console/internal/hostclient"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/proxmox"
@@ -70,12 +69,14 @@ type API struct {
 	staffCache staffCache
 	// authAt overrides the sign-in time lookup in tests only.
 	authAt func(*http.Request) time.Time
-	// jobs is the durable job store; runner is nil while config jobs.enabled is false.
+	// jobs is the durable job store. runner is the running job runner, nil while the job queue section
+	// is off (read it with jobRunner); queue is what follows that section.
 	jobs        *jobs.Store
-	runner      *jobs.Runner
+	runner      atomic.Pointer[jobs.Runner]
+	queue       jobQueue
 	drift       driftMemo
 	subs        *subs.Store // M2: per-user AI homes and subscription status (never credentials)
-	gh          *gh.App     // M3: the Shippin GitHub App; nil when github is disabled
+	ghApp       gitHubApp   // M3: the Shippin GitHub App, built from the github section (read it with github)
 	ghTick      ghTimers
 	runs        *agentruns.Store   // M4: build-agent runs (no tokens, prompt only until delivered)
 	svcs        *managed.Store     // managed service instances (rrflow/state first)
@@ -121,7 +122,7 @@ func (a *API) authTime(r *http.Request) time.Time {
 
 func New(cfg *config.Config, flow *auth.Flow, d *db.DB) *API {
 	a := &API{cfg: cfg, flow: flow, db: d, host: hostclient.New(cfg.Incus.HostdURL), started: time.Now(), probeGate: newProbeConcurrencyGate(cfg.ProbeConcurrency),
-		jobs: jobs.NewStore(d.Pool), subs: &subs.Store{Pool: d.Pool}, gh: newGitHub(cfg.GitHub),
+		jobs: jobs.NewStore(d.Pool), subs: &subs.Store{Pool: d.Pool},
 		runs: &agentruns.Store{Pool: d.Pool}, svcs: rrflowStore(d), n2: newN2(cfg, d)}
 	if flow != nil && flow.Keys == nil && d != nil {
 		flow.Keys = func(ctx context.Context, token string) (string, string, bool) {

@@ -103,8 +103,9 @@ func (a *API) queueRRFlow(ctx context.Context, tenant, project, ws, by string) (
 		return nil, nil, err
 	}
 	j := jobs.Job{TenantID: tenant, Kind: jobs.KindServiceProvision, TargetType: "service_instance", TargetID: inst.ID,
-		MaxAttempts: a.cfg.Jobs.MaxAttempts, CreatedBy: by}
-	if a.runner == nil {
+		MaxAttempts: a.liveJobs(ctx).MaxAttempts, CreatedBy: by}
+	r := a.jobRunner()
+	if r == nil {
 		go func() {
 			if _, err := a.runServiceJob(context.Background(), &j, func(string) {}); err != nil {
 				log.Printf("service %s: %v", inst.ID, err)
@@ -114,7 +115,7 @@ func (a *API) queueRRFlow(ctx context.Context, tenant, project, ws, by string) (
 	}
 	got, _, err := a.jobs.Enqueue(ctx, j)
 	if err == nil {
-		a.runner.Wake()
+		r.Wake()
 	}
 	return inst, got, err
 }

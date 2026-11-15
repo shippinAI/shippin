@@ -42,10 +42,8 @@ func githubFlowAPI(t *testing.T) (*API, string, string, *[]hostclient.GitOp, int
 	t.Cleanup(ghSrv.Close)
 	key, _ := rsa.GenerateKey(rand.Reader, 2048)
 	p := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
-	var err error
-	if a.gh, err = gh.New("Iv1.t", "cs", string(p), ghSrv.URL, ghSrv.URL); err != nil {
-		t.Fatal(err)
-	}
+	g := &a.cfg.GitHub // the App is built from the section, here still the file's
+	g.Enabled, g.APIBase, g.WebBase, g.ClientID, g.ClientSecret, g.PrivateKey, g.WebhookSecret = true, ghSrv.URL, ghSrv.URL, "Iv1.t", "cs", string(p), "whs"
 	var mu sync.Mutex
 	ops := &[]hostclient.GitOp{}
 	host := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

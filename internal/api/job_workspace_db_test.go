@@ -41,12 +41,13 @@ func jobAPI(t *testing.T, codes ...int) (*API, *db.DB, db.Tenant, *atomic.Int32)
 		t.Fatal(err)
 	}
 	a.cfg.Jobs.MaxAttempts = 3
-	a.runner = jobs.NewRunner(a.jobs, jobs.Settings{Workers: 1, Lease: 5 * time.Second, Heartbeat: time.Second,
+	r := jobs.NewRunner(a.jobs, jobs.Settings{Workers: 1, Lease: 5 * time.Second, Heartbeat: time.Second,
 		Poll: 20 * time.Millisecond, BackoffBase: 10 * time.Millisecond, BackoffMax: 10 * time.Millisecond})
-	a.registerJobs(a.runner)
+	a.registerJobs(r)
+	a.runner.Store(r)
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go a.runner.Run(ctx)
+	go r.Run(ctx)
 	return a, d, tn, &calls
 }
 
@@ -75,11 +76,11 @@ func finished(t *testing.T, a *API, id string) *jobs.Job {
 func TestWorkspaceJobRetriesHostdThenRuns(t *testing.T) {
 	a, d, tn, calls := jobAPI(t, 503, 200)
 	ws := provisioningWS(t, a, d, tn)
-	j, _, err := a.jobs.Enqueue(context.Background(), a.workspaceJob(*ws, "u"))
+	j, _, err := a.jobs.Enqueue(context.Background(), a.workspaceJob(context.Background(), *ws, "u"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.runner.Wake()
+	a.jobRunner().Wake()
 	if got := finished(t, a, j.ID); got.Status != jobs.Succeeded || got.Attempts != 2 || calls.Load() != 2 {
 		t.Fatalf("got %+v after %d calls", got, calls.Load())
 	}
@@ -92,7 +93,7 @@ func TestWorkspaceJobRetriesHostdThenRuns(t *testing.T) {
 func TestWorkspaceJobRejectedFailsWorkspace(t *testing.T) {
 	a, d, tn, calls := jobAPI(t, 400)
 	ws := provisioningWS(t, a, d, tn)
-	j, _, _ := a.jobs.Enqueue(context.Background(), a.workspaceJob(*ws, "u"))
+	j, _, _ := a.jobs.Enqueue(context.Background(), a.workspaceJob(context.Background(), *ws, "u"))
 	if got := finished(t, a, j.ID); got.Status != jobs.Failed || calls.Load() != 1 {
 		t.Fatalf("a hostd 400 must fail at once: %+v after %d calls", got, calls.Load())
 	}
@@ -104,7 +105,7 @@ func TestWorkspaceJobRejectedFailsWorkspace(t *testing.T) {
 func TestGetJobVisibility(t *testing.T) {
 	a, d, tn, _ := jobAPI(t, 400)
 	ws := provisioningWS(t, a, d, tn)
-	j, _, _ := a.jobs.Enqueue(context.Background(), a.workspaceJob(*ws, "u"))
+	j, _, _ := a.jobs.Enqueue(context.Background(), a.workspaceJob(context.Background(), *ws, "u"))
 	finished(t, a, j.ID)
 	get := func(c *caller) *httptest.ResponseRecorder {
 		a.resolveCaller = func(http.ResponseWriter, *http.Request) (*caller, bool) { return c, true }

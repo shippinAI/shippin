@@ -23,9 +23,9 @@ func (a *API) provideServices(s mcpl.Services) {
 	}
 	mcpl.Provide[ports.Workspaces](s, workspacePort{a})
 	mcpl.Provide[ports.Machines](s, machinePort{a})
-	if a.gh != nil {
-		mcpl.Provide[ports.GitHub](s, githubPort{a})
-	}
+	// The GitHub App can be turned on and off in the panel, so the port is always there and finds the
+	// App on each call; while it is off, Need answers as if it weren't provided.
+	mcpl.Provide[ports.GitHub](s, githubPort{a})
 	// Create the sealer only when actions are first requested. A missing key means secret-bearing
 	// actions fail closed through mcpl.Need.
 	if seal, err := a.sealer(); err == nil {
@@ -86,11 +86,21 @@ func (p workspacePort) GiveKeys(ctx context.Context, sub string, keys []string) 
 	return errors.Join(errs...)
 }
 
-// githubPort is ports.GitHub on this panel's GitHub App.
+// githubPort is ports.GitHub on this panel's GitHub App, as the github section has it now.
 type githubPort struct{ a *API }
 
+// Off reports whether the GitHub App is off (mcpl.Switchable).
+func (p githubPort) Off(ctx context.Context) bool {
+	app, _ := p.a.github(ctx)
+	return app == nil
+}
+
 func (p githubPort) Repositories(ctx context.Context, installation int64) ([]ports.GitHubRepository, error) {
-	rs, err := p.a.gh.Repos(ctx, installation, p.a.cfg.GitHub.MaxRepos)
+	app, g, err := p.a.githubOn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rs, err := app.Repos(ctx, installation, g.MaxRepos)
 	out := make([]ports.GitHubRepository, 0, len(rs))
 	for _, r := range rs {
 		out = append(out, ports.GitHubRepository{ID: r.ID, FullName: r.FullName, Private: r.Private})
