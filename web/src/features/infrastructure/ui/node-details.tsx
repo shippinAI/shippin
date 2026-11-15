@@ -1,10 +1,11 @@
 import { Badge } from "../../../lib/design/components/badge/badge";
 import { Card } from "../../../lib/design/components/card/card";
+import { Meter } from "../../../lib/design/components/meter/meter";
 import { StatusDot } from "../../../lib/design/components/status-dot/status-dot";
 import { formatBytes } from "../../../lib/format";
 import type { InfraNode } from "../../../lib/hooks/use-infra";
 import { useText } from "../../../lib/ui-config/use-ui-config";
-import { formatUptime, memoryPercent } from "../model";
+import { formatUptime } from "../model";
 
 function Fact({ label, value, wide }: { label: string; value?: string; wide?: boolean }) {
   if (!value) return null;
@@ -20,7 +21,6 @@ function Fact({ label, value, wide }: { label: string; value?: string; wide?: bo
 export function NodeFacts({ node }: { node: InfraNode }) {
   const t = useText();
   const d = node.details;
-  const memory = memoryPercent(d);
   const cpu = d?.cpu_model ? `${d.cpu_model}${d.cpus ? ` · ${d.cpus}` : ""}` : d?.cpus ? String(d.cpus) : undefined;
   return (
     <Card className="mb-6 p-5" data-testid="node-facts">
@@ -33,17 +33,10 @@ export function NodeFacts({ node }: { node: InfraNode }) {
         <Fact label={t("infra.fact.uptime")} value={d?.uptime_seconds ? formatUptime(d.uptime_seconds) : undefined} />
         <Fact label={t("infra.fact.project")} value={node.scope} />
       </dl>
-      {memory !== null && (
-        <div className="mt-4">
-          <div className="flex justify-between text-xs text-fg-subtle">
-            <span>{t("infra.fact.memory")}</span>
-            <span className="tabular-nums">{formatBytes(d!.mem_used_bytes ?? 0)} / {formatBytes(d!.mem_total_bytes ?? 0)}</span>
-          </div>
-          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-raised">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${memory}%` }} />
-          </div>
-        </div>
-      )}
+      {d?.mem_total_bytes ? (
+        <Meter className="mt-4" label={t("infra.fact.memory")} used={d.mem_used_bytes} total={d.mem_total_bytes}
+          text={`${formatBytes(d.mem_used_bytes ?? 0)} / ${formatBytes(d.mem_total_bytes)}`} />
+      ) : null}
       {d?.members && d.members.length > 0 && (
         <div className="mt-4" data-testid="native-cluster">
           <p className="text-xs text-fg-subtle">{d.cluster ? t("infra.fact.clusterNamed", { name: d.cluster }) : t("infra.fact.cluster")}</p>

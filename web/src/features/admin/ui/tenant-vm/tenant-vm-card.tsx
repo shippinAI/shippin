@@ -2,6 +2,7 @@ import { Server } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../../lib/design/components/button/button";
 import { ConfirmDialog } from "../../../../lib/design/components/dialog/confirm-dialog";
+import { Meter } from "../../../../lib/design/components/meter/meter";
 import { Skeleton } from "../../../../lib/design/components/skeleton/skeleton";
 import type { AdminTenant } from "../../../../lib/api/admin-types";
 import { formatBytes } from "../../../../lib/format";
@@ -9,7 +10,6 @@ import { useTenantVM, useTenantVMAction } from "../../../../lib/hooks/use-tenant
 import { StatusBadge } from "../status-badge";
 import { TenantAppsPrep } from "./tenant-apps-prep";
 import { VMContainers } from "./vm-containers";
-import { VMMeter } from "./vm-meter";
 import { sizeBytes } from "./vm-sizes";
 
 /** Operator card for the tenant VM: state, CPU/RAM/disk, nested containers, lifecycle actions. */
@@ -41,9 +41,9 @@ export function TenantVMCard({ tenant: t }: { tenant: AdminTenant }) {
             <span>{v.name}</span>
             <span className="text-right">{v.ipv4 || "—"} · inner {v.inner_subnet || "—"}</span>
           </div>
-          <VMMeter label="vCPU" text={`${v.cpu_limit || "—"} vCPU`} />
-          <VMMeter label="Memory" used={v.memory_used_bytes} total={v.memory_total_bytes || sizeBytes(v.memory_limit)} text={`${formatBytes(v.memory_used_bytes)} / ${v.memory_limit || "—"}`} />
-          <VMMeter label="Workspace storage" used={v.data_used_bytes} total={v.data_total_bytes || sizeBytes(v.data_size)} text={`${formatBytes(v.data_used_bytes)} / ${v.data_size || "—"}`} />
+          <Meter tone="workspaces" label="vCPU" text={`${v.cpu_limit || "—"} vCPU`} />
+          <Meter tone="workspaces" label="Memory" used={v.memory_used_bytes} total={v.memory_total_bytes || sizeBytes(v.memory_limit)} text={`${formatBytes(v.memory_used_bytes)} / ${v.memory_limit || "—"}`} />
+          <Meter tone="workspaces" label="Workspace storage" used={v.data_used_bytes} total={v.data_total_bytes || sizeBytes(v.data_size)} text={`${formatBytes(v.data_used_bytes)} / ${v.data_size || "—"}`} />
           <p className="text-xs text-fg-subtle">Root disk {v.root_size || "—"} · encrypted tenant pool</p>
           <VMContainers items={v.containers ?? []} />
           <TenantAppsPrep id={t.id} />

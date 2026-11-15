@@ -1,5 +1,6 @@
 import { Activity, Cpu, Database, HardDrive, Layers, MemoryStick, PlugZap } from "lucide-react";
 import { Card, CardHeader } from "../../../lib/design/components/card/card";
+import { Meter } from "../../../lib/design/components/meter/meter";
 import { useAdminHost } from "../../../lib/hooks/use-admin";
 import { formatBytes } from "../../../lib/format";
 import { PageHeader } from "../../../template/page-header";
@@ -42,9 +43,7 @@ export function HostPage() {
                         <StatusBadge status={p.health === "ONLINE" ? "active" : p.health} />
                         <span className="ml-auto text-fg-muted tabular-nums">{formatBytes(p.alloc)} / {formatBytes(p.size)}</span>
                       </div>
-                      <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-raised" role="meter" aria-label={`${p.name} usage`} aria-valuenow={Math.round(pct(p.alloc, p.size))}>
-                        <div className="h-full rounded-full bg-hue-data" style={{ width: `${pct(p.alloc, p.size)}%` }} />
-                      </div>
+                      <Meter bare className="mt-2.5" label={`${p.name} usage`} used={p.alloc} total={p.size} text={`${formatBytes(p.alloc)} / ${formatBytes(p.size)}`} tone="data" size="md" />
                       <div className="mt-1.5 text-xs text-fg-subtle">{pct(p.alloc, p.size).toFixed(1)}% used · {formatBytes(p.free)} free</div>
                     </div>
                   ))}
