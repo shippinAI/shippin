@@ -6,7 +6,7 @@ import { Card, CardHeader } from "../../../lib/design/components/card/card";
 import { DataTable, type ColumnDef } from "../../../lib/design/components/data-table/data-table";
 import { EmptyState } from "../../../lib/design/components/empty-state/empty-state";
 import { TextField } from "../../../lib/design/components/field/text-field";
-
+import { Meter } from "../../../lib/design/components/meter/meter";
 import { Select } from "../../../lib/design/components/select/select";
 import { Skeleton } from "../../../lib/design/components/skeleton/skeleton";
 import { StatusDot } from "../../../lib/design/components/status-dot/status-dot";
@@ -14,14 +14,15 @@ import { formatBytes } from "../../../lib/format";
 import { useServices } from "../../../lib/hooks/use-api";
 import { useCreateGuest, useDeleteGuest, useGuests, useRollback, useSnapshot, useSnapshots, useStorageInventory, useTask, type Guest } from "../../../lib/hooks/use-hosts";
 import { isOpen as operationOpen, useDetachHost, useInfraCan, useOperations, type InfraNode, type InfraProvider } from "../../../lib/hooks/use-infra";
-
+import { useNavigate, useSearchParams } from "../../../lib/router/router";
 import { useText } from "../../../lib/ui-config/use-ui-config";
-import { firstAnswering, formatUptime, isRunning, isStopped, verbApplies } from "../model";
+import { firstAnswering, formatUptime, hostHref, isRunning, isStopped, verbApplies } from "../model";
 import { ActivityCard } from "./activity-card";
 import { ChangeNoteDialog, type PendingChange } from "./change-note-dialog";
 import { GuestPowerDialog } from "./guest-power-dialog";
 import { StopGuestsDialog } from "./stop-guests-dialog";
 import { CreateGuestCard } from "./create-guest-card";
+import { MetricsHistory } from "./metrics-history";
 import { NodeFacts } from "./node-details";
 import { SystemIdentityForm } from "./system-identity-form";
 
@@ -48,6 +49,19 @@ function useGuestColumns(): ColumnDef<Guest>[] {
       ),
     },
     { id: "node", label: t("infra.guest.node"), render: (g) => g.node },
+    {
+      id: "cpu", label: t("infra.guest.cpu"),
+      render: (g) => (g.metrics && isRunning(g.status)
+        ? <span className="tabular-nums">{(g.metrics.cpu_fraction * 100).toFixed(1)}%{g.metrics.cpu_count ? ` · ${g.metrics.cpu_count} vCPU` : ""}</span>
+        : <span className="text-fg-subtle">—</span>),
+    },
+    {
+      id: "memory", label: t("infra.guest.memory"), width: "11rem",
+      render: (g) => (g.metrics?.memory_total_bytes
+        ? <Meter label={`${t("infra.guest.memory")} · ${g.name || g.id}`} used={g.metrics.memory_used_bytes} total={g.metrics.memory_total_bytes}
+            text={`${formatBytes(g.metrics.memory_used_bytes)} / ${formatBytes(g.metrics.memory_total_bytes)}`} className="min-w-32" />
+        : <span className="text-fg-subtle">—</span>),
+    },
   ];
 }
 
@@ -125,12 +139,12 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
         {guests.isPending && node.online ? (
           <div className="space-y-3 p-5">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-9" />)}</div>
         ) : (
-          <DataTable label={node.label} columns={columns} rows={guests.data?.items ?? []} onRowAction={setGuestId}
+          <div className="overflow-x-auto"><DataTable label={node.label} columns={columns} rows={guests.data?.items ?? []} onRowAction={setGuestId}
             empty={
               <EmptyState illustration={<Cpu className="size-10 text-fg-subtle" />}
                 title={guests.isError || !node.online ? t("infra.provider.empty.title") : t("infra.provider.noGuests.title")}
                 description={guests.error?.message ?? node.error ?? t("infra.provider.noGuests.body")} />
-            } />
+            } /></div>
         )}
       </Card>
       {provider.capabilities.includes("storage_inventory") && (
@@ -147,7 +161,6 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
               {(storage.data?.items ?? []).map((volume) => {
                 const measured = volume.total_bytes > 0;
                 const used = measured ? Math.max(0, volume.used_bytes) : 0;
-                const percent = measured ? Math.min(100, Math.max(0, (used / volume.total_bytes) * 100)) : 0;
                 const free = measured ? Math.max(0, volume.total_bytes - used) : 0;
                 return (
                   <li key={`${volume.node}:${volume.name}`} className="grid gap-3 px-5 py-3 text-base sm:grid-cols-2 lg:grid-cols-4">
@@ -156,13 +169,9 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
                     <div><dt className="text-xs text-fg-subtle">{t("infra.storage.node")}</dt><dd className="text-fg">{volume.node || "—"}</dd></div>
                     <div><dt className="text-xs text-fg-subtle">{t("infra.storage.content")}</dt><dd className="break-words text-fg">{volume.content || "—"}</dd></div>
                     <div className="sm:col-span-2 lg:col-span-4">
-                      {measured ? <>
-                        <div className="flex justify-between gap-3 text-xs text-fg-subtle">
-                          <span>{t("infra.storage.capacity")}: {formatBytes(used)} / {formatBytes(volume.total_bytes)}</span>
-                          <span>{t("infra.storage.free")}: {formatBytes(free)}</span>
-                        </div>
-                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-raised"><div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} /></div>
-                      </> : <p className="text-xs text-fg-muted">{t("infra.storage.unknownCapacity")}</p>}
+                      {measured ? <Meter label={`${t("infra.storage.capacity")} · ${volume.name}`} used={used} total={volume.total_bytes}
+                        text={`${formatBytes(used)} / ${formatBytes(volume.total_bytes)} · ${t("infra.storage.free")}: ${formatBytes(free)}`} tone="data" />
+                       : <p className="text-xs text-fg-muted">{t("infra.storage.unknownCapacity")}</p>}
                     </div>
                   </li>
                 );
@@ -186,6 +195,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
               {guest.tags && <div className="sm:col-span-2"><dt className="text-fg-subtle">Tags</dt><dd className="mt-1 font-medium text-fg">{guest.tags}</dd></div>}
             </dl>
           )}
+          <MetricsHistory serverId={node.id} guest={guest.id} className="mb-4" />
           {can("lifecycle") && may("infra.guests.power") && (
             <div className="mb-4 flex flex-wrap gap-2">
               {(provider.verbs as ("start" | "stop" | "shutdown" | "reboot")[]).map((verb) => {
@@ -287,18 +297,21 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
 /** Everything about one provider's hosts. What it offers comes from the driver's capabilities. */
 export function ProviderTab({ provider, onEdit }: { provider: InfraProvider; onEdit?: (node: InfraNode) => void }) {
   const t = useText();
-  const [picked, setPicked] = useState("");
-  const node = provider.nodes.find((n) => n.id === picked) ?? firstAnswering(provider.nodes);
+  const nav = useNavigate();
+  const [params] = useSearchParams();
+  // The URL holds the host, so a fleet row and a shared link open the same one.
+  const node = provider.nodes.find((n) => n.id === params.get("host")) ?? firstAnswering(provider.nodes);
   if (!node) return null;
   return (
     <>
       {provider.nodes.length > 1 && (
         <div className="mb-6 max-w-xs">
-          <Select label={t("infra.provider.host")} value={node.id} onChange={setPicked} options={provider.nodes.map((n) => ({ id: n.id, label: n.label }))} />
+          <Select label={t("infra.provider.host")} value={node.id} onChange={(id) => nav(hostHref(provider.kind, id), { replace: true })} options={provider.nodes.map((n) => ({ id: n.id, label: n.label }))} />
         </div>
       )}
       {node.error && <p role="alert" className="mb-6 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">{node.error}</p>}
       {node.online && <NodeFacts node={node} />}
+      {node.source === "api" && <MetricsHistory key={node.id} serverId={node.id} className="mb-6" />}
       {node.source === "api" && <SystemIdentityForm serverId={node.id} />}
       {node.source === "agent" ? <AgentGuests node={node} /> : <ApiGuests key={node.id} provider={provider} node={node} onEdit={onEdit} />}
     </>

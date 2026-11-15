@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import type { InfraField, InfraOverview, InfraProvider } from "../../lib/hooks/use-infra";
+import { fleetRows, historyCharts, hostHref, sortFleet, type FleetSortKey } from "./model";
+import type { InfraNode } from "../../lib/hooks/use-infra";
+import type { MetricRange } from "../../lib/hooks/use-metrics-history";
 import { guestNetworks, noteOK, verbApplies, firstAnswering, FLEETS_TAB, NETWORKS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, guestNameOK, hostsWithoutFleet, imagesFor, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
 
 const totals = { nodes: 0, online: 0, guests: 0, running: 0 };
@@ -101,5 +104,79 @@ assert.equal(guestNameOK("web_1"), false);
 assert.equal(guestNameOK(""), false);
 assert.deepEqual(imagesFor([{ kind: "ct" }, { kind: "vm" }, {}], "ct"), [{ kind: "ct" }, {}], "an image with no kind suits either");
 assert.deepEqual(guestNetworks([{ name: "vmbr0", type: "bridge" }, { name: "vmbr1", type: "OVSBridge" }, { name: "eth0", type: "eth" }]).map((n) => n.name), ["vmbr0", "vmbr1"]);
+
+// The fleet: every host of every provider side by side, sortable, unknown never read as zero.
+const GB = 1024 ** 3;
+const host = (id: string, label: string, extra: Partial<InfraNode> = {}): InfraNode => ({
+  id, label, kind: "k", source: "api", online: true, health_state: "operational", guests: { total: 0, running: 0 }, ...extra,
+});
+const fleet = overview(
+  { ...provider("incus"), label: "Incus", nodes: [
+    host("a", "alpha", { details: { cpus: 16, mem_total_bytes: 64 * GB, mem_used_bytes: 48 * GB, disks: [{ path: "/dev/sda", size_bytes: 2 * GB }, { path: "/dev/sdb", size_bytes: 3 * GB }] }, guests: { total: 4, running: 4 }, fleet_id: "f1", site: "lab" }),
+    host("b", "bravo", { online: false, health_state: "down", guests: { total: 2, running: 0 } }),
+  ] },
+  { ...provider("proxmox"), label: "Proxmox", nodes: [
+    host("a", "Charlie", { details: { cpus: 8, mem_total_bytes: 32 * GB, mem_used_bytes: 8 * GB }, guests: { total: 5, running: 3 } }),
+    host("d", "delta", { health_state: "unknown", details: { mem_total_bytes: 16 * GB }, guests: { total: 1, running: 1 } }),
+  ] },
+);
+fleet.fleets = [{ id: "f1", label: "Rack one" }];
+const rows = fleetRows(fleet);
+assert.deepEqual(rows.map((r) => r.id), ["incus:a", "incus:b", "proxmox:a", "proxmox:d"], "both kinds in one list; the same host id under two providers stays two rows");
+const alpha = rows[0]!;
+assert.equal(alpha.providerLabel, "Incus");
+assert.equal(alpha.fleetLabel, "Rack one");
+assert.equal(alpha.cpus, 16);
+assert.equal(alpha.memFraction, 0.75);
+assert.equal(alpha.diskBytes, 5 * GB);
+assert.equal(alpha.diskCount, 2);
+const bravo = rows[1]!;
+assert.equal(bravo.cpus, null, "a host that reported nothing has unknowns, not zeros");
+assert.equal(bravo.memFraction, null);
+assert.equal(bravo.diskBytes, null);
+assert.equal(rows[3]!.memUsed, null, "a total without a used figure is not an empty host");
+assert.equal(rows[3]!.memFraction, null);
+
+const order = (key: FleetSortKey, dir: "ascending" | "descending") => sortFleet(rows, key, dir).map((r) => r.node.label);
+assert.deepEqual(order("name", "ascending"), ["alpha", "bravo", "Charlie", "delta"], "names sort without regard to case");
+assert.deepEqual(order("name", "descending"), ["delta", "Charlie", "bravo", "alpha"]);
+assert.deepEqual(order("memory", "descending"), ["alpha", "Charlie", "bravo", "delta"], "fullest first; hosts with no figure go last");
+assert.deepEqual(order("memory", "ascending"), ["Charlie", "alpha", "bravo", "delta"], "and still last the other way");
+assert.deepEqual(order("cpu", "descending"), ["alpha", "Charlie", "bravo", "delta"]);
+assert.deepEqual(order("state", "ascending"), ["bravo", "delta", "alpha", "Charlie"], "trouble first: down, then unknown, then operational");
+assert.deepEqual(order("guests", "descending"), ["alpha", "Charlie", "delta", "bravo"]);
+assert.deepEqual(order("provider", "ascending"), ["alpha", "bravo", "Charlie", "delta"], "ties go by name");
+assert.deepEqual(order("disk", "descending"), ["alpha", "bravo", "Charlie", "delta"]);
+assert.deepEqual(order("site", "ascending")[0], "alpha", "a host with a site comes before those without");
+assert.deepEqual(rows.map((r) => r.id), ["incus:a", "incus:b", "proxmox:a", "proxmox:d"], "sorting does not change the input");
+
+assert.equal(hostHref("proxmox", "a b"), "/operator/hosts/proxmox?host=a%20b", "a host opens in its provider's tab, chosen in the URL");
+
+// History: the charts a metrics range response fills, gaps kept.
+const sampler = { state: "sampling" as const, interval_seconds: 60, last_sampled_at: null };
+const range = (series: MetricRange["series"], times = ["2026-11-15T12:00:00Z", "2026-11-15T12:01:00Z", "not a time"]): MetricRange => ({
+  server_id: "s", guest_id: "", from: "2026-11-15T12:00:00Z", to: "2026-11-15T12:03:00Z", step_seconds: 60, times, series, sampler,
+});
+const b = (avg: number, max = avg, samples = 1) => ({ avg, max, samples });
+assert.deepEqual(historyCharts(undefined), []);
+assert.deepEqual(historyCharts(range([])), [], "no metrics, no charts: the empty state shows");
+assert.deepEqual(historyCharts(range([{ metric: "cpu", unit: "fraction", buckets: [null, null, null] }])), [], "a metric with no sample at all has no chart");
+const charts = historyCharts(range([
+  { metric: "cpu", unit: "fraction", buckets: [b(0.1, 0.3), null, b(1)] },
+  { metric: "memory_used_bytes", unit: "bytes", buckets: [b(2 * GB), b(0, 0, 0), null] },
+  { metric: "memory_total_bytes", unit: "bytes", buckets: [b(8 * GB), b(8 * GB), null] },
+  { metric: "disk_used_bytes", unit: "bytes", buckets: [null, null, null] },
+  { metric: "net_out_bytes_per_second", unit: "bytes_per_second", buckets: [b(100, 200), null, null] },
+]));
+assert.deepEqual(charts.map((c) => c.id), ["cpu", "memory", "network"]);
+assert.deepEqual(charts[0]!.series.map((s) => s.id), ["cpu.avg", "cpu.max"]);
+assert.deepEqual(charts[0]!.series[0]!.points.map((p) => p.value), [0.1, null], "a missing step stays null; an unreadable time is dropped");
+assert.deepEqual(charts[0]!.series[1]!.points.map((p) => p.value), [0.3, null]);
+assert.deepEqual(charts[1]!.series[0]!.points.map((p) => p.value), [2 * GB, null], "a bucket with no samples is missing, not zero");
+assert.equal(charts[1]!.ceiling, 8 * GB, "memory reads against the total");
+assert.equal(charts[0]!.ceiling, undefined);
+assert.equal(charts[2]!.unit, "bytes_per_second");
+assert.deepEqual(charts[2]!.series.map((s) => s.id), ["net_out_bytes_per_second.avg"], "only the direction that was recorded");
+assert.equal(historyCharts(range([{ metric: "load1", unit: "load", buckets: [b(0.5)] }], ["2026-11-15T12:00:00Z"]))[0]!.unit, "count");
 
 console.log("infrastructure model ok");

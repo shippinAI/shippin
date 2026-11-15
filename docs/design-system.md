@@ -67,5 +67,5 @@ The bar is WCAG 2.2 AA.
 - Moving towards a link (hover or focus) starts loading its code and data, so the page is ready on click.
 - Data already in the cache draws at once and refreshes in the background; nothing blanks while it refreshes.
 - Live metrics arrive as a stream, not by re-fetching whole pages.
-- Charts use a small built-in canvas and SVG component, not a charting library.
+- Charts use a small built-in canvas and SVG component, not a charting library: `TimeSeriesChart` in `components/chart` (its maths is `chart-model.ts`, tested on its own) and `Meter` in `components/meter` for used of total. A missing reading breaks the line and its stretch is shaded; nothing is joined across it or drawn as zero. Series take the module hues in a fixed order.
 - Space for content that loads later is reserved, so nothing jumps.
