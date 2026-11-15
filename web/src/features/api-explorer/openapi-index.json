@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 216,
+  "operationCount": 218,
   "tags": [
     "agents-runtime",
     "audit",
@@ -1378,6 +1378,28 @@
       ],
       "implementationStatus": "planned",
       "feature": "feature.workspaces"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/runtime/runners",
+      "operationId": "shippin.runtime.runner.list",
+      "summary": "List every runner machine, with its organization, job, host, state and age.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.runner.list"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/runtime/runners/{runnerId}",
+      "operationId": "shippin.runtime.runner.delete",
+      "summary": "Remove a stuck runner machine, with a reason.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.runner.delete"
     },
     {
       "method": "GET",

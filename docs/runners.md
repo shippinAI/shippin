@@ -136,13 +136,17 @@ The panel's GitHub App (configured as for project import) must also:
    against its organization, waiting or refused with the reason, then moved on by `in_progress` and
    `completed`. Database tests with a fake GitHub cover two organizations side by side; the webhook
    route is tested with signed and unsigned deliveries.
-2. **Built 2026-11-15, on a branch.** Dispatch: JIT configuration and a VM per job, then removal
+2. **Done 2026-11-15.** Dispatch: JIT configuration and a VM per job, then removal
    (As built, above). Database tests with a fake GitHub and fake hosts cover arrival order, the
    limit per organization, fairness between two organizations, no double start, removal on
    completion, cancellation and timeout, failures, and organizations kept apart. On the local Incus
    rig a cloud-init container (the rig cannot run VMs) was made with the dispatch user data, ran it
    and powered off, and was removed. Not yet proved: a VM, a runner image, and a real GitHub job.
-3. The panel: the workspace's runner pages and staff's runner list, on generated calls.
+3. **Done 2026-11-15, except staff's runner list.** The organization's Build runners page (jobs
+   with refusal reasons, GitHub repositories with assignment, how to ask for a runner) and staff's
+   Runner sizes page, with the runners limits editable in the plan matrix; not yet seen in a
+   browser. Staff's list of runner machines has its actions (`runtime/runner`) but no page yet.
+   Cancelling a job and keeping its logs are not built.
 4. Proxmox, then public clouds and customers' own servers as they land.
 5. The catalog entry for a customer's own runner; usage records for metering (stage 14).
 
