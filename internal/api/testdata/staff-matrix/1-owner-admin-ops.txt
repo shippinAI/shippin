@@ -88,3 +88,4 @@ POST /v1/operator/staff-mode/exit
 GET /v1/operator/runtime/runners
 GET /v1/operator/infrastructure/metrics
 DELETE /v1/operator/runtime/runners/{runnerId}
+GET /v1/operator/infrastructure/host-detection

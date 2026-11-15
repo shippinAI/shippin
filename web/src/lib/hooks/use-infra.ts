@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { callAction } from "../api/actions";
 import { apiGet, apiSend } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 import { useText } from "../ui-config/use-ui-config";
@@ -272,6 +273,10 @@ export function useInfraCan() {
   const caps = useMe().data?.capabilities;
   return (p: string) => caps?.[p] === true;
 }
+
+/** Finds out from an address alone which kind of server answers there. It sends the server no
+ * credentials and stores nothing. */
+export const useDetectHost = () => useMutation({ mutationFn: (address: string) => callAction("shippin.infrastructure.host_detection.get", { address }) });
 
 /** Tries what the form holds. Stores nothing, and does not spend a one-time token. */
 export const useTestHost = () => useMutation({ mutationFn: (v: HostValues) => apiSend<ConnectResult>("POST", "/v1/infra/servers/test", bodyOf(v)) });

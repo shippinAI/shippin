@@ -5,6 +5,7 @@ package actions
 import (
 	identity_access_key "shippin.cloud/console/internal/identity/access_key"
 	identity_ssh_key "shippin.cloud/console/internal/identity/ssh_key"
+	infrastructure_host_detection "shippin.cloud/console/internal/infrastructure/host_detection"
 	infrastructure_metric "shippin.cloud/console/internal/infrastructure/metric"
 	integrations_github_app "shippin.cloud/console/internal/integrations/github_app"
 	integrations_github_installation "shippin.cloud/console/internal/integrations/github_installation"
@@ -39,6 +40,7 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.identity.ssh_key.create", identity_ssh_key.Create),
 	mcpl.Register("shippin.identity.ssh_key.delete", identity_ssh_key.Delete),
 	mcpl.Register("shippin.identity.ssh_key.list", identity_ssh_key.List),
+	mcpl.Register("shippin.infrastructure.host_detection.get", infrastructure_host_detection.Get),
 	mcpl.Register("shippin.infrastructure.metric.list", infrastructure_metric.List),
 	mcpl.Register("shippin.integrations.github_installation.list", integrations_github_installation.List),
 	mcpl.Register("shippin.integrations.github_repository.delete", integrations_github_repository.Delete),
@@ -107,6 +109,7 @@ var Reactions = []mcpl.RegisteredReaction{
 
 // Providers are the entities' own services, by package.
 var Providers = []mcpl.Provider{
+	infrastructure_host_detection.Services,
 	tenancy_acquisition_source.Services,
 }
 

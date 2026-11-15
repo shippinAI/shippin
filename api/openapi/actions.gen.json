@@ -2000,6 +2000,149 @@
         ],
         "type": "object"
       },
+      "HvCertificateInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "fingerprint": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "not_after": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pem": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fingerprint",
+          "subject",
+          "issuer",
+          "names",
+          "not_after",
+          "pem"
+        ],
+        "type": "object"
+      },
+      "HvDetectOutcome": {
+        "enum": [
+          "recognised",
+          "unrecognised",
+          "unreachable"
+        ],
+        "type": "string"
+      },
+      "HvDetection": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "base_url": {
+            "type": "string"
+          },
+          "certificate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HvCertificateInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "certificate_verified": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/HvDetectOutcome"
+          },
+          "probes": {
+            "items": {
+              "$ref": "#/components/schemas/HvProbe"
+            },
+            "type": "array"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "base_url",
+          "outcome",
+          "certificate",
+          "certificate_verified",
+          "evidence",
+          "probes"
+        ],
+        "type": "object"
+      },
+      "HvProbe": {
+        "additionalProperties": false,
+        "properties": {
+          "base_url": {
+            "type": "string"
+          },
+          "certificate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HvCertificateInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "certificate_verified": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/HvDetectOutcome"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "base_url",
+          "outcome",
+          "certificate",
+          "certificate_verified",
+          "evidence"
+        ],
+        "type": "object"
+      },
       "MetricBucket": {
         "additionalProperties": false,
         "properties": {
@@ -3587,6 +3730,54 @@
           "id": "shippin.identity.ssh_key.delete",
           "reason": false,
           "risk": "destructive"
+        }
+      }
+    },
+    "/operator/infrastructure/host-detection": {
+      "get": {
+        "operationId": "shippin.infrastructure.host_detection.get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "address",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HvDetection"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Find out from an address alone whether an Incus or Proxmox VE server answers there, and show its certificate.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.infrastructure.host_detection.get",
+          "perm": "infra.hosts.write",
+          "reason": false,
+          "risk": "read"
         }
       }
     },

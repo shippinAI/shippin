@@ -72,7 +72,7 @@ docker compose up -d --build
 
 ## Add a hypervisor driver
 
-Implement `hv.Driver` in `internal/hv/<kind>`, declare what it needs and offers in `internal/hv/catalog.go`, open it in `openDriver` in `internal/api/infra.go`, and add its names to `ui.providers` in `config/shippin.example.json`. The tabs, add form and actions follow from that with no panel change.
+Implement `hv.Driver` in `internal/hv/<kind>`, declare what it needs and offers in `internal/hv/catalog.go`, say how "Add host" recognises it from its address in `internal/hv/detect.go` (its default port and an unauthenticated version path), open it in `openDriver` in `internal/api/infra.go`, and add its names to `ui.providers` in `config/shippin.example.json`. The tabs, add form and actions follow from that with no panel change.
 
 ## Fork it
 

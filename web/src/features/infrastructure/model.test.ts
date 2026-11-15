@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import type { InfraField, InfraOverview, InfraProvider } from "../../lib/hooks/use-infra";
-import { guestNetworks, noteOK, verbApplies, firstAnswering, FLEETS_TAB, NETWORKS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, guestNameOK, hostsWithoutFleet, imagesFor, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, providersWithHosts, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
+import type { HvDetection } from "../../lib/api/actions.gen";
+import { guestNetworks, noteOK, verbApplies, firstAnswering, FLEETS_TAB, NETWORKS_TAB, fieldsComplete, filledValues, fleetMembers, fleetTotals, formatUptime, guestNameOK, hostsWithoutFleet, imagesFor, initialValues, isRunning, memoryPercent, OVERVIEW_TAB, prefillFromDetection, providersWithHosts, sameCertificate, selectedTab, slugFrom, slugOK, stoppableGuests, tabHref } from "./model";
 
 const totals = { nodes: 0, online: 0, guests: 0, running: 0 };
 const provider = (kind: string, nodes = 0): InfraProvider => ({
@@ -101,5 +102,27 @@ assert.equal(guestNameOK("web_1"), false);
 assert.equal(guestNameOK(""), false);
 assert.deepEqual(imagesFor([{ kind: "ct" }, { kind: "vm" }, {}], "ct"), [{ kind: "ct" }, {}], "an image with no kind suits either");
 assert.deepEqual(guestNetworks([{ name: "vmbr0", type: "bridge" }, { name: "vmbr1", type: "OVSBridge" }, { name: "eth0", type: "eth" }]).map((n) => n.name), ["vmbr0", "vmbr1"]);
+
+// Confirming a detection picks the provider, fills its base URL and carries the certificate to trust.
+const cert = { fingerprint: "AB:CD", subject: "s", issuer: "i", names: ["pve"], not_after: "2030-01-01T00:00:00Z", pem: "PEM" };
+const found = (over: Partial<HvDetection> = {}): HvDetection => ({
+  address: "pve.example", base_url: "https://pve.example:8006", outcome: "recognised", kind: "withurl", version: "9.2",
+  certificate: cert, certificate_verified: false, evidence: ["answered"], probes: [], ...over,
+});
+const withURL: InfraProvider = { ...provider("withurl"), fields: [{ name: "base_url", required: true, label: "URL" }, { name: "node", required: false, label: "Node", default: "pve" }] };
+const tokenOnly: InfraProvider = { ...provider("tokenonly"), fields: [{ name: "trust_token", required: false, secret: true, label: "Token" }] };
+assert.deepEqual(prefillFromDetection(found(), [tokenOnly, withURL]), { kind: "withurl", values: { base_url: "https://pve.example:8006", node: "pve" }, trusted: "PEM" });
+assert.deepEqual(prefillFromDetection(found({ kind: "tokenonly" }), [tokenOnly, withURL]), { kind: "tokenonly", values: { trust_token: "" }, trusted: "PEM" },
+  "a provider without a base URL field gets none");
+assert.equal(prefillFromDetection(found({ certificate_verified: true }), [withURL])?.trusted, "", "a certificate the panel already trusts is not pinned");
+assert.equal(prefillFromDetection(found({ certificate: null }), [withURL])?.trusted, "");
+assert.equal(prefillFromDetection(found({ outcome: "unrecognised", kind: undefined }), [withURL]), undefined, "only a recognised server is offered");
+assert.equal(prefillFromDetection(found({ outcome: "unreachable", kind: undefined }), [withURL]), undefined);
+assert.equal(prefillFromDetection(found({ kind: "elsewhere" }), [withURL]), undefined, "a kind this panel has no provider for is not offered");
+assert.equal(prefillFromDetection(found(), [{ ...withURL, attachable: false }]), undefined, "nor one that cannot be attached");
+assert.equal(prefillFromDetection(undefined, [withURL]), undefined);
+assert.equal(sameCertificate("AB:CD:EF", "abcdef"), true);
+assert.equal(sameCertificate("AB:CD:EF", "AB:CD:00"), false);
+assert.equal(sameCertificate(undefined, ""), false, "no fingerprint matches nothing");
 
 console.log("infrastructure model ok");

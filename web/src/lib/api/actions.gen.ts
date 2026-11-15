@@ -423,6 +423,39 @@ export type GithubRepositoryUpdateInput = {
   runners: boolean;
 };
 
+export type HvCertificateInfo = {
+  fingerprint: string;
+  subject: string;
+  issuer: string;
+  names: string[];
+  not_after: string;
+  pem: string;
+};
+
+export type HvDetectOutcome = "recognised" | "unrecognised" | "unreachable";
+
+export type HvDetection = {
+  address: string;
+  base_url: string;
+  outcome: HvDetectOutcome;
+  kind?: string;
+  version?: string;
+  certificate: HvCertificateInfo | null;
+  certificate_verified: boolean;
+  evidence: string[];
+  probes: HvProbe[];
+};
+
+export type HvProbe = {
+  base_url: string;
+  outcome: HvDetectOutcome;
+  kind?: string;
+  version?: string;
+  certificate: HvCertificateInfo | null;
+  certificate_verified: boolean;
+  evidence: string[];
+};
+
 export type MetricBucket = {
   avg: number;
   max: number;
@@ -708,6 +741,7 @@ export const routes = {
   "shippin.identity.ssh_key.create": "POST /v1/me/identity/ssh-keys",
   "shippin.identity.ssh_key.delete": "DELETE /v1/me/identity/ssh-keys/{sshKeyId}",
   "shippin.identity.ssh_key.list": "GET /v1/me/identity/ssh-keys",
+  "shippin.infrastructure.host_detection.get": "GET /v1/operator/infrastructure/host-detection",
   "shippin.infrastructure.metric.list": "GET /v1/operator/infrastructure/metrics",
   "shippin.integrations.github_installation.list": "GET /v1/tenants/{tenantId}/integrations/github-installations",
   "shippin.integrations.github_repository.delete": "DELETE /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
@@ -778,6 +812,7 @@ export type ActionTypes = {
   "shippin.identity.ssh_key.create": { args: [params: Record<string, never>, body: SshKeyCreateInput & { reason?: string }]; output: SshKey; risk: "write"; event: "shippin.identity.ssh_key.created" };
   "shippin.identity.ssh_key.delete": { args: [params: { sshKeyId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.identity.ssh_key.deleted" };
   "shippin.identity.ssh_key.list": { args: [params?: Record<string, never>]; output: { items: SshKey[] }; risk: "read"; event: never };
+  "shippin.infrastructure.host_detection.get": { args: [params?: { address?: string }]; output: HvDetection; risk: "read"; event: never };
   "shippin.infrastructure.metric.list": { args: [params?: { server_id?: string; guest_id?: string; metrics?: string; from?: string; to?: string; step?: string }]; output: MetricRange; risk: "read"; event: never };
   "shippin.integrations.github_installation.list": { args: [params: { tenantId: string }]; output: GithubInstallationConnections; risk: "read"; event: never };
   "shippin.integrations.github_repository.delete": { args: [params: { tenantId: string; githubRepositoryId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.integrations.github_repository.deleted" };

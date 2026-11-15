@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 227,
+  "operationCount": 228,
   "tags": [
     "agents-runtime",
     "audit",
@@ -877,6 +877,17 @@
         "identity"
       ],
       "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/infrastructure/host-detection",
+      "operationId": "shippin.infrastructure.host_detection.get",
+      "summary": "Find out from an address alone whether an Incus or Proxmox VE server answers there, and show its certificate.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.host_detection.get"
     },
     {
       "method": "GET",
