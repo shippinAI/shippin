@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 226,
+  "operationCount": 227,
   "tags": [
     "agents-runtime",
     "audit",
@@ -14,6 +14,7 @@
     "folders",
     "github-runtime",
     "identity",
+    "infrastructure",
     "integrations",
     "jobs",
     "managed-runtime",
@@ -876,6 +877,17 @@
         "identity"
       ],
       "implementationStatus": "registered"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/infrastructure/metrics",
+      "operationId": "shippin.infrastructure.metric.list",
+      "summary": "Read a host's or guest's CPU, memory, disk and network over a time range, averaged into steps.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.metric.list"
     },
     {
       "method": "GET",

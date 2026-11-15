@@ -73,6 +73,7 @@ GET /v1/operator/identity
 GET /v1/operator/templates
 GET /v1/operator/host
 GET /v1/operator/edge
+GET /v1/operator/infrastructure/metrics
 GET /v1/operator/access-requests
 POST /v1/operator/access-requests
 POST /v1/operator/access-requests/{grantId}/end
@@ -85,4 +86,5 @@ GET /v1/operator/staff-mode
 POST /v1/operator/staff-mode
 POST /v1/operator/staff-mode/exit
 GET /v1/operator/runtime/runners
+GET /v1/operator/infrastructure/metrics
 DELETE /v1/operator/runtime/runners/{runnerId}

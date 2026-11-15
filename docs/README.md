@@ -11,6 +11,7 @@ running.
 - [MCPL](mcpl.md): one canonical action surface for people, the API and an AI acting for a person; the rules every route and input follows.
 - [Build runners](runners.md): customers' GitHub Actions jobs on single-use runner VMs, per organization and within their plan (RUN-01).
 - [Settings and secrets](settings.md): every setting edited in the panel, and keys saved to the installation's Vaultix account (CFG-01).
+- [Metrics](metrics.md): host and guest CPU, memory, disk and network sampled into ClickHouse, the metric names, and the range read (OBS-01).
 - [Code map](architecture.md): the contexts, where the code stands against them, and the order of the rewrite.
 
 ## Run it and change it
