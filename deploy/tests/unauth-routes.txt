@@ -9,6 +9,7 @@ DELETE /v1/me/identity/ssh-keys/{sshKeyId}
 DELETE /v1/operator/backups/{name}
 DELETE /v1/operator/catalog/defaults/{layer}/{key}
 DELETE /v1/operator/platform-services/{serviceId}
+DELETE /v1/operator/platform/secret-store
 DELETE /v1/operator/runtime/runners/{runnerId}
 DELETE /v1/operator/services/catalog-services/{catalogServiceId}
 DELETE /v1/operator/services/runner-sizes/{runnerSizeId}
@@ -86,6 +87,10 @@ GET /v1/operator/mcpl
 GET /v1/operator/platform-services
 GET /v1/operator/platform-services/{serviceId}/observations
 GET /v1/operator/platform-settings
+GET /v1/operator/platform/secret-store
+GET /v1/operator/platform/settings
+GET /v1/operator/platform/settings/{settingId}
+GET /v1/operator/platform/settings/{settingId}/versions
 GET /v1/operator/runtime/runners
 GET /v1/operator/services/catalog-services
 GET /v1/operator/services/catalog-services/{catalogServiceId}
@@ -225,6 +230,7 @@ POST /v1/operator/break-glass
 POST /v1/operator/break-glass/{grantId}/{decision}
 POST /v1/operator/platform-services
 POST /v1/operator/platform-services/{serviceId}/check
+POST /v1/operator/platform/secret-store/test
 POST /v1/operator/recovery-key
 POST /v1/operator/services/catalog-services
 POST /v1/operator/services/runner-sizes
@@ -314,6 +320,8 @@ PUT /v1/operator/built-in-services/clickhouse
 PUT /v1/operator/catalog/defaults
 PUT /v1/operator/platform-services/{serviceId}
 PUT /v1/operator/platform-settings/{key}
+PUT /v1/operator/platform/secret-store
+PUT /v1/operator/platform/settings/{settingId}
 PUT /v1/operator/services/catalog-services/{catalogServiceId}
 PUT /v1/operator/services/runner-sizes/{runnerSizeId}
 PUT /v1/operator/setup-steps/{step}
