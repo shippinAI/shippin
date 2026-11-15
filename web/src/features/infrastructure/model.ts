@@ -1,4 +1,5 @@
 import type { Guest } from "../../lib/hooks/use-hosts";
+import type { HvDetection } from "../../lib/api/actions.gen";
 import type { InfraField, InfraNode, InfraOverview, InfraProvider, InfraTotals, NodeDetails } from "../../lib/hooks/use-infra";
 
 export const OVERVIEW_TAB = "overview";
@@ -91,6 +92,27 @@ export function memoryPercent(d: NodeDetails | undefined): number | null {
   if (!d?.mem_total_bytes) return null;
   return Math.min(100, Math.round(((d.mem_used_bytes ?? 0) / d.mem_total_bytes) * 100));
 }
+
+/** What confirming a detection puts in the add form: the provider, its fields with the base URL filled in
+ * where the provider takes one, and the certificate to trust when the panel does not trust it already.
+ * Nothing when the finding is not a provider this panel can add. */
+export type DetectionPrefill = { kind: string; values: Record<string, string>; trusted: string };
+
+export function prefillFromDetection(d: HvDetection | undefined, providers: InfraProvider[]): DetectionPrefill | undefined {
+  if (!d || d.outcome !== "recognised" || !d.kind) return undefined;
+  const provider = providers.find((p) => p.attachable && p.kind === d.kind);
+  if (!provider) return undefined;
+  const values = initialValues(provider.fields);
+  if (d.base_url && provider.fields.some((f) => f.name === "base_url")) values.base_url = d.base_url;
+  return { kind: provider.kind, values, trusted: d.certificate && !d.certificate_verified ? d.certificate.pem : "" };
+}
+
+/** Whether a certificate a test met is the one detection showed. Fingerprints are compared as hex,
+ * ignoring separators and case. */
+export const sameCertificate = (a: string | undefined, b: string | undefined) => {
+  const norm = (s: string | undefined) => (s ?? "").replace(/[^0-9a-f]/gi, "").toLowerCase();
+  return norm(a) !== "" && norm(a) === norm(b);
+};
 
 /** A provider tab opens on a host that answers, so one dead host does not hide the others. */
 export const firstAnswering = (nodes: InfraNode[]): InfraNode | undefined => nodes.find((n) => n.online) ?? nodes[0];

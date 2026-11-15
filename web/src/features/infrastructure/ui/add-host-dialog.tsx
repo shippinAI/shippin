@@ -5,9 +5,11 @@ import { Disclosure } from "../../../lib/design/components/disclosure/disclosure
 import { TextField } from "../../../lib/design/components/field/text-field";
 import { Select } from "../../../lib/design/components/select/select";
 import { Checkbox } from "../../../lib/design/components/checkbox/checkbox";
+import type { HvDetection } from "../../../lib/api/actions.gen";
 import { useAddHost, useTestHost, type ConnectResult, type InfraField, type InfraNode, type InfraOverview } from "../../../lib/hooks/use-infra";
 import { useText } from "../../../lib/ui-config/use-ui-config";
-import { fieldsComplete, filledValues, initialValues, noteOK, siteOK, slugFrom, slugOK } from "../model";
+import { fieldsComplete, filledValues, initialValues, noteOK, sameCertificate, siteOK, slugFrom, slugOK, type DetectionPrefill } from "../model";
+import { CertificateFacts, DetectHostStep } from "./detect-host-step";
 
 const NEW_HOST = "new";
 
@@ -21,8 +23,9 @@ type Props = {
   onAdded: (kind: string) => void;
 };
 
-/** What a test found, and if the server's certificate is unknown, the decision to trust it. */
-function TestOutcome({ result, onTrust }: { result: ConnectResult; onTrust: (pem: string) => void }) {
+/** What a test found, and if the server's certificate is unknown, the decision to trust it. When the
+ * server was detected first, a certificate other than the one detection showed is pointed out. */
+function TestOutcome({ result, detected, onTrust }: { result: ConnectResult; detected?: string; onTrust: (pem: string) => void }) {
   const t = useText();
   const c = result.certificate;
   if (c) {
@@ -30,11 +33,8 @@ function TestOutcome({ result, onTrust }: { result: ConnectResult; onTrust: (pem
       <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm" data-testid="trust-prompt">
         <p className="font-medium text-warning">{t("infra.trust.title")}</p>
         <p className="text-fg-muted">{t("infra.trust.body")}</p>
-        <dl className="space-y-1 text-fg-muted">
-          <div><dt className="inline font-medium text-fg">{t("infra.trust.fingerprint")} </dt><dd className="inline break-all font-mono text-xs">{c.fingerprint}</dd></div>
-          <div><dt className="inline font-medium text-fg">{t("infra.trust.names")} </dt><dd className="inline">{c.names.join(", ")}</dd></div>
-          <div><dt className="inline font-medium text-fg">{t("infra.trust.expires")} </dt><dd className="inline">{new Date(c.not_after).toLocaleDateString()}</dd></div>
-        </dl>
+        {detected && !sameCertificate(detected, c.fingerprint) && <p role="alert" className="font-medium text-danger" data-testid="trust-differs">{t("infra.trust.differs")}</p>}
+        <CertificateFacts cert={c} />
         <Button size="sm" variant="secondary" tooltip={t("infra.trust.acceptTooltip")} onPress={() => onTrust(c.pem)}>{t("infra.trust.accept")}</Button>
       </div>
     );
@@ -66,6 +66,9 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
   const [trusted, setTrusted] = useState("");
   const [allowTenantSecrets, setAllowTenantSecrets] = useState(false);
   const [note, setNote] = useState("");
+  // A new host starts from its address: detection, then the form. An edit goes straight to the form.
+  const [step, setStep] = useState<"detect" | "form">("form");
+  const [detected, setDetected] = useState<HvDetection>();
   const provider = providers.find((p) => p.kind === kind) ?? providers[0];
   const fields = provider?.fields ?? [];
 
@@ -89,6 +92,8 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
     setTrusted("");
     setAllowTenantSecrets(editNode?.allow_tenant_deployment_secrets ?? false);
     setNote("");
+    setStep(editNode ? "form" : "detect");
+    setDetected(undefined);
     resetTest();
     // Reset only when the dialog opens: the overview refreshes on a timer behind it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,6 +104,23 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
     setValues(initialValues(providers.find((p) => p.kind === next)?.fields ?? []));
     setTrusted("");
     setAllowTenantSecrets(false);
+    resetTest();
+  };
+  // Confirming a detection picks its provider, fills its base URL and carries its certificate into the
+  // trust step, so the test meets the certificate the person just compared.
+  const confirmDetected = (prefill: DetectionPrefill, found: HvDetection) => {
+    setKind(prefill.kind);
+    setValues(prefill.values);
+    setTrusted(prefill.trusted);
+    setAllowTenantSecrets(false);
+    setDetected(found);
+    setStep("form");
+    resetTest();
+  };
+  const detectAgain = () => {
+    setDetected(undefined);
+    setTrusted("");
+    setStep("detect");
     resetTest();
   };
   const setField = (name: string, value: string) => {
@@ -150,7 +172,21 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
   return (
     <ModalDialog isOpen={isOpen} onOpenChange={onOpenChange} title={editNode ? t("infra.dialog.editTitle", { label: editNode.label }) : t("infra.dialog.title")} description={t("infra.dialog.description")}>
       <div className="max-h-[75vh] space-y-4 overflow-y-auto px-6 py-5">
-        {editNode ? <p className="text-base text-fg-muted">{provider?.label} · {editNode.slug}</p> : <Select label={t("infra.dialog.provider")} options={providers.map((p) => ({ id: p.kind, label: p.label }))} value={provider?.kind ?? ""} onChange={pick} />}
+        {step === "detect" ? (
+          <>
+            <DetectHostStep providers={providers} onConfirm={confirmDetected} onChooseKind={() => setStep("form")} />
+            <div className="flex flex-wrap justify-end gap-2 border-t border-line pt-4">
+              <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={() => onOpenChange(false)}>{t("infra.dialog.cancel")}</Button>
+            </div>
+          </>
+        ) : (<>
+        {!editNode && (
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-fg-muted">
+            <p data-testid="detected-note">{detected ? t("infra.detect.confirmed", { provider: providers.find((p) => p.kind === detected.kind)?.label ?? detected.kind ?? "", url: detected.base_url }) : t("infra.detect.skipped")}</p>
+            <Button size="sm" variant="ghost" tooltip={t("infra.detect.againTooltip")} onPress={detectAgain}>{t("infra.detect.again")}</Button>
+          </div>
+        )}
+        {editNode ?<p className="text-base text-fg-muted">{provider?.label} · {editNode.slug}</p> : <Select label={t("infra.dialog.provider")} options={providers.map((p) => ({ id: p.kind, label: p.label }))} value={provider?.kind ?? ""} onChange={pick} />}
         {provider?.description && <p className="text-sm text-fg-muted">{provider.description}</p>}
         {targets.length > 1 && <Select label={t("infra.dialog.target")} options={targets} value={target} onChange={setTarget} />}
         {isNew && (
@@ -170,7 +206,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
         {advanced.length > 0 && <Disclosure title={t("infra.dialog.advanced")}><div className="space-y-4 p-4">{advanced.map(field)}</div></Disclosure>}
         {trusted && <p className="text-sm text-fg-muted">{t("infra.trust.accepted")}</p>}
         <div ref={outcome} className="space-y-2 empty:hidden">
-          {test.data && <TestOutcome result={test.data} onTrust={trust} />}
+          {test.data && <TestOutcome result={test.data} detected={detected?.certificate?.fingerprint} onTrust={trust} />}
           {test.isError && <p role="alert" className="text-sm text-danger">{test.error.message}</p>}
         </div>
         <TextField label={t("infra.note.label")} description={t("infra.note.help")} value={note} onChange={setNote} />
@@ -184,6 +220,7 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
             {add.isPending ? t("infra.dialog.adding") : editNode ? t("infra.dialog.saveEdit") : t("infra.dialog.submit")}
           </Button>
         </div>
+        </>)}
       </div>
     </ModalDialog>
   );
