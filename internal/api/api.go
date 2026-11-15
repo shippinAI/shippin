@@ -21,6 +21,7 @@ import (
 	"shippin.cloud/console/internal/hv/proxmox"
 	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/identity/access_key"
+	"shippin.cloud/console/internal/infrastructure/metric"
 	"shippin.cloud/console/internal/jobs"
 	"shippin.cloud/console/internal/mail"
 	"shippin.cloud/console/internal/managed"
@@ -56,6 +57,8 @@ type API struct {
 	// ch is ClickHouse, the metrics and events store. Empty when the install has none. An owner can
 	// change it from the panel, so it is read fresh each time.
 	ch atomic.Pointer[clickhouse.Client]
+	// sampler writes hosts' and guests' metrics to ch (RunMetrics); nil until it starts.
+	sampler atomic.Pointer[metric.Sampler]
 	// Test-only overrides: recipient lookups and synchronous notices.
 	lookupManagers func(ctx context.Context, org string) ([]string, error)
 	orgOfUser      func(ctx context.Context, sub string) (string, error) // test seam for orgMember

@@ -52,6 +52,7 @@ GET /v1/operator/identity
 GET /v1/operator/templates
 GET /v1/operator/host
 GET /v1/operator/edge
+GET /v1/operator/infrastructure/metrics
 GET /v1/operator/break-glass/pending
 POST /v1/operator/break-glass/{grantId}/{decision}
 GET /v1/operator/audit
@@ -76,6 +77,7 @@ GET /v1/operator/workspaces
 GET /v1/operator/templates
 GET /v1/operator/host
 GET /v1/operator/edge
+GET /v1/operator/infrastructure/metrics
 GET /v1/operator/audit
 GET /v1/operator/team
 GET /v1/operator/team/permission-grants

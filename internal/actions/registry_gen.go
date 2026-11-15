@@ -5,6 +5,7 @@ package actions
 import (
 	identity_access_key "shippin.cloud/console/internal/identity/access_key"
 	identity_ssh_key "shippin.cloud/console/internal/identity/ssh_key"
+	infrastructure_metric "shippin.cloud/console/internal/infrastructure/metric"
 	integrations_github_app "shippin.cloud/console/internal/integrations/github_app"
 	integrations_github_installation "shippin.cloud/console/internal/integrations/github_installation"
 	integrations_github_repository "shippin.cloud/console/internal/integrations/github_repository"
@@ -38,6 +39,7 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.identity.ssh_key.create", identity_ssh_key.Create),
 	mcpl.Register("shippin.identity.ssh_key.delete", identity_ssh_key.Delete),
 	mcpl.Register("shippin.identity.ssh_key.list", identity_ssh_key.List),
+	mcpl.Register("shippin.infrastructure.metric.list", infrastructure_metric.List),
 	mcpl.Register("shippin.integrations.github_installation.list", integrations_github_installation.List),
 	mcpl.Register("shippin.integrations.github_repository.delete", integrations_github_repository.Delete),
 	mcpl.Register("shippin.integrations.github_repository.list", integrations_github_repository.List),
@@ -110,6 +112,7 @@ var Providers = []mcpl.Provider{
 
 // Settings are the entities' settings sections, by package (docs/settings.md).
 var Settings = []settings.Section{
+	infrastructure_metric.Settings,
 	integrations_github_app.Settings,
 	platform_job_queue.Settings,
 	runtime_runner.Settings,

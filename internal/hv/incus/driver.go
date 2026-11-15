@@ -319,6 +319,11 @@ func (c *Client) Networks(ctx context.Context) ([]hv.Network, error) {
 }
 
 func (c *Client) do(ctx context.Context, method, path string, raw []byte) ([]byte, int, error) {
+	return c.doLimit(ctx, method, path, raw, 1<<20)
+}
+
+// doLimit is do with a larger answer allowed, for a listing that grows with the number of guests.
+func (c *Client) doLimit(ctx context.Context, method, path string, raw []byte, limit int64) ([]byte, int, error) {
 	secret, err := c.Secret()
 	if err != nil {
 		return nil, 0, err
@@ -343,7 +348,7 @@ func (c *Client) do(ctx context.Context, method, path string, raw []byte) ([]byt
 		return nil, 0, err
 	}
 	defer res.Body.Close()
-	b, err := io.ReadAll(io.LimitReader(res.Body, 1<<20))
+	b, err := io.ReadAll(io.LimitReader(res.Body, limit))
 	return b, res.StatusCode, err
 }
 

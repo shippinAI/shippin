@@ -2000,6 +2000,136 @@
         ],
         "type": "object"
       },
+      "MetricBucket": {
+        "additionalProperties": false,
+        "properties": {
+          "avg": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "samples": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "avg",
+          "max",
+          "samples"
+        ],
+        "type": "object"
+      },
+      "MetricRange": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "guest_id": {
+            "type": "string"
+          },
+          "sampler": {
+            "$ref": "#/components/schemas/MetricSamplerState"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/MetricSeries"
+            },
+            "type": "array"
+          },
+          "server_id": {
+            "type": "string"
+          },
+          "step_seconds": {
+            "type": "integer"
+          },
+          "times": {
+            "items": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "server_id",
+          "guest_id",
+          "from",
+          "to",
+          "step_seconds",
+          "times",
+          "series",
+          "sampler"
+        ],
+        "type": "object"
+      },
+      "MetricSamplerState": {
+        "additionalProperties": false,
+        "properties": {
+          "interval_seconds": {
+            "type": "integer"
+          },
+          "last_sampled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "interval_seconds",
+          "last_sampled_at"
+        ],
+        "type": "object"
+      },
+      "MetricSeries": {
+        "additionalProperties": false,
+        "properties": {
+          "buckets": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/MetricBucket"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "metric",
+          "unit",
+          "buckets"
+        ],
+        "type": "object"
+      },
       "Plan": {
         "additionalProperties": false,
         "properties": {
@@ -3457,6 +3587,89 @@
           "id": "shippin.identity.ssh_key.delete",
           "reason": false,
           "risk": "destructive"
+        }
+      }
+    },
+    "/operator/infrastructure/metrics": {
+      "get": {
+        "operationId": "shippin.infrastructure.metric.list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "server_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "guest_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "metrics",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "step",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricRange"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read a host's or guest's CPU, memory, disk and network over a time range, averaged into steps.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.infrastructure.metric.list",
+          "perm": "infra.read",
+          "reason": false,
+          "risk": "read"
         }
       }
     },

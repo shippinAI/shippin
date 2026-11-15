@@ -11,7 +11,7 @@ the design.
    ID and client secret. **Test** signs in, writes a check value, reads it back and deletes it, and says
    which step failed.
 2. **Settings > Sections.** Each configuration section (build runners, the job queue, the GitHub App,
-   and more as they move) is a form generated from the section's own description. Every field says
+   metrics, and more as they move) is a form generated from the section's own description. Every field says
    where its value comes from now: the panel, the bootstrap file, or the default.
 3. A key field (a client secret, a private key, a webhook secret) is never shown. The form says
    whether one is saved and when. Staff replace it or remove it. The value goes to Vaultix and nowhere

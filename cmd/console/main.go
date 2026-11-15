@@ -80,6 +80,7 @@ func main() {
 	go consoleAPI.RunNetworkInventory(ctx)
 	go consoleAPI.RunPlatformHealth(ctx)
 	go consoleAPI.RunAcquisitionRetention(ctx)
+	go consoleAPI.RunMetrics(ctx)
 	consoleAPI.RecoverOperations(ctx)
 	startMail(ctx, cfg, database, consoleAPI)
 	mux.HandleFunc("GET /auth/login", flow.Login)

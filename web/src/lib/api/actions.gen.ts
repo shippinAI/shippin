@@ -423,6 +423,36 @@ export type GithubRepositoryUpdateInput = {
   runners: boolean;
 };
 
+export type MetricBucket = {
+  avg: number;
+  max: number;
+  samples: number;
+};
+
+export type MetricRange = {
+  server_id: string;
+  guest_id: string;
+  from: string;
+  to: string;
+  step_seconds: number;
+  times: string[];
+  series: MetricSeries[];
+  sampler: MetricSamplerState;
+};
+
+export type MetricSamplerState = {
+  state: string;
+  reason?: string;
+  interval_seconds: number;
+  last_sampled_at: string | null;
+};
+
+export type MetricSeries = {
+  metric: string;
+  unit: string;
+  buckets: (MetricBucket | null)[];
+};
+
 export type Plan = {
   id: string;
   label: string;
@@ -678,6 +708,7 @@ export const routes = {
   "shippin.identity.ssh_key.create": "POST /v1/me/identity/ssh-keys",
   "shippin.identity.ssh_key.delete": "DELETE /v1/me/identity/ssh-keys/{sshKeyId}",
   "shippin.identity.ssh_key.list": "GET /v1/me/identity/ssh-keys",
+  "shippin.infrastructure.metric.list": "GET /v1/operator/infrastructure/metrics",
   "shippin.integrations.github_installation.list": "GET /v1/tenants/{tenantId}/integrations/github-installations",
   "shippin.integrations.github_repository.delete": "DELETE /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
   "shippin.integrations.github_repository.list": "GET /v1/tenants/{tenantId}/integrations/github-repositories",
@@ -747,6 +778,7 @@ export type ActionTypes = {
   "shippin.identity.ssh_key.create": { args: [params: Record<string, never>, body: SshKeyCreateInput & { reason?: string }]; output: SshKey; risk: "write"; event: "shippin.identity.ssh_key.created" };
   "shippin.identity.ssh_key.delete": { args: [params: { sshKeyId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.identity.ssh_key.deleted" };
   "shippin.identity.ssh_key.list": { args: [params?: Record<string, never>]; output: { items: SshKey[] }; risk: "read"; event: never };
+  "shippin.infrastructure.metric.list": { args: [params?: { server_id?: string; guest_id?: string; metrics?: string; from?: string; to?: string; step?: string }]; output: MetricRange; risk: "read"; event: never };
   "shippin.integrations.github_installation.list": { args: [params: { tenantId: string }]; output: GithubInstallationConnections; risk: "read"; event: never };
   "shippin.integrations.github_repository.delete": { args: [params: { tenantId: string; githubRepositoryId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.integrations.github_repository.deleted" };
   "shippin.integrations.github_repository.list": { args: [params: { tenantId: string }]; output: { items: GithubRepository[] }; risk: "read"; event: never };

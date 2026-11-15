@@ -13,6 +13,9 @@ package ports
 import (
 	"context"
 	"errors"
+	"time"
+
+	"shippin.cloud/console/internal/clickhouse"
 )
 
 // Sealer is the panel's at-rest encryption. Callers pass distinct associated data for each purpose,
@@ -96,4 +99,28 @@ type Workspaces interface {
 	// GiveKeys sets the SSH keys on every workspace the person created and applies them to the running
 	// ones now; the rest get them when they next start.
 	GiveKeys(ctx context.Context, sub string, keys []string) error
+}
+
+// Metrics is the panel's metrics history (OBS-01, docs/metrics.md): the ClickHouse it is connected to
+// now, which an owner can change or turn off while the panel runs, and what this panel process's
+// sampler is doing.
+type Metrics interface {
+	// ClickHouse is the connected store, or nil while there is none.
+	ClickHouse() *clickhouse.Client
+	// Sampling is this process's sampler as it last ran.
+	Sampling() Sampling
+}
+
+// Sampling is what one panel process's metrics sampler is doing and why.
+type Sampling struct {
+	// State is sampling (this process writes samples), standby (another process does), idle (it can't:
+	// Reason says why), off (turned off in the settings) or starting.
+	State           string
+	Reason          string
+	IntervalSeconds int
+	// LastAt is when it last wrote samples; zero before the first.
+	LastAt time.Time
+	// LastRows is how many samples it last wrote, and Failed the hosts that could not be read then.
+	LastRows int
+	Failed   []string
 }

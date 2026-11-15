@@ -26,6 +26,8 @@ func (a *API) provideServices(s mcpl.Services) {
 	// The GitHub App can be turned on and off in the panel, so the port is always there and finds the
 	// App on each call; while it is off, Need answers as if it weren't provided.
 	mcpl.Provide[ports.GitHub](s, githubPort{a})
+	// ClickHouse can be changed or turned off in the panel, so the port reads it on each call.
+	mcpl.Provide[ports.Metrics](s, metricsPort{a})
 	// Create the sealer only when actions are first requested. A missing key means secret-bearing
 	// actions fail closed through mcpl.Need.
 	if seal, err := a.sealer(); err == nil {
