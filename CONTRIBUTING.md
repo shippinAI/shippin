@@ -18,13 +18,26 @@ settings rather than hardcoding them.
 
 ## Working with the public remote
 
-Clone `https://github.com/shippinAI/shippin.git`. During baseline development,
-repository administrators commit directly to `main` and push; topic branches and
-pull requests are optional. Run the checks above first, because GitHub records an
-administrator's push as bypassing the branch rule and nothing stops a broken commit.
-The `Checks` workflow still runs on every push. Before the first release it stays
-fast: builds, unit tests, panel checks, and the public-tree and secret scans.
-Fix a red `main` before adding anything else.
+Clone `https://github.com/shippinAI/shippin.git` and run `git config core.hooksPath .githooks` once.
+
+**main only moves to a green commit.** Commit on `main` locally, run the checks above, and push to the
+queue: `git push origin main:queue/main`. The `Checks` workflow runs there, and when every job passes,
+the `Gate` workflow fast-forwards `main` to that exact commit. The pre-push hook refuses a direct push to
+`main`. If `main` moved meanwhile, the Gate refuses to promote: rebase onto `main` and push the queue again.
+
+**A failure is loud.** When Checks fail on `main` or a queue branch, or the Gate cannot promote, the Gate
+opens one issue labelled `ci-red` (or adds to it), which notifies the owner, and closes it when that branch
+is green again. For AI agents, `.claude/settings.json` adds hooks: a red `main` or queue is stated at the
+start of every prompt as the first thing to fix, and after a `git push` a background watcher follows the
+run and wakes the agent with the failed jobs and their logs.
+
+**Fix the source, not the test.** A failing test means the code is wrong until shown otherwise. The
+`integrity` check fails a push that removes or changes an assertion in an existing test, deletes a test
+file, or adds a skip or an only, unless a commit touching that file says why in a trailer:
+
+    Test-Change: the endpoint now answers 404 for a missing host, which the old test called a 500
+
+Adding tests and assertions never needs one. See `scripts/ci/test-integrity.mjs`.
 
 Anyone without administrator rights, including automation, pushes a branch and opens a
 pull request to `main`. GitHub requires the `agent`, `panel` and `governance` checks

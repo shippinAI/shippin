@@ -8,6 +8,27 @@ permissions:
   contents: read
 
 jobs:
+  integrity:
+    # Existing tests are not weakened to make a run pass; see scripts/ci/test-integrity.mjs.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: No test weakened without a stated reason
+        env:
+          BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          REF: ${{ github.ref }}
+        shell: bash
+        run: |
+          base="${PR_BASE:-$BEFORE}"
+          # A queue branch is judged against everything not yet on main; a new branch has no before.
+          if [[ "$REF" == refs/heads/queue/* ]] || [ -z "$base" ] || [[ "$base" =~ ^0+$ ]] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            base=origin/main
+          fi
+          node scripts/ci/test-integrity.mjs "$base" "$GITHUB_SHA"
+      - run: node --test scripts/ci/ci.test.mjs
   agent:
     runs-on: ubuntu-latest
     defaults:

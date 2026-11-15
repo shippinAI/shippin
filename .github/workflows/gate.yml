@@ -1,0 +1,95 @@
+name: Gate
+
+# main only moves to a commit whose Checks all passed. Work is pushed to a queue/* branch; when Checks pass
+# there, this fast-forwards main to that exact commit. When Checks fail on main or a queue branch, or the
+# fast-forward cannot happen, it opens (or adds to) one issue labelled ci-red, which notifies the owner; the
+# next green run on that branch closes it. It runs from the trusted default branch and never runs the
+# pushed code: it only reads run results and moves a ref.
+
+on:
+  workflow_run:
+    workflows: [Checks]
+    types: [completed]
+
+permissions:
+  contents: write
+  issues: write
+  actions: read
+
+concurrency:
+  group: gate
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+  RUN_ID: ${{ github.event.workflow_run.id }}
+  RUN_URL: ${{ github.event.workflow_run.html_url }}
+  BRANCH: ${{ github.event.workflow_run.head_branch }}
+  HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+  CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+
+jobs:
+  gate:
+    # Only pushes made in this repository, to main or a queue branch.
+    if: >-
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (github.event.workflow_run.head_branch == 'main' || startsWith(github.event.workflow_run.head_branch, 'queue/'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Promote a green queue commit to main
+        id: promote
+        if: env.CONCLUSION == 'success' && startsWith(env.BRANCH, 'queue/')
+        shell: bash
+        run: |
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --quiet origin "$HEAD_SHA" main
+          if [ "$(git rev-parse origin/main)" = "$HEAD_SHA" ]; then echo "main is already at $HEAD_SHA"; exit 0; fi
+          if ! git merge-base --is-ancestor origin/main "$HEAD_SHA"; then
+            echo "::error::main has moved past the base of $BRANCH. Rebase $BRANCH onto main and push it again; nothing was promoted."
+            exit 1
+          fi
+          git push origin "$HEAD_SHA:refs/heads/main"
+          echo "main is now $HEAD_SHA"
+      - name: Raise the alarm
+        if: env.CONCLUSION != 'success' || failure()
+        shell: bash
+        run: |
+          title="CI is red on $BRANCH"
+          if [ "$CONCLUSION" = success ]; then
+            why="Checks passed, but $HEAD_SHA could not be promoted to main (main moved past it). Rebase onto main and push again."
+          else
+            failed=$(gh run view "$RUN_ID" --json jobs --jq '.jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out") | "- " + .name' || true)
+            why="Checks ended **$CONCLUSION** on \`$HEAD_SHA\`.
+
+          Failed jobs:
+          ${failed:-"- (could not list them)"}"
+          fi
+          body="$why
+
+          Run: $RUN_URL
+
+          Fix the cause before anything else lands. A failing test means the code is wrong until shown otherwise: fix the source, not the test. Do not weaken, skip or delete a test to make it pass; a test that really is wrong is changed in a commit whose message says why in a \`Test-Change:\` trailer."
+          gh label create ci-red --color B60205 --description "CI is failing" --force >/dev/null
+          number=$(gh issue list --label ci-red --state open --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -1)
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body "$body"
+          else
+            gh issue create --title "$title" --label ci-red --body "$body"
+          fi
+      - name: Close the alarm when green again
+        if: env.CONCLUSION == 'success' && success()
+        shell: bash
+        run: |
+          # A promoted commit is what main now is, so it also clears an alarm left on main.
+          titles=("CI is red on $BRANCH"); [[ "$BRANCH" == queue/* ]] && titles+=("CI is red on main")
+          for title in "${titles[@]}"; do
+          for n in $(gh issue list --label ci-red --state open --json number,title --jq ".[] | select(.title == \"$title\") | .number"); do
+            gh issue close "$n" --comment "Green again at $HEAD_SHA: $RUN_URL"
+          done
+          done
