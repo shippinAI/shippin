@@ -78,4 +78,4 @@ cd web && npm ci && npm run dev  # the panel, with hot reload, at http://localho
 
 ## License
 
-No license has been selected yet. Public visibility does not grant reuse rights.
+[Functional Source License 1.1, Apache 2.0 future license](LICENSE.md) (FSL-1.1-ALv2): use, modify and self-host it for anything except a competing commercial service; each version becomes Apache 2.0 two years after release. The enterprise edition is a separate commercial module. See [Editions and licensing](docs/editions.md).

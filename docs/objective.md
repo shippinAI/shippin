@@ -172,9 +172,14 @@ Choices such as image servers, base domains, regions and providers are validated
 settings. Provider-specific code stays in provider files, and each concern has one
 owning package. New tables use the `shippin_` prefix.
 
-**OPEN-01 One public product.** There is no private fork and no per-site
-repository. An installation's values are data in its own database. Anything an
-installation once scripted by hand becomes a configurable feature of the product.
+**OPEN-01 One public product, open core.** This repository is the one panel, published
+under FSL-1.1-ALv2: anyone may use and self-host it, except as a competing commercial
+service. There is no fork and no per-site repository. The enterprise edition is a
+separate private module that extends this panel through its extension points and never
+copies it; it is unlocked by a signed license key and runs managed or unmanaged
+([Editions and licensing](editions.md)). An installation's values are data in its own
+database. Anything an installation once scripted by hand becomes a configurable feature
+of the product.
 
 **GOV-01 Every change carries a reason.** A change to infrastructure, access,
 tenants or settings asks for a short note, and the audit log keeps it. Human review
@@ -416,8 +421,9 @@ CAT-01 above is the catalog. Each entry also follows these rules:
 - **BILL-01** Metering of what each customer uses comes before invoicing. Payment
   collection is a later integration and is not needed for the friends-and-family
   launch.
-- Self-hosting is open (OPEN-01). Revenue comes from our own cloud, its coverage,
-  and the consulting, custom deployments and training at the managed end.
+- Self-hosting is open under FSL-1.1 (OPEN-01). Revenue comes from our own cloud, its
+  coverage, enterprise licenses (managed and unmanaged), commercial licenses for
+  competing use, and the consulting, custom deployments and training at the managed end.
 
 ## Engineering
 

@@ -39,6 +39,8 @@ Updated 2026-11-15. Each request from the owner, the requirement it falls under 
 | The workspace terminal: the enhanced Zellij session, for that workspace only | TERM-01, IDE-01 | **Built:** follows the window size, reconnects by itself, records how each session ended, refuses anyone outside the workspace. Not run on a real workspace. |
 | A shell on the server itself, in the control plane, as granted privileged access | INF-03, IAM-01 | **Designed:** [Host shell](host-shell.md), with the grant dialog and limited impersonation. Five decisions are the owner's. |
 | CI: main only moves on green, failures are loud and make the AI fix them, tests are not weakened to pass | ENG-01 | **Done.** Pushes go to `queue/main`; the Gate promoted the first one to main by itself. The failure alarm has not been triggered for real yet. |
+| A license that lets people self-host but not compete | OPEN-01 | **Done:** FSL-1.1-ALv2, licensor shippinAI. A contributor agreement is not set up. |
+| An enterprise edition, managed and unmanaged, in its own repository | OPEN-01 | **Designed:** [Editions and licensing](editions.md), a private module over this panel with a signed license key; not a fork. Extension points, the key check and the repository are not built; the repository's name is the owner's. |
 | A personal lexicon and prompt recipes from the owner's own chats | (tooling, later COACH-01) | **Done** as tooling (`governance/lexicon.mjs`). 16 terms and 14 recipes wait for the owner to confirm them. |
 
 ## Where it stands

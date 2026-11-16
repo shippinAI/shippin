@@ -1,8 +1,9 @@
 # Contributing and resuming development
 
 This repository owns the platform: see [source ownership](docs/source-of-truth.md), the
-[roadmap](docs/roadmap.md) and [AGENTS.md](AGENTS.md). No license has been selected yet; public
-visibility alone does not grant reuse rights.
+[roadmap](docs/roadmap.md) and [AGENTS.md](AGENTS.md). The code is licensed under
+[FSL-1.1-ALv2](LICENSE.md); see [Editions and licensing](docs/editions.md). Outside contributions
+need a contributor agreement, which is not set up yet.
 
 [Develop](docs/development.md) has the dev loop and the rules. `scripts/check.sh` runs the checks.
 Only use disposable VM disks for installer tests. These checks do not establish production readiness.
