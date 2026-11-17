@@ -5,6 +5,7 @@ running.
 
 ## The product
 
+- [Working brief](brief.md): one page loaded into every agent session: the role, the current target (J1), owner decisions not yet in the contracts, and which file answers what.
 - [What Shippin is](objective.md): software for running a commercial cloud provider; the contract every change follows, with requirement IDs.
 - [Roadmap](roadmap.md): what exists today, and the order toward the friends-and-family launch and then a commercial cloud.
 - [Design system](design-system.md): tokens, accessibility and speed rules for the panel.
