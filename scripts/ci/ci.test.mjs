@@ -6,7 +6,7 @@ import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { check, problems, isTestFile } from './test-integrity.mjs';
-import { redBranches, pushedRef, pushDir } from './agent-hooks.mjs';
+import { redBranches, pushedRef, pushDir, inMain } from './agent-hooks.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -108,4 +108,24 @@ test('the hooks read CI state and pushes correctly', () => {
   const self = path.join(here, 'ci.test.mjs');
   const noted = spawnSync(process.execPath, [path.join(here, 'agent-hooks.mjs'), 'test-edit'], { input: JSON.stringify({ tool_input: { file_path: self } }), encoding: 'utf8' });
   assert.match(JSON.parse(noted.stdout).hookSpecificOutput.additionalContext, /fix the source, not the test/);
+});
+
+test('a pushed commit counts as promoted once main contains it, even after later commits', () => {
+  const origin = fs.mkdtempSync(path.join(os.tmpdir(), 'origin-'));
+  execFileSync('git', ['init', '-q', '--bare', '-b', 'main', origin]);
+  const r = repo();
+  r.git('remote', 'add', 'origin', origin);
+  r.write('a.txt', '1');
+  const first = r.commit('first');
+  r.write('a.txt', '2');
+  const second = r.commit('second');
+  r.git('checkout', '-q', '-b', 'side', first);
+  r.write('b.txt', 'x');
+  const elsewhere = r.commit('not on main');
+  assert.equal(inMain(first, r.dir), false, 'nothing pushed yet');
+  r.git('push', '-q', 'origin', `${first}:refs/heads/main`);
+  assert.equal(inMain(first, r.dir), true, 'main is at it');
+  r.git('push', '-q', 'origin', `${second}:refs/heads/main`);
+  assert.equal(inMain(first, r.dir), true, 'main moved past it');
+  assert.equal(inMain(elsewhere, r.dir), false, 'a commit main does not contain');
 });

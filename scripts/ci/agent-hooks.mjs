@@ -103,14 +103,28 @@ async function watch(input) {
   if ((branch ?? checks.headBranch).startsWith('queue/')) await promoted(sha, checks, cwd);
 }
 
+// inMain says the remote main contains sha: main is at it, or a later promotion moved main past it.
+export function inMain(sha, cwd) {
+  const head = git(['ls-remote', 'origin', 'refs/heads/main'], cwd).split(/\s/)[0];
+  if (!head) return false;
+  if (head === sha) return true;
+  try {
+    git(['fetch', '-q', 'origin', 'main'], cwd);
+    git(['merge-base', '--is-ancestor', sha, head], cwd);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // A Gate run is filed under main's commit at the time, not the queued one, so promotion is judged by
-// where main ends up: at the pushed commit is success; a Gate run started after these Checks that fails
-// while main is elsewhere is a failure.
+// where main ends up: containing the pushed commit is success; a Gate run started after these Checks
+// that fails while main does not contain it is a failure.
 async function promoted(sha, checks, cwd) {
   const ran = JSON.parse(gh(['run', 'view', String(checks.databaseId), '--json', 'updatedAt'], cwd)).updatedAt;
   const start = Date.now();
   while (Date.now() - start < 900_000) {
-    if (git(['ls-remote', 'origin', 'refs/heads/main'], cwd).split(/\s/)[0] === sha) return;
+    if (inMain(sha, cwd)) return;
     const gates = JSON.parse(gh(['run', 'list', '--workflow', 'Gate', '--limit', '10', '--json', 'databaseId,status,conclusion,createdAt,headBranch,url'], cwd));
     const failed = gates.find(g => g.createdAt >= ran && g.status === 'completed' && g.conclusion !== 'success');
     if (failed) failure('Gate (promotion to main)', failed, cwd);
