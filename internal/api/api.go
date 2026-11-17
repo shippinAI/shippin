@@ -16,6 +16,7 @@ import (
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/deployments"
+	"shippin.cloud/console/internal/devaccounts"
 	"shippin.cloud/console/internal/hostclient"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/proxmox"
@@ -274,7 +275,20 @@ func (a *API) publicSettings(w http.ResponseWriter, r *http.Request) {
 		"login_providers":      loginProviders(a.cfg.IDP.Providers),
 		"sign_in_providers":    signInProviders(a.cfg.Directory.Upstreams),
 		"email_sign_in":        a.cfg.Mail.Enabled || os.Getenv("SHIPPIN_MAIL_SINK") != "",
+		"dev_sign_in":          devSignIn(r.Host, !a.cfg.Directory.UpstreamRequired && a.directory != nil),
 	})
+}
+
+// devSignIn lists the one-click development accounts the sign-in page offers, as email and label.
+func devSignIn(host string, local bool) []map[string]string {
+	out := []map[string]string{}
+	if !local {
+		return out
+	}
+	for _, acct := range devaccounts.QuickSignIn(host) {
+		out = append(out, map[string]string{"email": acct.Email, "kind": acct.Kind, "label": acct.Label()})
+	}
+	return out
 }
 
 // signInProviders lists the OIDC providers people can sign in through. One with no issuer or client is

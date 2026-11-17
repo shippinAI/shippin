@@ -35,6 +35,37 @@ func TestOnlyListedStaffAccountsAreExempt(t *testing.T) {
 	}
 }
 
+func TestQuickSignInOnlyOnADevelopmentAddress(t *testing.T) {
+	for _, h := range []string{"localhost", "localhost:18443", "127.0.0.1:8443", "[::1]:18443", "panel.localhost", "shippin.test:443"} {
+		if !LocalHost(h) {
+			t.Errorf("%s is a development address", h)
+		}
+	}
+	for _, h := range []string{"", "example.com", "localhost.example.com", "10.0.0.5:8443", "panel.test.example.com", "attacker-localhost"} {
+		if LocalHost(h) {
+			t.Errorf("%s is not a development address", h)
+		}
+	}
+	t.Setenv("SHIPPIN_DEV_ACCOUNTS", "boss@example.test=admin,user@example.test=customer:pro")
+	t.Setenv("SHIPPIN_DEV_ACCOUNTS_PASSWORD", "a-long-dev-password")
+	got := QuickSignIn("localhost:18443")
+	if len(got) != 2 || got[0].Label() != "Admin" || got[1].Label() != "Customer (pro)" {
+		t.Fatalf("%+v", got)
+	}
+	if QuickSignIn("panel.example.com") != nil {
+		t.Fatal("offered on a public address")
+	}
+	t.Setenv("SHIPPIN_DEV_ACCOUNTS_PASSWORD", "")
+	if QuickSignIn("localhost") != nil {
+		t.Fatal("offered with no password to sign in with")
+	}
+	t.Setenv("SHIPPIN_DEV_ACCOUNTS_PASSWORD", "a-long-dev-password")
+	t.Setenv("SHIPPIN_DEV_ACCOUNTS", "not a list")
+	if QuickSignIn("localhost") != nil {
+		t.Fatal("offered from a malformed list")
+	}
+}
+
 // TestAccountsOnARealDatabase runs when SHIPPIN_TEST_DATABASE_URL points at a disposable PostgreSQL.
 func TestAccountsOnARealDatabase(t *testing.T) {
 	url := os.Getenv("SHIPPIN_TEST_DATABASE_URL")

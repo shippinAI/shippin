@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/mail"
 	"os"
 	"strings"
@@ -221,4 +222,46 @@ func ensureOrganization(ctx context.Context, pool *pgxpool.Pool, user, plan, cov
 	_, err = pool.Exec(ctx, `UPDATE tenants t SET coverage=$2 FROM orgs o JOIN identity_members m ON m.org_id=o.identity_org_id
 	  WHERE o.tenant_id=t.id AND o.type='customer' AND m.user_id=$1`, user, cover)
 	return err
+}
+
+// Listed returns the accounts this installation lists in SHIPPIN_DEV_ACCOUNTS, or none when the list is
+// missing or malformed.
+func Listed() []Account {
+	accounts, err := Parse(os.Getenv("SHIPPIN_DEV_ACCOUNTS"))
+	if err != nil {
+		return nil
+	}
+	return accounts
+}
+
+// LocalHost says a request's Host names a development address: localhost, a loopback address, or a name
+// ending in .localhost or .test. One-click development sign-in is offered only there.
+func LocalHost(host string) bool {
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	host = strings.ToLower(strings.Trim(host, "[]"))
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") || strings.HasSuffix(host, ".test") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+// QuickSignIn returns the accounts the sign-in page may offer as one-click buttons for a request to host:
+// every listed account when a password is set and host is a development address, else none.
+func QuickSignIn(host string) []Account {
+	if os.Getenv("SHIPPIN_DEV_ACCOUNTS_PASSWORD") == "" || !LocalHost(host) {
+		return nil
+	}
+	return Listed()
+}
+
+// Label names an account's kind for a sign-in button.
+func (a Account) Label() string {
+	label := map[string]string{Admin: "Admin", Staff: "Staff", Customer: "Customer"}[a.Kind]
+	if a.Plan != "" {
+		label += " (" + a.Plan + ")"
+	}
+	return label
 }

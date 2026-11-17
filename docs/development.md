@@ -53,6 +53,8 @@ SHIPPIN_DEV_ACCOUNTS_PASSWORD=<at least 12 characters>
 
 The panel keeps them in step on every start and logs a warning while they exist. A staff account gets every staff role except Owner, the per-person catalog and customer permissions as direct grants (shown under Team > Direct grants), and no second-factor requirement. An admin account is the same with the Owner role too, so it sees and changes everything the panel offers; it is still not the installation's owner, and listing it as staff again takes Owner away on the next start. A customer account owns a test organization and has no staff access; `user@example.test=customer:pro` puts that organization on a chosen plan, and `user@example.test=customer:business:managed` also moves it to a coverage tier. The owner's account is never touched. Never set these on a real installation.
 
+On a development address (`localhost`, a loopback address, or a name ending in `.localhost` or `.test`) the sign-in page also shows a **Development sign-in** box with one button per listed account: Sign in as Admin, Staff or Customer. A button posts to `/auth/dev`, which signs in through the same password check as the password form, using `SHIPPIN_DEV_ACCOUNTS_PASSWORD`, and logs a warning. It refuses an account that is not listed, any other address, and cross-origin posts. To switch, sign out and press another button.
+
 The review deploy serves `https://localhost:<port>` with a certificate the panel made for itself, so the browser warns once. Proceed past the warning for `localhost`, or trust the certificate on your own machine: it is `/var/lib/shippin/tls/panel.crt` in the panel container (`docker compose cp panel:/var/lib/shippin/tls/panel.crt .`).
 
 Then overwrite it:

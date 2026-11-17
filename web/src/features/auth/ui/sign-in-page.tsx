@@ -12,6 +12,8 @@ const errors: Record<string, string> = {
   expired: "The sign-in took too long. Please try again.",
   state: "The sign-in response didn't match. Please try again.",
   exchange: "The identity provider rejected the sign-in.",
+  dev_unavailable: "Development sign-in is not available on this address.",
+  dev_account: "That development account is not set up. Restart the panel so it creates it, and check its log.",
 };
 
 export function SignInPage() {
@@ -35,6 +37,23 @@ export function SignInPage() {
           <p className="mt-2 text-base text-fg-muted">
             {s?.app === "operator" ? "Sign in to the provider panel. Staff roles only; every action is audited." : "Sign in to your console. You'll land in your own tenant."}
           </p>
+          {(s?.dev_sign_in ?? []).length > 0 && (
+            <div className="mt-8 rounded-xl border border-warning/30 bg-warning/10 p-5" data-testid="dev-sign-in">
+              <p className="text-base font-medium">Development sign-in</p>
+              <p className="mt-1 text-sm text-fg-muted">This installation lists development accounts. Never use it for real work.</p>
+              <div className="mt-3 grid gap-2">
+                {(s?.dev_sign_in ?? []).map((acct) => (
+                  <form key={acct.email} method="post" action="/auth/dev">
+                    <input type="hidden" name="email" value={acct.email} />
+                    <Button type="submit" variant="secondary" size="lg" className="w-full justify-between" tooltip={`Sign in as ${acct.email}`}>
+                      <span>Sign in as {acct.label}</span>
+                      <span className="font-mono text-sm text-fg-muted">{acct.email}</span>
+                    </Button>
+                  </form>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="mt-8 rounded-xl border border-line bg-surface p-5 shadow-e2">
             {s?.login_ready && (
               <Button

@@ -47,6 +47,8 @@ export type PublicSettings = {
   login_providers?: { id: string; label: string }[];
   sign_in_providers?: { id: string; label: string }[];
   email_sign_in?: boolean;
+  /** One-click development accounts, offered only on a development address when SHIPPIN_DEV_ACCOUNTS is set. */
+  dev_sign_in?: { email: string; kind: "admin" | "staff" | "customer"; label: string }[];
 };
 
 export type ProbeResource = {
