@@ -1,10 +1,12 @@
 package ext
 
 import (
+	"context"
 	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"shippin.cloud/console/internal/actions"
 	"shippin.cloud/console/internal/jobs"
@@ -119,5 +121,32 @@ func TestModuleMigrationsAreListed(t *testing.T) {
 	got := Migrations()
 	if len(got) != 2 || got[0].Name != "one" || got[1].Name != "three" {
 		t.Fatalf("migrations: %+v", got)
+	}
+}
+
+type nopCaller struct{}
+
+func (nopCaller) OrgRules(context.Context, Runtime, []string) (map[string]OrgRule, error) {
+	return nil, nil
+}
+func (nopCaller) Access(context.Context, Runtime, string, func(string) bool) (map[string][]Access, error) {
+	return nil, nil
+}
+
+// One module at most sets the caller policy.
+func TestOneCallerPolicy(t *testing.T) {
+	defer Swap()()
+	if Caller() != nil {
+		t.Fatal("a caller policy with no module")
+	}
+	Register(Module{Name: "one", Caller: nopCaller{}})
+	if Caller() == nil {
+		t.Fatal("the module's caller policy is missing")
+	}
+	panics(t, "second caller policy", func() { Register(Module{Name: "two", Caller: nopCaller{}}) })
+	now := time.Now()
+	a := Access{WorkspaceID: "w1", ExpiresAt: now.Add(time.Minute)}
+	if !a.Active(now) || a.Active(now.Add(time.Hour)) || !a.Covers("w1") || a.Covers("w2") || (Access{}).Active(now) {
+		t.Error("Access.Active and Covers")
 	}
 }

@@ -142,10 +142,7 @@ func (a *API) registerJobs(r *jobs.Runner) {
 	r.Register(jobs.KindRunnerRemove, a.runRunnerRemove)
 	// A module's kinds (internal/ext) run on the same database and services as the panel's actions. A
 	// kind the panel already handles stops the queue from starting with the module.
-	rt := ext.Runtime{Services: a.actionServices()}
-	if a.db != nil {
-		rt.Pool = a.db.Pool
-	}
+	rt := a.runtime()
 	for _, j := range ext.Jobs() {
 		if r.Has(j.Kind) {
 			panic("api: job kind " + j.Kind + " is handled by the panel and by a module")

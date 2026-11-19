@@ -87,6 +87,10 @@ To build:
 | Limits | Work starts: how many at once, how large? | The limits in the panel's settings |
 | Placement | Work is placed: which hosts may this organization use? | Every host in the installation |
 
+  Built so far: **Caller** (`ext.CallerPolicy`, set with `ext.Module.Caller`). The caller policy hands the panel each organization's label and sign-in rule (`ext.OrgRule`), and the organizations a staff member reaches without membership, as `ext.Access`. Access is re-asked on every request, and its use is audited, as break-glass when it says so.
+
+  Until the enterprise code moves out (roadmap S3), the policy the panel uses when no module sets one is today's behaviour, from code still in this repository: coverage tiers' sign-in rules, and support and break-glass grants. The defaults in the table take over when that code moves.
+
 - **Panel pages.** Module pages sit in `web/src/modules/<name>/` in the enterprise build. Each registers its routes, navigation entries and cards. They load lazily, so the panel's own build carries none of them.
 
 ## The license key (to build)

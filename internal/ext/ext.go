@@ -44,6 +44,8 @@ type Module struct {
 	Perms []Perm
 	// Jobs are the module's kinds of durable job, run by the panel's job queue.
 	Jobs []Job
+	// Caller is the module's caller policy (policy.go). At most one module sets it.
+	Caller CallerPolicy
 	// Migrations are the module's own *.sql files, at the root of this file system (an embed.FS
 	// sub-directory, for instance). They run after the panel's, in name order, in the same lock and
 	// migration table, recorded as module:<Name>/<file>. They may build on the panel's tables.
@@ -244,6 +246,11 @@ func check(ms []Module) error {
 				return fmt.Errorf("module %s has a permission without a key", m.Name)
 			}
 			if err := claim("permission", p.Key, "module "+m.Name); err != nil {
+				return err
+			}
+		}
+		if m.Caller != nil {
+			if err := claim("policy", "caller", "module "+m.Name); err != nil {
 				return err
 			}
 		}
