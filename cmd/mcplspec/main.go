@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 
-	"shippin.cloud/console/internal/actions"
+	"shippin.cloud/console/internal/ext"
 	"shippin.cloud/console/internal/mcpl/contract"
 )
 
@@ -19,7 +19,7 @@ func main() {
 	check := flag.Bool("check", false, "fail if the generated files are out of date, without writing")
 	root := flag.String("root", ".", "repository root")
 	flag.Parse()
-	files, err := contract.Files(actions.All)
+	files, err := contract.Files(ext.Actions())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "mcplspec:", err)
 		os.Exit(1)

@@ -29,7 +29,7 @@ The contexts above are the panel. The enterprise module ([Editions and licensing
 - **Isolation:** `hostd`, the per-customer host agent (encrypted storage, private networks, VM boundaries), tenant databases and hosted Vaultix.
 
 The module plugs into the panel through `internal/ext`:
-- start-up through `app.Run`;
+- start-up through `app.Main` in `internal/app`;
 - generated action registries, merged into the panel's;
 - settings sections, permissions and job kinds;
 - its own migrations, run after the panel's;

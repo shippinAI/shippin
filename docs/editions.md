@@ -54,13 +54,24 @@ Outside contributions need a contributor agreement first, so that contributed co
 
 The module's path sits under the panel's, so Go lets it use the panel's internal packages. It never copies or patches panel code. When it needs something the panel does not offer, the panel gains an extension point here, in public, and the module uses it. So a fix in the panel reaches both editions in the next build.
 
-## Extension points (to build)
+## Extension points
 
 All of these are registered by the module at start-up, in `internal/ext`. The panel works the same with no module registered.
 
-- **Start-up.** The console's wiring is one function, `app.Run`. The panel's `cmd/console` calls it, and so does the enterprise binary, after importing its module packages.
-- **Actions.** The module keeps its MCPL actions in its own `internal/<domain>/<entity>/<verb>.go` files. The generator scans the module the same way it scans the panel and writes the module's own registry. The panel merges it into its routes, audit, events, the OpenAPI document and the typed panel calls. An action keeps its ID and route when it moves between the two.
-- **Settings sections, permissions and job kinds.** The module adds sections to the Settings page, permissions to the catalog (staff presets and grants work unchanged), and kinds to the durable job queue.
+Built:
+
+- **Start-up.** The console's wiring is one function, `app.Main` in `internal/app`. The panel's `cmd/console` calls it. The enterprise binary calls it too, after importing its module packages, whose `init` functions call `ext.Register`.
+- **Actions, reactions, services and settings sections.**
+  - The module keeps its MCPL actions, reactions, entity services and `settings.go` sections in its own `internal/<domain>/<entity>/` folders.
+  - `cmd/mcplgen -module shippin.cloud/console/enterprise -pkg <name> -out <path>` scans the module the same way it scans the panel and writes the module's own registry, which the module passes to `ext.Register`.
+  - The panel reads every action, reaction, service and section through `ext`, so the module's are routed, audited, published as events, served over MCP and shown on the Settings page like the panel's.
+  - An action keeps its ID and route when it moves between the two.
+  - A name declared twice, by the panel and a module or by two modules, stops the binary at start.
+  - The OpenAPI document and the typed panel calls for the enterprise build come from the merged list: `contract.Files(ext.Actions())`.
+
+To build:
+
+- **Permissions and job kinds.** The module adds permissions to the catalog (staff presets and grants work unchanged) and kinds to the durable job queue.
 - **Database.** The module brings its own migrations. They run after the panel's, in the same transaction rules, lock and migration table.
 - **Policies.** Each place where the panel needs a business rule asks a policy, and the panel's default is the self-hosted answer:
 
