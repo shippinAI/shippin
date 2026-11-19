@@ -1,8 +1,11 @@
 # Roadmap
 
-[What Shippin is](objective.md) defines the target, software for running a
-commercial cloud provider, and its requirement IDs. This page says what exists
-today, the order the rest gets built in, and what each stage must prove.
+[What Shippin is](objective.md) defines the target and its requirement IDs: a
+self-hosted panel in this repository, and an enterprise module for running a
+multi-tenant hosted cloud ([Editions and licensing](editions.md)). This page says
+what exists today, the order the rest gets built in, and what each stage must prove.
+
+Updated 2026-11-19: the public repository is the self-hosted panel, in the spirit of Coolify. Everything multi-tenant and commercial moves to the private enterprise repository `shippinAI/shippin-enterprise`, and that separation comes before any other work. Workspaces in the panel run on the owner's own hosts through the hypervisor's API.
 
 Updated 2026-11-13: the hosted development space (SOLO-01 to COACH-01) comes first for solo developers, in the spirit of Lovable on their own subscriptions, and it teaches as it goes.
 
@@ -19,7 +22,7 @@ Updated 2026-11-15. Each request from the owner, the requirement it falls under 
 
 | Request | Requirement | Status |
 | --- | --- | --- |
-| A Lovable-like hosted space where a solo developer builds on their own AI subscriptions | SOLO-01, DEV-01, AI-01 | **Not started as a product.** Pieces exist: workspaces with Zellij, AI app cards, the AI-01 runner design. No workspace has run on the current build. |
+| A Lovable-like hosted space where a solo developer builds on their own AI subscriptions (enterprise) | SOLO-01, DEV-01, AI-01 | **Not started as a product.** Pieces exist: workspaces with Zellij, AI app cards, the AI-01 runner design. No workspace has run on the current build. |
 | The infrastructure under that space: where each space runs, its limits, its cost | VM-01, PLAN-01, INF-01 | **Not started.** Workspaces are Incus containers placed by hostd; nothing yet proves one runs here, sizes it from a plan, or stops it when idle. |
 | A free tier that is cheap: VM-like spaces without a VM's weight | VM-01, PLAN-01 | **Not started.** The approach: system containers, idle spaces stopped, copy-on-write images, shared databases, limits from the plan. |
 | One workspace screen: VS Code, the Zellij terminal, the person's AI apps | IDE-01 | **Not started.** Unverified: Claude desktop and ChatGPT desktop run on macOS and Windows, not in a Linux space; the command-line agents do. |
@@ -27,7 +30,8 @@ Updated 2026-11-15. Each request from the owner, the requirement it falls under 
 | Instructions, hooks and governance that onboard a developer after sign-in | GUIDE-01 | **Not started.** |
 | shippin.bot: knows the page and the person's permissions, runs known flows without the model, its own repo | GUIDE-01, COACH-01 | **Not started.** Waiting on the repo's name and visibility. |
 | shippin.hub: connects Shippin to Lovable and Replit with connectors kept in Vaultix | SYNC-01, EXT-01 | **Not started.** Device sign-in for `shippin-bridge` exists. |
-| A free self-hosted edition for one owner, separate from the multi-tenant cloud | OPEN-01, SOLO-01 | **Not started.** Decided: one codebase, the edition is configuration. |
+| A free self-hosted edition for one owner, separate from the multi-tenant cloud | OPEN-01, SOLO-01 | **Decided 2026-11-19:** this repository is the self-hosted panel; the multi-tenant cloud is the enterprise module in `shippinAI/shippin-enterprise` ([Editions and licensing](editions.md)). **Not built:** the multi-tenant code is still here; see [Separation, first](#separation-first). |
+| Workspaces on the owner's own hosts, created and opened through the hypervisor's API | WS-01, TERM-01 | **Not started.** Workspaces today run only through `hostd`'s per-customer isolation, which moves to the enterprise module. |
 | Vaultix, Wardenclyffe and Nomen offered as services | CAT-01 | **Not started.** Stage 7. |
 | Every setting edited in the panel, keys saved to the installation's Vaultix | CFG-01 | **Done** for build runners, the job queue and the GitHub App, on the review deploy and against a real Vaultix. The owner's Vaultix account is not connected yet. The other sections are next in stage 2. |
 | The control plane runs on the owner's own Incus or Proxmox: installed anywhere once, it deploys itself as a guest on an attached host and manages both kinds from there; nothing about one installation is in the code | INF-01, OPEN-01, CORE-01 | **Not started.** Installing anywhere and attaching both kinds work today. Self-deployment onto a host, moving between hosts, and running on several hosts are not built. |
@@ -40,7 +44,7 @@ Updated 2026-11-15. Each request from the owner, the requirement it falls under 
 | A shell on the server itself, in the control plane, as granted privileged access | INF-03, IAM-01 | **Designed:** [Host shell](host-shell.md), with the grant dialog and limited impersonation. Five decisions are the owner's. |
 | CI: main only moves on green, failures are loud and make the AI fix them, tests are not weakened to pass | ENG-01 | **Done.** Pushes go to `queue/main`; the Gate promoted the first one to main by itself. The failure alarm has not been triggered for real yet. |
 | A license that lets people self-host but not compete | OPEN-01 | **Done:** FSL-1.1-ALv2, licensor shippinAI. A contributor agreement is not set up. |
-| An enterprise edition, managed and unmanaged, in its own repository | OPEN-01 | **Designed:** [Editions and licensing](editions.md), a private module over this panel with a signed license key; not a fork. Extension points, the key check and the repository are not built; the repository's name is the owner's. |
+| An enterprise edition, managed and unmanaged, in its own repository | OPEN-01 | **Designed:** [Editions and licensing](editions.md), a private module over this panel with a signed license key; not a fork. The repository is `shippinAI/shippin-enterprise` (decided 2026-11-19). Extension points, the key check and the repository itself are not built. |
 | A personal lexicon and prompt recipes from the owner's own chats | (tooling, later COACH-01) | **Done** as tooling (`governance/lexicon.mjs`). 16 terms and 14 recipes wait for the owner to confirm them. |
 
 ## Where it stands
@@ -68,26 +72,40 @@ Updated 2026-11-15. Each request from the owner, the requirement it falls under 
 
 ## Order of work
 
-Code is rewritten into its contexts as each stage reaches them, in the order in
-the [code map](architecture.md). The first milestone is the friends-and-family
+The separation comes first. Then code is rewritten into its contexts as each
+stage reaches them, in the order in the [code map](architecture.md). The first milestone is the friends-and-family
 launch: the [acceptance journey](objective.md#acceptance-journey-friends-and-family)
 on our own Incus and Proxmox hosts. Public clouds and billing come after it.
 
-### The hosted development space, first
+### Separation, first
 
-The 2026-11-13 direction puts the hosted space first. These steps come before the stages below, in this order, each closed only by its proof:
+The 2026-11-19 direction: before anything else, the enterprise code leaves this repository. Each step is closed only by its proof, and every commit leaves both editions working. Enterprise code moves with its tests; it is not rewritten on the way.
 
 | Step | Result someone can see | Proof required |
 | --- | --- | --- |
-| D1. A workspace runs | A workspace is created, started and opened in the browser terminal on a real Incus host, here, from the current build. | Create, open the Zellij terminal, type, resize, reconnect, stop, remove; another person is refused. |
-| D2. Sign up as Shippin.AI | A solo developer signs up through Nomen and lands in their own space. | A new person, one sign-in, a space that is theirs; a second person cannot see it. |
+| S0. The split is the contract | [Editions and licensing](editions.md), [What Shippin is](objective.md) and the [code map](architecture.md) say what belongs to each edition. | Every requirement ID belongs to the panel, the module, or both, with each part stated. |
+| S1. Extension points | `app.Run`, the module registry in `internal/ext` (actions, settings sections, permissions, job kinds, migrations), the caller, organization lifecycle, limits and placement policies, and panel modules under `web/src/modules/`. No behaviour changes. | A test module registers one of each, and the tests see it work end to end. The panel with no module behaves as before. |
+| S2. The enterprise repository | `shippinAI/shippin-enterprise` builds an enterprise image from the panel, pinned at a commit, plus its module. | The enterprise image runs the same panel; its CI passes. |
+| S3. The code moves | One area at a time, enterprise first, then removed here: sign-up and acquisition; plans, coverage and customers; access to customers; `hostd` and per-customer isolation, tenant databases and hosted Vaultix; then a new database baseline (PRE-01) in which the installation's own team is an ordinary organization. | After each area, both review deploys are seen in a browser: the panel without it, the enterprise build doing what it did before, as Admin, Staff and Customer. |
+| S4. It stays separate | A check in CI fails on enterprise packages, tables, routes or permissions in this repository. | The check fails on a planted example and passes on main. |
+
+### The hosted development space
+
+The 2026-11-13 direction puts the development space first, after the separation. These steps come before the stages below, in this order, each closed only by its proof. Steps marked enterprise are built in the enterprise module.
+
+| Step | Result someone can see | Proof required |
+| --- | --- | --- |
+| D1. A workspace runs on your own host | A workspace is created as a container on an Incus host added in the panel, through the Incus API, and opened in the browser terminal (WS-01). | On the local Incus rig: create, open the Zellij terminal, type, resize, reconnect, stop, remove; another person is refused. |
+| D2. Sign up for a hosted space (enterprise) | A solo developer signs up through the installation's sign-in provider and lands in their own hosted space. | A new person, one sign-in, a space that is theirs; a second person cannot see it. |
 | D3. One screen | VS Code, the terminal and an AI panel in one focused screen (IDE-01). | Edit, run and see the change from the one screen. |
 | D4. Their own AI | Claude Code and Codex signed in with the person's own subscription in their runner (AI-01). | Their sign-in, never pooled; revoking it stops it. |
 | D5. Preview and publish | What they built is previewed, then published at an address (PUB-01). | A change reaches the live address; rollback works. |
-| D6. Cheap spaces | Spaces sized by plan, stopped when idle and woken on use; the cost of an idle free space is measured (VM-01, PLAN-01). | Density and idle cost measured on a real host. |
+| D6. Cheap spaces (enterprise) | Spaces sized by plan, stopped when idle and woken on use; the cost of an idle free space is measured (VM-01, PLAN-01). | Density and idle cost measured on a real host. |
 | D7. Guided | Explanations from events and shippin.bot on each page (GUIDE-01, COACH-01). | A first-time person completes the first build with its help. |
 
 ### Milestone 1: friends and family
+
+Stages 5 and 6 and the launch are enterprise work; the others are the panel.
 
 | Stage | Result someone can see | Proof required |
 | --- | --- | --- |
@@ -106,6 +124,8 @@ The 2026-11-13 direction puts the hosted space first. These steps come before th
 | Launch | Invite friends and family onto our own hosts. | The whole acceptance journey, run end to end on the review deploy and then on our hosts, with evidence. |
 
 ### Milestone 2: commercial cloud
+
+Stage 12's drivers are the panel's; customer cloud accounts and stages 13 and 14 are enterprise work.
 
 | Stage | Result someone can see | Proof required |
 | --- | --- | --- |

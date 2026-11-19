@@ -12,15 +12,33 @@ Each part of the product is one context, and one owner in the code.
 | --- | --- | --- | --- |
 | Access | Who is calling, sessions, permissions, the audit log | `internal/access` | shared |
 | Identity | Accounts, passkeys, sign-in providers, staff roles, teams | `internal/identity` | `identity`, `team` |
-| Tenancy | Organizations, invitations, workspaces, projects, plans, coverage, subscriptions, usage | `internal/tenancy` | `organizations`, `workspaces`, `projects`, `plans` |
+| Organizations | Organizations, team invitations, workspaces, projects | `internal/tenancy` | `organizations`, `workspaces`, `projects` |
 | Infrastructure | Providers (Incus, Proxmox, public clouds, customer-brought servers), regions, hosts, guests, customer machines, networks, fleets, capacity, metrics | `internal/infrastructure`, `internal/hv` | `infrastructure` |
 | Services | Catalog, deployments, managed services, jobs | `internal/services` | `catalog`, `deployments` |
-| Runtime | Devspaces, terminals and their plain-language layer, desktops, bridges, devices and project sync, AI subscriptions, chat | `internal/runtime` | `devspaces`, `terminal`, `chat`, `connections` |
+| Runtime | Development workspaces on the owner's hosts, terminals and their plain-language layer, desktops, bridges, devices and project sync, AI subscriptions, chat | `internal/runtime` | `devspaces`, `terminal`, `chat`, `connections` |
 | Platform | Settings, interface, health, updates, setup | `internal/platform` | `settings` |
 | Integrations | GitHub, Vaultix, rrflow, AgentHub, each optional | one package each | under the context that uses it |
 
-`internal/hostd` is the host agent and stays its own program. `internal/clickhouse`
-and the database connection are plumbing, shared by contexts.
+`internal/clickhouse` and the database connection are plumbing, shared by contexts.
+
+## Editions
+
+The contexts above are the panel. The enterprise module ([Editions and licensing](editions.md)) is a second tree with the same shape, in the private repository `shippinAI/shippin-enterprise` under the Go module `shippin.cloud/console/enterprise`. It holds:
+- **Customers:** customer organizations, plans, coverage tiers, quotas, usage and billing, sign-up, the waitlist and acquisition.
+- **Customer access:** access grants, support access, break-glass and staff mode.
+- **Isolation:** `hostd`, the per-customer host agent (encrypted storage, private networks, VM boundaries), tenant databases and hosted Vaultix.
+
+The module plugs into the panel through `internal/ext`:
+- start-up through `app.Run`;
+- generated action registries, merged into the panel's;
+- settings sections, permissions and job kinds;
+- its own migrations, run after the panel's;
+- the caller, organization lifecycle, limits and placement policies;
+- panel pages under `web/src/modules/`.
+
+Code in this repository never imports the module. A context that needs a business rule asks a policy, and the panel's default answers it for a self-hosted installation.
+
+Today the enterprise code still sits in this repository, mixed into these contexts: `internal/tenancy/{plan,coverage,coverage_tier,customer,acquisition_source}`, `internal/acquisition`, `internal/tenantdb`, `internal/vaultixhost`, `internal/hostd`, and the tenant, access, sign-up and onboarding handlers in `internal/api`. The [roadmap](roadmap.md#separation-first) moves it out before any other rewrite.
 
 ## The shape of a context
 
@@ -58,7 +76,7 @@ contexts. `deploy/` still holds scripts from when one site was run by hand.
 
 ## Order of the rewrite
 
-One context at a time. Each step moves the handlers and storage into the context
+The [separation](roadmap.md#separation-first) comes first: the enterprise code leaves before any context is rewritten, so no context is rewritten twice. Then one context at a time. Each step moves the handlers and storage into the context
 and rewrites what is wrong rather than carrying it over. The routes stay the same
 unless the step says otherwise, and each step ends by overwriting the review deploy.
 
@@ -66,7 +84,7 @@ unless the step says otherwise, and each step ends by overwriting the review dep
 2. **Infrastructure,** with the dashboards, which are the next feature.
 3. **Platform,** with every setting moving into the panel.
 4. **Identity.**
-5. **Tenancy,** with plans and subscriptions.
+5. **Organizations,** once plans, coverage and subscriptions have moved to the enterprise module.
 6. **Services,** with PostgreSQL and ClickHouse as the first catalog entries.
 7. **Runtime.**
 8. **Integrations,** then the empty `internal/api` shell and `internal/db` are removed, and `deploy/` is cleared of what the panel now does.

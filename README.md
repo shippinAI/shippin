@@ -1,15 +1,14 @@
 # Shippin
 
-Shippin is the software for running a commercial cloud provider, built for customers who are not infrastructure engineers.
-
-One control plane runs the whole business:
-- **Capacity:** your own Incus and Proxmox servers side by side. Public clouds (AWS, Google Cloud, Azure, DigitalOcean, Fly.io) and servers your customers bring can be mixed in.
-- **Customers:** they sign up, by invitation at first, into their own organizations on a plan and a support coverage tier.
-- **What they buy:** virtual machines, services deployed onto them with one click, development spaces with a terminal anyone can use and their own AI, published apps, and a sync API so a desktop app such as DevPulse can work locally against the cloud.
+Shippin is a self-hosted control panel, built for people who are not infrastructure engineers. Install it on a server you already have, and manage from it:
+- **Your hosts:** Incus and Proxmox servers side by side, with live and historical resources.
+- **What runs on them:** virtual machines, services deployed with one click, and published apps.
+- **Where you build:** development workspaces on your own hosts, with a terminal anyone can use and your own AI, and a sync API so a desktop app such as DevPulse can work locally against them.
+- **Your team:** roles, invitations and an audit log.
 
 Everything is set up and changed in the panel.
 
-This repository is the whole product: the control plane, the panel, the host agent and the installers. We run our own cloud on it, and anyone can install it to run theirs. [What Shippin is](docs/objective.md) defines it, and the [roadmap](docs/roadmap.md) says what works today. Much of the above is still to be built.
+This repository is the panel: the control plane, the web panel, the host agent and the installers. Running a multi-tenant hosted cloud on it, with customers, plans and sign-up, is the enterprise edition, a separate module ([Editions and licensing](docs/editions.md)). [What Shippin is](docs/objective.md) defines both, and the [roadmap](docs/roadmap.md) says what works today. Much of the above is still to be built.
 
 ## Try it
 
