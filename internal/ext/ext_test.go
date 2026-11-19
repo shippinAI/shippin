@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"shippin.cloud/console/internal/actions"
 	"shippin.cloud/console/internal/jobs"
@@ -106,5 +107,17 @@ func TestModulePermissionsAndJobsAreChecked(t *testing.T) {
 	panics(t, "job without a handler", func() { Register(Module{Name: "five", Jobs: []Job{{Kind: "widget.paint"}}}) })
 	if len(Modules()) != 1 {
 		t.Errorf("a refused module was kept: %+v", Modules())
+	}
+}
+
+// Only modules with migration files are listed, in registration order.
+func TestModuleMigrationsAreListed(t *testing.T) {
+	defer Swap()()
+	Register(Module{Name: "one", Migrations: fstest.MapFS{"001.sql": {}}})
+	Register(Module{Name: "two"})
+	Register(Module{Name: "three", Migrations: fstest.MapFS{"001.sql": {}}})
+	got := Migrations()
+	if len(got) != 2 || got[0].Name != "one" || got[1].Name != "three" {
+		t.Fatalf("migrations: %+v", got)
 	}
 }

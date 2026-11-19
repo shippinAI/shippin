@@ -17,6 +17,7 @@ package ext
 
 import (
 	"fmt"
+	"io/fs"
 	"slices"
 	"strings"
 	"sync"
@@ -43,6 +44,10 @@ type Module struct {
 	Perms []Perm
 	// Jobs are the module's kinds of durable job, run by the panel's job queue.
 	Jobs []Job
+	// Migrations are the module's own *.sql files, at the root of this file system (an embed.FS
+	// sub-directory, for instance). They run after the panel's, in name order, in the same lock and
+	// migration table, recorded as module:<Name>/<file>. They may build on the panel's tables.
+	Migrations fs.FS
 }
 
 // Perm is one staff permission: an entry of the catalog that roles pick from and every staff route
@@ -151,6 +156,23 @@ func Jobs() []Job {
 	var out []Job
 	for _, m := range Modules() {
 		out = append(out, m.Jobs...)
+	}
+	return out
+}
+
+// Migration is one module's migration files.
+type Migration struct {
+	Name string
+	FS   fs.FS
+}
+
+// Migrations are the migration files of every module that has them, in registration order.
+func Migrations() []Migration {
+	var out []Migration
+	for _, m := range Modules() {
+		if m.Migrations != nil {
+			out = append(out, Migration{Name: m.Name, FS: m.Migrations})
+		}
 	}
 	return out
 }

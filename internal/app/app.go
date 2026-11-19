@@ -21,6 +21,7 @@ import (
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/devaccounts"
+	"shippin.cloud/console/internal/ext"
 	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/mail"
 	"shippin.cloud/console/internal/spa"
@@ -41,7 +42,7 @@ func Main() {
 	// SIGTERM is what Docker and systemd send to stop a service. Background work watches this context.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	database, err := db.OpenHolding(ctx, cfg.DatabaseURL, cfg.Migrations.Hold)
+	database, err := db.OpenWith(ctx, cfg.DatabaseURL, cfg.Migrations.Hold, moduleMigrations()...)
 	if err != nil {
 		log.Fatalf("db: %v", err)
 	}
@@ -137,6 +138,15 @@ func ensureDevAccounts(ctx context.Context, d *db.DB) {
 	slog.Warn("development accounts are enabled; do not use this installation for real work", "accounts", len(accounts))
 }
 
+// moduleMigrations are the registered modules' migrations (internal/ext), applied after the panel's.
+func moduleMigrations() []db.Migrations {
+	var out []db.Migrations
+	for _, m := range ext.Migrations() {
+		out = append(out, db.Migrations{Name: m.Name, FS: m.FS})
+	}
+	return out
+}
+
 // serve treats a requested shutdown as a clean exit and anything else as a failure.
 func serve(err error) {
 	if !errors.Is(err, http.ErrServerClosed) {
@@ -222,7 +232,7 @@ func runSetup() {
 		log.Fatalf("config: %v", err)
 	}
 	ctx := context.Background()
-	database, err := db.OpenHolding(ctx, cfg.DatabaseURL, cfg.Migrations.Hold)
+	database, err := db.OpenWith(ctx, cfg.DatabaseURL, cfg.Migrations.Hold, moduleMigrations()...)
 	if err != nil {
 		log.Fatalf("db: %v", err)
 	}

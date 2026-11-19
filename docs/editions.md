@@ -74,9 +74,10 @@ Built:
   - `app.Main` loads them once, with `api.LoadModules`, before the API is built. A key the panel already uses stops the binary.
 - **Job kinds.** A module's kinds of durable job run on the panel's queue, with the panel's database and the services its actions use (`ext.Runtime`). A kind the panel already handles stops the queue from starting.
 
+- **Database.** A module brings its own migration files (`ext.Module.Migrations`). They run after the panel's, in name order, under the same lock and transaction rules, and are recorded in the same table as `module:<name>/<file>`, so a module's numbering never meets the panel's. While a panel migration is held back (`migrations.hold`), no module migration runs.
+
 To build:
 
-- **Database.** The module brings its own migrations. They run after the panel's, in the same transaction rules, lock and migration table.
 - **Policies.** Each place where the panel needs a business rule asks a policy, and the panel's default is the self-hosted answer:
 
 | Policy | Asked when | Panel default |
