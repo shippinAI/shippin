@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/ext"
 	"shippin.cloud/console/internal/jobs"
 	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/settings"
@@ -139,4 +140,16 @@ func (a *API) registerJobs(r *jobs.Runner) {
 	r.Register(jobs.KindDeploymentReconcile, a.runDeploymentReconcileJob)
 	r.Register(jobs.KindRunnerProvision, a.runRunnerProvision)
 	r.Register(jobs.KindRunnerRemove, a.runRunnerRemove)
+	// A module's kinds (internal/ext) run on the same database and services as the panel's actions. A
+	// kind the panel already handles stops the queue from starting with the module.
+	rt := ext.Runtime{Services: a.actionServices()}
+	if a.db != nil {
+		rt.Pool = a.db.Pool
+	}
+	for _, j := range ext.Jobs() {
+		if r.Has(j.Kind) {
+			panic("api: job kind " + j.Kind + " is handled by the panel and by a module")
+		}
+		r.Register(j.Kind, j.Handler(rt))
+	}
 }

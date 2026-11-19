@@ -21,7 +21,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"shippin.cloud/console/internal/actions"
+	"shippin.cloud/console/internal/jobs"
 	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/settings"
 )
@@ -35,6 +38,41 @@ type Module struct {
 	Reactions []mcpl.RegisteredReaction
 	Providers []mcpl.Provider
 	Settings  []settings.Section
+	// Perms are the module's staff permissions, added to the panel's catalog. A permission's key must
+	// not be the panel's or another module's.
+	Perms []Perm
+	// Jobs are the module's kinds of durable job, run by the panel's job queue.
+	Jobs []Job
+}
+
+// Perm is one staff permission: an entry of the catalog that roles pick from and every staff route
+// names. The panel's own catalog is in internal/api.
+type Perm struct {
+	Key      string `json:"key"`
+	Section  string `json:"section"`
+	Label    string `json:"label"`
+	Risk     bool   `json:"high_risk"`
+	Reserved bool   `json:"reserved"` // no route yet; may be assigned, grants nothing today
+	// Grantable permissions may also be granted to one principal directly (Team > Direct grants),
+	// cloud-IAM style. Only the Owner preset holds them by default; every other role is denied.
+	Grantable bool `json:"grantable"`
+	// Presets are the keys of the preset staff roles (such as staff.owner) that hold this permission
+	// on a fresh database. An existing installation's roles gain it through the module's migrations.
+	Presets []string `json:"-"`
+}
+
+// Job is one kind of durable job. Handler is called once, when the panel's job queue starts, with what
+// the panel runs jobs on.
+type Job struct {
+	Kind    string
+	Handler func(Runtime) jobs.Handler
+}
+
+// Runtime is what the panel hands a module's job handlers: its database and the services its actions
+// use (mcpl.Need).
+type Runtime struct {
+	Pool     *pgxpool.Pool
+	Services mcpl.Services
 }
 
 var (
@@ -99,6 +137,24 @@ func Providers() []mcpl.Provider {
 	return out
 }
 
+// Perms are every module's staff permissions. internal/api adds them to the panel's catalog.
+func Perms() []Perm {
+	var out []Perm
+	for _, m := range Modules() {
+		out = append(out, m.Perms...)
+	}
+	return out
+}
+
+// Jobs are every module's kinds of job. internal/api registers them with the panel's job queue.
+func Jobs() []Job {
+	var out []Job
+	for _, m := range Modules() {
+		out = append(out, m.Jobs...)
+	}
+	return out
+}
+
 // Settings are the panel's settings sections and every module's.
 func Settings() []settings.Section {
 	out := slices.Clone(actions.Settings)
@@ -125,7 +181,8 @@ func Swap(ms ...Module) (restore func()) {
 	}
 }
 
-// check refuses an action, reaction or settings section declared twice across the panel and ms.
+// check refuses an action, reaction or settings section declared twice across the panel and ms, and a
+// permission or job kind declared twice across ms (internal/api compares them with the panel's own).
 func check(ms []Module) error {
 	ids := map[string]string{}
 	claim := func(kind, id, owner string) error {
@@ -157,6 +214,22 @@ func check(ms []Module) error {
 		}
 		for _, s := range m.Settings {
 			if err := claim("settings section", s.Key, "module "+m.Name); err != nil {
+				return err
+			}
+		}
+		for _, p := range m.Perms {
+			if p.Key == "" {
+				return fmt.Errorf("module %s has a permission without a key", m.Name)
+			}
+			if err := claim("permission", p.Key, "module "+m.Name); err != nil {
+				return err
+			}
+		}
+		for _, j := range m.Jobs {
+			if j.Kind == "" || j.Handler == nil {
+				return fmt.Errorf("module %s has a job without a kind or a handler", m.Name)
+			}
+			if err := claim("job kind", j.Kind, "module "+m.Name); err != nil {
 				return err
 			}
 		}

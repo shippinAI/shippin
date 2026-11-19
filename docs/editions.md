@@ -68,10 +68,14 @@ Built:
   - An action keeps its ID and route when it moves between the two.
   - A name declared twice, by the panel and a module or by two modules, stops the binary at start.
   - The OpenAPI document and the typed panel calls for the enterprise build come from the merged list: `contract.Files(ext.Actions())`.
+- **Permissions.**
+  - A module's permissions join the panel's catalog, so its staff routes can name them, roles can hold them and the Team page lists them.
+  - Direct grants and presets work unchanged. A permission's `Presets` are the preset roles that hold it on a fresh database; an existing installation's roles gain it through the module's migrations.
+  - `app.Main` loads them once, with `api.LoadModules`, before the API is built. A key the panel already uses stops the binary.
+- **Job kinds.** A module's kinds of durable job run on the panel's queue, with the panel's database and the services its actions use (`ext.Runtime`). A kind the panel already handles stops the queue from starting.
 
 To build:
 
-- **Permissions and job kinds.** The module adds permissions to the catalog (staff presets and grants work unchanged) and kinds to the durable job queue.
 - **Database.** The module brings its own migrations. They run after the panel's, in the same transaction rules, lock and migration table.
 - **Policies.** Each place where the panel needs a business rule asks a policy, and the panel's default is the self-hosted answer:
 

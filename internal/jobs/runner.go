@@ -47,6 +47,9 @@ func NewRunner(s *Store, set Settings) *Runner {
 // Register adds the handler for a kind (before Run).
 func (r *Runner) Register(kind string, h Handler) { r.handlers[kind] = h }
 
+// Has reports whether a handler is registered for kind.
+func (r *Runner) Has(kind string) bool { _, ok := r.handlers[kind]; return ok }
+
 // Wake makes an idle worker poll now (call after Enqueue).
 func (r *Runner) Wake() {
 	select {

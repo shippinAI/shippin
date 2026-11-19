@@ -52,6 +52,7 @@ func Main() {
 	}
 	flow := auth.NewFlow(cfg, store)
 	mux := http.NewServeMux()
+	api.LoadModules() // the modules' init functions have registered by now (internal/ext)
 	consoleAPI := api.New(cfg, flow, database)
 	directory := identity.New(database.Pool, cfg, mailSender(cfg), captcha(cfg))
 	if cfg.RedisURL != "" {
