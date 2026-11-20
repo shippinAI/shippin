@@ -24,6 +24,7 @@ running.
 - [Develop](development.md): the local loop and the checks to run before pushing.
 - [Attach a hypervisor](reference/proxmox-connector.md): Incus and Proxmox.
 - [Source ownership](source-of-truth.md): which folder owns what.
+- [Assistant skills](../.agents/library/README.md): the canonical library external assistants load after a flat export.
 - [Panel variants](panel-variants.md): every other place a panel lived, and what became of it.
 - [Hosting plans](plans.md): the plans the catalog and host agent use today, and the coverage tiers beside them. Enterprise; moves to the enterprise repository.
 

@@ -9,7 +9,7 @@ merging current public branches does not adopt that private history.
 `api/openapi/` owns the draft API contract. `cmd/console` and `internal/` own the
 control plane imported from shippin-console `e35ab817bbfedc626f35aa2f42760df49d4684c2`.
 `web/` owns the panel, and there is only one. See [panel variants](panel-variants.md). `cmd/shippin-hostd` and `internal/hostd` own the host agent.
-`internal/hv/` owns the hypervisor drivers. `agent/` owns a host-side diagnostic. `third_party/warden-ct102` is a
+`internal/hv/` owns the hypervisor drivers. `agent/` owns a host-side diagnostic, not assistant skills. `.agents/library/` owns the canonical skill library that external assistants load after a flat export. `.agents/skills/` owns the flat workflow skills for agents editing this repository. `third_party/warden-ct102` is a
 reference import that is not served, kept until its remaining features are ported. `install/panel/`, `install/docker/`,
 `Dockerfile` and `compose.yaml` own deployment.
 `install/primary-image/` owns the development image builder. `governance/` owns the

@@ -5,6 +5,7 @@
 - Before substantial implementation, map the packet to requirement IDs in docs/objective.md and the active stage in docs/roadmap.md. Reconcile older plans with those contracts. Internal operator ownership/staff grants and tenant workspace/project access must remain distinct; a dependency container or form alone does not complete a managed-service capability.
 - Do not hardcode installation-specific service addresses, credentials or tenant identifiers. Provide validated configuration and document what is and is not shared.
 - Use the project skills under .agents/skills for substantial work. Ground plans in full relevant source files and current evidence.
+- The canonical assistant skill library is .agents/library/ (nested in git, exported flat). Do not put those skills under agent/; that module is the host diagnostic. .agents/skills/ stays the flat workflow set for agents editing this repo.
 - Record substantive work, available chat, decisions, checks and failure paths in Git-ignored .ai/data/ via governance/README.md. Do not store secrets there.
 - Verify actual behavior and negative paths; report missing services, incomplete checks and environmental limits. Never claim an unimplemented deployment works.
 - Never import candidate code without reviewing provenance, dependencies, security and tests.

@@ -32,6 +32,8 @@ step "governance (test)" governance npm test
 step "ci (scripts)" . node --test scripts/ci/ci.test.mjs
 step "docs (regression)" . node --test scripts/check-docs.test.mjs
 step "docs (links)" . node scripts/check-docs.mjs
+step "skills (lint)" . node scripts/skills/lint.mjs
+step "skills (test)" . node --test scripts/skills/skills.test.mjs
 
 if [ "${#failed[@]}" -gt 0 ]; then
   echo "FAILED: ${failed[*]}"
