@@ -6,7 +6,10 @@
 //   - no folder is a bucket (common, shared, utils, util, helpers, misc): code belongs to what it serves.
 // Imports from one feature into another's internals that existed when this check arrived are listed in
 // scripts/boundaries-baseline.txt. The list may only shrink: a new one fails, and so does a listed one
-// that is gone (remove its line). `node scripts/check-boundaries.mjs --print` prints the current list.
+// that is gone (remove its line). The file is also compared with its version at the merge base, and a
+// line that was not there fails, so adding the new import to the baseline does not make it pass.
+// `node scripts/check-boundaries.mjs --print` prints the current list.
+import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +23,49 @@ const buckets = new Set(["common", "shared", "utils", "util", "helpers", "misc"]
 const posix = (p) => p.split(sep).join("/");
 const problems = [];
 const crossings = [];
+
+// git runs git in cwd and returns stdout without the trailing newline, or null when it fails.
+function git(cwd, args) {
+  const r = spawnSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  if (r.status !== 0) return null;
+  return r.stdout.replace(/\n$/, "");
+}
+
+function commitExists(cwd, rev) {
+  return Boolean(rev) && !/^0+$/.test(rev) && git(cwd, ["cat-file", "-e", `${rev}^{commit}`]) !== null;
+}
+
+// baseRef is the commit the baseline is compared with: the pull request base, main for a queue
+// branch (that is what the Gate promotes), else the push's previous tip, else main.
+function baseRef(root) {
+  const ref = process.env.REF || "";
+  const queue = ref.startsWith("refs/heads/queue/");
+  if (!queue && commitExists(root, process.env.PR_BASE || "")) return process.env.PR_BASE;
+  if (queue || !commitExists(root, process.env.BEFORE || "")) {
+    for (const name of ["origin/main", "main"]) if (commitExists(root, name)) return name;
+    return "";
+  }
+  return process.env.BEFORE;
+}
+
+function baselineLines(text) {
+  return text.split(/\r?\n/).filter((l) => l && !l.startsWith("#"));
+}
+
+// priorBaseline is the baseline at the merge base, when this tree is a git checkout. skip means
+// there is no checkout to compare (a fixture). error means the comparison was required and could not run.
+function priorBaseline(dir, file) {
+  const root = git(dir, ["rev-parse", "--show-toplevel"]);
+  if (root === null) return { skip: true };
+  const rel = relative(root, file).split(sep).join("/");
+  if (!rel || rel.startsWith("..")) return { skip: true };
+  const base = baseRef(root);
+  if (!base) return { error: "cannot find main to prove scripts/boundaries-baseline.txt only shrinks" };
+  const mb = git(root, ["merge-base", base, "HEAD"]);
+  if (mb === null) return { error: `no merge base between ${base} and HEAD; fetch the base branch` };
+  const text = git(root, ["show", `${mb}:${rel}`]);
+  return { lines: baselineLines(text ?? "") };
+}
 
 function walk(dir, out = []) {
   for (const name of readdirSync(dir).sort()) {
@@ -67,15 +113,17 @@ if (process.argv.includes("--print")) {
   console.log(current.join("\n"));
   process.exit(0);
 }
-const baseline = existsSync(baselineFile)
-  ? readFileSync(baselineFile, "utf8")
-      .split(/\r?\n/)
-      .filter((l) => l && !l.startsWith("#"))
-  : [];
+const baseline = existsSync(baselineFile) ? baselineLines(readFileSync(baselineFile, "utf8")) : [];
 const listed = new Set(baseline);
 for (const c of current) if (!listed.has(c)) problems.push(`${c}: reaches into another feature; import it from that feature's index.ts`);
 const now = new Set(current);
 for (const b of baseline) if (!now.has(b)) problems.push(`scripts/boundaries-baseline.txt lists "${b}", which is gone; remove the line`);
+const prior = priorBaseline(web, baselineFile);
+if (prior.error) problems.push(prior.error);
+else if (!prior.skip) {
+  const had = new Set(prior.lines);
+  for (const b of baseline) if (!had.has(b)) problems.push(`scripts/boundaries-baseline.txt adds "${b}"; the list may only shrink`);
+}
 
 if (problems.length) {
   console.error(problems.map((p) => "boundaries: " + p).join("\n"));

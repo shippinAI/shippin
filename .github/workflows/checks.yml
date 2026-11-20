@@ -97,13 +97,23 @@ jobs:
         working-directory: web
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Fetch main so the boundary baseline can be compared with it
+        working-directory: ${{ github.workspace }}
+        run: git fetch origin main
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-      - run: npm test
+      - name: Test
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+          REF: ${{ github.ref }}
+        run: npm test
       - run: npm run build
       - run: npm run budget
       - run: npm run tokens
