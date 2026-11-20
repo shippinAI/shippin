@@ -28,6 +28,7 @@ import (
 	"shippin.cloud/console/internal/jobs"
 	"shippin.cloud/console/internal/limits"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/placement"
 	"shippin.cloud/console/internal/settings"
 )
 
@@ -51,6 +52,8 @@ type Module struct {
 	Lifecycle OrgLifecycle
 	// Limits is the module's limits policy (internal/limits). At most one module sets it.
 	Limits limits.Policy
+	// Placement is the module's placement policy (internal/placement). At most one module sets it.
+	Placement placement.Policy
 	// Migrations are the module's own *.sql files, at the root of this file system (an embed.FS
 	// sub-directory, for instance). They run after the panel's, in name order, in the same lock and
 	// migration table, recorded as module:<Name>/<file>. They may build on the panel's tables.
@@ -266,6 +269,11 @@ func check(ms []Module) error {
 		}
 		if m.Limits != nil {
 			if err := claim("policy", "limits", "module "+m.Name); err != nil {
+				return err
+			}
+		}
+		if m.Placement != nil {
+			if err := claim("policy", "placement", "module "+m.Name); err != nil {
 				return err
 			}
 		}

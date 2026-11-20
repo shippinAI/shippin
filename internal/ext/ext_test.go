@@ -12,6 +12,7 @@ import (
 	"shippin.cloud/console/internal/jobs"
 	"shippin.cloud/console/internal/limits"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/placement"
 	"shippin.cloud/console/internal/settings"
 )
 
@@ -191,5 +192,26 @@ func TestOneLimitsPolicy(t *testing.T) {
 	}
 	if err := check([]Module{{Name: "a", Limits: nopLimits{}}, {Name: "b", Limits: nopLimits{}}}); err == nil {
 		t.Error("two modules must not both set the limits policy")
+	}
+}
+
+type nopPlacement struct{}
+
+func (nopPlacement) Hosts(context.Context, placement.Querier, string) ([]string, error) {
+	return nil, nil
+}
+
+func TestOnePlacementPolicy(t *testing.T) {
+	restore := Swap(Module{Name: "a", Placement: nopPlacement{}})
+	if Placement() == nil {
+		t.Error("the module's placement is not the one used")
+	}
+	restore()
+	defer Swap()()
+	if Placement() != nil {
+		t.Error("with no module there is no module placement policy")
+	}
+	if err := check([]Module{{Name: "a", Placement: nopPlacement{}}, {Name: "b", Placement: nopPlacement{}}}); err == nil {
+		t.Error("two modules must not both set the placement policy")
 	}
 }

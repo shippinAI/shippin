@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/limits"
+	"shippin.cloud/console/internal/placement"
 )
 
 // Policies are the places where the panel needs a business rule (docs/editions.md). The panel asks the
@@ -99,6 +100,17 @@ func Limits() limits.Policy {
 	for _, m := range Modules() {
 		if m.Limits != nil {
 			return m.Limits
+		}
+	}
+	return nil
+}
+
+// Placement is the registered module's placement policy, or nil when no module sets one. Its types are
+// in internal/placement, for the same reason as the limits policy's.
+func Placement() placement.Policy {
+	for _, m := range Modules() {
+		if m.Placement != nil {
+			return m.Placement
 		}
 	}
 	return nil
