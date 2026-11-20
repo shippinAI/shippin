@@ -6,39 +6,65 @@ The rule behind all of it: **a rule only exists if CI fails when it is broken.**
 
 ## Routes and navigation come from folders (F1)
 
-No route or navigation entry is listed by hand. Folders under `web/src/routes/` are the URLs:
+No route or navigation entry is listed by hand. Each folder under `web/src/routes/<app>/` is a URL of that app:
 
 | File | Meaning |
 | --- | --- |
 | `page.tsx` | A page at this folder's path. Its default export is the page component. |
 | `layout.tsx` | Wraps every page below this folder. Its default export renders an `<Outlet />`. |
-| `meta.ts` | Optional. The page's navigation entries, the permission (`cap`) or feature switch it needs, and its place in its section. |
+| `meta.ts` | Optional. The navigation entries declared here (`nav`), and `eager: true` on a layout that loads with the app instead of on demand. |
+| `mounts.ts` | Optional. `export default ["<app>"]` places another app's routes here. The folder's path is the mounted app's own. |
 | `[name]/` | A path parameter, `:name`. |
+| `[...name]/` | The rest of the path, `*`. |
 | `(name)/` | A group: shares a layout, adds nothing to the path. |
 
-Each top-level folder under `routes/` is one route tree. The console app mounts `routes/console/`. The provider panel mounts `routes/admin/` under `/admin`, both inside the console and in the operator app.
+There are three apps:
 
-`npm run routes` writes `web/src/app/routes.gen.ts` from the folders:
-- each tree's route objects, every page its own lazily loaded chunk;
-- each tree's navigation entries, in section order;
-- `RoutePath`, the union of every path, which the link helpers take, so a link to a page that does not exist fails the type check.
+| App | Folder | Served |
+| --- | --- | --- |
+| The console | `routes/console/` | The panel itself |
+| The provider panel | `routes/admin/`, whose pages are under `admin/` so their paths start with `/admin` | Under `/admin` in the console, loaded on demand |
+| The operator app | `routes/ops/` | `ops.<domain>`. It mounts the provider panel with `routes/ops/(signed-in)/admin/mounts.ts` |
 
-The file is checked in so a change to the routes shows in review. `npm test` runs `npm run routes -- --check`, which fails when the file is stale.
+### What the generator writes
 
-A navigation entry keeps its `id`. The installation renames, hides and moves entries by it (`ui.nav.items`), so changing an id breaks a site's configuration.
+`npm run routes` writes two files per app into `web/src/app/`:
+- `routes.<app>.gen.ts`: the app's routes. Every page loads on demand, and only layouts marked `eager` load with the app. It also exports `RoutePath`, the union of the app's page paths, for typed links.
+- `nav.<app>.gen.ts`: every `meta.ts` of the app and the page it sits beside. It is a separate file so the code that starts the app carries no navigation entries. The sidebar's lists (`template/nav-items.ts`, `template/admin/admin-nav.ts`) read it.
 
-The tests also fail when:
-- two pages claim the same path;
-- a navigation entry points at no page;
-- a file under `web/src/app` or `web/src/template` lists a route or a navigation entry by hand.
+Both files are checked in, so a change to the routes shows in review.
+
+### How routes are matched
+
+At every level, a fixed segment is tried before a parameter, and a parameter before the rest of the path. A page beside a group is tried before anything inside the group.
+
+A `page.tsx` that only re-exports a feature's page (`export { XPage as default } from "…"`) is loaded from that feature directly, so it costs no extra chunk.
+
+### Navigation entries
+
+- An entry links to its page's own path.
+- Entries under `/t/:tenantId` link relative to the organization.
+- `to` is only for an entry that links to one value of a parameter, such as `go/terminal` on `go/[feature]`.
+- An entry marked `soon` may sit in a folder with no page.
+- An entry keeps its `id`. The installation renames, hides and moves entries by it (`ui.nav.items`), so changing an id breaks a site's configuration.
+
+### What `npm test` checks
+
+- `node scripts/routes.mjs --check` fails when a generated file is stale.
+- `scripts/routes.test.mjs` tests the generator's rules: folder names, ordering, modules, mounts, and two folders claiming one path.
+- `src/app/routes.test.ts` fails when:
+  - a navigation entry points at no page, sits in a section the sidebar does not show, or repeats an id;
+  - a file under `web/src/app` or `web/src/template` lists a route, loads a page itself, or lists a navigation entry.
+
+Links still take plain strings. Moving them onto `RoutePath` is the next step for this part.
 
 ### Modules
 
-A module's pages live in `web/src/modules/<name>/routes/<tree>/`, with the same conventions. The generator reads them into the same trees, so the panel's own build carries none of them, and moving a page between editions means moving its folder. A module page may not claim a path the panel already serves.
+A module's pages live in `web/src/modules/<name>/routes/<app>/`, with the same conventions. The generator reads them into the same apps, so the panel's own build carries none of them, and moving a page between editions means moving its folder. A module may not add a page or a layout where the panel already has one.
 
 ### Pages and features
 
-A page folder holds the page and nothing shared. The code a page uses belongs to its feature, `web/src/features/<feature>/`, which owns its API calls, models and parts. A feature imports another feature only through that feature's `index.ts`.
+A page folder holds the page and nothing shared. The code a page uses belongs to its feature, `web/src/features/<feature>/`, which owns its API calls, models and parts. Today most `page.tsx` files re-export their feature's page; a page moves into its folder when its feature is next worked on.
 
 ## Rot checks (F5)
 

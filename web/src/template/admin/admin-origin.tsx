@@ -1,12 +1,13 @@
 import { Suspense, useEffect } from "react";
 import { createBrowserRouter, RouterProvider, useLocation } from "../../lib/router/router";
-import { AdminLayout, adminRoutes } from "../../app/admin-routes";
+import { toRoutes } from "../../lib/router/tree";
+import { routes } from "../../app/routes.admin.gen";
 import { usePublicSettings } from "../../lib/hooks/use-api";
 import { BrandMark } from "../brand-mark";
 
-// The /admin route table lives in this lazy chunk, so the customer initial JS never carries
-// operator code (CONSOLE-IA budgets); the operator app (ops.html) mounts the same routes itself.
-const adminRouter = createBrowserRouter([{ path: "/admin", element: <AdminLayout />, children: adminRoutes }]);
+// The /admin route table (src/routes/admin) lives in this lazy chunk, so the customer initial JS never
+// carries operator code (CONSOLE-IA budgets); the operator app (ops.html) mounts the same routes itself.
+const adminRouter = createBrowserRouter(toRoutes(routes));
 
 /** Console-side /admin: once the operator app owns its own origin (operator.origin_only), send
  *  the browser there; until then render the panel here. The API enforces the same rule. */

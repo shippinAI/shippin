@@ -75,8 +75,7 @@ Built:
 - **Job kinds.** A module's kinds of durable job run on the panel's queue, with the panel's database and the services its actions use (`ext.Runtime`). A kind the panel already handles stops the queue from starting.
 
 - **Database.** A module brings its own migration files (`ext.Module.Migrations`). They run after the panel's, in name order, under the same lock and transaction rules, and are recorded in the same table as `module:<name>/<file>`, so a module's numbering never meets the panel's. While a panel migration is held back (`migrations.hold`), no module migration runs.
-
-To build:
+- **Panel pages.** A module's pages are folders in `web/src/modules/<name>/routes/<app>/` in the enterprise build, with their navigation entries in `meta.ts` beside them ([Panel framework](web-framework.md)). `npm run routes` reads them into the same apps as the panel's own, every page loads on demand, and a module may not take a path the panel serves. The panel's own build has no module folders, so it carries none of them. Cards on existing pages are not an extension point yet.
 
 - **Policies.** Each place where the panel needs a business rule asks a policy, and the panel's default is the self-hosted answer:
 
@@ -87,7 +86,7 @@ To build:
 | Limits | Work starts: how many at once, how large? | The limits in the panel's settings |
 | Placement | Work is placed: which hosts may this organization use? | Every host in the installation |
 
-  Built so far:
+  All four are built:
   - **Caller** (`ext.CallerPolicy`, set with `ext.Module.Caller`). The caller policy hands the panel each organization's label and sign-in rule (`ext.OrgRule`), and the organizations a staff member reaches without membership, as `ext.Access`. Access is re-asked on every request, and its use is audited, as break-glass when it says so.
   - **Organization lifecycle** (`ext.OrgLifecycle`, set with `ext.Module.Lifecycle`). `Prepare` runs when an organization is created and on every retry, so it must be safe to repeat; the address it returns is recorded with the organization. `Ready` decides whether a workspace may be created, and its reason is shown when not. `Remove` runs when staff delete the organization, and names anything it kept. The panel keeps the organization's status throughout.
   - **Limits** (`limits.Policy` in `internal/limits`, set with `ext.Module.Limits`). It says what an organization's build jobs may use: whether runners at all, how many machines at once, which sizes and how many minutes a month, with the reason shown when they may not. It is read in the same transaction as the work it limits. Its types live in their own package so that the runner code can use them without importing the module registry.
@@ -95,7 +94,6 @@ To build:
 
   Until the enterprise code moves out (roadmap S3), the policy the panel uses when no module sets one is today's behaviour, from code still in this repository: coverage tiers' sign-in rules, support and break-glass grants, the per-customer silo that shippin-hostd builds and tears down, the runner limits in each plan, and customer server assignments. The defaults in the table take over when that code moves.
 
-- **Panel pages.** Module pages sit in `web/src/modules/<name>/` in the enterprise build. Each registers its routes, navigation entries and cards. They load lazily, so the panel's own build carries none of them.
 
 ## The license key (to build)
 
