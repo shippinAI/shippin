@@ -46,6 +46,8 @@ type Module struct {
 	Jobs []Job
 	// Caller is the module's caller policy (policy.go). At most one module sets it.
 	Caller CallerPolicy
+	// Lifecycle is the module's organization lifecycle (policy.go). At most one module sets it.
+	Lifecycle OrgLifecycle
 	// Migrations are the module's own *.sql files, at the root of this file system (an embed.FS
 	// sub-directory, for instance). They run after the panel's, in name order, in the same lock and
 	// migration table, recorded as module:<Name>/<file>. They may build on the panel's tables.
@@ -251,6 +253,11 @@ func check(ms []Module) error {
 		}
 		if m.Caller != nil {
 			if err := claim("policy", "caller", "module "+m.Name); err != nil {
+				return err
+			}
+		}
+		if m.Lifecycle != nil {
+			if err := claim("policy", "organization lifecycle", "module "+m.Name); err != nil {
 				return err
 			}
 		}

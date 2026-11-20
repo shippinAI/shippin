@@ -54,3 +54,39 @@ func Caller() CallerPolicy {
 	}
 	return nil
 }
+
+// Org is an organization as a lifecycle policy sees it.
+type Org struct {
+	ID, Name string
+}
+
+// OrgState is an organization's recorded state: its status ("provisioning", "active", "failed",
+// "suspended", "deleting" or "deleted") and the address its preparation returned.
+type OrgState struct {
+	ID, Status, Address string
+}
+
+// OrgLifecycle prepares an organization to run work, says when work may start in it, and releases
+// what it prepared when the organization is removed. The panel keeps the organization's status.
+type OrgLifecycle interface {
+	// Prepare makes org ready to run work. The panel calls it when the organization is created and
+	// on every retry, so it must be safe to repeat. The address it returns ("" for none) is recorded
+	// with the organization.
+	Prepare(ctx context.Context, rt Runtime, org Org) (address string, err error)
+	// Ready says whether work may start in an organization in state s, and if not, why, in words
+	// shown to people.
+	Ready(s OrgState) (ok bool, why string)
+	// Remove releases what Prepare made. kept names anything deliberately left behind, such as a
+	// retained data set, for staff ("" for nothing).
+	Remove(ctx context.Context, rt Runtime, org Org) (kept string, err error)
+}
+
+// Lifecycle is the registered module's organization lifecycle, or nil when no module sets one.
+func Lifecycle() OrgLifecycle {
+	for _, m := range Modules() {
+		if m.Lifecycle != nil {
+			return m.Lifecycle
+		}
+	}
+	return nil
+}

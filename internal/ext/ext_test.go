@@ -150,3 +150,24 @@ func TestOneCallerPolicy(t *testing.T) {
 		t.Error("Access.Active and Covers")
 	}
 }
+
+type nopLifecycle struct{}
+
+func (nopLifecycle) Prepare(context.Context, Runtime, Org) (string, error) { return "", nil }
+func (nopLifecycle) Ready(OrgState) (bool, string)                         { return true, "" }
+func (nopLifecycle) Remove(context.Context, Runtime, Org) (string, error)  { return "", nil }
+
+func TestOneOrganizationLifecycle(t *testing.T) {
+	restore := Swap(Module{Name: "a", Lifecycle: nopLifecycle{}})
+	if Lifecycle() == nil {
+		t.Error("the module's lifecycle is not the one used")
+	}
+	restore()
+	defer Swap()()
+	if Lifecycle() != nil {
+		t.Error("with no module there is no module lifecycle")
+	}
+	if err := check([]Module{{Name: "a", Lifecycle: nopLifecycle{}}, {Name: "b", Lifecycle: nopLifecycle{}}}); err == nil {
+		t.Error("two modules must not both set the organization lifecycle")
+	}
+}

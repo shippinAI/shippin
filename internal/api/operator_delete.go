@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/ext"
 )
 
 // opDeleteTenant tears down a tenant. The caller must type the tenant's exact name; the
-// hostd teardown removes workspaces, then runs the provisioning rollback (network, peers,
-// forwards) and drops the project and pool. The DB rows are retired, not deleted.
+// organization lifecycle releases what it prepared (today: hostd removes the workspaces, rolls
+// back the network, peers and forwards, and drops the project and pool). The DB rows are
+// retired, not deleted.
 func (a *API) opDeleteTenant(w http.ResponseWriter, r *http.Request, c *caller) {
 	t, ok := a.opTenant(w, r)
 	if !ok {
@@ -37,7 +39,7 @@ func (a *API) opDeleteTenant(w http.ResponseWriter, r *http.Request, c *caller) 
 	// Detached from the request: a closed browser tab must not abort a half-done teardown.
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
-	ds, err := a.host.DeleteTenant(ctx, t.ID)
+	ds, err := a.lifecycle().Remove(ctx, a.runtime(), ext.Org{ID: t.ID, Name: t.Name})
 	if err != nil {
 		log.Printf("delete tenant %s: %v", t.ID, err)
 		_ = a.db.SetTenantStatus(ctx, t.ID, "failed", t.SSHIP, "Delete failed: "+err.Error())
