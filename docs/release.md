@@ -23,7 +23,7 @@ Versions are Semantic Versioning, `0.MINOR.PATCH` until the first stable release
 - an edge build is `<next version>-edge.<UTC date>.<short commit>`;
 - a local build is `0.0.0-dev`.
 
-Every binary carries its version, commit, build time and channel (`internal/buildinfo`). The panel shows them, so a person can always say exactly what they run.
+Every binary carries its version, channel, commit and build time (`internal/version`, set with `-ldflags`; the Dockerfile takes `VERSION` and `CHANNEL` build arguments). The console logs them when it starts, `/v1/version` returns them to operators, and the panel's top bar shows them, so a person can always say exactly what they run. `/healthz` does not, because it needs no sign-in.
 
 ## What each release carries
 
@@ -54,7 +54,7 @@ Tool versions are pinned, as GitHub Actions are pinned by commit, and each is a 
 
 | Step | Result someone can see |
 | --- | --- |
-| R1. Build info | The version, commit, build time and channel in the binaries, in `/healthz` and in the panel. |
+| R1. Build info | The version, channel, commit and build time in the binaries, the start-up log, `/v1/version` and the panel. |
 | R2. Go checks in CI | golangci-lint, govulncheck and gitleaks run on every push. |
 | R3. Licenses | `THIRD_PARTY_NOTICES` generated and checked; disallowed licenses fail. |
 | R4. Edge | Each green `main` publishes the private edge image, with its SBOM, provenance and scan. |
