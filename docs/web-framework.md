@@ -68,16 +68,19 @@ A page folder holds the page and nothing shared. The code a page uses belongs to
 
 ## Rot checks (F5)
 
-All of these run in `npm test` or the web job in CI:
+`npm test` is `scripts/test.mjs`. It runs the checks, then every test, and reports each step that failed. The web job in CI runs it.
 
-- **Every test runs.** Test files are found by name (`*.test.ts`, `*.test.mjs`), not listed by hand, so a new test cannot be left out.
-- **Nothing unused.** knip fails on files, exports and dependencies nothing uses.
-- **Boundaries.**
-  - A feature reaches another only through its `index.ts`.
-  - `web/src/lib` imports no feature.
-  - Nothing outside `web/src/modules` imports a module.
-- **No bucket folders.** No folder is named `common`, `shared`, `utils`, `helpers` or `misc`. Code belongs to the thing it serves.
-- **Generated files are current.** Routes, the typed API calls, the OpenAPI index and the tokens are regenerated in check mode, and a difference fails.
+- **Every test runs.** Test files are found by name, not listed by hand, so a new test cannot be left out:
+  - `src/**/*.test.ts` run one by one with jiti;
+  - `scripts/**/*.test.mjs` run with `node --test`.
+- **Boundaries** (`scripts/check-boundaries.mjs`):
+  - `web/src/lib` imports no feature, page, template, app or module code. Its tests may.
+  - A feature reaches another only through that feature's `index.ts`. The 52 imports into other features' internals that existed when the check arrived are listed in `scripts/boundaries-baseline.txt`. That list may only shrink: a new import fails, and so does a listed one that is gone until its line is removed.
+  - Nothing outside `web/src/modules` imports a module. The generated route files only name module folders.
+  - No folder is a bucket (`common`, `shared`, `utils`, `util`, `helpers`, `misc`). Code belongs to the thing it serves.
+- **Generated files are current.** The routes (`scripts/routes.mjs --check`) and the OpenAPI index (`generate-openapi-index.mjs --check`) are regenerated in check mode, and a difference fails. The tokens join them with F2.
+- **Hard-coded installation names** fail too (`scripts/check-hardcoding.mjs`), as before.
+- **Nothing unused (to build).** knip, run in CI, will fail on files, exports and dependencies nothing uses. It is a new development dependency, so it waits for the owner's approval to download it.
 
 ## Lexicon (F4)
 
