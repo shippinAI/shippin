@@ -41,9 +41,9 @@ All of these run in CI and fail the build:
 
 | Check | Tool | What fails |
 | --- | --- | --- |
-| Go code | golangci-lint | A new finding. Findings that exist today are reported against `main` only. |
-| Known vulnerabilities in Go dependencies | govulncheck | A vulnerability in code the binaries actually call |
-| Secrets in the history | gitleaks | Anything that looks like a key, token or password |
+| Go code | golangci-lint 2.15.0 (`.golangci.yml`: the standard linters plus gosec, bodyclose, errorlint, nilerr, noctx, misspell and gofmt) | A finding on a line the change touches (`--new-from-merge-base=origin/main`). The 300 or so that existed when it arrived, mostly unchecked errors, are fixed as their code is worked on. |
+| Known vulnerabilities in Go and its dependencies | govulncheck 1.9.0 | A vulnerability in code the binaries actually call, the standard library included. The Go toolchain is pinned to a patch release for this reason (`toolchain` in `go.mod`, the same tag in the Dockerfile). |
+| Secrets in the history | gitleaks 8.30.1, its download checked against the release's checksum | Anything that looks like a key, token or password in any commit. Findings checked by hand and found harmless are listed by fingerprint in `.gitleaksignore`. |
 | The image | Trivy | A critical or high vulnerability that has a fixed version |
 | Licenses | go-licenses and the web dependency licenses | A dependency whose license the FSL panel or the commercial enterprise edition cannot ship, such as GPL or AGPL, and a missing notice |
 | The web code | `npm test` ([Panel framework](web-framework.md)) | Formatting, lint, unused code, boundaries and every test |
@@ -55,7 +55,7 @@ Tool versions are pinned, as GitHub Actions are pinned by commit, and each is a 
 | Step | Result someone can see |
 | --- | --- |
 | R1. Build info | The version, channel, commit and build time in the binaries, the start-up log, `/v1/version` and the panel. |
-| R2. Go checks in CI | golangci-lint, govulncheck and gitleaks run on every push. |
+| R2. Go checks in CI | golangci-lint, govulncheck and gitleaks run on every push (the `go-quality` and `gitleaks` jobs). Built 2026-11-20. |
 | R3. Licenses | `THIRD_PARTY_NOTICES` generated and checked; disallowed licenses fail. |
 | R4. Edge | Each green `main` publishes the private edge image, with its SBOM, provenance and scan. |
 | R5. Releases | A tag publishes the public GitHub Release and image tags. The first one is confirmed with the owner. |

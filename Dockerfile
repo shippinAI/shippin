@@ -4,7 +4,9 @@
 # Everything derived from the action files is generated again here, from the source alone: the
 # registry, the panel's typed action map and the actions' OpenAPI document (docs/mcpl.md). The image
 # is what the source says even if a committed copy is stale; the tests catch a stale copy.
-FROM golang:1.26-bookworm AS source
+# The Go toolchain is pinned to a patch release (go.mod names the same one): a floating tag hides which
+# security fixes a build has.
+FROM golang:1.26.11-bookworm AS source
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
