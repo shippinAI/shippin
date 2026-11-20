@@ -26,6 +26,8 @@ const steps = [
   ["node", ["scripts/check-hardcoding.mjs"]],
   ["node", ["scripts/check-boundaries.mjs"]],
   ["biome", ["format"]],
+  ["node", ["scripts/check-lint.mjs"]],
+  ["node", ["scripts/check-unused.mjs"]],
   ...find(join(web, "src"), /\.test\.ts$/).map((f) => ["jiti", [f]]),
   ["node", ["--test", ...find(join(web, "scripts"), /\.test\.mjs$/)]],
 ];
