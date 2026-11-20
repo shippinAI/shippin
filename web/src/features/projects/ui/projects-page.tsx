@@ -31,13 +31,23 @@ export function ProjectsPage() {
   return (
     <>
       <PageHeader eyebrow={tenant?.name} title={group?.name ?? "Projects"} description={text("spaces.projectDescription")} />
-      <Button className="mb-4" variant="ghost" size="sm" tooltip={text("spaces.back")} onPress={() => nav(`/t/${t}/workspaces`)}>{text("spaces.back")}</Button>
-      {q.isError && <p role="alert" className="mb-4 text-danger">{q.error.message}</p>}
+      <Button className="mb-4" variant="ghost" size="sm" tooltip={text("spaces.back")} onPress={() => nav(`/t/${t}/workspaces`)}>
+        {text("spaces.back")}
+      </Button>
+      {q.isError && (
+        <p role="alert" className="mb-4 text-danger">
+          {q.error.message}
+        </p>
+      )}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-3">
           {!groupId && <SuggestedProjects tenantId={t} />}
           {q.isPending && Array.from({ length: 2 }, (_, i) => <Skeleton key={i} className="h-20" />)}
-          {q.data?.length === 0 && <Card><EmptyState title="No projects yet" description="Create your first project to get a devspace." /></Card>}
+          {q.data?.length === 0 && (
+            <Card>
+              <EmptyState title="No projects yet" description="Create your first project to get a devspace." />
+            </Card>
+          )}
           {items.map((p) => (
             <Card key={p.id} elevation={2} className="flex items-center gap-4 p-4">
               <FolderGit2 className="size-5 text-hue-workspaces" />
@@ -47,20 +57,28 @@ export function ProjectsPage() {
                   {p.id === last && <Badge tone="primary">Last opened</Badge>}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-fg-subtle">
-                  {p.environments.map((e) => <Badge key={e.id}>{e.name}</Badge>)}
-                  <span>{p.workspaces} devspace{p.workspaces === 1 ? "" : "s"}</span>
+                  {p.environments.map((e) => (
+                    <Badge key={e.id}>{e.name}</Badge>
+                  ))}
+                  <span>
+                    {p.workspaces} devspace{p.workspaces === 1 ? "" : "s"}
+                  </span>
                 </div>
               </div>
               {p.state !== "ready" && <Badge tone="warning">{text("spaces.pending")}</Badge>}
-                <Button variant="primary" size="sm" tooltip={`Open the ${p.name} devspace`} onPress={() => open(p)}>
-                  <Play className="size-4" /> {p.id === last ? "Resume" : "Open"}
-                </Button>
+              <Button variant="primary" size="sm" tooltip={`Open the ${p.name} devspace`} onPress={() => open(p)}>
+                <Play className="size-4" /> {p.id === last ? "Resume" : "Open"}
+              </Button>
             </Card>
           ))}
         </div>
         <div className="space-y-6">
-          {tenant?.can_manage && tenant.roles.length > 0 && (!groupId || group) && <NewProjectPanel key={groupId ?? "all"} tenantId={t} workspaceId={groupId} />}
-          <div id="usage"><ProjectUsage tenantId={t} projects={q.data ?? []} /></div>
+          {tenant?.can_manage && tenant.roles.length > 0 && (!groupId || group) && (
+            <NewProjectPanel key={groupId ?? "all"} tenantId={t} workspaceId={groupId} />
+          )}
+          <div id="usage">
+            <ProjectUsage tenantId={t} projects={q.data ?? []} />
+          </div>
         </div>
       </div>
     </>

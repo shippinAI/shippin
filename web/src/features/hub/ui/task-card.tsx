@@ -38,7 +38,10 @@ export function TaskCard({ task, isOwner }: { task: HubTask; isOwner: boolean })
           <Bot className="size-3.5 shrink-0" aria-hidden />
           {task.lease_owner || task.decided_by || task.created_by}
         </span>
-        <span className="inline-flex shrink-0 items-center gap-1"><Clock className="size-3" aria-hidden />{ago(task.updated_at)}</span>
+        <span className="inline-flex shrink-0 items-center gap-1">
+          <Clock className="size-3" aria-hidden />
+          {ago(task.updated_at)}
+        </span>
       </footer>
       <TaskHistory taskId={task.id} />
       {waiting && isOwner && (

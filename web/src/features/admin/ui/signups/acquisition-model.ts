@@ -1,4 +1,4 @@
-import type { AcquisitionSourceDetail, AcquisitionSourceSummary } from '../../../../lib/api/actions.gen';
+import type { AcquisitionSourceDetail, AcquisitionSourceSummary } from "../../../../lib/api/actions.gen";
 
 export type AcquisitionCapabilities = {
   waitlist: boolean;
@@ -12,11 +12,11 @@ export type AcquisitionCapabilities = {
 
 export function acquisitionCapabilities(permissions: readonly string[]): AcquisitionCapabilities {
   const has = (permission: string) => permissions.includes(permission);
-  const waitlist = has('customers.read');
-  const platformRead = has('platform.settings.read');
-  const platformWrite = has('platform.settings.write');
-  const sourceRead = has('acquisition.read');
-  const sourceSync = has('acquisition.sync');
+  const waitlist = has("customers.read");
+  const platformRead = has("platform.settings.read");
+  const platformWrite = has("platform.settings.write");
+  const sourceRead = has("acquisition.read");
+  const sourceSync = has("acquisition.sync");
   return {
     waitlist,
     platformRead,
@@ -28,11 +28,11 @@ export function acquisitionCapabilities(permissions: readonly string[]): Acquisi
   };
 }
 
-export type AcquisitionSourceState = 'paused' | 'never-synced' | 'synced';
+export type AcquisitionSourceState = "paused" | "never-synced" | "synced";
 
 export function acquisitionSourceState(source: AcquisitionSourceSummary): AcquisitionSourceState {
-  if (source.paused) return 'paused';
-  return source.latest_success_at ? 'synced' : 'never-synced';
+  if (source.paused) return "paused";
+  return source.latest_success_at ? "synced" : "never-synced";
 }
 
 export function validSourceOriginPort(origin: string, portText: string): boolean {
@@ -41,17 +41,25 @@ export function validSourceOriginPort(origin: string, portText: string): boolean
   if (!Number.isInteger(port) || port < 1 || port > 65535) return false;
   try {
     const parsed = new URL(origin);
-    if (parsed.protocol !== 'https:' || !parsed.hostname || parsed.username || parsed.password ||
-      parsed.pathname !== '/' || parsed.search || parsed.hash) return false;
-    return parsed.port === '' || Number(parsed.port) === port;
+    if (
+      parsed.protocol !== "https:" ||
+      !parsed.hostname ||
+      parsed.username ||
+      parsed.password ||
+      parsed.pathname !== "/" ||
+      parsed.search ||
+      parsed.hash
+    )
+      return false;
+    return parsed.port === "" || Number(parsed.port) === port;
   } catch {
     return false;
   }
 }
 
-export function leadPreviewState(total: number, visible: number, truncated: boolean): 'empty' | 'latest' | 'complete' {
-  if (visible === 0) return 'empty';
-  return truncated || total > visible ? 'latest' : 'complete';
+export function leadPreviewState(total: number, visible: number, truncated: boolean): "empty" | "latest" | "complete" {
+  if (visible === 0) return "empty";
+  return truncated || total > visible ? "latest" : "complete";
 }
 
 export function sourceDraftIsStale(loadedGeneration: number | null, liveGeneration: number): boolean {

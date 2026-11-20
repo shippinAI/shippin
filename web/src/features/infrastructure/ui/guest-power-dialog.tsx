@@ -29,7 +29,12 @@ function DirectPowerDialog({ base, guest, verb, confirmSelf = false, onClose, on
     setError("");
     setRunning(true);
     try {
-      await apiSend("POST", `${base}/guests/${encodeURIComponent(guest)}/status/${verb}${confirmSelf ? "?confirm=self" : ""}`, {}, { note: note.trim() });
+      await apiSend(
+        "POST",
+        `${base}/guests/${encodeURIComponent(guest)}/status/${verb}${confirmSelf ? "?confirm=self" : ""}`,
+        {},
+        { note: note.trim() },
+      );
       onExecuted?.();
       onClose();
     } catch (e) {
@@ -39,15 +44,44 @@ function DirectPowerDialog({ base, guest, verb, confirmSelf = false, onClose, on
     }
   };
   return (
-    <ModalDialog isOpen onOpenChange={(open) => { if (!open) onClose(); }} title={t("infra.power.title", { verb, guest })} description={t("infra.power.description")}>
-      <form className="space-y-4 px-6 py-5" onSubmit={(e) => { e.preventDefault(); if (ready) void run(); }}>
-        {confirmSelf && <p role="alert" className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">{t("infra.self.body")}</p>}
+    <ModalDialog
+      isOpen
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={t("infra.power.title", { verb, guest })}
+      description={t("infra.power.description")}
+    >
+      <form
+        className="space-y-4 px-6 py-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (ready) void run();
+        }}
+      >
+        {confirmSelf && (
+          <p role="alert" className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
+            {t("infra.self.body")}
+          </p>
+        )}
         <TextField label={t("infra.note.label")} description={t("infra.note.help")} value={note} onChange={setNote} autoFocus />
-        {confirmSelf && <Checkbox isSelected={understood} onChange={setUnderstood}>{t("infra.self.understand")}</Checkbox>}
-        {error && <p role="alert" className="text-base text-danger">{error}</p>}
+        {confirmSelf && (
+          <Checkbox isSelected={understood} onChange={setUnderstood}>
+            {t("infra.self.understand")}
+          </Checkbox>
+        )}
+        {error && (
+          <p role="alert" className="text-base text-danger">
+            {error}
+          </p>
+        )}
         <div className="flex justify-end gap-2 border-t border-line pt-4">
-          <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={onClose}>{t("infra.dialog.cancel")}</Button>
-          <Button type="submit" variant="primary" isDisabled={!ready} tooltip={t("infra.note.tooltip")}>{running ? t("infra.power.running") : verb}</Button>
+          <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={onClose}>
+            {t("infra.dialog.cancel")}
+          </Button>
+          <Button type="submit" variant="primary" isDisabled={!ready} tooltip={t("infra.note.tooltip")}>
+            {running ? t("infra.power.running") : verb}
+          </Button>
         </div>
       </form>
     </ModalDialog>

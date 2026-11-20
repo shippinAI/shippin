@@ -18,19 +18,28 @@ export function selectedTab(o: InfraOverview | undefined, wanted: string | undef
   return wanted && providersWithHosts(o).some((p) => p.kind === wanted) ? wanted : OVERVIEW_TAB;
 }
 
-const infraBase = () => (typeof location !== "undefined" && location.pathname.startsWith("/admin/") ? "/admin/infrastructure" : "/operator/hosts");
+const infraBase = () =>
+  typeof location !== "undefined" && location.pathname.startsWith("/admin/") ? "/admin/infrastructure" : "/operator/hosts";
 
 /** Where a tab of this page lives. It is reachable from the console and from the workspace shell. */
 export const tabHref = (id: string, base = infraBase()) => (id === OVERVIEW_TAB ? base : `${base}/${encodeURIComponent(id)}`);
 
-export const slugFrom = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40).replace(/-+$/, "");
+export const slugFrom = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/, "");
 
 export const slugOK = (s: string) => /^[a-z0-9][a-z0-9-]{0,39}$/.test(s);
 export const siteOK = (s: string) => /^[a-z0-9-]{1,40}$/.test(s);
 
-export const initialValues = (fields: InfraField[]): Record<string, string> => Object.fromEntries(fields.map((f) => [f.name, f.default ?? ""]));
+export const initialValues = (fields: InfraField[]): Record<string, string> =>
+  Object.fromEntries(fields.map((f) => [f.name, f.default ?? ""]));
 
-export const fieldsComplete = (fields: InfraField[], values: Record<string, string>) => fields.every((f) => !f.required || !!values[f.name]?.trim());
+export const fieldsComplete = (fields: InfraField[], values: Record<string, string>) =>
+  fields.every((f) => !f.required || !!values[f.name]?.trim());
 
 /** Only fields that have a value are sent, so a blank optional field is not stored as a setting. */
 export const filledValues = (fields: InfraField[], values: Record<string, string>): Record<string, string> =>
@@ -52,7 +61,12 @@ export const hostsWithoutFleet = (o: InfraOverview): FleetMember[] => apiHosts(o
 
 export function fleetTotals(members: FleetMember[]): InfraTotals {
   return members.reduce(
-    (t, { node }) => ({ nodes: t.nodes + 1, online: t.online + (node.online ? 1 : 0), guests: t.guests + node.guests.total, running: t.running + node.guests.running }),
+    (t, { node }) => ({
+      nodes: t.nodes + 1,
+      online: t.online + (node.online ? 1 : 0),
+      guests: t.guests + node.guests.total,
+      running: t.running + node.guests.running,
+    }),
     { nodes: 0, online: 0, guests: 0, running: 0 },
   );
 }
@@ -65,7 +79,8 @@ export const guestNameOK = (name: string) => /^[a-zA-Z][a-zA-Z0-9-]{0,62}$/.test
 export const imagesFor = <T extends { kind?: string }>(images: T[], kind: string) => images.filter((i) => !i.kind || i.kind === kind);
 
 /** Network types that can attach a guest to a software bridge. */
-export const guestNetworks = <T extends { type: string }>(networks: T[]) => networks.filter((n) => ["bridge", "ovsbridge"].includes(n.type.toLowerCase()));
+export const guestNetworks = <T extends { type: string }>(networks: T[]) =>
+  networks.filter((n) => ["bridge", "ovsbridge"].includes(n.type.toLowerCase()));
 
 /** A change must say why. The server applies the same limits. */
 export const noteOK = (note: string) => {
@@ -84,7 +99,9 @@ export const stoppableGuests = (guests: Guest[]): Guest[] =>
   guests.filter((g) => isRunning(g.status)).sort((a, b) => Number(!!a.self) - Number(!!b.self));
 
 export function formatUptime(seconds: number): string {
-  const days = Math.floor(seconds / 86400), hours = Math.floor((seconds % 86400) / 3600), minutes = Math.floor((seconds % 3600) / 60);
+  const days = Math.floor(seconds / 86400),
+    hours = Math.floor((seconds % 86400) / 3600),
+    minutes = Math.floor((seconds % 3600) / 60);
   if (days > 0) return `${days}d ${hours}h`;
   if (hours > 0) return `${hours}h ${minutes}m`;
   return `${minutes}m`;
@@ -142,22 +159,30 @@ const healthOf = (n: InfraNode): InfraNode["health_state"] => n.health_state ?? 
 
 /** Every host of every provider in one list, with the resources the overview reports. Unknown stays null. */
 export function fleetRows(o: InfraOverview): FleetRow[] {
-  return o.providers.flatMap((p) => p.nodes.map((node): FleetRow => {
-    const d = node.details;
-    const disks = d?.disks ?? [];
-    const memTotal = d?.mem_total_bytes ? d.mem_total_bytes : null;
-    const memUsed = memTotal !== null && d?.mem_used_bytes !== undefined ? d.mem_used_bytes : null;
-    return {
-      id: `${p.kind}:${node.id}`, node, kind: p.kind, providerLabel: p.label,
-      fleetLabel: o.fleets.find((f) => f.id === node.fleet_id)?.label ?? "",
-      health: healthOf(node),
-      cpus: d?.cpus ? d.cpus : null,
-      memUsed, memTotal, memFraction: memUsed !== null && memTotal ? Math.min(1, memUsed / memTotal) : null,
-      diskBytes: disks.length ? disks.reduce((s, x) => s + (x.size_bytes || 0), 0) : null,
-      diskCount: disks.length,
-      guestsRunning: node.guests.running, guestsTotal: node.guests.total,
-    };
-  }));
+  return o.providers.flatMap((p) =>
+    p.nodes.map((node): FleetRow => {
+      const d = node.details;
+      const disks = d?.disks ?? [];
+      const memTotal = d?.mem_total_bytes ? d.mem_total_bytes : null;
+      const memUsed = memTotal !== null && d?.mem_used_bytes !== undefined ? d.mem_used_bytes : null;
+      return {
+        id: `${p.kind}:${node.id}`,
+        node,
+        kind: p.kind,
+        providerLabel: p.label,
+        fleetLabel: o.fleets.find((f) => f.id === node.fleet_id)?.label ?? "",
+        health: healthOf(node),
+        cpus: d?.cpus ? d.cpus : null,
+        memUsed,
+        memTotal,
+        memFraction: memUsed !== null && memTotal ? Math.min(1, memUsed / memTotal) : null,
+        diskBytes: disks.length ? disks.reduce((s, x) => s + (x.size_bytes || 0), 0) : null,
+        diskCount: disks.length,
+        guestsRunning: node.guests.running,
+        guestsTotal: node.guests.total,
+      };
+    }),
+  );
 }
 
 export type FleetSortKey = "name" | "provider" | "site" | "state" | "cpu" | "memory" | "disk" | "guests" | "fleet";
@@ -168,15 +193,24 @@ const stateRank = { down: 0, unknown: 1, operational: 2 } as const;
 
 const sortValue = (r: FleetRow, key: FleetSortKey): string | number | null => {
   switch (key) {
-    case "name": return r.node.label.toLowerCase();
-    case "provider": return r.providerLabel.toLowerCase();
-    case "site": return r.node.site?.toLowerCase() || null;
-    case "fleet": return r.fleetLabel.toLowerCase() || null;
-    case "state": return stateRank[r.health] ?? 1;
-    case "cpu": return r.cpus;
-    case "memory": return r.memFraction;
-    case "disk": return r.diskBytes;
-    case "guests": return r.guestsTotal ? r.guestsRunning + r.guestsTotal / 1e6 : 0;
+    case "name":
+      return r.node.label.toLowerCase();
+    case "provider":
+      return r.providerLabel.toLowerCase();
+    case "site":
+      return r.node.site?.toLowerCase() || null;
+    case "fleet":
+      return r.fleetLabel.toLowerCase() || null;
+    case "state":
+      return stateRank[r.health] ?? 1;
+    case "cpu":
+      return r.cpus;
+    case "memory":
+      return r.memFraction;
+    case "disk":
+      return r.diskBytes;
+    case "guests":
+      return r.guestsTotal ? r.guestsRunning + r.guestsTotal / 1e6 : 0;
   }
 };
 
@@ -185,7 +219,8 @@ export function sortFleet(rows: FleetRow[], key: FleetSortKey, direction: SortDi
   const sign = direction === "ascending" ? 1 : -1;
   const byName = (a: FleetRow, b: FleetRow) => a.node.label.localeCompare(b.node.label) || a.id.localeCompare(b.id);
   return [...rows].sort((a, b) => {
-    const va = sortValue(a, key), vb = sortValue(b, key);
+    const va = sortValue(a, key),
+      vb = sortValue(b, key);
     if (va === null || vb === null) return va === vb ? byName(a, b) : va === null ? 1 : -1;
     const c = typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb));
     return c ? c * sign : byName(a, b);
@@ -204,14 +239,31 @@ export type HistoryChart = {
   series: { id: string; metric: MetricName; part: "avg" | "max"; points: ChartPoint[] }[];
 };
 
-const chartUnit: Record<MetricUnit, ChartUnit> = { fraction: "fraction", load: "count", bytes: "bytes", bytes_per_second: "bytes_per_second" };
+const chartUnit: Record<MetricUnit, ChartUnit> = {
+  fraction: "fraction",
+  load: "count",
+  bytes: "bytes",
+  bytes_per_second: "bytes_per_second",
+};
 
 const chartPlan: { id: HistoryChartId; parts: [MetricName, "avg" | "max"][]; total?: MetricName }[] = [
-  { id: "cpu", parts: [["cpu", "avg"], ["cpu", "max"]] },
+  {
+    id: "cpu",
+    parts: [
+      ["cpu", "avg"],
+      ["cpu", "max"],
+    ],
+  },
   { id: "load", parts: [["load1", "avg"]] },
   { id: "memory", parts: [["memory_used_bytes", "avg"]], total: "memory_total_bytes" },
   { id: "disk", parts: [["disk_used_bytes", "avg"]], total: "disk_total_bytes" },
-  { id: "network", parts: [["net_in_bytes_per_second", "avg"], ["net_out_bytes_per_second", "avg"]] },
+  {
+    id: "network",
+    parts: [
+      ["net_in_bytes_per_second", "avg"],
+      ["net_out_bytes_per_second", "avg"],
+    ],
+  },
 ];
 
 /** A step with no sample is null; a bucket that claims no samples is missing too. */
@@ -233,9 +285,15 @@ export function historyCharts(h: MetricRange | undefined): HistoryChart[] {
   for (const c of chartPlan) {
     const parts = c.parts.filter(([m]) => sampled(byMetric.get(m)));
     if (!parts.length) continue;
-    const totals = c.total ? byMetric.get(c.total)?.buckets.map((b) => bucketValue(b, "max")).filter((v): v is number => v !== null) ?? [] : [];
+    const totals = c.total
+      ? (byMetric
+          .get(c.total)
+          ?.buckets.map((b) => bucketValue(b, "max"))
+          .filter((v): v is number => v !== null) ?? [])
+      : [];
     charts.push({
-      id: c.id, unit: chartUnit[byMetric.get(parts[0]![0])!.unit] ?? "count",
+      id: c.id,
+      unit: chartUnit[byMetric.get(parts[0]![0])!.unit] ?? "count",
       ceiling: totals.length ? Math.max(...totals) : undefined,
       series: parts.map(([metric, part]) => ({ id: `${metric}.${part}`, metric, part, points: pointsOf(byMetric.get(metric)!, part) })),
     });

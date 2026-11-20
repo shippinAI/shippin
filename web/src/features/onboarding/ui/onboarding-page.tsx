@@ -63,24 +63,59 @@ function Onboarding() {
           </p>
           <div className="mt-8 rounded-xl border border-line bg-surface p-6 shadow-e2">
             {open ? (
-              <Form onSubmit={(e) => { e.preventDefault(); if (valid) submit(); }} className="space-y-5">
-                <TextField label="Organization name" value={name} onChange={setName} autoFocus description="Shown to your teammates. You can change it later." />
+              <Form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (valid) submit();
+                }}
+                className="space-y-5"
+              >
+                <TextField
+                  label="Organization name"
+                  value={name}
+                  onChange={setName}
+                  autoFocus
+                  description="Shown to your teammates. You can change it later."
+                />
                 <ul className="space-y-2.5">
                   {steps.map(({ icon: I, text }) => (
                     <li key={text} className="flex items-center gap-2.5 text-sm text-fg-muted">
                       <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 ring-1 ring-primary/20">
-                        {onboard.isPending ? <Loader2 className="size-3.5 animate-spin text-primary" /> : onboard.isSuccess ? <Check className="size-3.5 text-success" /> : <I className="size-3.5 text-primary" />}
+                        {onboard.isPending ? (
+                          <Loader2 className="size-3.5 animate-spin text-primary" />
+                        ) : onboard.isSuccess ? (
+                          <Check className="size-3.5 text-success" />
+                        ) : (
+                          <I className="size-3.5 text-primary" />
+                        )}
                       </span>
                       {text}
                     </li>
                   ))}
                 </ul>
-                <Button type="submit" variant="primary" size="lg" className="w-full" isDisabled={!valid || onboard.isPending} tooltip={valid ? "Create the organization and its resources" : "Use 2 to 48 characters"}>
-                  {onboard.isPending ? <><Loader2 className="size-4 animate-spin" /> Setting things up…</> : <>Create organization <ArrowRight className="size-4" /></>}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  isDisabled={!valid || onboard.isPending}
+                  tooltip={valid ? "Create the organization and its resources" : "Use 2 to 48 characters"}
+                >
+                  {onboard.isPending ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" /> Setting things up…
+                    </>
+                  ) : (
+                    <>
+                      Create organization <ArrowRight className="size-4" />
+                    </>
+                  )}
                 </Button>
               </Form>
             ) : (
-              <p className="text-base text-fg-muted">Sign-up is invite-only right now. Ask your organization owner to invite {me?.email ?? "you"}.</p>
+              <p className="text-base text-fg-muted">
+                Sign-up is invite-only right now. Ask your organization owner to invite {me?.email ?? "you"}.
+              </p>
             )}
           </div>
           <div className="mt-6 flex items-center justify-between text-xs text-fg-subtle">

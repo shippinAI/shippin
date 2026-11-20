@@ -25,36 +25,87 @@ export function TenantVMCard({ tenant: t }: { tenant: AdminTenant }) {
       <div className="flex items-center gap-2 text-sm font-medium text-fg">
         <Server className="size-4 text-fg-subtle" strokeWidth={1.75} />
         Tenant VM
-        {v && <span className="ml-auto">{v.mode === "vm" ? <StatusBadge status={v.status} /> : <StatusBadge status="Legacy direct" />}</span>}
+        {v && (
+          <span className="ml-auto">{v.mode === "vm" ? <StatusBadge status={v.status} /> : <StatusBadge status="Legacy direct" />}</span>
+        )}
       </div>
       {vm.isLoading && <Skeleton className="mt-3 h-16 w-full" />}
       {vm.error && <p className="mt-2 text-xs text-danger">{vm.error.message}</p>}
       {v?.mode === "legacy" && (
         <div className="mt-2 space-y-3">
-          <p className="text-xs text-fg-muted">Workspaces run as containers directly on the host. Enabling a VM sends only new workspaces into it; existing ones keep running where they are.</p>
-          <Button size="sm" variant="secondary" isDisabled={busy} tooltip="Create this tenant's KVM VM with Incus inside" onPress={() => setConfirm("enable")}>Enable tenant VM</Button>
+          <p className="text-xs text-fg-muted">
+            Workspaces run as containers directly on the host. Enabling a VM sends only new workspaces into it; existing ones keep running
+            where they are.
+          </p>
+          <Button
+            size="sm"
+            variant="secondary"
+            isDisabled={busy}
+            tooltip="Create this tenant's KVM VM with Incus inside"
+            onPress={() => setConfirm("enable")}
+          >
+            Enable tenant VM
+          </Button>
         </div>
       )}
       {v?.mode === "vm" && (
         <div className="mt-3 space-y-3">
           <div className="grid grid-cols-2 gap-x-5 gap-y-1 font-mono text-xs text-fg-muted">
             <span>{v.name}</span>
-            <span className="text-right">{v.ipv4 || "—"} · inner {v.inner_subnet || "—"}</span>
+            <span className="text-right">
+              {v.ipv4 || "—"} · inner {v.inner_subnet || "—"}
+            </span>
           </div>
           <Meter tone="workspaces" label="vCPU" text={`${v.cpu_limit || "—"} vCPU`} />
-          <Meter tone="workspaces" label="Memory" used={v.memory_used_bytes} total={v.memory_total_bytes || sizeBytes(v.memory_limit)} text={`${formatBytes(v.memory_used_bytes)} / ${v.memory_limit || "—"}`} />
-          <Meter tone="workspaces" label="Workspace storage" used={v.data_used_bytes} total={v.data_total_bytes || sizeBytes(v.data_size)} text={`${formatBytes(v.data_used_bytes)} / ${v.data_size || "—"}`} />
+          <Meter
+            tone="workspaces"
+            label="Memory"
+            used={v.memory_used_bytes}
+            total={v.memory_total_bytes || sizeBytes(v.memory_limit)}
+            text={`${formatBytes(v.memory_used_bytes)} / ${v.memory_limit || "—"}`}
+          />
+          <Meter
+            tone="workspaces"
+            label="Workspace storage"
+            used={v.data_used_bytes}
+            total={v.data_total_bytes || sizeBytes(v.data_size)}
+            text={`${formatBytes(v.data_used_bytes)} / ${v.data_size || "—"}`}
+          />
           <p className="text-xs text-fg-subtle">Root disk {v.root_size || "—"} · encrypted tenant pool</p>
           <VMContainers items={v.containers ?? []} />
           <TenantAppsPrep id={t.id} />
           <div className="flex gap-2">
             {v.status === "Running" ? (
               <>
-                <Button size="sm" variant="secondary" isDisabled={busy} tooltip="Reboot the VM; nested workspaces come back with it" onPress={() => run("restart")}>Restart VM</Button>
-                <Button size="sm" variant="secondary" isDisabled={busy} tooltip="Shut down the VM and every workspace inside it" onPress={() => setConfirm("stop")}>Stop VM</Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  isDisabled={busy}
+                  tooltip="Reboot the VM; nested workspaces come back with it"
+                  onPress={() => run("restart")}
+                >
+                  Restart VM
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  isDisabled={busy}
+                  tooltip="Shut down the VM and every workspace inside it"
+                  onPress={() => setConfirm("stop")}
+                >
+                  Stop VM
+                </Button>
               </>
             ) : (
-              <Button size="sm" variant="secondary" isDisabled={busy || t.status !== "active"} tooltip="Boot the VM; workspaces that were running start again" onPress={() => run("start")}>Start VM</Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                isDisabled={busy || t.status !== "active"}
+                tooltip="Boot the VM; workspaces that were running start again"
+                onPress={() => run("start")}
+              >
+                Start VM
+              </Button>
             )}
           </div>
         </div>

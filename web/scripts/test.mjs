@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// `npm test`: the checks, then every test, found by name so none can be left out (docs/web-framework.md).
+// `npm test`: the checks (formatting included), then every test, found by name so none can be left out
+// (docs/web-framework.md).
 //   src/**/*.test.ts       run one by one with jiti, each in its own process
 //   scripts/**/*.test.mjs  run with node --test
 import { spawnSync } from "node:child_process";
@@ -24,15 +25,21 @@ const steps = [
   ["node", ["scripts/generate-openapi-index.mjs", "--check"]],
   ["node", ["scripts/check-hardcoding.mjs"]],
   ["node", ["scripts/check-boundaries.mjs"]],
+  ["biome", ["format"]],
   ...find(join(web, "src"), /\.test\.ts$/).map((f) => ["jiti", [f]]),
   ["node", ["--test", ...find(join(web, "scripts"), /\.test\.mjs$/)]],
 ];
 
-const jiti = join(web, "node_modules", ".bin", process.platform === "win32" ? "jiti.cmd" : "jiti");
+const bin = (name) => join(web, "node_modules", ".bin", process.platform === "win32" ? `${name}.cmd` : name);
 const failed = [];
 for (const [cmd, args] of steps) {
   const label = [cmd, ...args].join(" ");
-  const r = spawnSync(cmd === "jiti" ? jiti : process.execPath, args, { cwd: web, stdio: "inherit", shell: cmd === "jiti" && process.platform === "win32" });
+  const tool = cmd !== "node";
+  const r = spawnSync(tool ? bin(cmd) : process.execPath, args, {
+    cwd: web,
+    stdio: "inherit",
+    shell: tool && process.platform === "win32",
+  });
   if (r.status !== 0) {
     failed.push(label);
     console.error(`FAIL ${label}`);

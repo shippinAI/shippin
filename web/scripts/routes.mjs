@@ -43,7 +43,8 @@ export function generate(src) {
   for (const [tree, root] of [...trees].sort()) {
     for (const m of mountsOf(root)) {
       if (!trees.has(m)) problems.push(`tree ${tree} mounts ${m}, which does not exist`);
-      else if (m === tree || mountsOf(trees.get(m)).length) problems.push(`tree ${tree} mounts ${m}, which must be a tree that mounts nothing`);
+      else if (m === tree || mountsOf(trees.get(m)).length)
+        problems.push(`tree ${tree} mounts ${m}, which must be a tree that mounts nothing`);
     }
     const { routes, nav } = emit(src, tree, root, problems);
     files.set(`routes.${tree}.gen.ts`, routes);
@@ -64,7 +65,10 @@ function emit(src, tree, root, problems) {
     return ids.get(file);
   };
   const rel = (file) => {
-    const p = relative(join(src, "app"), file).split(sep).join("/").replace(/\.tsx?$/, "");
+    const p = relative(join(src, "app"), file)
+      .split(sep)
+      .join("/")
+      .replace(/\.tsx?$/, "");
     return p.startsWith(".") ? p : "./" + p;
   };
   // A page or layout file that only re-exports another module's component is loaded from that module
@@ -75,7 +79,9 @@ function emit(src, tree, root, problems) {
   };
   const load = (file) => {
     const t = target(file);
-    return t ? `() => import(${JSON.stringify(t.spec)}).then((m) => ({ default: m.${t.name} }))` : `() => import(${JSON.stringify(rel(file))})`;
+    return t
+      ? `() => import(${JSON.stringify(t.spec)}).then((m) => ({ default: m.${t.name} }))`
+      : `() => import(${JSON.stringify(rel(file))})`;
   };
   const eagerImport = (v, file) => {
     const t = target(file);

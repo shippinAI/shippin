@@ -35,7 +35,10 @@ export function usePublishProject(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (b: { projectId: string; installation_id: number; repo_id?: number }) =>
-      apiSend<{ repo: string }>("POST", `/v1/tenants/${tenantId}/projects/${b.projectId}/github/publish`, { installation_id: b.installation_id, repo_id: b.repo_id ?? 0 }),
+      apiSend<{ repo: string }>("POST", `/v1/tenants/${tenantId}/projects/${b.projectId}/github/publish`, {
+        installation_id: b.installation_id,
+        repo_id: b.repo_id ?? 0,
+      }),
     onSuccess: (r) => {
       toast.success(`Synced to ${r.repo}`, "The folder is pushed and linked.");
       void qc.invalidateQueries({ queryKey: ["tenant", tenantId] });

@@ -23,27 +23,63 @@ export function RoleEditor({ team, role, canEdit, onClose }: Props) {
   const held = role ? team.members.some((m) => m.self && m.roles.includes(role.key)) : false;
   const valid = /^staff\.[a-z][a-z0-9_]{1,30}$/.test(f.key) && f.name.trim() && f.reason.trim().length >= 5;
   return (
-    <Drawer isOpen onOpenChange={(o) => !o && onClose()} title={create ? "New role" : role.name}
-      subtitle={create ? "Roles are data: pick exactly what this role may do." : `${role.key} · ${holders} member${holders === 1 ? "" : "s"}${role.preset ? " · preset" : ""}`}
-      footer={canEdit && (
-        <>
-          <Button variant="primary" isDisabled={!valid || save.isPending} tooltip={valid ? `Saved and audited, then synced to ${idp}` : "Key, name and a reason are required"}
-            onPress={() => save.mutate({ key: f.key, name: f.name.trim(), description: f.description.trim(), permissions: perms, reason: f.reason.trim() }, { onSuccess: onClose })}>
-            {create ? "Create role" : "Save role"}
-          </Button>
-          {!create && (
-            <Button variant="danger" className="ml-auto" isDisabled={del.isPending} tooltip={`Remove it here and from every member in ${idp}`}
-              onPress={() => del.mutate(role.key, { onSuccess: onClose })}><Trash2 className="size-4" /> Delete</Button>
-          )}
-        </>
-      )}>
+    <Drawer
+      isOpen
+      onOpenChange={(o) => !o && onClose()}
+      title={create ? "New role" : role.name}
+      subtitle={
+        create
+          ? "Roles are data: pick exactly what this role may do."
+          : `${role.key} · ${holders} member${holders === 1 ? "" : "s"}${role.preset ? " · preset" : ""}`
+      }
+      footer={
+        canEdit && (
+          <>
+            <Button
+              variant="primary"
+              isDisabled={!valid || save.isPending}
+              tooltip={valid ? `Saved and audited, then synced to ${idp}` : "Key, name and a reason are required"}
+              onPress={() =>
+                save.mutate(
+                  { key: f.key, name: f.name.trim(), description: f.description.trim(), permissions: perms, reason: f.reason.trim() },
+                  { onSuccess: onClose },
+                )
+              }
+            >
+              {create ? "Create role" : "Save role"}
+            </Button>
+            {!create && (
+              <Button
+                variant="danger"
+                className="ml-auto"
+                isDisabled={del.isPending}
+                tooltip={`Remove it here and from every member in ${idp}`}
+                onPress={() => del.mutate(role.key, { onSuccess: onClose })}
+              >
+                <Trash2 className="size-4" /> Delete
+              </Button>
+            )}
+          </>
+        )
+      }
+    >
       <div className="space-y-4 px-6 py-5">
-        {create && <TextField label="Key" mono value={f.key} onChange={set("key")} description={`Role key in ${idp}, e.g. staff.oncall. Can't change later.`} />}
+        {create && (
+          <TextField
+            label="Key"
+            mono
+            value={f.key}
+            onChange={set("key")}
+            description={`Role key in ${idp}, e.g. staff.oncall. Can't change later.`}
+          />
+        )}
         <TextField label="Name" value={f.name} onChange={set("name")} isDisabled={!canEdit} />
         <TextField label="Description" value={f.description} onChange={set("description")} isDisabled={!canEdit} />
         {held && <p className="text-xs text-warning">You hold this role: you can remove permissions but not add any.</p>}
         <PermissionPicker catalog={team.catalog} value={perms} onChange={setPerms} isDisabled={!canEdit} />
-        {canEdit && <TextField label="Reason" multiline value={f.reason} onChange={set("reason")} description="Required; kept in the audit log." />}
+        {canEdit && (
+          <TextField label="Reason" multiline value={f.reason} onChange={set("reason")} description="Required; kept in the audit log." />
+        )}
       </div>
     </Drawer>
   );

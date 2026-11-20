@@ -19,8 +19,15 @@ export function AdminSidebar() {
   const caps = useMe().data?.capabilities ?? {};
   const sections = useUiConfig().data?.nav?.sections;
   const groups = adminGroups
-    .map((g) => ({ ...g, label: sections?.find((s) => s.id === g.id)?.label || g.label, hidden: !!sections?.find((s) => s.id === g.id)?.hidden,
-      items: applyNav(g.items.filter(featureOn(caps)).filter((i) => !i.cap || i.cap.split("|").some((p) => perms.includes(p))), overrides) }))
+    .map((g) => ({
+      ...g,
+      label: sections?.find((s) => s.id === g.id)?.label || g.label,
+      hidden: !!sections?.find((s) => s.id === g.id)?.hidden,
+      items: applyNav(
+        g.items.filter(featureOn(caps)).filter((i) => !i.cap || i.cap.split("|").some((p) => perms.includes(p))),
+        overrides,
+      ),
+    }))
     .filter((g) => g.items.length > 0 && !g.hidden);
   return (
     <aside className="hidden w-60 shrink-0 md:flex flex-col border-r border-line bg-surface/60">
@@ -37,7 +44,9 @@ export function AdminSidebar() {
         {groups.map((g) => (
           <div key={g.id} className="space-y-0.5">
             <div className="px-2.5 pb-1 text-2xs font-medium tracking-wider text-fg-subtle uppercase">{g.label}</div>
-            {g.items.map((item) => <NavLink key={item.id} item={item} href={item.to} />)}
+            {g.items.map((item) => (
+              <NavLink key={item.id} item={item} href={item.to} />
+            ))}
           </div>
         ))}
       </nav>

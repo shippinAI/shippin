@@ -9,7 +9,12 @@ const icons: Record<StatusIcon, LucideIcon> = { clock: Clock, ban: Ban, play: Pl
 export function JobStatusBadge({ job }: { job: Pick<RunnerJob, "status" | "conclusion"> }) {
   const v = jobStatusView(job);
   const Icon = icons[v.icon];
-  return <Badge tone={v.tone}><Icon className="size-3" aria-hidden />{v.label}</Badge>;
+  return (
+    <Badge tone={v.tone}>
+      <Icon className="size-3" aria-hidden />
+      {v.label}
+    </Badge>
+  );
 }
 
 /** Why a refused job got no runner, said plainly where the job is listed. */
@@ -17,9 +22,14 @@ export function Refusal({ job, compact }: { job: Pick<RunnerJob, "status" | "rea
   const text = refusalText(job);
   if (!text) return null;
   return (
-    <p className={`flex items-start gap-1.5 text-danger ${compact ? "mt-1 text-sm" : "rounded-lg border border-danger/25 bg-danger/12 p-3 text-base"}`}>
+    <p
+      className={`flex items-start gap-1.5 text-danger ${compact ? "mt-1 text-sm" : "rounded-lg border border-danger/25 bg-danger/12 p-3 text-base"}`}
+    >
       <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <span><span className="sr-only">Refused: </span>{text}</span>
+      <span>
+        <span className="sr-only">Refused: </span>
+        {text}
+      </span>
     </p>
   );
 }

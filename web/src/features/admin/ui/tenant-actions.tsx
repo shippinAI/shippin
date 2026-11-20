@@ -14,16 +14,38 @@ export function TenantActions({ tenant: t, onDeleted }: { tenant: AdminTenant; o
   const dead = t.status === "deleted";
   return (
     <>
-      <Button size="sm" variant="secondary" isDisabled={busy || dead || t.status === "suspended"} tooltip="Re-run idempotent provisioning (network, project, profile)" onPress={() => run("provision")}>
+      <Button
+        size="sm"
+        variant="secondary"
+        isDisabled={busy || dead || t.status === "suspended"}
+        tooltip="Re-run idempotent provisioning (network, project, profile)"
+        onPress={() => run("provision")}
+      >
         Retry provision
       </Button>
       {t.status === "suspended" ? (
-        <Button size="sm" variant="secondary" isDisabled={busy} tooltip="Allow workspaces to start again" onPress={() => run("resume")}>Resume</Button>
+        <Button size="sm" variant="secondary" isDisabled={busy} tooltip="Allow workspaces to start again" onPress={() => run("resume")}>
+          Resume
+        </Button>
       ) : (
-        <Button size="sm" variant="secondary" isDisabled={busy || t.status !== "active"} tooltip="Stop all workspaces and block starts" onPress={() => setConfirm("suspend")}>Suspend</Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          isDisabled={busy || t.status !== "active"}
+          tooltip="Stop all workspaces and block starts"
+          onPress={() => setConfirm("suspend")}
+        >
+          Suspend
+        </Button>
       )}
       <div className="flex-1" />
-      <Button size="sm" variant="danger" isDisabled={busy || dead} tooltip="Tear down workspaces, network, project and pool" onPress={() => setConfirm("delete")}>
+      <Button
+        size="sm"
+        variant="danger"
+        isDisabled={busy || dead}
+        tooltip="Tear down workspaces, network, project and pool"
+        onPress={() => setConfirm("delete")}
+      >
         Delete tenant
       </Button>
       <ConfirmDialog

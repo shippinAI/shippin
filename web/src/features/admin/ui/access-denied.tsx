@@ -13,7 +13,9 @@ export function AccessDenied({ status, message }: { status: number; message: str
         <h1 className="mt-1 text-xl font-semibold tracking-tight">Provider panel unavailable</h1>
         <p className="mt-2 text-base text-fg-muted">{message}</p>
         <div className="mt-6 flex justify-center">
-          <LinkButton href="/" tooltip="Return to your organization" variant="secondary">Back to console</LinkButton>
+          <LinkButton href="/" tooltip="Return to your organization" variant="secondary">
+            Back to console
+          </LinkButton>
         </div>
       </div>
     </div>

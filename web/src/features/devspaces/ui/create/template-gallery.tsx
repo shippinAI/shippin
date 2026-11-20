@@ -21,7 +21,9 @@ export function TemplateGallery({ templates, value, onChange }: Props) {
             <p className="mt-1 text-sm leading-snug text-fg-muted">{t.description}</p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {t.toolchain.map((x) => (
-                <span key={x} className="rounded-md border border-line bg-raised/60 px-1.5 py-0.5 text-2xs text-fg-muted">{x}</span>
+                <span key={x} className="rounded-md border border-line bg-raised/60 px-1.5 py-0.5 text-2xs text-fg-muted">
+                  {x}
+                </span>
               ))}
             </div>
             <div className="mt-3 text-xs text-fg-subtle">

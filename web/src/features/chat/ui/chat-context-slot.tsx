@@ -16,11 +16,15 @@ export function ChatContextSlot({ ctx, onPrompt }: Props) {
   if (!s) return null;
   return (
     <div className="border-b border-line p-4">
-      <A2UISurface surface={s} label="Suggestions" onData={(p, v) => edit(s.id, p, v)}
+      <A2UISurface
+        surface={s}
+        label="Suggestions"
+        onData={(p, v) => edit(s.id, p, v)}
         onAction={(a) => {
           if (a.name === "prompt" && onPrompt) onPrompt(String(a.context.text));
           if (a.name === "go") navigate(String(a.context.to));
-        }} />
+        }}
+      />
     </div>
   );
 }

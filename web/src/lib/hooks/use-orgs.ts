@@ -11,4 +11,9 @@ export const useOrgs = () => {
 
 /** Operations view of every server; staff only (403 for tenant roles). */
 export const useOpsServers = () =>
-  useQuery({ queryKey: ["ops", "servers"], queryFn: () => apiGet<OpsServerList>("/v1/ops/servers"), retry: false, refetchInterval: 15_000 });
+  useQuery({
+    queryKey: ["ops", "servers"],
+    queryFn: () => apiGet<OpsServerList>("/v1/ops/servers"),
+    retry: false,
+    refetchInterval: 15_000,
+  });

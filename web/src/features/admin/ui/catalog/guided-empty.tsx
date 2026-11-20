@@ -11,7 +11,9 @@ export function GuidedEmpty({ title, steps, action }: Props) {
       action={action}
       description={
         <ol className="mt-1 list-decimal space-y-1 pl-5 text-left">
-          {steps.map((s) => <li key={s}>{s}</li>)}
+          {steps.map((s) => (
+            <li key={s}>{s}</li>
+          ))}
         </ol>
       }
     />

@@ -4,8 +4,15 @@ import type { A2UIComponent, ChildList } from "../../lib/a2ui/a2ui-types";
 import { A2UIInput } from "./a2ui-input";
 import { useSurface } from "./a2ui-surface";
 
-const text = { h1: "text-xl font-semibold", h2: "text-xl font-semibold", h3: "text-lg font-semibold", h4: "text-sm font-semibold",
-  h5: "text-sm font-semibold", caption: "text-2xs font-medium uppercase tracking-wide text-fg-subtle", body: "text-sm text-fg-muted" };
+const text = {
+  h1: "text-xl font-semibold",
+  h2: "text-xl font-semibold",
+  h3: "text-lg font-semibold",
+  h4: "text-sm font-semibold",
+  h5: "text-sm font-semibold",
+  caption: "text-2xs font-medium uppercase tracking-wide text-fg-subtle",
+  body: "text-sm text-fg-muted",
+};
 
 /** Expands a ChildList: static ids, or a template repeated over a data array (relative scope). */
 function children(list: ChildList, data: unknown, scope: string): { id: string; scope: string; key: string }[] {
@@ -25,12 +32,26 @@ export function A2UINode({ id, scope }: { id: string; scope: string }) {
     case "Text": {
       const v = String(resolve(c.text, d, scope) ?? "");
       const cls = text[c.variant ?? "body"];
-      return c.variant?.startsWith("h") ? <p role="heading" aria-level={Number(c.variant[1])} className={`${cls} text-fg`}>{v}</p> : <p className={`whitespace-pre-line ${cls}`}>{v}</p>;
+      return c.variant?.startsWith("h") ? (
+        <p role="heading" aria-level={Number(c.variant[1])} className={`${cls} text-fg`}>
+          {v}
+        </p>
+      ) : (
+        <p className={`whitespace-pre-line ${cls}`}>{v}</p>
+      );
     }
     case "Code":
-      return <pre className="overflow-x-auto rounded-lg bg-canvas px-3 py-2 font-mono text-xs text-fg">{String(resolve(c.text, d, scope) ?? "")}</pre>;
+      return (
+        <pre className="overflow-x-auto rounded-lg bg-canvas px-3 py-2 font-mono text-xs text-fg">
+          {String(resolve(c.text, d, scope) ?? "")}
+        </pre>
+      );
     case "Card":
-      return <div className="space-y-3 rounded-xl border border-line bg-raised p-4"><A2UINode id={c.child} scope={scope} /></div>;
+      return (
+        <div className="space-y-3 rounded-xl border border-line bg-raised p-4">
+          <A2UINode id={c.child} scope={scope} />
+        </div>
+      );
     case "Divider":
       return <hr className="border-line" />;
     case "Column":
@@ -41,7 +62,15 @@ export function A2UINode({ id, scope }: { id: string; scope: string }) {
       const Tag = c.component === "List" ? "ul" : "div";
       return (
         <Tag className={cls}>
-          {kids.map((k) => (c.component === "List" ? <li key={k.key}><A2UINode id={k.id} scope={k.scope} /></li> : <A2UINode key={k.key} id={k.id} scope={k.scope} />))}
+          {kids.map((k) =>
+            c.component === "List" ? (
+              <li key={k.key}>
+                <A2UINode id={k.id} scope={k.scope} />
+              </li>
+            ) : (
+              <A2UINode key={k.key} id={k.id} scope={k.scope} />
+            ),
+          )}
         </Tag>
       );
     }
@@ -58,7 +87,11 @@ export function A2UINode({ id, scope }: { id: string; scope: string }) {
         onAction({ name: a.event.name, surfaceId: surface.id, sourceComponentId: c.id, timestamp: new Date().toISOString(), context });
       };
       const variant = c.variant === "primary" ? "primary" : c.variant === "borderless" ? "ghost" : "secondary";
-      return <Button size="sm" variant={variant} tooltip={c.tooltip ?? "Run this action"} onPress={press}><A2UINode id={c.child} scope={scope} /></Button>;
+      return (
+        <Button size="sm" variant={variant} tooltip={c.tooltip ?? "Run this action"} onPress={press}>
+          <A2UINode id={c.child} scope={scope} />
+        </Button>
+      );
     }
     default:
       return <A2UIInput c={c} scope={scope} />;

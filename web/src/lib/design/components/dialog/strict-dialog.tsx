@@ -21,24 +21,61 @@ type Props = {
 };
 
 /** A change that cannot be taken back: it states the consequence, and needs a reason and an explicit tick. */
-export function StrictDialog({ isOpen, onClose, title, description, warning, understand, confirm, busy = false, ready = true, children, onConfirm }: Props) {
+export function StrictDialog({
+  isOpen,
+  onClose,
+  title,
+  description,
+  warning,
+  understand,
+  confirm,
+  busy = false,
+  ready = true,
+  children,
+  onConfirm,
+}: Props) {
   const [reason, setReason] = useState("");
   const [understood, setUnderstood] = useState(false);
   useEffect(() => {
-    if (isOpen) { setReason(""); setUnderstood(false); }
+    if (isOpen) {
+      setReason("");
+      setUnderstood(false);
+    }
   }, [isOpen]);
   const reasonOK = reason.trim().length >= 5;
   const go = reasonOK && understood && ready && !busy;
   return (
-    <ModalDialog isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }} title={title} description={description}>
-      <form className="space-y-4 px-6 py-5" data-testid="strict-dialog" onSubmit={(e) => { e.preventDefault(); if (go) onConfirm(reason.trim()); }}>
-        <p role="alert" className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">{warning}</p>
+    <ModalDialog
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={title}
+      description={description}
+    >
+      <form
+        className="space-y-4 px-6 py-5"
+        data-testid="strict-dialog"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (go) onConfirm(reason.trim());
+        }}
+      >
+        <p role="alert" className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
+          {warning}
+        </p>
         {children}
         <TextField label="Why are you doing this?" description="Recorded in the audit log." value={reason} onChange={setReason} />
-        <Checkbox isSelected={understood} onChange={setUnderstood}>{understand}</Checkbox>
+        <Checkbox isSelected={understood} onChange={setUnderstood}>
+          {understand}
+        </Checkbox>
         <div className="flex justify-end gap-2 border-t border-line pt-4">
-          <Button variant="ghost" tooltip="Leave this unchanged" onPress={onClose}>Cancel</Button>
-          <Button type="submit" variant="danger" isDisabled={!go} tooltip={go ? confirm : "Give a reason and tick the box first"}>{confirm}</Button>
+          <Button variant="ghost" tooltip="Leave this unchanged" onPress={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="danger" isDisabled={!go} tooltip={go ? confirm : "Give a reason and tick the box first"}>
+            {confirm}
+          </Button>
         </div>
       </form>
     </ModalDialog>

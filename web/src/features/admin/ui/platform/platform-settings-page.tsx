@@ -13,15 +13,34 @@ export function PlatformSettingsPage() {
   const canWrite = (useAdminAccess().data?.staff?.permissions ?? []).includes("platform.settings.write");
   return (
     <>
-      <PageHeader title="Platform settings"
+      <PageHeader
+        title="Platform settings"
         description="Overrides of selected config keys. Every change needs a reason and is audited. Sections such as build runners, the job queue and the GitHub App are edited on the Settings page, and more move there over time."
-        actions={<LinkButton href="/admin/settings" variant="secondary" size="sm" tooltip="Edit this installation's settings sections, with keys kept in Vaultix">Settings</LinkButton>} />
-      {q.isError && <p role="alert" className="text-base text-danger">{q.error.message}</p>}
+        actions={
+          <LinkButton
+            href="/admin/settings"
+            variant="secondary"
+            size="sm"
+            tooltip="Edit this installation's settings sections, with keys kept in Vaultix"
+          >
+            Settings
+          </LinkButton>
+        }
+      />
+      {q.isError && (
+        <p role="alert" className="text-base text-danger">
+          {q.error.message}
+        </p>
+      )}
       {q.data && (
         <Card>
           <CardHeader title="Settings" description="Reset returns a key to the value in the config file." />
           <ul className="divide-y divide-line" aria-label="Platform settings">
-            {q.data.items.filter((s) => s.kind !== "json" && s.kind !== "array").map((s) => <PlatformSettingRow key={s.key} s={s} canWrite={canWrite} />)}
+            {q.data.items
+              .filter((s) => s.kind !== "json" && s.kind !== "array")
+              .map((s) => (
+                <PlatformSettingRow key={s.key} s={s} canWrite={canWrite} />
+              ))}
           </ul>
           <PlatformServiceRegistry canWrite={canWrite} />
           <AgentHubConnectionSettings canWrite={canWrite} />

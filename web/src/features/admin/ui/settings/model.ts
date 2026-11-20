@@ -1,6 +1,13 @@
 // What the Settings and Secret store pages show and send (CFG-01, docs/settings.md), kept apart from
 // React so it is tested on its own. Every type here is the generated one from the actions' Go types.
-import type { SecretStoreConnection, SecretStoreFields, SettingUpdateInput, SettingsFieldView, SettingsView, Version } from "../../../../lib/api/actions.gen";
+import type {
+  SecretStoreConnection,
+  SecretStoreFields,
+  SettingUpdateInput,
+  SettingsFieldView,
+  SettingsView,
+  Version,
+} from "../../../../lib/api/actions.gen";
 import type { BadgeTone } from "../../../../lib/design/components/badge/badge";
 
 /** The shortest reason the server accepts for a change. */
@@ -43,7 +50,10 @@ export function problemOf(e: unknown): Problem {
     case 400:
       return { kind: "invalid", message: m || "One of the values isn't accepted." };
     case 502:
-      return { kind: "vaultix", message: m ? `${sentence(m)} Nothing was changed.` : "Vaultix didn't answer. Nothing was changed; try again in a moment." };
+      return {
+        kind: "vaultix",
+        message: m ? `${sentence(m)} Nothing was changed.` : "Vaultix didn't answer. Nothing was changed; try again in a moment.",
+      };
     case 403:
       return { kind: "denied", message: "Your staff role can't change settings. Ask for the platform.settings.write permission." };
     case 503:
@@ -60,14 +70,29 @@ export type Status = { label: string; tone: BadgeTone; detail: string };
 export function storeStatus(c: SecretStoreConnection | undefined, now: number): Status {
   if (!c) return { label: "Checking…", tone: "neutral", detail: "" };
   if (!c.connected) {
-    return { label: "Not connected", tone: "warning", detail: "Keys entered on the Settings page can't be saved until the panel is connected to Vaultix." };
+    return {
+      label: "Not connected",
+      tone: "warning",
+      detail: "Keys entered on the Settings page can't be saved until the panel is connected to Vaultix.",
+    };
   }
   if (c.check_error) return { label: "Last check failed", tone: "danger", detail: sentence(c.check_error) };
-  return { label: "Connected", tone: "success", detail: c.checked_at ? `It worked when last checked, ${ago(c.checked_at, now)}.` : "Not checked yet." };
+  return {
+    label: "Connected",
+    tone: "success",
+    detail: c.checked_at ? `It worked when last checked, ${ago(c.checked_at, now)}.` : "Not checked yet.",
+  };
 }
 
 /** What staff type to connect. The client secret is never filled in from the server. */
-export type StoreForm = { api_url: string; project_id: string; environment: string; path: string; client_id: string; client_secret: string };
+export type StoreForm = {
+  api_url: string;
+  project_id: string;
+  environment: string;
+  path: string;
+  client_id: string;
+  client_secret: string;
+};
 
 export const defaultFolder = "/shippin";
 
@@ -97,10 +122,18 @@ export function storeFormProblem(f: StoreForm, c?: SecretStoreConnection): strin
   if (!url) return "Enter the Vaultix address, such as https://vaultix.example.com.";
   if (!projectId.test(f.project_id.trim())) return "Enter the Vaultix project ID, from the project's settings.";
   if (!envSlug.test(f.environment.trim())) return "Enter the environment's slug, such as prod.";
-  if (!folder.test(f.path.trim() || defaultFolder)) return "The folder must look like /shippin: letters, digits, dashes and underscores, up to eight levels.";
+  if (!folder.test(f.path.trim() || defaultFolder))
+    return "The folder must look like /shippin: letters, digits, dashes and underscores, up to eight levels.";
   if (!f.client_id.trim()) return "Enter the machine identity's client ID.";
   if (secretNeeded(f, c) && !f.client_secret.trim()) return "Enter the machine identity's client secret.";
-  if (whereLocked(c) && c && (body(f).api_url !== c.api_url || body(f).project_id !== c.project_id || body(f).environment !== c.environment || body(f).path !== c.path)) {
+  if (
+    whereLocked(c) &&
+    c &&
+    (body(f).api_url !== c.api_url ||
+      body(f).project_id !== c.project_id ||
+      body(f).environment !== c.environment ||
+      body(f).path !== c.path)
+  ) {
     return "Settings keep keys in this store, so its address, project, environment and folder can't change. Only the identity can.";
   }
   return null;
@@ -126,7 +159,14 @@ export function storeBody(f: StoreForm): SecretStoreFields {
 export function storeChanged(f: StoreForm, c?: SecretStoreConnection): boolean {
   if (!c?.connected) return true;
   const b = body(f);
-  return !!f.client_secret.trim() || b.api_url !== c.api_url || b.project_id !== c.project_id || b.environment !== c.environment || b.path !== c.path || b.client_id !== c.client_id;
+  return (
+    !!f.client_secret.trim() ||
+    b.api_url !== c.api_url ||
+    b.project_id !== c.project_id ||
+    b.environment !== c.environment ||
+    b.path !== c.path ||
+    b.client_id !== c.client_id
+  );
 }
 
 /** Why disconnecting is refused now; null when it may go ahead. */
@@ -140,7 +180,8 @@ export function disconnectBlock(c?: SecretStoreConnection): string | null {
 }
 
 /** Where the store is, in one line. */
-export const storeWhere = (c: SecretStoreConnection) => `${c.api_url}, project ${c.project_id}, environment ${c.environment}, folder ${c.path || defaultFolder}`;
+export const storeWhere = (c: SecretStoreConnection) =>
+  `${c.api_url}, project ${c.project_id}, environment ${c.environment}, folder ${c.path || defaultFolder}`;
 
 // ---------------------------------------------------------------- Settings sections
 
@@ -156,7 +197,8 @@ export function fieldOrigin(view: Pick<SettingsView, "version">, f: SettingsFiel
         return { label: "In Vaultix", tone: "success", hint: f.key.name ? `Saved in Vaultix as ${f.key.name}.` : "Saved in Vaultix." };
       case "environment":
         return {
-          label: "In the environment", tone: "warning",
+          label: "In the environment",
+          tone: "warning",
           hint: `Read from ${f.env ? `the ${f.env} environment variable` : "the panel's environment"}. Move it to Vaultix to change it here.`,
         };
     }
@@ -165,9 +207,18 @@ export function fieldOrigin(view: Pick<SettingsView, "version">, f: SettingsFiel
   if (view.version > 0) {
     if (f.file_value === undefined) return { label: "Set in the panel", tone: "primary", hint: "The bootstrap file doesn't set it." };
     const differs = !same(f.value, f.file_value);
-    return { label: "Set in the panel", tone: "primary", hint: differs ? `The bootstrap file has ${displayValue(f, f.file_value)}.` : "The same as the bootstrap file." };
+    return {
+      label: "Set in the panel",
+      tone: "primary",
+      hint: differs ? `The bootstrap file has ${displayValue(f, f.file_value)}.` : "The same as the bootstrap file.",
+    };
   }
-  if (f.file_value !== undefined) return { label: "From the file", tone: "neutral", hint: "From the bootstrap file. Saving this section here makes the panel's value the one in force." };
+  if (f.file_value !== undefined)
+    return {
+      label: "From the file",
+      tone: "neutral",
+      hint: "From the bootstrap file. Saving this section here makes the panel's value the one in force.",
+    };
   return { label: "Default", tone: "neutral", hint: "The built-in default." };
 }
 
@@ -195,7 +246,11 @@ export function toInput(f: Pick<SettingsFieldView, "kind">, v: unknown): Input {
     case "list":
       return Array.isArray(v) ? v.map(String).join("\n") : "";
     case "map":
-      return v && typeof v === "object" && !Array.isArray(v) ? Object.entries(v as Record<string, unknown>).map(([k, x]) => `${k}=${String(x)}`).join("\n") : "";
+      return v && typeof v === "object" && !Array.isArray(v)
+        ? Object.entries(v as Record<string, unknown>)
+            .map(([k, x]) => `${k}=${String(x)}`)
+            .join("\n")
+        : "";
   }
   return v === undefined || v === null ? "" : String(v);
 }
@@ -214,22 +269,30 @@ export function fromInput(f: SettingsFieldView, input: Input): { value: unknown 
       const n = Number(s);
       const min = f.min ?? 0;
       const max = f.max ?? 0;
-      if (n < min || (max !== 0 && n > max)) return { error: max !== 0 ? `${label} must be between ${min} and ${max}.` : `${label} must be at least ${min}.` };
+      if (n < min || (max !== 0 && n > max))
+        return { error: max !== 0 ? `${label} must be between ${min} and ${max}.` : `${label} must be at least ${min}.` };
       return { value: n };
     }
     case "list": {
-      const items = s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+      const items = s
+        .split(/\r?\n/)
+        .map((x) => x.trim())
+        .filter(Boolean);
       if (items.length > 200) return { error: `${label} can have at most 200 entries.` };
       if (items.some((x) => x.length > 200)) return { error: `${label}: each entry must be at most 200 characters.` };
       return { value: items };
     }
     case "map": {
       const out: Record<string, string> = {};
-      for (const line of s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean)) {
+      for (const line of s
+        .split(/\r?\n/)
+        .map((x) => x.trim())
+        .filter(Boolean)) {
         const at = line.indexOf("=");
         const k = at < 0 ? "" : line.slice(0, at).trim();
         const v = at < 0 ? "" : line.slice(at + 1).trim();
-        if (!mapName.test(k)) return { error: `${label}: write each line as name=value, with a short name of letters, digits, dots, dashes or underscores.` };
+        if (!mapName.test(k))
+          return { error: `${label}: write each line as name=value, with a short name of letters, digits, dots, dashes or underscores.` };
         if (v.length > 200) return { error: `${label}: the value of ${k} is longer than 200 characters.` };
         out[k] = v;
       }
@@ -242,7 +305,8 @@ export function fromInput(f: SettingsFieldView, input: Input): { value: unknown 
   if (!s && !f.optional) return { error: `${label} is required.` };
   if (s.length > limit) return { error: `${label} is longer than ${limit} characters.` };
   if (f.kind !== "long_text" && control.test(s)) return { error: `${label} must be one line.` };
-  if (s && f.kind === "url" && !parseURL(s)) return { error: `${label} must be an http or https address without a password, query or fragment.` };
+  if (s && f.kind === "url" && !parseURL(s))
+    return { error: `${label} must be an http or https address without a password, query or fragment.` };
   if (f.kind === "choice" && !(f.choices ?? []).some((c) => c.value === s)) return { error: `${label}: pick one of the choices.` };
   return { value: s };
 }
@@ -265,7 +329,10 @@ export function same(a: unknown, b: unknown): boolean {
 function stable(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(stable).join(",")}]`;
   if (v && typeof v === "object") {
-    return `{${Object.keys(v as object).sort().map((k) => `${JSON.stringify(k)}:${stable((v as Record<string, unknown>)[k])}`).join(",")}}`;
+    return `{${Object.keys(v as object)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${stable((v as Record<string, unknown>)[k])}`)
+      .join(",")}}`;
   }
   return JSON.stringify(v ?? null);
 }
@@ -353,9 +420,10 @@ export function planSave(view: SettingsView, draft: Draft, storeConnected: boole
   }
   let blocked: string | null = null;
   if (writes && !storeConnected) {
-    blocked = moved.length && !changed.some((c) => c.endsWith("(new key)") || c.endsWith("(moved to Vaultix)"))
-      ? `Saving this section for the first time moves ${list(moved)} from the environment into Vaultix, so connect the secret store first.`
-      : "Keys are saved in Vaultix, so connect the secret store first.";
+    blocked =
+      moved.length && !changed.some((c) => c.endsWith("(new key)") || c.endsWith("(moved to Vaultix)"))
+        ? `Saving this section for the first time moves ${list(moved)} from the environment into Vaultix, so connect the secret store first.`
+        : "Keys are saved in Vaultix, so connect the secret store first.";
   }
   const body: SettingPatch = { version: view.version };
   if (Object.keys(values).length) body.values = values;

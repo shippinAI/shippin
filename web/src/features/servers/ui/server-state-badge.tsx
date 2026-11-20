@@ -19,7 +19,10 @@ export function ServerStateBadge({ state }: { state: ServerState }) {
     <Tooltip content={l.hint}>
       <Focusable>
         <span tabIndex={0} role="status" aria-label={`${l.label}: ${l.hint}`} className="focus-ring inline-flex rounded-full outline-none">
-          <Badge tone={l.tone}><StatusDot health={l.health} />{l.label}</Badge>
+          <Badge tone={l.tone}>
+            <StatusDot health={l.health} />
+            {l.label}
+          </Badge>
         </span>
       </Focusable>
     </Tooltip>

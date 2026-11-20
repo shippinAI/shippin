@@ -24,21 +24,34 @@ export function ChatSurface({ variant, sessionId: routeId }: Props) {
     if (variant === "page") navigate(id ? `/chat/${id}` : "/chat");
   };
   const swap = () => {
-    if (ctx.swap === "expand") { chatUI.closeOverlay(); navigate(sessionId ? `/chat/${sessionId}` : "/chat"); return; }
-    if (window.history.length > 1) window.history.back(); else navigate("/");
+    if (ctx.swap === "expand") {
+      chatUI.closeOverlay();
+      navigate(sessionId ? `/chat/${sessionId}` : "/chat");
+      return;
+    }
+    if (window.history.length > 1) window.history.back();
+    else navigate("/");
     chatUI.openOverlay(sessionId);
   };
   const body = sessionId ? (
     <ChatThread key={sessionId} sessionId={sessionId} slot={(send) => <ChatContextSlot ctx={ctx} onPrompt={send} />} />
   ) : (
-    <div><ChatContextSlot ctx={ctx} /><NewChatForm onCreated={open} /></div>
+    <div>
+      <ChatContextSlot ctx={ctx} />
+      <NewChatForm onCreated={open} />
+    </div>
   );
   return (
-    <div data-chat-surface={variant} data-chat-context={ctx.kind}
-      className={ctx.sessions ? "grid h-full min-h-0 grid-cols-[240px_1fr]" : "flex h-full min-h-0 flex-col"}>
+    <div
+      data-chat-surface={variant}
+      data-chat-context={ctx.kind}
+      className={ctx.sessions ? "grid h-full min-h-0 grid-cols-[240px_1fr]" : "flex h-full min-h-0 flex-col"}
+    >
       {ctx.sessions && (
         <aside className="overflow-y-auto border-r border-line" aria-label="Conversations">
-          <div className="flex justify-end p-2"><IconButton icon={Plus} label="New chat" onPress={() => open(null)} /></div>
+          <div className="flex justify-end p-2">
+            <IconButton icon={Plus} label="New chat" onPress={() => open(null)} />
+          </div>
           <SessionList selected={sessionId} onSelect={open} />
         </aside>
       )}
@@ -46,7 +59,11 @@ export function ChatSurface({ variant, sessionId: routeId }: Props) {
         <div className="flex items-center gap-1 border-b border-line px-2 py-1">
           <span className="flex-1 truncate px-2 text-xs text-fg-subtle">{ctx.label ? `Context: ${ctx.label}` : ""}</span>
           {!ctx.sessions && <IconButton icon={Plus} label="New chat" onPress={() => open(null)} />}
-          <IconButton icon={ctx.swap === "expand" ? Maximize2 : Minimize2} label={ctx.swap === "expand" ? "Open full page" : "Pop into overlay"} onPress={swap} />
+          <IconButton
+            icon={ctx.swap === "expand" ? Maximize2 : Minimize2}
+            label={ctx.swap === "expand" ? "Open full page" : "Pop into overlay"}
+            onPress={swap}
+          />
         </div>
         <div className="min-h-0 flex-1">{body}</div>
       </section>

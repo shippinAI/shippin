@@ -21,7 +21,9 @@ export function AdminOrigin() {
   if (s.isPending || target)
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="animate-pulse motion-reduce:animate-none"><BrandMark size={40} /></div>
+        <div className="animate-pulse motion-reduce:animate-none">
+          <BrandMark size={40} />
+        </div>
       </div>
     );
   return (

@@ -17,7 +17,12 @@ type Props = { tenantId: string; projectId: string; view?: AgentView; ws?: Works
 export function BuildSurface({ tenantId, projectId, view, ws, ready, onSignIn }: Props) {
   const start = useStartAgent(tenantId, projectId);
   const run = view?.run;
-  if (!run) return <div className="p-8"><EmptyState title="No build here" description="Projects created with Describe it show their build here." /></div>;
+  if (!run)
+    return (
+      <div className="p-8">
+        <EmptyState title="No build here" description="Projects created with Describe it show their build here." />
+      </div>
+    );
   const live = view.live;
   const label = view.provider_label;
   const canStart = view.mine && view.connected && (run.state === "waiting_ai" || run.state === "exited" || run.state === "failed");
@@ -31,7 +36,9 @@ export function BuildSurface({ tenantId, projectId, view, ws, ready, onSignIn }:
         </div>
         <div className="space-y-3">
           {run.state === "waiting_ai" && view.mine && !view.connected && <BuildSignIn tenantId={tenantId} provider={run.provider} />}
-          {run.state === "waiting_ai" && !view.mine && <p className="text-sm text-fg-muted">Waiting for the person who started this build to sign in.</p>}
+          {run.state === "waiting_ai" && !view.mine && (
+            <p className="text-sm text-fg-muted">Waiting for the person who started this build to sign in.</p>
+          )}
           {live && (
             <p className="text-sm text-fg-muted" aria-live="polite">
               {live.exited ? `${label} finished (exit ${live.exit_code}).` : live.session ? `${label} is working.` : "Agent not running."}{" "}
@@ -39,8 +46,13 @@ export function BuildSurface({ tenantId, projectId, view, ws, ready, onSignIn }:
             </p>
           )}
           {canStart && (
-            <Button size="sm" variant="primary" isDisabled={start.isPending} onPress={() => start.mutate(run.state === "exited")}
-              tooltip={run.state === "exited" ? "Continue the last conversation" : "Start the build now"}>
+            <Button
+              size="sm"
+              variant="primary"
+              isDisabled={start.isPending}
+              onPress={() => start.mutate(run.state === "exited")}
+              tooltip={run.state === "exited" ? "Continue the last conversation" : "Start the build now"}
+            >
               {run.state === "exited" ? <RotateCcw className="size-4" /> : <Play className="size-4" />}
               {run.state === "exited" ? "Keep going" : "Start build"}
             </Button>
@@ -49,11 +61,22 @@ export function BuildSurface({ tenantId, projectId, view, ws, ready, onSignIn }:
       </div>
       <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-line bg-canvas">
         {view.term_url && ready && (run.state === "running" || run.state === "exited" || run.state === "starting") ? (
-          <iframe title={`${label} live terminal`} src={view.term_url} className="size-full border-0" allow="clipboard-read; clipboard-write" />
+          <iframe
+            title={`${label} live terminal`}
+            src={view.term_url}
+            className="size-full border-0"
+            allow="clipboard-read; clipboard-write"
+          />
         ) : ws?.state === "running" && !ready ? (
-          <div className="p-6"><Button size="sm" onPress={onSignIn} tooltip="Sign in to your devspace to watch the agent">Open the live terminal</Button></div>
+          <div className="p-6">
+            <Button size="sm" onPress={onSignIn} tooltip="Sign in to your devspace to watch the agent">
+              Open the live terminal
+            </Button>
+          </div>
         ) : (
-          <div className="p-6"><EmptyState title="Live terminal" description="Appears here when your agent starts. You can type in it to steer." /></div>
+          <div className="p-6">
+            <EmptyState title="Live terminal" description="Appears here when your agent starts. You can type in it to steer." />
+          </div>
         )}
       </div>
     </div>

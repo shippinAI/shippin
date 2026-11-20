@@ -14,15 +14,22 @@ export function Popover({ trigger, title, children, placement = "bottom" }: Prop
   return (
     <DialogTrigger>
       {trigger}
-      <RacPopover placement={placement} offset={10}
-        className="bg-overlay z-50 w-80 max-w-[90vw] rounded-xl border border-line-strong p-4 text-sm text-fg-muted shadow-e3 outline-none data-entering:animate-enter motion-reduce:animate-none">
+      <RacPopover
+        placement={placement}
+        offset={10}
+        className="bg-overlay z-50 w-80 max-w-[90vw] rounded-xl border border-line-strong p-4 text-sm text-fg-muted shadow-e3 outline-none data-entering:animate-enter motion-reduce:animate-none"
+      >
         <OverlayArrow>
           <svg width={10} height={10} viewBox="0 0 10 10" className="fill-overlay group-data-[placement=bottom]:rotate-180">
             <path d="M0 0 L5 5 L10 0" />
           </svg>
         </OverlayArrow>
         <Dialog className="space-y-2 outline-none" aria-label={title ? undefined : "Details"}>
-          {title && <Heading slot="title" className="text-sm font-semibold text-fg">{title}</Heading>}
+          {title && (
+            <Heading slot="title" className="text-sm font-semibold text-fg">
+              {title}
+            </Heading>
+          )}
           {children}
         </Dialog>
       </RacPopover>

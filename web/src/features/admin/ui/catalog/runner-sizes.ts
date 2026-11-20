@@ -7,8 +7,15 @@ export type SizeFields = Pick<RunnerSizeCreateInput, "id" | "label" | "cores" | 
 
 export const blankSize: SizeFields = { id: "", label: "", cores: 2, memory_mib: 8192, disk_gib: 50, image: "", active: true };
 
-export const sizeFields = (s: RunnerSize): SizeFields =>
-  ({ id: s.id, label: s.label, cores: s.cores, memory_mib: s.memory_mib, disk_gib: s.disk_gib, image: s.image, active: s.active });
+export const sizeFields = (s: RunnerSize): SizeFields => ({
+  id: s.id,
+  label: s.label,
+  cores: s.cores,
+  memory_mib: s.memory_mib,
+  disk_gib: s.disk_gib,
+  image: s.image,
+  active: s.active,
+});
 
 const slug = /^[a-z0-9][a-z0-9-]{0,30}$/;
 
@@ -17,7 +24,17 @@ export function sizeProblem(f: SizeFields): string | null {
   if (!slug.test(f.id)) return "A runner size needs a short lowercase id, such as 2x or large; jobs ask for it as shippin-<id>.";
   if (!f.label.trim() || f.label.length > 80) return "Give the size a label of up to 80 characters that says what a customer gets.";
   const whole = (n: number) => Number.isInteger(n);
-  if (!whole(f.cores) || !whole(f.memory_mib) || !whole(f.disk_gib) || f.cores < 1 || f.cores > 128 || f.memory_mib < 512 || f.memory_mib > 1048576 || f.disk_gib < 8 || f.disk_gib > 4096)
+  if (
+    !whole(f.cores) ||
+    !whole(f.memory_mib) ||
+    !whole(f.disk_gib) ||
+    f.cores < 1 ||
+    f.cores > 128 ||
+    f.memory_mib < 512 ||
+    f.memory_mib > 1048576 ||
+    f.disk_gib < 8 ||
+    f.disk_gib > 4096
+  )
     return "A runner needs 1 to 128 cores, 512 MiB to 1 TiB of memory and 8 GiB to 4 TiB of disk.";
   if (f.image.length > 200) return "The image name is at most 200 characters.";
   return null;
@@ -45,8 +62,12 @@ export function readRunnerLimits(l: Record<string, unknown>): RunnerLimits {
 }
 
 /** Writes the limits back, keeping any other key the cell already holds. */
-export const writeRunnerLimits = (l: Record<string, unknown>, r: RunnerLimits): Record<string, unknown> =>
-  ({ ...l, sizes: [...r.sizes].sort(), concurrent: count(r.concurrent), minutes: count(r.minutes) });
+export const writeRunnerLimits = (l: Record<string, unknown>, r: RunnerLimits): Record<string, unknown> => ({
+  ...l,
+  sizes: [...r.sizes].sort(),
+  concurrent: count(r.concurrent),
+  minutes: count(r.minutes),
+});
 
 /** The matrix cell's one line, in words: "2x, 4x · 2 at once · 600 min a month". */
 export function runnerLimitsBrief(l: Record<string, unknown>): string {

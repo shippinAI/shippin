@@ -18,7 +18,8 @@ export function DesktopPage() {
       <div className="mt-8">
         <h2 className="mb-3 text-base font-semibold text-fg">Install apps yourself</h2>
         <p className="mb-4 max-w-2xl text-base text-fg-muted">
-          Paste a command in your own terminal on the VM. It installs the app and starts the vendor's sign-in, so the subscription is yours. Shippin does not store vendor credentials.
+          Paste a command in your own terminal on the VM. It installs the app and starts the vendor's sign-in, so the subscription is yours.
+          Shippin does not store vendor credentials.
         </p>
         <AppCards tenantId={tenantId} />
       </div>
@@ -42,7 +43,9 @@ function DesktopPipe({ tenantId }: { tenantId: string }) {
   return (
     <section className="rounded-xl border border-line bg-surface p-5">
       <p className="max-w-2xl text-base text-fg-muted">
-        The console opens an authenticated pipe to the desktop service on the VM's loopback address. Nothing is published on a new port. This page does not draw the desktop picture yet: a browser client that can speak the VM's existing listener, without turning off its TLS, is still an open choice. Connecting keeps the pipe up; closing the tab does not log the desktop out.
+        The console opens an authenticated pipe to the desktop service on the VM's loopback address. Nothing is published on a new port.
+        This page does not draw the desktop picture yet: a browser client that can speak the VM's existing listener, without turning off its
+        TLS, is still an open choice. Connecting keeps the pipe up; closing the tab does not log the desktop out.
       </p>
       <div className="mt-4 flex items-center gap-3">
         <Button size="sm" variant="primary" tooltip="Open the authenticated pipe to the VM desktop" onPress={connect}>

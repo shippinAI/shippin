@@ -11,7 +11,8 @@ export type Scale = ((v: number) => number) & { invert: (p: number) => number };
 
 /** Maps a domain onto a range linearly. An empty domain or range maps everything to its start. */
 export function linearScale([d0, d1]: Domain, [r0, r1]: Domain): Scale {
-  const dSpan = d1 - d0, rSpan = r1 - r0;
+  const dSpan = d1 - d0,
+    rSpan = r1 - r0;
   const f = ((v: number) => (dSpan === 0 ? r0 : r0 + ((v - d0) / dSpan) * rSpan)) as Scale;
   f.invert = (p: number) => (rSpan === 0 ? d0 : d0 + ((p - r0) / rSpan) * dSpan);
   return f;
@@ -39,7 +40,8 @@ export function valueTicks(min: number, max: number, unit: ChartUnit, count = 4)
   if (!(max > min)) max = min + 1;
   const base = unit === "bytes" || unit === "bytes_per_second" ? KIB ** byteExponent(Math.max(Math.abs(max), Math.abs(min))) : 1;
   const step = niceStep((max - min) / base / Math.max(1, count)) * base;
-  const first = Math.floor(min / step), last = Math.ceil(clean(max / step));
+  const first = Math.floor(min / step),
+    last = Math.ceil(clean(max / step));
   const ticks: number[] = [];
   for (let k = first; k <= last; k++) ticks.push(clean(k * step));
   return { ticks, top: ticks[ticks.length - 1]! };
@@ -47,14 +49,38 @@ export function valueTicks(min: number, max: number, unit: ChartUnit, count = 4)
 
 /** The value domain for these readings: from zero (or a negative reading) to the largest reading, or `ceiling` if higher. */
 export function valueDomain(values: (number | null)[], unit: ChartUnit, ceiling?: number): Domain {
-  let lo = 0, hi = unit === "fraction" ? 1 : 0;
-  for (const v of values) if (v !== null && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  let lo = 0,
+    hi = unit === "fraction" ? 1 : 0;
+  for (const v of values)
+    if (v !== null && Number.isFinite(v)) {
+      lo = Math.min(lo, v);
+      hi = Math.max(hi, v);
+    }
   if (ceiling !== undefined && ceiling > hi) hi = ceiling;
   return [lo, hi > lo ? hi : lo + 1];
 }
 
-const MIN = 60_000, HOUR = 60 * MIN, DAY = 24 * HOUR;
-const timeSteps = [MIN, 2 * MIN, 5 * MIN, 10 * MIN, 15 * MIN, 30 * MIN, HOUR, 2 * HOUR, 3 * HOUR, 6 * HOUR, 12 * HOUR, DAY, 2 * DAY, 7 * DAY, 14 * DAY, 30 * DAY];
+const MIN = 60_000,
+  HOUR = 60 * MIN,
+  DAY = 24 * HOUR;
+const timeSteps = [
+  MIN,
+  2 * MIN,
+  5 * MIN,
+  10 * MIN,
+  15 * MIN,
+  30 * MIN,
+  HOUR,
+  2 * HOUR,
+  3 * HOUR,
+  6 * HOUR,
+  12 * HOUR,
+  DAY,
+  2 * DAY,
+  7 * DAY,
+  14 * DAY,
+  30 * DAY,
+];
 
 /**
  * Time-axis ticks on round local times between t0 and t1, at most `maxCount` of them.
@@ -116,7 +142,8 @@ export function linePath(run: ChartPoint[], x: (t: number) => number, y: (v: num
 /** An SVG area under one run, closed down to the baseline. Empty for a run of one reading. */
 export function areaPath(run: ChartPoint[], x: (t: number) => number, y: (v: number) => number, baseline: number): string {
   if (run.length < 2) return "";
-  const first = run[0]!, last = run[run.length - 1]!;
+  const first = run[0]!,
+    last = run[run.length - 1]!;
   return `M${r1(x(first.at))},${r1(baseline)}${run.map((p) => `L${r1(x(p.at))},${r1(y(p.value!))}`).join("")}L${r1(x(last.at))},${r1(baseline)}Z`;
 }
 
@@ -125,7 +152,10 @@ export function areaPath(run: ChartPoint[], x: (t: number) => number, y: (v: num
  * Covered time is each run from its first to its last reading.
  */
 export function missingSpans(runsPerSeries: ChartPoint[][][], t0: number, t1: number): [number, number][] {
-  const covered = runsPerSeries.flat().map((r) => [r[0]!.at, r[r.length - 1]!.at] as [number, number]).sort((a, b) => a[0] - b[0]);
+  const covered = runsPerSeries
+    .flat()
+    .map((r) => [r[0]!.at, r[r.length - 1]!.at] as [number, number])
+    .sort((a, b) => a[0] - b[0]);
   const spans: [number, number][] = [];
   let cursor = t0;
   for (const [a, b] of covered) {
@@ -140,7 +170,8 @@ export function missingSpans(runsPerSeries: ChartPoint[][][], t0: number, t1: nu
 /** The index of the timestamp nearest `at` in an ascending list, or -1 for an empty list. */
 export function nearestIndex(times: number[], at: number): number {
   if (!times.length) return -1;
-  let lo = 0, hi = times.length - 1;
+  let lo = 0,
+    hi = times.length - 1;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
     if (times[mid]! < at) lo = mid + 1;
@@ -167,10 +198,14 @@ function binary(n: number): string {
 export function formatValue(v: number | null, unit: ChartUnit): string | null {
   if (v === null || !Number.isFinite(v)) return null;
   switch (unit) {
-    case "fraction": return `${short(clean(v * 100))}%`;
-    case "bytes": return binary(v);
-    case "bytes_per_second": return `${binary(v)}/s`;
-    default: return short(v);
+    case "fraction":
+      return `${short(clean(v * 100))}%`;
+    case "bytes":
+      return binary(v);
+    case "bytes_per_second":
+      return `${binary(v)}/s`;
+    default:
+      return short(v);
   }
 }
 

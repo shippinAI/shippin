@@ -34,7 +34,13 @@ export function BackupsPanel({ tenantId }: { tenantId: string }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge tone="warning">{b.status === "pending_backend" ? "Not copied yet" : b.status}</Badge>
-                  <Button size="sm" variant="secondary" tooltip="Restore is recorded as a request. Postgres is not changed." isDisabled={restore.isPending} onPress={() => restore.mutate(b.id)}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    tooltip="Restore is recorded as a request. Postgres is not changed."
+                    isDisabled={restore.isPending}
+                    onPress={() => restore.mutate(b.id)}
+                  >
                     Restore
                   </Button>
                 </div>
@@ -45,9 +51,23 @@ export function BackupsPanel({ tenantId }: { tenantId: string }) {
       </Card>
       <Card>
         <CardHeader title="Request a backup" description="This does not dump Postgres yet. It saves the request for the backup service." />
-        <form className="space-y-3 p-5" onSubmit={(e) => { e.preventDefault(); create.mutate(note); }}>
-          <TextField label="Note" value={note} onChange={setNote} placeholder="Before the import" description="Optional. Shown in the list." />
-          <Button type="submit" variant="primary" tooltip="Record a one-click backup request" isDisabled={create.isPending}>Request backup</Button>
+        <form
+          className="space-y-3 p-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            create.mutate(note);
+          }}
+        >
+          <TextField
+            label="Note"
+            value={note}
+            onChange={setNote}
+            placeholder="Before the import"
+            description="Optional. Shown in the list."
+          />
+          <Button type="submit" variant="primary" tooltip="Record a one-click backup request" isDisabled={create.isPending}>
+            Request backup
+          </Button>
         </form>
       </Card>
     </div>

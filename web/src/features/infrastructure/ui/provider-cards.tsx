@@ -27,19 +27,32 @@ export function ProviderCards({ providers, onAdd }: Props) {
                   {p.description && <p className="mt-1 text-sm text-fg-muted">{p.description}</p>}
                 </div>
                 <Badge tone={!added ? "neutral" : healthy ? "success" : "warning"}>
-                  {added && <StatusDot health={healthy ? "up" : "unknown"} />} {added ? t("infra.provider.added") : t("infra.provider.notAdded")}
+                  {added && <StatusDot health={healthy ? "up" : "unknown"} />}{" "}
+                  {added ? t("infra.provider.added") : t("infra.provider.notAdded")}
                 </Badge>
               </div>
               <p className="flex-1 text-sm text-fg-subtle">
                 {added
-                  ? t("infra.provider.hosts", { online: p.totals.online, total: p.totals.nodes, running: p.totals.running, guests: p.totals.guests })
+                  ? t("infra.provider.hosts", {
+                      online: p.totals.online,
+                      total: p.totals.nodes,
+                      running: p.totals.running,
+                      guests: p.totals.guests,
+                    })
                   : t("infra.provider.none")}
               </p>
               <div>
                 {added ? (
-                  <LinkButton size="sm" href={tabHref(p.kind)} tooltip={t("infra.provider.openTooltip", { label: p.label })}>{t("infra.provider.open")}</LinkButton>
+                  <LinkButton size="sm" href={tabHref(p.kind)} tooltip={t("infra.provider.openTooltip", { label: p.label })}>
+                    {t("infra.provider.open")}
+                  </LinkButton>
                 ) : !p.attachable ? null : onAdd ? (
-                  <Button size="sm" variant="primary" tooltip={t("infra.provider.addTooltip", { label: p.label })} onPress={() => onAdd(p.kind)}>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    tooltip={t("infra.provider.addTooltip", { label: p.label })}
+                    onPress={() => onAdd(p.kind)}
+                  >
                     {t("infra.provider.add", { label: p.label })}
                   </Button>
                 ) : (

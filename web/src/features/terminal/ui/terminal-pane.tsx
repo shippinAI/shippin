@@ -41,33 +41,44 @@ export function TerminalPane({ tenantId, workspaceId, bus, mux = "zellij" }: Pro
     let cleanup = () => {};
     void import("@xterm/xterm").then(({ Terminal }) => {
       if (gone) return;
-      const term = new Terminal({ cols: 80, rows: 24, cursorBlink: true, fontSize: 13, fontFamily: "var(--font-mono), monospace",
-        theme: { background: tokenValue("--color-terminal") } });
+      const term = new Terminal({
+        cols: 80,
+        rows: 24,
+        cursorBlink: true,
+        fontSize: 13,
+        fontFamily: "var(--font-mono), monospace",
+        theme: { background: tokenValue("--color-terminal") },
+      });
       term.open(el);
       const first = measure(el, term);
       if (first) term.resize(first.cols, first.rows);
-      let wasReconnecting = false, okTimer = 0, fitTimer = 0;
-      const c = new TerminalConnection({
-        // WebSocket's handler types are wider than SocketLike's; the shapes match at runtime
-        open: (rows, cols) => new WebSocket(socketURL(window.location, tenantId, workspaceId, rows, cols, mux)) as unknown as SocketLike,
-        setTimer: (fn, ms) => window.setTimeout(fn, ms),
-        clearTimer: (t) => window.clearTimeout(t as number),
-      }, {
-        state: (s) => {
-          setState(s);
-          bus.attach(s.phase === "connected" ? (d) => c.send(d) : null);
-          if (s.phase === "connected") {
-            if (wasReconnecting && mux === "plain") term.write("\r\n\x1b[2m[reconnected: new shell]\x1b[0m\r\n");
-            term.focus();
-            setFresh(true);
-            window.clearTimeout(okTimer);
-            okTimer = window.setTimeout(() => setFresh(false), 2500);
-          }
-          if (s.phase === "closed") term.write("\r\n\x1b[2m[session closed]\x1b[0m\r\n");
-          wasReconnecting = s.phase === "reconnecting" || (wasReconnecting && s.phase === "connecting");
+      let wasReconnecting = false,
+        okTimer = 0,
+        fitTimer = 0;
+      const c = new TerminalConnection(
+        {
+          // WebSocket's handler types are wider than SocketLike's; the shapes match at runtime
+          open: (rows, cols) => new WebSocket(socketURL(window.location, tenantId, workspaceId, rows, cols, mux)) as unknown as SocketLike,
+          setTimer: (fn, ms) => window.setTimeout(fn, ms),
+          clearTimer: (t) => window.clearTimeout(t as number),
         },
-        output: (d) => term.write(d),
-      });
+        {
+          state: (s) => {
+            setState(s);
+            bus.attach(s.phase === "connected" ? (d) => c.send(d) : null);
+            if (s.phase === "connected") {
+              if (wasReconnecting && mux === "plain") term.write("\r\n\x1b[2m[reconnected: new shell]\x1b[0m\r\n");
+              term.focus();
+              setFresh(true);
+              window.clearTimeout(okTimer);
+              okTimer = window.setTimeout(() => setFresh(false), 2500);
+            }
+            if (s.phase === "closed") term.write("\r\n\x1b[2m[session closed]\x1b[0m\r\n");
+            wasReconnecting = s.phase === "reconnecting" || (wasReconnecting && s.phase === "connecting");
+          },
+          output: (d) => term.write(d),
+        },
+      );
       conn.current = c;
       const sub = term.onData((d) => c.send(d));
       const ro = new ResizeObserver(() => {
@@ -93,20 +104,26 @@ export function TerminalPane({ tenantId, workspaceId, bus, mux = "zellij" }: Pro
         term.dispose();
       };
     });
-    return () => { gone = true; cleanup(); };
+    return () => {
+      gone = true;
+      cleanup();
+    };
   }, [tenantId, workspaceId, bus, mux]);
-  const closedText = state.phase === "closed"
-    ? (state.kind === "refused" && state.message) || text(`terminal.closed.${state.kind}` as TextKey)
-    : "";
+  const closedText =
+    state.phase === "closed" ? (state.kind === "refused" && state.message) || text(`terminal.closed.${state.kind}` as TextKey) : "";
   return (
     <div className="relative h-full min-h-0 overflow-hidden bg-terminal" data-state={state.phase}>
       <div ref={host} className="absolute inset-0 p-2" aria-label={text("terminal.region")} role="region" />
       {(state.phase !== "connected" || fresh) && (
-        <div className="absolute right-3 top-2 flex max-w-md items-center gap-2 rounded-sm bg-raised px-2 py-0.5 text-xs text-fg-muted" aria-live="polite">
+        <div
+          className="absolute right-3 top-2 flex max-w-md items-center gap-2 rounded-sm bg-raised px-2 py-0.5 text-xs text-fg-muted"
+          aria-live="polite"
+        >
           <span>
             {state.phase === "connecting" && text("terminal.connecting")}
             {state.phase === "connected" && text("terminal.connected")}
-            {state.phase === "reconnecting" && text("terminal.reconnecting", { seconds: Math.ceil(state.delayMs / 1000), attempt: state.attempt, max: maxAttempts })}
+            {state.phase === "reconnecting" &&
+              text("terminal.reconnecting", { seconds: Math.ceil(state.delayMs / 1000), attempt: state.attempt, max: maxAttempts })}
             {state.phase === "closed" && closedText}
           </span>
           {state.phase !== "connected" && state.phase !== "connecting" && (

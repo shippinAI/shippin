@@ -6,7 +6,15 @@ import type { DbInfo } from "../../../lib/api/database-types";
 
 export function ConnectPanel({ info, loading }: { info?: DbInfo; loading: boolean }) {
   if (loading || !info) {
-    return <Card><div className="space-y-3 p-5">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-10" />)}</div></Card>;
+    return (
+      <Card>
+        <div className="space-y-3 p-5">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-10" />
+          ))}
+        </div>
+      </Card>
+    );
   }
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
@@ -23,8 +31,14 @@ export function ConnectPanel({ info, loading }: { info?: DbInfo; loading: boolea
         <Card className="p-5">
           <h3 className="text-base font-semibold text-fg">Before you paste this</h3>
           <ul className="mt-2 space-y-2 text-sm leading-relaxed text-fg-muted">
-            {info.hints.map((h) => <li key={h}>{h}</li>)}
-            <li>{info.login_ready ? "This console can sign in as the role above." : "The console does not have the role password yet. Hostd keeps it in sops until a pooler is connected."}</li>
+            {info.hints.map((h) => (
+              <li key={h}>{h}</li>
+            ))}
+            <li>
+              {info.login_ready
+                ? "This console can sign in as the role above."
+                : "The console does not have the role password yet. Hostd keeps it in sops until a pooler is connected."}
+            </li>
           </ul>
         </Card>
         <Card className="space-y-4 p-5">

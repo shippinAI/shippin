@@ -22,25 +22,52 @@ export function RunnerLimitsFields({ limits, onChange }: Props) {
       <div role="group" aria-label="Sizes this plan includes" className="space-y-0.5">
         <div className="text-sm font-medium text-fg">Sizes this plan includes</div>
         {sizes.isPending && <p className="text-sm text-fg-subtle">Loading runner sizes…</p>}
-        {sizes.isError && <p role="alert" className="text-sm text-danger">{sizes.error.message}</p>}
-        {sizes.isSuccess && known.length === 0 && <p className="text-sm text-fg-muted">No runner sizes yet. Add them under Runner sizes first.</p>}
+        {sizes.isError && (
+          <p role="alert" className="text-sm text-danger">
+            {sizes.error.message}
+          </p>
+        )}
+        {sizes.isSuccess && known.length === 0 && (
+          <p className="text-sm text-fg-muted">No runner sizes yet. Add them under Runner sizes first.</p>
+        )}
         {known.map((s) => (
-          <Checkbox key={s.id} isSelected={r.sizes.includes(s.id)} description={`${sizeSummary(s)}${s.active ? "" : " · off"}`}
-            onChange={(on) => put({ sizes: on ? [...r.sizes, s.id] : r.sizes.filter((x) => x !== s.id) })}>
+          <Checkbox
+            key={s.id}
+            isSelected={r.sizes.includes(s.id)}
+            description={`${sizeSummary(s)}${s.active ? "" : " · off"}`}
+            onChange={(on) => put({ sizes: on ? [...r.sizes, s.id] : r.sizes.filter((x) => x !== s.id) })}
+          >
             shippin-{s.id} <span className="text-fg-subtle">({s.label})</span>
           </Checkbox>
         ))}
         {unknown.map((id) => (
-          <Checkbox key={id} isSelected description="No such runner size any more; jobs asking for it are refused" onChange={() => put({ sizes: r.sizes.filter((x) => x !== id) })}>
+          <Checkbox
+            key={id}
+            isSelected
+            description="No such runner size any more; jobs asking for it are refused"
+            onChange={() => put({ sizes: r.sizes.filter((x) => x !== id) })}
+          >
             shippin-{id}
           </Checkbox>
         ))}
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <TextField label="Jobs at once" type="number" min={0} value={String(r.concurrent)} onChange={(v) => put({ concurrent: whole(v) })}
-          description="0 runs nothing" />
-        <TextField label="Minutes a month" type="number" min={0} value={String(r.minutes)} onChange={(v) => put({ minutes: whole(v) })}
-          description="0 sets no monthly cap" />
+        <TextField
+          label="Jobs at once"
+          type="number"
+          min={0}
+          value={String(r.concurrent)}
+          onChange={(v) => put({ concurrent: whole(v) })}
+          description="0 runs nothing"
+        />
+        <TextField
+          label="Minutes a month"
+          type="number"
+          min={0}
+          value={String(r.minutes)}
+          onChange={(v) => put({ minutes: whole(v) })}
+          description="0 sets no monthly cap"
+        />
       </div>
     </fieldset>
   );

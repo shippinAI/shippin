@@ -80,6 +80,7 @@ A page folder holds the page and nothing shared. The code a page uses belongs to
   - No folder is a bucket (`common`, `shared`, `utils`, `util`, `helpers`, `misc`). Code belongs to the thing it serves.
 - **Generated files are current.** The routes (`scripts/routes.mjs --check`) and the OpenAPI index (`generate-openapi-index.mjs --check`) are regenerated in check mode, and a difference fails. The tokens join them with F2.
 - **Hard-coded installation names** fail too (`scripts/check-hardcoding.mjs`), as before.
+- **Formatting.** Biome formats the web code (`web/biome.json`: two-space indent, 140 columns, double quotes, trailing commas). `npm test` runs `biome format` and fails on a file that is not formatted; `npx biome format --write` fixes it. Generated files are left as their generators write them.
 - **Nothing unused (to build).** knip, run in CI, will fail on files, exports and dependencies nothing uses. It is a new development dependency, so it waits for the owner's approval to download it.
 
 ## Lexicon (F4)

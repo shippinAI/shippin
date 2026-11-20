@@ -35,7 +35,9 @@ export function SignInPage() {
           </div>
           <h1 className="text-3xl font-semibold tracking-tight">Welcome back</h1>
           <p className="mt-2 text-base text-fg-muted">
-            {s?.app === "operator" ? "Sign in to the provider panel. Staff roles only; every action is audited." : "Sign in to your console. You'll land in your own tenant."}
+            {s?.app === "operator"
+              ? "Sign in to the provider panel. Staff roles only; every action is audited."
+              : "Sign in to your console. You'll land in your own tenant."}
           </p>
           {(s?.dev_sign_in ?? []).length > 0 && (
             <div className="mt-8 rounded-xl border border-warning/30 bg-warning/10 p-5" data-testid="dev-sign-in">
@@ -45,7 +47,13 @@ export function SignInPage() {
                 {(s?.dev_sign_in ?? []).map((acct) => (
                   <form key={acct.email} method="post" action="/auth/dev">
                     <input type="hidden" name="email" value={acct.email} />
-                    <Button type="submit" variant="secondary" size="lg" className="w-full justify-between" tooltip={`Sign in as ${acct.email}`}>
+                    <Button
+                      type="submit"
+                      variant="secondary"
+                      size="lg"
+                      className="w-full justify-between"
+                      tooltip={`Sign in as ${acct.email}`}
+                    >
                       <span>Sign in as {acct.label}</span>
                       <span className="font-mono text-sm text-fg-muted">{acct.email}</span>
                     </Button>
@@ -66,18 +74,19 @@ export function SignInPage() {
                 Continue with {s.idp_name || idpHost} <ArrowRight className="size-4" />
               </Button>
             )}
-            {s?.login_ready && (s.login_providers ?? []).map((p) => (
-              <Button
-                key={p.id}
-                variant="secondary"
-                size="lg"
-                className="mt-3 w-full"
-                tooltip={`Sign in with ${p.label} via ${idpHost}`}
-                onPress={() => window.location.assign(`/auth/login?idp=${encodeURIComponent(p.id)}`)}
-              >
-                Continue with {p.label} <ArrowRight className="size-4" />
-              </Button>
-            ))}
+            {s?.login_ready &&
+              (s.login_providers ?? []).map((p) => (
+                <Button
+                  key={p.id}
+                  variant="secondary"
+                  size="lg"
+                  className="mt-3 w-full"
+                  tooltip={`Sign in with ${p.label} via ${idpHost}`}
+                  onPress={() => window.location.assign(`/auth/login?idp=${encodeURIComponent(p.id)}`)}
+                >
+                  Continue with {p.label} <ArrowRight className="size-4" />
+                </Button>
+              ))}
             {(s?.sign_in_providers ?? []).map((p) => (
               <Button
                 key={p.id}
@@ -91,15 +100,50 @@ export function SignInPage() {
               </Button>
             ))}
             {s?.local_login !== false && (
-              <form className="mb-4 grid gap-2" data-testid="password-sign-in" onSubmit={(e) => {
-                e.preventDefault(); const f = new FormData(e.currentTarget);
-                void fetch("/v1/session/password", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ identifier: f.get("identifier"), password: f.get("password") }) }).then((res) => {
-                  if (res.ok) window.location.assign("/"); else toast.error("Sign-in failed", "Username or password is incorrect.");
-                }).catch(() => toast.error("Sign-in failed", "The panel could not complete sign-in."));
-              }}>
-                <input name="identifier" required autoComplete="username" aria-label="Username or email" placeholder="Username or email" className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base" />
-                <input name="password" type="password" required autoComplete="current-password" aria-label="Password" placeholder="Password" className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base" />
-                <Button type="submit" variant="primary" size="lg" className="w-full" tooltip="Sign in with your username or email and password">Sign in with password</Button>
+              <form
+                className="mb-4 grid gap-2"
+                data-testid="password-sign-in"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const f = new FormData(e.currentTarget);
+                  void fetch("/v1/session/password", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ identifier: f.get("identifier"), password: f.get("password") }),
+                  })
+                    .then((res) => {
+                      if (res.ok) window.location.assign("/");
+                      else toast.error("Sign-in failed", "Username or password is incorrect.");
+                    })
+                    .catch(() => toast.error("Sign-in failed", "The panel could not complete sign-in."));
+                }}
+              >
+                <input
+                  name="identifier"
+                  required
+                  autoComplete="username"
+                  aria-label="Username or email"
+                  placeholder="Username or email"
+                  className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base"
+                />
+                <input
+                  name="password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  aria-label="Password"
+                  placeholder="Password"
+                  className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base"
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  tooltip="Sign in with your username or email and password"
+                >
+                  Sign in with password
+                </Button>
               </form>
             )}
             {s?.local_login !== false && (
@@ -109,11 +153,29 @@ export function SignInPage() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   const email = String(new FormData(e.currentTarget).get("email") ?? "").trim();
-                  void signInWithPasskey(email).then(() => window.location.assign("/")).catch((err: unknown) => toast.error("Sign-in failed", passkeyProblem(err)));
+                  void signInWithPasskey(email)
+                    .then(() => window.location.assign("/"))
+                    .catch((err: unknown) => toast.error("Sign-in failed", passkeyProblem(err)));
                 }}
               >
-                <input name="email" type="email" required autoComplete="username webauthn" aria-label="Email" placeholder="you@example.invalid" className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base text-fg" />
-                <Button type="submit" variant="primary" size="lg" className="w-full" tooltip="Use a passkey saved on this device or a security key">Sign in with a passkey</Button>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="username webauthn"
+                  aria-label="Email"
+                  placeholder="you@example.invalid"
+                  className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base text-fg"
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  tooltip="Use a passkey saved on this device or a security key"
+                >
+                  Sign in with a passkey
+                </Button>
               </form>
             )}
             {s?.local_login !== false && s?.email_sign_in && (
@@ -122,14 +184,32 @@ export function SignInPage() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   const email = new FormData(e.currentTarget).get("email");
-                  void fetch("/v1/session/magic", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) }).then((res) => {
+                  void fetch("/v1/session/magic", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ email }),
+                  }).then((res) => {
                     if (res.ok) toast.success("Check your email", "The sign-in link is on its way.");
                     else toast.error("Sign-in failed", "The panel could not send a link.");
                   });
                 }}
               >
-                <input name="email" type="email" required placeholder="you@example.invalid" className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base" />
-                <Button type="submit" variant="secondary" size="lg" className="w-full" tooltip="We email a one-time sign-in link. It expires after a few minutes.">Email me a sign-in link</Button>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="you@example.invalid"
+                  className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base"
+                />
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  size="lg"
+                  className="w-full"
+                  tooltip="We email a one-time sign-in link. It expires after a few minutes."
+                >
+                  Email me a sign-in link
+                </Button>
               </form>
             )}
             {s?.local_login !== false && (
@@ -150,9 +230,24 @@ export function SignInPage() {
                     });
                   }}
                 >
-                  <input name="email" type="email" required autoComplete="username" placeholder="you@example.invalid" className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base" />
-                  <input name="code" required autoComplete="one-time-code" placeholder="Recovery code" className="rounded-lg border border-line-control bg-canvas px-3 py-2 font-mono text-base" />
-                  <Button type="submit" variant="secondary" size="lg" className="w-full" tooltip="Each recovery code works once.">Sign in with a recovery code</Button>
+                  <input
+                    name="email"
+                    type="email"
+                    required
+                    autoComplete="username"
+                    placeholder="you@example.invalid"
+                    className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base"
+                  />
+                  <input
+                    name="code"
+                    required
+                    autoComplete="one-time-code"
+                    placeholder="Recovery code"
+                    className="rounded-lg border border-line-control bg-canvas px-3 py-2 font-mono text-base"
+                  />
+                  <Button type="submit" variant="secondary" size="lg" className="w-full" tooltip="Each recovery code works once.">
+                    Sign in with a recovery code
+                  </Button>
                 </form>
               </details>
             )}
@@ -165,15 +260,27 @@ export function SignInPage() {
           </div>
           {s?.setup_open && (
             <p className="mt-6 text-base">
-              New installation? <a className="font-medium underline" href="/setup">Create the owner account</a> with the setup code the installer printed.
+              New installation?{" "}
+              <a className="font-medium underline" href="/setup">
+                Create the owner account
+              </a>{" "}
+              with the setup code the installer printed.
             </p>
           )}
           <p className="mt-8 text-sm text-fg-subtle">
-            {s?.waitlist_form
-              ? <>New here? <a className="font-medium underline" href="/waitlist">Join the waitlist</a>, and we'll invite you when a place opens.</>
-              : s?.signup === "open"
-                ? "New here? Sign in with your email address and your account is created."
-                : "New here? Accounts are by invitation. Ask the person who runs this installation, or your organization's owner, for one."}
+            {s?.waitlist_form ? (
+              <>
+                New here?{" "}
+                <a className="font-medium underline" href="/waitlist">
+                  Join the waitlist
+                </a>
+                , and we'll invite you when a place opens.
+              </>
+            ) : s?.signup === "open" ? (
+              "New here? Sign in with your email address and your account is created."
+            ) : (
+              "New here? Accounts are by invitation. Ask the person who runs this installation, or your organization's owner, for one."
+            )}
           </p>
         </div>
       </div>

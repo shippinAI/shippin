@@ -25,37 +25,76 @@ export function CustomerDetailPage() {
   const c = q.data;
   return (
     <>
-      <Link href="/admin/customers" className="focus-ring mb-4 inline-flex items-center gap-1.5 rounded-sm text-sm text-fg-muted hover:text-fg">
+      <Link
+        href="/admin/customers"
+        className="focus-ring mb-4 inline-flex items-center gap-1.5 rounded-sm text-sm text-fg-muted hover:text-fg"
+      >
         <ArrowLeft className="size-3.5" /> Customers
       </Link>
       <QueryView isPending={q.isPending} error={q.error} onRetry={() => void q.refetch()}>
-        {() => c && (
-          <>
-            <PageHeader eyebrow="Customer" title={c.name}
-              description={<span className="inline-flex flex-wrap items-center gap-2">
-                <Badge tone={c.status === "active" ? "success" : "neutral"}>{c.status}</Badge>
-                {c.status === "draft" && <TermTip term="draft" />}
-                <Badge tone="info">plan {c.plan_id}</Badge>
-                {c.coverage_effective && <Badge tone={c.coverage ? "primary" : "neutral"}>{c.coverage ? "moved to" : "coverage"} {c.coverage_effective}</Badge>}
-                <Badge tone={c.idp_linked ? "success" : "warning"}>{c.idp_linked ? "sign-in org linked" : "no sign-in org yet"}</Badge>
-              </span>}
-              actions={<>
-                {can(CatalogPerm.customersWrite) && <Button variant="secondary" size="sm" tooltip="Edit name, plan, contacts and endpoints" onPress={() => setEditing(true)}><Pencil className="size-4" /> Edit</Button>}
-                {can(CatalogPerm.intentCreate) && <Button variant="primary" size="sm" tooltip="Snapshot the effective config as desired state; change control applies it later"
-                  onPress={() => setRecording(true)}>
-                  <Send className="size-4" /> Record provision intent
-                </Button>}
-              </>} />
-            <CustomerFacts customer={c} intents={intents.data?.items ?? []} />
-            {can(CatalogPerm.effectiveRead) && <Card className="mt-6 overflow-hidden">
-              <CardHeader title={<span className="inline-flex items-center gap-1.5">Effective config <TermTip term="effective" /></span>}
-                description="Each value with the layer it came from. Hover a badge to learn what it means; open a row for the full chain." />
-              <EffectiveConfigView customerId={c.id} />
-            </Card>}
-            {editing && <CustomerForm initial={c} onClose={() => setEditing(false)} />}
-            {recording && <IntentDialog customerId={c.id} onClose={() => setRecording(false)} />}
-          </>
-        )}
+        {() =>
+          c && (
+            <>
+              <PageHeader
+                eyebrow="Customer"
+                title={c.name}
+                description={
+                  <span className="inline-flex flex-wrap items-center gap-2">
+                    <Badge tone={c.status === "active" ? "success" : "neutral"}>{c.status}</Badge>
+                    {c.status === "draft" && <TermTip term="draft" />}
+                    <Badge tone="info">plan {c.plan_id}</Badge>
+                    {c.coverage_effective && (
+                      <Badge tone={c.coverage ? "primary" : "neutral"}>
+                        {c.coverage ? "moved to" : "coverage"} {c.coverage_effective}
+                      </Badge>
+                    )}
+                    <Badge tone={c.idp_linked ? "success" : "warning"}>{c.idp_linked ? "sign-in org linked" : "no sign-in org yet"}</Badge>
+                  </span>
+                }
+                actions={
+                  <>
+                    {can(CatalogPerm.customersWrite) && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        tooltip="Edit name, plan, contacts and endpoints"
+                        onPress={() => setEditing(true)}
+                      >
+                        <Pencil className="size-4" /> Edit
+                      </Button>
+                    )}
+                    {can(CatalogPerm.intentCreate) && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        tooltip="Snapshot the effective config as desired state; change control applies it later"
+                        onPress={() => setRecording(true)}
+                      >
+                        <Send className="size-4" /> Record provision intent
+                      </Button>
+                    )}
+                  </>
+                }
+              />
+              <CustomerFacts customer={c} intents={intents.data?.items ?? []} />
+              {can(CatalogPerm.effectiveRead) && (
+                <Card className="mt-6 overflow-hidden">
+                  <CardHeader
+                    title={
+                      <span className="inline-flex items-center gap-1.5">
+                        Effective config <TermTip term="effective" />
+                      </span>
+                    }
+                    description="Each value with the layer it came from. Hover a badge to learn what it means; open a row for the full chain."
+                  />
+                  <EffectiveConfigView customerId={c.id} />
+                </Card>
+              )}
+              {editing && <CustomerForm initial={c} onClose={() => setEditing(false)} />}
+              {recording && <IntentDialog customerId={c.id} onClose={() => setRecording(false)} />}
+            </>
+          )
+        }
       </QueryView>
     </>
   );

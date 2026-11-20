@@ -19,7 +19,14 @@ export function toRoutes(gen: GenRoute[]): RouteObject[] {
   return gen.map((g) => {
     if (g.page) {
       const Page = lazy(g.page);
-      return { path: g.path, element: <Suspense fallback={null}><Page /></Suspense> };
+      return {
+        path: g.path,
+        element: (
+          <Suspense fallback={null}>
+            <Page />
+          </Suspense>
+        ),
+      };
     }
     const children = toRoutes(g.children ?? []);
     if (g.layout) {
@@ -28,7 +35,15 @@ export function toRoutes(gen: GenRoute[]): RouteObject[] {
     }
     if (g.load) {
       const Layout = lazy(g.load);
-      return { path: g.path, element: <Suspense fallback={null}><Layout /></Suspense>, children };
+      return {
+        path: g.path,
+        element: (
+          <Suspense fallback={null}>
+            <Layout />
+          </Suspense>
+        ),
+        children,
+      };
     }
     return { path: g.path, children };
   });

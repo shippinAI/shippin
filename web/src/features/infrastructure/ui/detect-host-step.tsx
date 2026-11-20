@@ -12,9 +12,20 @@ export function CertificateFacts({ cert }: { cert: Pick<HvCertificateInfo, "fing
   const t = useText();
   return (
     <dl className="space-y-1 text-fg-muted">
-      <div><dt className="inline font-medium text-fg">{t("infra.trust.fingerprint")} </dt><dd className="inline break-all font-mono text-xs" data-testid="fingerprint">{cert.fingerprint}</dd></div>
-      <div><dt className="inline font-medium text-fg">{t("infra.trust.names")} </dt><dd className="inline">{cert.names.join(", ")}</dd></div>
-      <div><dt className="inline font-medium text-fg">{t("infra.trust.expires")} </dt><dd className="inline">{new Date(cert.not_after).toLocaleDateString()}</dd></div>
+      <div>
+        <dt className="inline font-medium text-fg">{t("infra.trust.fingerprint")} </dt>
+        <dd className="inline break-all font-mono text-xs" data-testid="fingerprint">
+          {cert.fingerprint}
+        </dd>
+      </div>
+      <div>
+        <dt className="inline font-medium text-fg">{t("infra.trust.names")} </dt>
+        <dd className="inline">{cert.names.join(", ")}</dd>
+      </div>
+      <div>
+        <dt className="inline font-medium text-fg">{t("infra.trust.expires")} </dt>
+        <dd className="inline">{new Date(cert.not_after).toLocaleDateString()}</dd>
+      </div>
     </dl>
   );
 }
@@ -41,29 +52,57 @@ export function DetectHostStep({ providers, onConfirm, onChooseKind }: Props) {
     if (address.trim()) detect.mutate(address.trim());
   };
   const manual = (
-    <Button variant={prefill ? "ghost" : "secondary"} tooltip={t("infra.detect.manualTooltip")} onPress={onChooseKind}>{t("infra.detect.manual")}</Button>
+    <Button variant={prefill ? "ghost" : "secondary"} tooltip={t("infra.detect.manualTooltip")} onPress={onChooseKind}>
+      {t("infra.detect.manual")}
+    </Button>
   );
   return (
     <form className="space-y-4" onSubmit={run} data-testid="detect-step">
-      <TextField label={t("infra.detect.address")} description={t("infra.detect.address.help")} value={address} mono autoFocus autoComplete="off"
-        onChange={(v) => { setAddress(v); detect.reset(); }} />
+      <TextField
+        label={t("infra.detect.address")}
+        description={t("infra.detect.address.help")}
+        value={address}
+        mono
+        autoFocus
+        autoComplete="off"
+        onChange={(v) => {
+          setAddress(v);
+          detect.reset();
+        }}
+      />
       <div className="flex flex-wrap justify-end gap-2">
         {!found && manual}
         <Button type="submit" variant="primary" isDisabled={!address.trim() || detect.isPending} tooltip={t("infra.detect.runTooltip")}>
           {detect.isPending ? t("infra.detect.running") : t("infra.detect.run")}
         </Button>
       </div>
-      {detect.isError && <Notice tone="danger" title={t("infra.detect.failed")}>{detect.error.message}</Notice>}
+      {detect.isError && (
+        <Notice tone="danger" title={t("infra.detect.failed")}>
+          {detect.error.message}
+        </Notice>
+      )}
       {found && (
         <Notice
           tone={prefill ? (found.certificate_verified ? "success" : "warning") : found.outcome === "unreachable" ? "danger" : "info"}
-          title={prefill ? t("infra.detect.found", { provider: label(found.kind), url: found.base_url })
-            : found.outcome === "recognised" ? t("infra.detect.notOffered", { provider: label(found.kind), url: found.base_url })
-              : found.outcome === "unrecognised" ? t("infra.detect.unrecognised", { address: found.address })
-                : t("infra.detect.unreachable", { address: found.address })}
-          actions={<>{manual}{prefill && (
-            <Button variant="primary" tooltip={t("infra.detect.confirmTooltip")} onPress={() => onConfirm(prefill, found)}>{t("infra.detect.confirm")}</Button>
-          )}</>}
+          title={
+            prefill
+              ? t("infra.detect.found", { provider: label(found.kind), url: found.base_url })
+              : found.outcome === "recognised"
+                ? t("infra.detect.notOffered", { provider: label(found.kind), url: found.base_url })
+                : found.outcome === "unrecognised"
+                  ? t("infra.detect.unrecognised", { address: found.address })
+                  : t("infra.detect.unreachable", { address: found.address })
+          }
+          actions={
+            <>
+              {manual}
+              {prefill && (
+                <Button variant="primary" tooltip={t("infra.detect.confirmTooltip")} onPress={() => onConfirm(prefill, found)}>
+                  {t("infra.detect.confirm")}
+                </Button>
+              )}
+            </>
+          }
         >
           <div className="space-y-2" data-testid="detect-result" data-outcome={found.outcome}>
             {found.version && <p>{t("infra.detect.version", { version: found.version })}</p>}
@@ -76,8 +115,16 @@ export function DetectHostStep({ providers, onConfirm, onChooseKind }: Props) {
             {found.outcome === "unreachable" && <p>{t("infra.detect.unreachable.help")}</p>}
             <p className="font-medium text-fg">{t("infra.detect.evidence")}</p>
             <ul className="list-disc space-y-0.5 pl-5">
-              {found.probes.flatMap((p) => p.evidence.map((e, i) => <li key={`${p.base_url}:${i}`}><span className="font-mono text-xs">{p.base_url}</span> {e}</li>))}
-              {extra.map((e) => <li key={e}>{e}</li>)}
+              {found.probes.flatMap((p) =>
+                p.evidence.map((e, i) => (
+                  <li key={`${p.base_url}:${i}`}>
+                    <span className="font-mono text-xs">{p.base_url}</span> {e}
+                  </li>
+                )),
+              )}
+              {extra.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
             </ul>
           </div>
         </Notice>

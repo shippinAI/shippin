@@ -40,32 +40,62 @@ export function WaitlistPage() {
         {stage === "confirmed" ? (
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">You're on the list</h1>
-            <p className="mt-2 text-base text-fg-muted">Your address is confirmed. When a place opens, you'll get an invitation by email.</p>
+            <p className="mt-2 text-base text-fg-muted">
+              Your address is confirmed. When a place opens, you'll get an invitation by email.
+            </p>
           </div>
         ) : stage === "sent" || linked ? (
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Check your email</h1>
             <p className="mt-2 text-base text-fg-muted">Open the link we sent, or enter the code from the email here.</p>
-            <form key="confirm" className="mt-6 grid gap-2 rounded-xl border border-line bg-surface p-5"
-              onSubmit={(e) => { e.preventDefault(); confirm(String(new FormData(e.currentTarget).get("code") ?? "")); }}>
-              <label className="text-sm text-fg-muted" htmlFor="waitlist-code">Code</label>
+            <form
+              key="confirm"
+              className="mt-6 grid gap-2 rounded-xl border border-line bg-surface p-5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                confirm(String(new FormData(e.currentTarget).get("code") ?? ""));
+              }}
+            >
+              <label className="text-sm text-fg-muted" htmlFor="waitlist-code">
+                Code
+              </label>
               <input id="waitlist-code" name="code" autoComplete="one-time-code" className={`${field} font-mono`} />
-              {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-              <Button type="submit" variant="primary" size="lg" className="mt-2 w-full" isDisabled={busy} tooltip="Confirm your address">Confirm</Button>
+              {error && (
+                <p role="alert" className="text-sm text-danger">
+                  {error}
+                </p>
+              )}
+              <Button type="submit" variant="primary" size="lg" className="mt-2 w-full" isDisabled={busy} tooltip="Confirm your address">
+                Confirm
+              </Button>
             </form>
           </div>
         ) : !open ? (
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">The waitlist is closed</h1>
             <p className="mt-2 text-base text-fg-muted">
-              {s?.signup === "open" ? <>Anyone can sign up. <a className="font-medium underline" href="/login">Go to sign in</a>.</> : "This installation is invitation only. Ask someone who runs it for an invitation."}
+              {s?.signup === "open" ? (
+                <>
+                  Anyone can sign up.{" "}
+                  <a className="font-medium underline" href="/login">
+                    Go to sign in
+                  </a>
+                  .
+                </>
+              ) : (
+                "This installation is invitation only. Ask someone who runs it for an invitation."
+              )}
             </p>
           </div>
         ) : (
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Join the waitlist</h1>
-            <p className="mt-2 text-base text-fg-muted">Leave your address. We'll email a link to confirm it, then invite you when a place opens.</p>
-            <form key="join" className="mt-6 grid gap-2 rounded-xl border border-line bg-surface p-5"
+            <p className="mt-2 text-base text-fg-muted">
+              Leave your address. We'll email a link to confirm it, then invite you when a place opens.
+            </p>
+            <form
+              key="join"
+              className="mt-6 grid gap-2 rounded-xl border border-line bg-surface p-5"
               onSubmit={(e) => {
                 e.preventDefault();
                 const f = new FormData(e.currentTarget);
@@ -76,20 +106,51 @@ export function WaitlistPage() {
                   .then(async (res) => {
                     if (res.ok) return setStage("sent");
                     const p = (await res.json().catch(() => null)) as { message?: string } | null;
-                    setError(res.status === 429 ? "Too many tries from here. Wait a few minutes and try again." : (p?.message ?? "That didn't go through. Check the address and try again."));
+                    setError(
+                      res.status === 429
+                        ? "Too many tries from here. Wait a few minutes and try again."
+                        : (p?.message ?? "That didn't go through. Check the address and try again."),
+                    );
                   })
                   .finally(() => setBusy(false));
-              }}>
-              <label className="text-sm text-fg-muted" htmlFor="waitlist-email">Email</label>
+              }}
+            >
+              <label className="text-sm text-fg-muted" htmlFor="waitlist-email">
+                Email
+              </label>
               <input id="waitlist-email" name="email" type="email" required autoComplete="email" className={field} />
-              <label className="mt-2 text-sm text-fg-muted" htmlFor="waitlist-name">Your name</label>
+              <label className="mt-2 text-sm text-fg-muted" htmlFor="waitlist-name">
+                Your name
+              </label>
               <input id="waitlist-name" name="name" autoComplete="name" className={field} />
-              <label className="mt-2 text-sm text-fg-muted" htmlFor="waitlist-company">Company (optional)</label>
+              <label className="mt-2 text-sm text-fg-muted" htmlFor="waitlist-company">
+                Company (optional)
+              </label>
               <input id="waitlist-company" name="company" autoComplete="organization" className={field} />
-              <label className="mt-2 text-sm text-fg-muted" htmlFor="waitlist-notes">What would you like to build? (optional)</label>
-              <textarea id="waitlist-notes" name="notes" rows={3} className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base" />
-              {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-              <Button type="submit" variant="primary" size="lg" className="mt-2 w-full" isDisabled={busy} tooltip="Ask to join the waitlist">Join the waitlist</Button>
+              <label className="mt-2 text-sm text-fg-muted" htmlFor="waitlist-notes">
+                What would you like to build? (optional)
+              </label>
+              <textarea
+                id="waitlist-notes"
+                name="notes"
+                rows={3}
+                className="rounded-lg border border-line-control bg-canvas px-3 py-2 text-base"
+              />
+              {error && (
+                <p role="alert" className="text-sm text-danger">
+                  {error}
+                </p>
+              )}
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                className="mt-2 w-full"
+                isDisabled={busy}
+                tooltip="Ask to join the waitlist"
+              >
+                Join the waitlist
+              </Button>
             </form>
           </div>
         )}

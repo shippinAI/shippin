@@ -9,8 +9,12 @@ export const useVaultixAccount = () =>
   useQuery({ queryKey: ["vaultix", "account"], queryFn: () => apiGet<VaultixAccount>("/v1/vaultix/account"), retry: false });
 
 export const useVaultixSecrets = (env: string) =>
-  useQuery({ queryKey: ["vaultix", "secrets", env], enabled: !!env, retry: false,
-    queryFn: () => apiGet<{ secrets: VaultixSecret[] }>(`/v1/vaultix/secrets${q(env)}`) });
+  useQuery({
+    queryKey: ["vaultix", "secrets", env],
+    enabled: !!env,
+    retry: false,
+    queryFn: () => apiGet<{ secrets: VaultixSecret[] }>(`/v1/vaultix/secrets${q(env)}`),
+  });
 
 function useInvalidate() {
   const qc = useQueryClient();
@@ -19,8 +23,11 @@ function useInvalidate() {
 
 export function useSetSecret(env: string) {
   const done = useInvalidate();
-  return useMutation({ onSuccess: done,
-    mutationFn: (s: { key: string; value: string }) => apiSend<VaultixSecret>("PUT", `/v1/vaultix/secrets/${k(s.key)}${q(env)}`, { value: s.value }) });
+  return useMutation({
+    onSuccess: done,
+    mutationFn: (s: { key: string; value: string }) =>
+      apiSend<VaultixSecret>("PUT", `/v1/vaultix/secrets/${k(s.key)}${q(env)}`, { value: s.value }),
+  });
 }
 
 export function useDeleteSecret(env: string) {

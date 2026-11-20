@@ -25,13 +25,12 @@ export function InstancesPage() {
         }
       />
       <Card elevation={2} className="overflow-hidden">
-        <CardHeader
-          title={`${rows.length} instances`}
-          description={q.data ? `${running} running · refreshes every 15 s` : "Loading…"}
-        />
+        <CardHeader title={`${rows.length} instances`} description={q.data ? `${running} running · refreshes every 15 s` : "Loading…"} />
         {q.isPending ? (
           <div className="space-y-3 p-5">
-            {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-9" />)}
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className="h-9" />
+            ))}
           </div>
         ) : (
           <DataTable

@@ -7,7 +7,13 @@ import { cn } from "../../../lib/design/components/cn/cn";
 import { EmptyState } from "../../../lib/design/components/empty-state/empty-state";
 import { Select } from "../../../lib/design/components/select/select";
 import { Skeleton } from "../../../lib/design/components/skeleton/skeleton";
-import { historyRanges, useMetricsHistory, type HistoryRange, type MetricRange, type MetricSamplerState } from "../../../lib/hooks/use-metrics-history";
+import {
+  historyRanges,
+  useMetricsHistory,
+  type HistoryRange,
+  type MetricRange,
+  type MetricSamplerState,
+} from "../../../lib/hooks/use-metrics-history";
 import type { TextKey } from "../../../lib/ui-config/text-keys";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { historyCharts, type HistoryChart } from "../model";
@@ -19,14 +25,16 @@ const seriesName = (t: Text, id: string) => t(`infra.history.series.${id}` as Te
 
 /** One sentence per series, for a screen reader: the latest value, the range, and how much is missing. */
 function chartSummary(t: Text, chart: HistoryChart): string {
-  return chart.series.map((s) => {
-    const name = `${chartName(t, chart.id)} ${seriesName(t, s.id).toLowerCase()}`;
-    const sum = summarize(s.points);
-    if (sum.min === null) return t("infra.history.summaryNone", { series: name });
-    const f = (v: number | null) => formatValue(v, chart.unit) ?? t("chart.noData");
-    const line = t("infra.history.summary", { series: name, latest: f(sum.latest), min: f(sum.min), max: f(sum.max) });
-    return sum.missing ? `${line} ${t("infra.history.summaryMissing", { missing: sum.missing, total: sum.total })}` : line;
-  }).join(" ");
+  return chart.series
+    .map((s) => {
+      const name = `${chartName(t, chart.id)} ${seriesName(t, s.id).toLowerCase()}`;
+      const sum = summarize(s.points);
+      if (sum.min === null) return t("infra.history.summaryNone", { series: name });
+      const f = (v: number | null) => formatValue(v, chart.unit) ?? t("chart.noData");
+      const line = t("infra.history.summary", { series: name, latest: f(sum.latest), min: f(sum.min), max: f(sum.max) });
+      return sum.missing ? `${line} ${t("infra.history.summaryMissing", { missing: sum.missing, total: sum.total })}` : line;
+    })
+    .join(" ");
 }
 
 /** What the sampler says about itself, such as "The metrics sampler is off: ClickHouse is not connected". */
@@ -39,7 +47,8 @@ export function samplerText(t: Text, s: MetricSamplerState): string {
 
 /** The charts for one range. Exported so a test can draw it from fixture data. */
 export function HistoryCharts({ history, t }: { history: MetricRange; t: Text }) {
-  const from = Date.parse(history.from), to = Date.parse(history.to);
+  const from = Date.parse(history.from),
+    to = Date.parse(history.to);
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {historyCharts(history).map((chart) => (
@@ -71,34 +80,59 @@ export function MetricsHistory({ serverId, guest, className }: { serverId: strin
   // ClickHouse not connected is the sampler being off, not a fault on this page.
   const off = q.error instanceof ApiError && q.error.status === 503;
   const sampler = q.data?.sampler;
-  const emptyBody = off ? `${t("infra.history.sampler.off")}: ${q.error!.message}`
-    : sampler && sampler.state !== "sampling" ? samplerText(t, sampler)
-    : q.data ? t("infra.history.noSamples")
-    : t("infra.history.empty.body");
+  const emptyBody = off
+    ? `${t("infra.history.sampler.off")}: ${q.error!.message}`
+    : sampler && sampler.state !== "sampling"
+      ? samplerText(t, sampler)
+      : q.data
+        ? t("infra.history.noSamples")
+        : t("infra.history.empty.body");
   return (
-    <section className={cn("rounded-xl border border-line bg-surface shadow-e1", className)} data-testid="metrics-history" aria-label={t("infra.history.title")}>
+    <section
+      className={cn("rounded-xl border border-line bg-surface shadow-e1", className)}
+      data-testid="metrics-history"
+      aria-label={t("infra.history.title")}
+    >
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line px-5 py-4">
         <div className="min-w-0">
           <h3 className="text-base font-semibold text-fg">{t("infra.history.title")}</h3>
           <p className="mt-0.5 text-sm text-fg-muted">{t("infra.history.description")}</p>
-          {sampler && hasCharts && <p className="mt-1 text-xs text-fg-subtle" data-testid="sampler-state">{samplerText(t, sampler)}</p>}
+          {sampler && hasCharts && (
+            <p className="mt-1 text-xs text-fg-subtle" data-testid="sampler-state">
+              {samplerText(t, sampler)}
+            </p>
+          )}
         </div>
         {(q.data !== undefined || q.isPending) && (
           <div className="w-44">
-            <Select label={t("infra.history.range")} value={range} onChange={(v) => setRange(v as HistoryRange)}
-              options={historyRanges.map((r) => ({ id: r, label: t(`infra.history.range.${r}` as TextKey) }))} />
+            <Select
+              label={t("infra.history.range")}
+              value={range}
+              onChange={(v) => setRange(v as HistoryRange)}
+              options={historyRanges.map((r) => ({ id: r, label: t(`infra.history.range.${r}` as TextKey) }))}
+            />
           </div>
         )}
       </div>
       <div className="p-5">
         {q.isPending ? (
-          <div className="grid gap-6 lg:grid-cols-2">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-52" />)}</div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className="h-52" />
+            ))}
+          </div>
         ) : q.error && !off ? (
-          <p role="alert" className="text-base text-danger">{t("infra.history.error", { error: q.error.message })}</p>
+          <p role="alert" className="text-base text-danger">
+            {t("infra.history.error", { error: q.error.message })}
+          </p>
         ) : q.data && hasCharts ? (
           <HistoryCharts history={q.data} t={t} />
         ) : (
-          <EmptyState illustration={<ChartLine className="size-10 text-fg-subtle" />} title={t("infra.history.empty.title")} description={emptyBody} />
+          <EmptyState
+            illustration={<ChartLine className="size-10 text-fg-subtle" />}
+            title={t("infra.history.empty.title")}
+            description={emptyBody}
+          />
         )}
       </div>
     </section>

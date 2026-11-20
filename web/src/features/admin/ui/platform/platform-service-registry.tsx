@@ -46,20 +46,14 @@ export function PlatformServiceRegistry({ canWrite }: { canWrite: boolean }) {
   const [disableReason, setDisableReason] = useState("");
   const [target, setTarget] = useState<"http" | "tcp">("http");
 
-  const guests = useInfraGuests(
-    draft && systemID.test(draft.server_id ?? "") ? draft.server_id! : "",
-  );
+  const guests = useInfraGuests(draft && systemID.test(draft.server_id ?? "") ? draft.server_id! : "");
   const providerSystems =
     systems.data?.providers.flatMap((provider) =>
-      provider.nodes
-        .filter((node) => node.source === "api")
-        .map((node) => ({ id: node.id, label: `${node.label} (${provider.label})` })),
+      provider.nodes.filter((node) => node.source === "api").map((node) => ({ id: node.id, label: `${node.label} (${provider.label})` })),
     ) ?? [];
 
-  const update = <K extends keyof PlatformServiceInput>(
-    key: K,
-    value: PlatformServiceInput[K],
-  ) => setDraft((current) => (current ? { ...current, [key]: value } : current));
+  const update = <K extends keyof PlatformServiceInput>(key: K, value: PlatformServiceInput[K]) =>
+    setDraft((current) => (current ? { ...current, [key]: value } : current));
 
   const beginEdit = (service: PlatformService) => {
     setEditing(service);
@@ -112,7 +106,11 @@ export function PlatformServiceRegistry({ canWrite }: { canWrite: boolean }) {
   };
 
   if (query.isError) {
-    return <p role="alert" className="p-4 text-base text-danger">{query.error.message}</p>;
+    return (
+      <p role="alert" className="p-4 text-base text-danger">
+        {query.error.message}
+      </p>
+    );
   }
 
   return (
@@ -128,18 +126,13 @@ export function PlatformServiceRegistry({ canWrite }: { canWrite: boolean }) {
 
       <ul className="space-y-2">
         {query.data?.items.map((service) => (
-          <li
-            key={service.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line p-3"
-          >
+          <li key={service.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line p-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{service.alias || service.name}</span>
                 <Badge tone={stateTone[service.state]}>{service.state}</Badge>
               </div>
-              <p className="truncate font-mono text-xs text-fg-subtle">
-                {service.url || service.tcp || "No target"}
-              </p>
+              <p className="truncate font-mono text-xs text-fg-subtle">{service.url || service.tcp || "No target"}</p>
               <p className="text-xs text-fg-subtle">
                 {service.kind} · every {service.interval_seconds}s · {observationSummary(service)}
               </p>
@@ -190,10 +183,7 @@ export function PlatformServiceRegistry({ canWrite }: { canWrite: boolean }) {
           className="flex flex-wrap items-end gap-2 rounded-lg border border-line p-3"
           onSubmit={(event) => {
             event.preventDefault();
-            actions.disable.mutate(
-              { ...disabling, reason: disableReason },
-              { onSuccess: () => setDisabling(null) },
-            );
+            actions.disable.mutate({ ...disabling, reason: disableReason }, { onSuccess: () => setDisabling(null) });
           }}
         >
           <label className="min-w-64 flex-1 text-base">
@@ -215,12 +205,7 @@ export function PlatformServiceRegistry({ canWrite }: { canWrite: boolean }) {
           >
             Confirm disable
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            tooltip="Cancel disabling this service"
-            onPress={() => setDisabling(null)}
-          >
+          <Button size="sm" variant="ghost" tooltip="Cancel disabling this service" onPress={() => setDisabling(null)}>
             Cancel
           </Button>
         </form>
@@ -281,12 +266,12 @@ export function PlatformServiceRegistry({ canWrite }: { canWrite: boolean }) {
               />
               <datalist id="platform-health-systems">
                 {providerSystems.map((system) => (
-                  <option key={system.id} value={system.id}>{system.label}</option>
+                  <option key={system.id} value={system.id}>
+                    {system.label}
+                  </option>
                 ))}
               </datalist>
-              <span className="mt-1 block text-xs text-fg-subtle">
-                Suggestions come from configured Incus and Proxmox connections.
-              </span>
+              <span className="mt-1 block text-xs text-fg-subtle">Suggestions come from configured Incus and Proxmox connections.</span>
             </label>
             {draft.server_id && (
               <label className="text-base">
@@ -325,12 +310,7 @@ export function PlatformServiceRegistry({ canWrite }: { canWrite: boolean }) {
               value={draft.interval_seconds}
               onChange={(value) => update("interval_seconds", value)}
             />
-            <TextField
-              label="Audit reason"
-              value={draft.reason}
-              onChange={(value) => update("reason", value)}
-              className="sm:col-span-2"
-            />
+            <TextField label="Audit reason" value={draft.reason} onChange={(value) => update("reason", value)} className="sm:col-span-2" />
             <div className="flex gap-2 sm:col-span-2">
               <Button
                 size="sm"
@@ -385,7 +365,11 @@ function ObservationHistory({ serviceId }: { serviceId: string }) {
   return (
     <details className="mt-2 text-xs" onToggle={(event) => setOpen(event.currentTarget.open)}>
       <summary className="cursor-pointer text-fg-muted">Recent observations</summary>
-      {history.isError && <p role="alert" className="mt-2 text-danger">{history.error.message}</p>}
+      {history.isError && (
+        <p role="alert" className="mt-2 text-danger">
+          {history.error.message}
+        </p>
+      )}
       {history.isLoading && <p className="mt-2 text-fg-subtle">Loading observation history…</p>}
       {history.data && history.data.items.length === 0 && <p className="mt-2 text-fg-subtle">No observations recorded.</p>}
       <ol className="mt-2 space-y-1">
@@ -395,7 +379,7 @@ function ObservationHistory({ serviceId }: { serviceId: string }) {
             <span>{item.healthy ? "Reachable" : item.configured ? "Unreachable" : "Not configured"}</span>
             {item.latency_ms !== undefined && <span>{item.latency_ms} ms</span>}
             <span>{item.detail}</span>
-            {item.resource && <span>Provider: {item.resource.observed ? item.resource.status ?? "observed" : item.resource.detail}</span>}
+            {item.resource && <span>Provider: {item.resource.observed ? (item.resource.status ?? "observed") : item.resource.detail}</span>}
           </li>
         ))}
       </ol>

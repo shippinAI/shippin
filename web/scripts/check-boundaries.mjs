@@ -68,7 +68,9 @@ if (process.argv.includes("--print")) {
   process.exit(0);
 }
 const baseline = existsSync(baselineFile)
-  ? readFileSync(baselineFile, "utf8").split(/\r?\n/).filter((l) => l && !l.startsWith("#"))
+  ? readFileSync(baselineFile, "utf8")
+      .split(/\r?\n/)
+      .filter((l) => l && !l.startsWith("#"))
   : [];
 const listed = new Set(baseline);
 for (const c of current) if (!listed.has(c)) problems.push(`${c}: reaches into another feature; import it from that feature's index.ts`);

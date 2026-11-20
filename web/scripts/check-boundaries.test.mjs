@@ -45,9 +45,19 @@ test("lib depends on no feature, and only generated files name a module", () => 
   const lib = check({ ...base, "src/lib/y.ts": 'import { A } from "../features/a";\n' });
   assert.match(lib.out, /src\/lib imports features\/a\/index\.ts/);
   assert.ok(check({ ...base, "src/lib/y.test.ts": 'import { A } from "../features/a";\n' }).ok, "a lib test may use a feature");
-  const mod = check({ ...base, "src/modules/m/x.ts": "export const M = 1;\n", "src/template/t.ts": 'import { M } from "../modules/m/x";\n' });
+  const mod = check({
+    ...base,
+    "src/modules/m/x.ts": "export const M = 1;\n",
+    "src/template/t.ts": 'import { M } from "../modules/m/x";\n',
+  });
   assert.match(mod.out, /imports module code modules\/m\/x\.ts/);
-  assert.ok(check({ ...base, "src/modules/m/x.ts": "export const M = 1;\n", "src/app/r.gen.ts": 'export const r = () => import("../modules/m/x");\n' }).ok);
+  assert.ok(
+    check({
+      ...base,
+      "src/modules/m/x.ts": "export const M = 1;\n",
+      "src/app/r.gen.ts": 'export const r = () => import("../modules/m/x");\n',
+    }).ok,
+  );
 });
 
 test("a bucket folder is refused", () => {

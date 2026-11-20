@@ -5,5 +5,9 @@ import { ProviderCards } from "./provider-cards";
 export function InfrastructureSummary() {
   const q = useInfraOverview();
   if (!q.data) return null;
-  return <div className="mb-8"><ProviderCards providers={q.data.providers} /></div>;
+  return (
+    <div className="mb-8">
+      <ProviderCards providers={q.data.providers} />
+    </div>
+  );
 }

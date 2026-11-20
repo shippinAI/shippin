@@ -11,7 +11,11 @@ export function MembersCard({ tenantId, team, actions }: { tenantId: string; tea
   const opts = team.roles.map((r) => ({ id: r, label: r }));
   return (
     <Card>
-      <CardHeader title={`Members (${team.members.length})`} description="People in this tenant's organization and their role." actions={actions} />
+      <CardHeader
+        title={`Members (${team.members.length})`}
+        description="People in this tenant's organization and their role."
+        actions={actions}
+      />
       <ul className="divide-y divide-line" aria-label="Members">
         {team.members.map((m) => {
           const ownerLocked = m.roles.includes(team.owner_role) && !team.is_owner;
@@ -24,14 +28,25 @@ export function MembersCard({ tenantId, team, actions }: { tenantId: string; tea
               </div>
               {editable ? (
                 <div className="w-48">
-                  <Select label={`Role of ${m.name || m.email}`} options={opts.filter((o) => team.is_owner || o.id !== team.owner_role || m.roles.includes(o.id))}
-                    value={m.roles[0] ?? ""} onChange={(r) => w.setRoles.mutate({ user: m.user_id, roles: [r] })} />
+                  <Select
+                    label={`Role of ${m.name || m.email}`}
+                    options={opts.filter((o) => team.is_owner || o.id !== team.owner_role || m.roles.includes(o.id))}
+                    value={m.roles[0] ?? ""}
+                    onChange={(r) => w.setRoles.mutate({ user: m.user_id, roles: [r] })}
+                  />
                 </div>
               ) : (
                 <span className="font-mono text-xs text-fg-muted">{m.roles.join(", ")}</span>
               )}
               {editable && (
-                <Button size="sm" variant="ghost" aria-label={`Remove ${m.name || m.email}`} tooltip="Remove from this tenant (audited)" isDisabled={w.remove.isPending} onPress={() => w.remove.mutate(m.user_id)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label={`Remove ${m.name || m.email}`}
+                  tooltip="Remove from this tenant (audited)"
+                  isDisabled={w.remove.isPending}
+                  onPress={() => w.remove.mutate(m.user_id)}
+                >
                   <UserMinus className="size-4" />
                 </Button>
               )}

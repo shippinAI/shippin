@@ -37,12 +37,35 @@ export function MemberDrawer({ team, member, canWrite, onClose }: Props) {
       footer={
         canWrite && (
           <>
-            <Button variant="primary" isDisabled={!changed || !okReason || save.isPending} tooltip={!changed ? "Change a role first" : okReason ? `Save the roles (audited first, then sent to ${idp})` : "Add a reason"}
-              onPress={() => save.mutate({ id: member.id, roles, reason: reason.trim() }, { onSuccess: onClose })}>Save roles</Button>
+            <Button
+              variant="primary"
+              isDisabled={!changed || !okReason || save.isPending}
+              tooltip={!changed ? "Change a role first" : okReason ? `Save the roles (audited first, then sent to ${idp})` : "Add a reason"}
+              onPress={() => save.mutate({ id: member.id, roles, reason: reason.trim() }, { onSuccess: onClose })}
+            >
+              Save roles
+            </Button>
             {!member.self && (
-              <Button variant={deactivated ? "secondary" : "danger"} className="ml-auto" isDisabled={!okReason || active.isPending || (!deactivated && lastOwner)}
-                tooltip={lastOwner && !deactivated ? "The last Owner can't be deactivated" : okReason ? (deactivated ? "Allow sign-in again" : "Block sign-in; history is kept") : "Add a reason"}
-                onPress={() => active.mutate({ id: member.id, state: deactivated ? "reactivate" : "deactivate", reason: reason.trim() }, { onSuccess: onClose })}>
+              <Button
+                variant={deactivated ? "secondary" : "danger"}
+                className="ml-auto"
+                isDisabled={!okReason || active.isPending || (!deactivated && lastOwner)}
+                tooltip={
+                  lastOwner && !deactivated
+                    ? "The last Owner can't be deactivated"
+                    : okReason
+                      ? deactivated
+                        ? "Allow sign-in again"
+                        : "Block sign-in; history is kept"
+                      : "Add a reason"
+                }
+                onPress={() =>
+                  active.mutate(
+                    { id: member.id, state: deactivated ? "reactivate" : "deactivate", reason: reason.trim() },
+                    { onSuccess: onClose },
+                  )
+                }
+              >
                 {deactivated ? <UserCheck className="size-4" /> : <UserX className="size-4" />} {deactivated ? "Reactivate" : "Deactivate"}
               </Button>
             )}
@@ -53,7 +76,12 @@ export function MemberDrawer({ team, member, canWrite, onClose }: Props) {
       <div className="space-y-6 px-6 py-5">
         <div className="grid grid-cols-2 gap-4">
           <Fact label="Status" value={member.state} />
-          <Fact label="MFA" value={member.mfa ? "Enrolled" : member.kind === "human" ? "Not enrolled — staff permissions stay off" : "Machine user (no MFA)"} />
+          <Fact
+            label="MFA"
+            value={
+              member.mfa ? "Enrolled" : member.kind === "human" ? "Not enrolled — staff permissions stay off" : "Machine user (no MFA)"
+            }
+          />
           <Fact label="Last active" value={member.last_seen ? new Date(member.last_seen).toLocaleString() : "Never in the console"} />
           <Fact label="Current roles" value={<RoleChips keys={member.roles} roles={team.roles} />} />
         </div>
@@ -61,16 +89,29 @@ export function MemberDrawer({ team, member, canWrite, onClose }: Props) {
           <Label className="text-sm font-medium text-fg">Roles</Label>
           {member.self && <p className="pb-1 text-xs text-warning">You can remove your own roles, but not add any; ask another Owner.</p>}
           {team.roles.map((r) => (
-            <Checkbox key={r.key} value={r.key} isDisabled={!canWrite || (member.self && !member.roles.includes(r.key))}
-              description={`${r.description || r.key} · ${r.permissions.length} permissions`}>
+            <Checkbox
+              key={r.key}
+              value={r.key}
+              isDisabled={!canWrite || (member.self && !member.roles.includes(r.key))}
+              description={`${r.description || r.key} · ${r.permissions.length} permissions`}
+            >
               {r.name}
             </Checkbox>
           ))}
         </CheckboxGroup>
         {canWrite && (
-          <TextField label="Reason" multiline value={reason} onChange={setReason} placeholder="e.g. Joining the on-call rotation" description="Required; kept in the audit log with the change." />
+          <TextField
+            label="Reason"
+            multiline
+            value={reason}
+            onChange={setReason}
+            placeholder="e.g. Joining the on-call rotation"
+            description="Required; kept in the audit log with the change."
+          />
         )}
-        {lastOwner && <p className="text-xs text-fg-subtle">This is the only active Owner. Make someone else an Owner before removing this role.</p>}
+        {lastOwner && (
+          <p className="text-xs text-fg-subtle">This is the only active Owner. Make someone else an Owner before removing this role.</p>
+        )}
       </div>
     </Drawer>
   );

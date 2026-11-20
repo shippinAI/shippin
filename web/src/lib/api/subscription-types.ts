@@ -16,7 +16,14 @@ export type AIHome = {
   utility_state: "stopped" | "starting" | "running" | "error";
 };
 
-export type AIConnection = { provider: string; home_id: string; tenant_id: string; status: ConnectionStatus; plan?: string; checked_at?: string };
+export type AIConnection = {
+  provider: string;
+  home_id: string;
+  tenant_id: string;
+  status: ConnectionStatus;
+  plan?: string;
+  checked_at?: string;
+};
 
 export type MySubscriptions = {
   enabled: boolean;

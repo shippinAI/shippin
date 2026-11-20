@@ -17,7 +17,9 @@ function useTeamSend<V>(build: (v: V) => [method: "POST" | "PUT" | "DELETE", pat
       return apiSend<Sent>(m, p, b);
     },
     onSuccess: (d) =>
-      d?.status === "pending_approval" ? toast.info("Waiting for a second Owner", "The two-person rule applies to this change.") : toast.success(done),
+      d?.status === "pending_approval"
+        ? toast.info("Waiting for a second Owner", "The two-person rule applies to this change.")
+        : toast.success(done),
     onError: (e) => toast.error(failed, e.message),
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: ["admin"] });
@@ -27,26 +29,57 @@ function useTeamSend<V>(build: (v: V) => [method: "POST" | "PUT" | "DELETE", pat
 }
 
 export const useSetRoles = () =>
-  useTeamSend((v: { id: string; roles: string[]; reason: string }) => ["PUT", `/v1/operator/team/members/${v.id}/roles`, { roles: v.roles, reason: v.reason }], "Roles saved", "Roles not changed");
+  useTeamSend(
+    (v: { id: string; roles: string[]; reason: string }) => [
+      "PUT",
+      `/v1/operator/team/members/${v.id}/roles`,
+      { roles: v.roles, reason: v.reason },
+    ],
+    "Roles saved",
+    "Roles not changed",
+  );
 
 export const useSetActive = () =>
-  useTeamSend((v: { id: string; state: "deactivate" | "reactivate"; reason: string }) => ["POST", `/v1/operator/team/members/${v.id}/${v.state}`, { reason: v.reason }], "Account updated", "Account not changed");
+  useTeamSend(
+    (v: { id: string; state: "deactivate" | "reactivate"; reason: string }) => [
+      "POST",
+      `/v1/operator/team/members/${v.id}/${v.state}`,
+      { reason: v.reason },
+    ],
+    "Account updated",
+    "Account not changed",
+  );
 
 export type InviteBody = { email: string; first_name: string; last_name: string; roles: string[]; reason: string };
 /** A one-time link for someone invited on this panel to claim their account. */
-export const useInviteLink = () => useMutation({ mutationFn: (id: string) => apiSend<{ url: string }>("POST", `/v1/operator/team/members/${id}/invite-link`) });
+export const useInviteLink = () =>
+  useMutation({ mutationFn: (id: string) => apiSend<{ url: string }>("POST", `/v1/operator/team/members/${id}/invite-link`) });
 
 export const useInvite = () =>
   useTeamSend((v: InviteBody) => ["POST", "/v1/operator/team/members", v], "Invitation sent", "Couldn't invite");
 
 export type RoleBody = { key: string; name: string; description: string; permissions: string[]; reason: string };
 export const useSaveRole = (create: boolean) =>
-  useTeamSend((v: RoleBody) => (create ? ["POST", "/v1/operator/team/roles", v] : ["PUT", `/v1/operator/team/roles/${v.key}`, { ...v, key: undefined }]), create ? "Role created" : "Role saved", "Role not saved");
+  useTeamSend(
+    (v: RoleBody) =>
+      create ? ["POST", "/v1/operator/team/roles", v] : ["PUT", `/v1/operator/team/roles/${v.key}`, { ...v, key: undefined }],
+    create ? "Role created" : "Role saved",
+    "Role not saved",
+  );
 
-export const useDeleteRole = () => useTeamSend((key: string) => ["DELETE", `/v1/operator/team/roles/${key}`], "Role deleted", "Role not deleted");
+export const useDeleteRole = () =>
+  useTeamSend((key: string) => ["DELETE", `/v1/operator/team/roles/${key}`], "Role deleted", "Role not deleted");
 
 export const useSaveSettings = () =>
-  useTeamSend((v: TeamSettings & { reason: string }) => ["PUT", "/v1/operator/team/settings", v], "Team settings saved", "Settings not saved");
+  useTeamSend(
+    (v: TeamSettings & { reason: string }) => ["PUT", "/v1/operator/team/settings", v],
+    "Team settings saved",
+    "Settings not saved",
+  );
 
 export const useDecideRequest = () =>
-  useTeamSend((v: { id: string; decision: "approve" | "reject" | "cancel" }) => ["POST", `/v1/operator/team/requests/${v.id}/${v.decision}`], "Request decided", "Couldn't decide");
+  useTeamSend(
+    (v: { id: string; decision: "approve" | "reject" | "cancel" }) => ["POST", `/v1/operator/team/requests/${v.id}/${v.decision}`],
+    "Request decided",
+    "Couldn't decide",
+  );

@@ -15,11 +15,23 @@ export const useRunnerSizes = () =>
 export const useCustomers = () =>
   useQuery({ queryKey: ["catalog", "customers"], queryFn: () => callAction("shippin.tenancy.customer.list"), retry: false });
 export const useCustomer = (customerId: string) =>
-  useQuery({ queryKey: ["catalog", "customers", customerId], queryFn: () => callAction("shippin.tenancy.customer.get", { customerId }), retry: false });
+  useQuery({
+    queryKey: ["catalog", "customers", customerId],
+    queryFn: () => callAction("shippin.tenancy.customer.get", { customerId }),
+    retry: false,
+  });
 export const useEffective = (customerId: string) =>
-  useQuery({ queryKey: ["catalog", "effective", customerId], queryFn: () => callAction("shippin.tenancy.customer.effective_config.get", { customerId }), retry: false });
+  useQuery({
+    queryKey: ["catalog", "effective", customerId],
+    queryFn: () => callAction("shippin.tenancy.customer.effective_config.get", { customerId }),
+    retry: false,
+  });
 export const useIntents = (customerId: string) =>
-  useQuery({ queryKey: ["catalog", "intents", customerId], queryFn: () => callAction("shippin.tenancy.customer.provision_intent.list", { customerId }), retry: false });
+  useQuery({
+    queryKey: ["catalog", "intents", customerId],
+    queryFn: () => callAction("shippin.tenancy.customer.provision_intent.list", { customerId }),
+    retry: false,
+  });
 
 /** One mutation for catalog changes made through actions (callAction); refreshes all catalog queries and toasts the result. */
 export function useCatalogAction(done: string) {

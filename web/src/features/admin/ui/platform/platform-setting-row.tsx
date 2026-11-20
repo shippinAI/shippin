@@ -20,7 +20,9 @@ export function PlatformSettingRow({ s, canWrite }: { s: PlatformSetting; canWri
         <div>
           <p className="font-medium text-fg">{s.label}</p>
           <p className="text-base text-fg-muted">{s.help}</p>
-          <p className="mt-1 font-mono text-xs text-fg-subtle">{s.key} · config file: {String(s.config_value) || "(empty)"}</p>
+          <p className="mt-1 font-mono text-xs text-fg-subtle">
+            {s.key} · config file: {String(s.config_value) || "(empty)"}
+          </p>
         </div>
         <Badge tone={s.overridden ? "warning" : "neutral"}>{s.overridden ? "Overridden" : "From config"}</Badge>
       </div>
@@ -29,18 +31,61 @@ export function PlatformSettingRow({ s, canWrite }: { s: PlatformSetting; canWri
           {value ? "On" : "Off"}
         </Switch>
       ) : s.kind === "choice" && s.choices ? (
-        <Select label="Value" value={String(value)} onChange={setValue} isDisabled={!canWrite} options={s.choices.map((c) => ({ id: c.value, label: c.label }))} />
+        <Select
+          label="Value"
+          value={String(value)}
+          onChange={setValue}
+          isDisabled={!canWrite}
+          options={s.choices.map((c) => ({ id: c.value, label: c.label }))}
+        />
       ) : (
-        <TextField label="Value" type={s.kind === "integer" ? "number" : "text"} value={String(value)} onChange={setValue} isDisabled={!canWrite} min={s.kind === "integer" ? s.min : undefined} max={s.kind === "integer" ? s.max : undefined} step={s.kind === "integer" ? 1 : undefined} />
+        <TextField
+          label="Value"
+          type={s.kind === "integer" ? "number" : "text"}
+          value={String(value)}
+          onChange={setValue}
+          isDisabled={!canWrite}
+          min={s.kind === "integer" ? s.min : undefined}
+          max={s.kind === "integer" ? s.max : undefined}
+          step={s.kind === "integer" ? 1 : undefined}
+        />
       )}
       {canWrite && (
         <div className="flex items-end gap-2">
-          <div className="flex-1"><TextField label="Reason (audited)" value={reason} onChange={setReason} placeholder="Why this changes" /></div>
-          <Button size="sm" variant="primary" isDisabled={!ok || save.isPending} tooltip={ok ? "Save the override (audited)" : "Change the value and give a reason"}
-            onPress={() => save.mutate({ key: s.key, value: s.kind === "integer" ? parsedNumber : value, reason }, { onSuccess: () => setReason("") })}>Save</Button>
+          <div className="flex-1">
+            <TextField label="Reason (audited)" value={reason} onChange={setReason} placeholder="Why this changes" />
+          </div>
+          <Button
+            size="sm"
+            variant="primary"
+            isDisabled={!ok || save.isPending}
+            tooltip={ok ? "Save the override (audited)" : "Change the value and give a reason"}
+            onPress={() =>
+              save.mutate({ key: s.key, value: s.kind === "integer" ? parsedNumber : value, reason }, { onSuccess: () => setReason("") })
+            }
+          >
+            Save
+          </Button>
           {s.overridden && (
-            <Button size="sm" variant="ghost" isDisabled={reason.trim().length < 5 || save.isPending} tooltip="Clear the override; the config file value applies again"
-              onPress={() => save.mutate({ key: s.key, value: null, reason }, { onSuccess: () => { setReason(""); setValue(String(s.config_value)); } })}>Reset to config</Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              isDisabled={reason.trim().length < 5 || save.isPending}
+              tooltip="Clear the override; the config file value applies again"
+              onPress={() =>
+                save.mutate(
+                  { key: s.key, value: null, reason },
+                  {
+                    onSuccess: () => {
+                      setReason("");
+                      setValue(String(s.config_value));
+                    },
+                  },
+                )
+              }
+            >
+              Reset to config
+            </Button>
           )}
         </div>
       )}

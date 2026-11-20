@@ -21,12 +21,15 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.5",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "jiti": "^2.7.0",
     "js-yaml": "^5.5.0",
+    "knip": "6.44.1",
+    "style-dictionary": "5.8.0",
     "tailwindcss": "^4.3.3",
     "tailwindcss-react-aria-components": "^2.2.0",
     "typescript": "^7.0.2",

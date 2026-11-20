@@ -23,10 +23,14 @@ export function InvitePage() {
           <BrandMark size={36} />
           <span className="text-xl font-semibold tracking-tight">{s?.brand.name}</span>
         </div>
-        {codes ? <RecoveryCodes codes={codes} /> : (
+        {codes ? (
+          <RecoveryCodes codes={codes} />
+        ) : (
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Join this panel</h1>
-            <p className="mt-2 text-base text-fg-muted">You were invited as <span className="font-mono text-fg">{email}</span>. The link works once.</p>
+            <p className="mt-2 text-base text-fg-muted">
+              You were invited as <span className="font-mono text-fg">{email}</span>. The link works once.
+            </p>
             <form
               className="mt-6 grid gap-2 rounded-xl border border-line bg-surface p-5"
               onSubmit={(e) => {
@@ -34,7 +38,11 @@ export function InvitePage() {
                 const name = String(new FormData(e.currentTarget).get("name") ?? "").trim();
                 setBusy(true);
                 setError("");
-                void fetch("/v1/invites/redeem", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code, email, name }) })
+                void fetch("/v1/invites/redeem", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({ code, email, name }),
+                })
                   .then(async (res) => {
                     if (!res.ok) {
                       setError("This link has been used or has expired. Ask for a new one.");
@@ -45,10 +53,25 @@ export function InvitePage() {
                   .finally(() => setBusy(false));
               }}
             >
-              <label className="text-sm text-fg-muted" htmlFor="invite-name">Your name</label>
+              <label className="text-sm text-fg-muted" htmlFor="invite-name">
+                Your name
+              </label>
               <input id="invite-name" name="name" autoComplete="name" className={field} />
-              {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-              <Button type="submit" variant="primary" size="lg" className="mt-2 w-full" isDisabled={busy || !code || !email} tooltip="Claim this account and sign in">Join</Button>
+              {error && (
+                <p role="alert" className="text-sm text-danger">
+                  {error}
+                </p>
+              )}
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                className="mt-2 w-full"
+                isDisabled={busy || !code || !email}
+                tooltip="Claim this account and sign in"
+              >
+                Join
+              </Button>
             </form>
           </div>
         )}

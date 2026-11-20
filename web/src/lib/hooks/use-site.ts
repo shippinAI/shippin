@@ -3,12 +3,34 @@ import { apiGet, apiSend } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 
 export type SiteRelease = { id: string; at: string };
-export type SiteState = { enabled?: boolean; published: boolean; url?: string; current?: string; releases: SiteRelease[]; rrflow_recorded?: boolean; note?: string; scan?: string; dry_run?: boolean };
-export type SiteAction = { action: "publish" | "unpublish" | "rollback"; slug: string; port: number; release?: string; path?: string; dry_run?: boolean };
+export type SiteState = {
+  enabled?: boolean;
+  published: boolean;
+  url?: string;
+  current?: string;
+  releases: SiteRelease[];
+  rrflow_recorded?: boolean;
+  note?: string;
+  scan?: string;
+  dry_run?: boolean;
+};
+export type SiteAction = {
+  action: "publish" | "unpublish" | "rollback";
+  slug: string;
+  port: number;
+  release?: string;
+  path?: string;
+  dry_run?: boolean;
+};
 
 /** Turn a workspace name into a site name (lowercase, dashes, max 32). */
 export const siteSlug = (name: string) =>
-  name.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32).replace(/-+$/, "") || "site";
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32)
+    .replace(/-+$/, "") || "site";
 
 export const useSite = (tenantId: string, id: string, slug: string) =>
   useQuery({

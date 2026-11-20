@@ -1,7 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../api/client";
 
-export type InstanceUsage = { name: string; type: string; cpu_seconds: number; memory_bytes: number; disk_bytes: number; net_tx_bytes: number };
+export type InstanceUsage = {
+  name: string;
+  type: string;
+  cpu_seconds: number;
+  memory_bytes: number;
+  disk_bytes: number;
+  net_tx_bytes: number;
+};
 export type ProjectUsage = {
   project_id: string;
   instances: InstanceUsage[];

@@ -18,10 +18,26 @@ export function MembersPanel({ team, canWrite }: { team: Team; canWrite: boolean
   const rows = team.members.filter((m) => matches(search, m.name, m.email, m.login, ...m.roles));
   return (
     <Card className="overflow-hidden">
-      <TableToolbar label="staff" value={search} onChange={setSearch} count={rows.length}
-        actions={canWrite && <Button variant="primary" size="sm" tooltip="Invite anyone by e-mail" onPress={() => setInviting(true)}><UserPlus className="size-4" /> Invite</Button>} />
-      <DataTable label="Staff" columns={memberColumns(team.roles)} rows={rows} onRowAction={setOpen}
-        empty={<EmptyState title="No staff yet" description="Invite someone by e-mail to get started." />} />
+      <TableToolbar
+        label="staff"
+        value={search}
+        onChange={setSearch}
+        count={rows.length}
+        actions={
+          canWrite && (
+            <Button variant="primary" size="sm" tooltip="Invite anyone by e-mail" onPress={() => setInviting(true)}>
+              <UserPlus className="size-4" /> Invite
+            </Button>
+          )
+        }
+      />
+      <DataTable
+        label="Staff"
+        columns={memberColumns(team.roles)}
+        rows={rows}
+        onRowAction={setOpen}
+        empty={<EmptyState title="No staff yet" description="Invite someone by e-mail to get started." />}
+      />
       <MemberDrawer team={team} member={team.members.find((m) => m.id === open)} canWrite={canWrite} onClose={() => setOpen(undefined)} />
       {inviting && <InviteDialog roles={team.roles} local={team.local_roles} onClose={() => setInviting(false)} />}
     </Card>

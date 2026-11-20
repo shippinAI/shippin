@@ -27,7 +27,13 @@ export function TenantAppsPrep({ id }: { id: string }) {
         </ul>
       )}
       <div className="mt-2">
-        <Button size="sm" variant="secondary" isDisabled={prep.isPending} tooltip="Install XFCE and the loopback desktop service. Does not install AI apps." onPress={() => setConfirm(true)}>
+        <Button
+          size="sm"
+          variant="secondary"
+          isDisabled={prep.isPending}
+          tooltip="Install XFCE and the loopback desktop service. Does not install AI apps."
+          onPress={() => setConfirm(true)}
+        >
           Prepare desktop
         </Button>
       </div>

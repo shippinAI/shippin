@@ -29,7 +29,10 @@ export function TablesPanel({ tenantId, readOnly }: { tenantId: string; readOnly
   const [selected, setSelected] = useState<DbTable | null>(null);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [cols, setCols] = useState<DraftCol[]>([idColumn(), { name: "title", type: "text", nullable: false, primary_key: false, default: "" }]);
+  const [cols, setCols] = useState<DraftCol[]>([
+    idColumn(),
+    { name: "title", type: "text", nullable: false, primary_key: false, default: "" },
+  ]);
   const items = tables.data?.tables ?? [];
   const mine = userTables(items);
   const current = selected && items.some((t) => t.schema === selected.schema && t.name === selected.name) ? selected : null;
@@ -41,12 +44,24 @@ export function TablesPanel({ tenantId, readOnly }: { tenantId: string; readOnly
           title="Tables"
           description="Row counts are exact when the count finishes in time."
           actions={
-            <Button size="sm" variant="secondary" tooltip="Create a table with a type for each column" onPress={() => setOpen(true)} isDisabled={!tenantId}>
+            <Button
+              size="sm"
+              variant="secondary"
+              tooltip="Create a table with a type for each column"
+              onPress={() => setOpen(true)}
+              isDisabled={!tenantId}
+            >
               <Plus className="size-3.5" /> New
             </Button>
           }
         />
-        {tables.isPending && <div className="space-y-2 p-4">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-12" />)}</div>}
+        {tables.isPending && (
+          <div className="space-y-2 p-4">
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className="h-12" />
+            ))}
+          </div>
+        )}
         {tables.isError && <p className="px-5 py-4 text-sm text-fg-muted">{(tables.error as Error).message}</p>}
         <div className="border-b border-line px-4 py-3">
           <div className="mb-2 text-xs font-medium tracking-wide text-fg-subtle uppercase">Start from a template</div>
@@ -58,7 +73,11 @@ export function TablesPanel({ tenantId, readOnly }: { tenantId: string; readOnly
                 variant="ghost"
                 tooltip={readOnly ? "Turn off read-only to create tables" : tpl.hint}
                 isDisabled={readOnly || apply.isPending}
-                onPress={() => apply.mutate(tpl.id, { onSuccess: () => setSelected({ schema: "public", name: tpl.tables[0], row_count: 0, estimate: 0, platform: false }) })}
+                onPress={() =>
+                  apply.mutate(tpl.id, {
+                    onSuccess: () => setSelected({ schema: "public", name: tpl.tables[0], row_count: 0, estimate: 0, platform: false }),
+                  })
+                }
               >
                 {tpl.title}
               </Button>
@@ -94,9 +113,11 @@ export function TablesPanel({ tenantId, readOnly }: { tenantId: string; readOnly
           <Card>
             <EmptyState
               title={mine.length === 0 ? "Start with a shape you already know" : "Pick a table"}
-              description={mine.length === 0
-                ? "These templates create ordinary tables in your database. Vaultix secret storage stays separate and does not show up here."
-                : "Choose a table on the left to browse and edit rows."}
+              description={
+                mine.length === 0
+                  ? "These templates create ordinary tables in your database. Vaultix secret storage stays separate and does not show up here."
+                  : "Choose a table on the left to browse and edit rows."
+              }
             />
             {mine.length === 0 && (
               <div className="grid gap-3 px-5 pb-5 sm:grid-cols-3">
@@ -114,7 +135,12 @@ export function TablesPanel({ tenantId, readOnly }: { tenantId: string; readOnly
                         variant="primary"
                         tooltip={readOnly ? "Turn off read-only to create tables" : `Create ${tpl.tables.join(", ")}`}
                         isDisabled={readOnly || apply.isPending}
-                        onPress={() => apply.mutate(tpl.id, { onSuccess: () => setSelected({ schema: "public", name: tpl.tables[0], row_count: 0, estimate: 0, platform: false }) })}
+                        onPress={() =>
+                          apply.mutate(tpl.id, {
+                            onSuccess: () =>
+                              setSelected({ schema: "public", name: tpl.tables[0], row_count: 0, estimate: 0, platform: false }),
+                          })
+                        }
                       >
                         Use {tpl.title}
                       </Button>
@@ -127,34 +153,82 @@ export function TablesPanel({ tenantId, readOnly }: { tenantId: string; readOnly
         )}
       </div>
 
-      <ModalDialog isOpen={open} onOpenChange={setOpen} title="New table" description="Names stay simple: letters, numbers, and underscores. Pick a type instead of writing SQL.">
+      <ModalDialog
+        isOpen={open}
+        onOpenChange={setOpen}
+        title="New table"
+        description="Names stay simple: letters, numbers, and underscores. Pick a type instead of writing SQL."
+      >
         <form
           className="space-y-4 px-6 py-5"
           onSubmit={(e) => {
             e.preventDefault();
-            create.mutate({ name, columns: cols }, { onSuccess: () => { setOpen(false); setSelected({ schema: "public", name, row_count: 0, estimate: 0, platform: false }); } });
+            create.mutate(
+              { name, columns: cols },
+              {
+                onSuccess: () => {
+                  setOpen(false);
+                  setSelected({ schema: "public", name, row_count: 0, estimate: 0, platform: false });
+                },
+              },
+            );
           }}
         >
-          <TextField label="Table name" value={name} onChange={setName} placeholder="todos" description="This lands in the public schema." />
+          <TextField
+            label="Table name"
+            value={name}
+            onChange={setName}
+            placeholder="todos"
+            description="This lands in the public schema."
+          />
           <div className="space-y-3">
             {cols.map((c, i) => (
               <div key={i} className="grid gap-2 rounded-lg border border-line p-3 sm:grid-cols-[1fr_160px]">
-                <TextField label="Column" value={c.name} onChange={(v) => setCols(cols.map((x, j) => j === i ? { ...x, name: v } : x))} />
-                <Select label="Type" options={columnTypes} value={c.type} onChange={(v) => setCols(cols.map((x, j) => j === i ? { ...x, type: v, default: "" } : x))} />
+                <TextField label="Column" value={c.name} onChange={(v) => setCols(cols.map((x, j) => (j === i ? { ...x, name: v } : x)))} />
+                <Select
+                  label="Type"
+                  options={columnTypes}
+                  value={c.type}
+                  onChange={(v) => setCols(cols.map((x, j) => (j === i ? { ...x, type: v, default: "" } : x)))}
+                />
                 <div className="flex flex-wrap gap-2 sm:col-span-2">
-                  <Checkbox isSelected={c.primary_key} onChange={(on) => setCols(cols.map((x, j) => j === i ? { ...x, primary_key: on, nullable: on ? false : x.nullable } : { ...x, primary_key: on ? false : x.primary_key }))}>
+                  <Checkbox
+                    isSelected={c.primary_key}
+                    onChange={(on) =>
+                      setCols(
+                        cols.map((x, j) =>
+                          j === i
+                            ? { ...x, primary_key: on, nullable: on ? false : x.nullable }
+                            : { ...x, primary_key: on ? false : x.primary_key },
+                        ),
+                      )
+                    }
+                  >
                     Primary key
                   </Checkbox>
-                  <Checkbox isSelected={c.nullable} isDisabled={c.primary_key} onChange={(on) => setCols(cols.map((x, j) => j === i ? { ...x, nullable: on } : x))}>
+                  <Checkbox
+                    isSelected={c.nullable}
+                    isDisabled={c.primary_key}
+                    onChange={(on) => setCols(cols.map((x, j) => (j === i ? { ...x, nullable: on } : x)))}
+                  >
                     Can be empty
                   </Checkbox>
-                  <DefaultField type={c.type} value={c.default} onChange={(v) => setCols(cols.map((x, j) => j === i ? { ...x, default: v } : x))} />
+                  <DefaultField
+                    type={c.type}
+                    value={c.default}
+                    onChange={(v) => setCols(cols.map((x, j) => (j === i ? { ...x, default: v } : x)))}
+                  />
                 </div>
               </div>
             ))}
           </div>
           <div className="flex justify-between gap-2">
-            <Button type="button" variant="ghost" tooltip="Add another column" onPress={() => setCols([...cols, { name: "", type: "text", nullable: true, primary_key: false, default: "" }])}>
+            <Button
+              type="button"
+              variant="ghost"
+              tooltip="Add another column"
+              onPress={() => setCols([...cols, { name: "", type: "text", nullable: true, primary_key: false, default: "" }])}
+            >
               Add column
             </Button>
             <Button type="submit" variant="primary" tooltip="Create this table" isDisabled={readOnly || create.isPending || !name}>
@@ -168,9 +242,43 @@ export function TablesPanel({ tenantId, readOnly }: { tenantId: string; readOnly
 }
 
 function DefaultField({ type, value, onChange }: { type: string; value: string; onChange: (v: string) => void }) {
-  if (type === "uuid") return <Select label="Default" options={[{ id: "", label: "None" }, { id: "gen_random_uuid()", label: "Random UUID" }]} value={value} onChange={onChange} />;
-  if (type === "timestamptz" || type === "date") return <Select label="Default" options={[{ id: "", label: "None" }, { id: "now()", label: "Now" }]} value={value} onChange={onChange} />;
-  if (type === "boolean") return <Select label="Default" options={[{ id: "", label: "None" }, { id: "false", label: "No" }, { id: "true", label: "Yes" }]} value={value} onChange={onChange} />;
+  if (type === "uuid")
+    return (
+      <Select
+        label="Default"
+        options={[
+          { id: "", label: "None" },
+          { id: "gen_random_uuid()", label: "Random UUID" },
+        ]}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  if (type === "timestamptz" || type === "date")
+    return (
+      <Select
+        label="Default"
+        options={[
+          { id: "", label: "None" },
+          { id: "now()", label: "Now" },
+        ]}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  if (type === "boolean")
+    return (
+      <Select
+        label="Default"
+        options={[
+          { id: "", label: "None" },
+          { id: "false", label: "No" },
+          { id: "true", label: "Yes" },
+        ]}
+        value={value}
+        onChange={onChange}
+      />
+    );
   if (type === "integer" || type === "bigint" || type === "numeric") {
     return <TextField label="Default" value={value} onChange={onChange} placeholder="Optional number" />;
   }

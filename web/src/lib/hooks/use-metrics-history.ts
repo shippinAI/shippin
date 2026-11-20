@@ -7,8 +7,14 @@ import { callAction } from "../api/actions";
 // (MetricRange and friends in actions.gen.ts), narrowed where the generated types are plain strings.
 
 export type MetricName =
-  | "cpu" | "load1" | "memory_used_bytes" | "memory_total_bytes" | "disk_used_bytes" | "disk_total_bytes"
-  | "net_in_bytes_per_second" | "net_out_bytes_per_second";
+  | "cpu"
+  | "load1"
+  | "memory_used_bytes"
+  | "memory_total_bytes"
+  | "disk_used_bytes"
+  | "disk_total_bytes"
+  | "net_in_bytes_per_second"
+  | "net_out_bytes_per_second";
 /** cpu is a fraction of the whole (0 to 1); load is the one-minute load average. */
 export type MetricUnit = "fraction" | "load" | "bytes" | "bytes_per_second";
 /** One step: the average and peak of the samples in it. A step with no sample is null, never zero. */
@@ -47,7 +53,13 @@ const rangeSpec: Record<HistoryRange, { seconds: number; step: number }> = {
 };
 
 export const historyMetrics: MetricName[] = [
-  "cpu", "memory_used_bytes", "memory_total_bytes", "disk_used_bytes", "disk_total_bytes", "net_in_bytes_per_second", "net_out_bytes_per_second",
+  "cpu",
+  "memory_used_bytes",
+  "memory_total_bytes",
+  "disk_used_bytes",
+  "disk_total_bytes",
+  "net_in_bytes_per_second",
+  "net_out_bytes_per_second",
 ];
 
 /** The query for one range ending now: from rounded down to a step, to one step past now so the current step shows. */
@@ -56,8 +68,12 @@ export function rangeQuery(target: MetricsTarget, range: HistoryRange, now = Dat
   const stepMs = step * 1000;
   const to = Math.ceil(now / stepMs) * stepMs;
   return new URLSearchParams({
-    server_id: target.serverId, guest_id: target.guest ?? "", metrics: historyMetrics.join(","),
-    from: new Date(to - seconds * 1000).toISOString(), to: new Date(to).toISOString(), step: String(step),
+    server_id: target.serverId,
+    guest_id: target.guest ?? "",
+    metrics: historyMetrics.join(","),
+    from: new Date(to - seconds * 1000).toISOString(),
+    to: new Date(to).toISOString(),
+    step: String(step),
   });
 }
 
@@ -75,7 +91,8 @@ export function useMetricsHistory(target: MetricsTarget, range: HistoryRange): M
     enabled,
     refetchInterval: 60_000,
     // A new range keeps the old charts until it arrives; a different host or guest never shows another's.
-    placeholderData: (prev, prevQuery) => (prevQuery?.queryKey[2] === target.serverId && prevQuery.queryKey[3] === (target.guest ?? "") ? prev : undefined),
+    placeholderData: (prev, prevQuery) =>
+      prevQuery?.queryKey[2] === target.serverId && prevQuery.queryKey[3] === (target.guest ?? "") ? prev : undefined,
   });
   return { data: enabled ? q.data : undefined, isPending: enabled && q.isPending, error: q.error };
 }
