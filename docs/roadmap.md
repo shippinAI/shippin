@@ -91,6 +91,8 @@ The 2026-11-19 direction: before anything else, the enterprise code leaves this 
 
 Between S1 and S2, the rest of the [panel framework](web-framework.md) is built, in this order: F5 rot checks, F4 lexicon, F2 tokens from one source, F3 components and their gallery. Each is one commit, seen on the review deploy.
 
+The [builds and releases](release.md) track runs beside it, decided by the owner on 2026-11-20: a private edge build from every green `main`, and public tagged releases. The order: R1 build info and R2 Go checks first; R3 licenses before S2; then R4 edge and R5 releases; R6 updates after Phase 4.
+
 Gaps checked in the code on 2026-11-19, and where each is closed:
 
 | Gap | Found | Closed by |
@@ -100,7 +102,7 @@ Gaps checked in the code on 2026-11-19, and where each is closed:
 | 315 routes outside the action schema | `internal/api/testdata/mcpl-undescribed.txt`, which may only shrink. | Each group as its work comes up; workspaces and guests with D1. |
 | Tenant database backups are a stub | A backup is recorded as `pending_backend`; restore always refuses. | Real dumps to storage the owner configures, then restore, after D1. |
 | One managed service kind | `internal/managed` provisions only `rrflow-state`. | Stage 7: PostgreSQL first, then S3, DNS and mail, through the same managed-service model. |
-| No metering, invoicing or payment | The billing permissions are reserved placeholders. | Stage 14, after the owner decides whether hosting and billing are public modules or enterprise. |
+| No metering, invoicing or payment | The billing permissions are reserved placeholders. | Stage 14, in the enterprise edition: the owner decided on 2026-11-20 that the hosting layer (customers, plans, billing, provisioning, sign-up) is licensed to hosting companies with a signed key, like WHMCS. |
 
 ### The hosted development space
 

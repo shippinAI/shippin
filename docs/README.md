@@ -9,6 +9,7 @@ running.
 - [Roadmap](roadmap.md): what exists today, and the order of the rest, starting with separating the enterprise code.
 - [Design system](design-system.md): tokens, accessibility and speed rules for the panel.
 - [Panel framework](web-framework.md): routes and navigation from folders, the lexicon, rot checks, tokens and components.
+- [Builds and releases](release.md): the local, edge and release channels, versions, what a release carries and the checks before anything is published.
 - [MCPL](mcpl.md): one canonical action surface for people, the API and an AI acting for a person; the rules every route and input follows.
 - [Build runners](runners.md): GitHub Actions jobs on single-use runner machines, per organization (RUN-01).
 - [Settings and secrets](settings.md): every setting edited in the panel, and keys saved to the installation's Vaultix account (CFG-01).

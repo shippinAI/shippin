@@ -37,10 +37,11 @@ The rule for anything new: if an owner running their own installation needs it, 
 This repository is licensed under the [Functional Source License 1.1, Apache 2.0 future license](../LICENSE.md) (FSL-1.1-ALv2). In plain terms, and the license text is what counts:
 
 - Anyone may use, copy, modify and self-host it, for any purpose except a competing use.
-- A competing use is making it available as a commercial product or service that substitutes for Shippin, such as selling hosting run on it. That needs a commercial license from shippinAI.
+- A competing use is making the software available to others in a commercial product or service that substitutes for it or offers substantially the same functionality, such as offering this panel to others as a hosted product. That needs a commercial license from shippinAI.
+- Using it internally is permitted, including a business running its own servers with it. So the features a hosting company pays for are not in this repository: they are the enterprise edition, licensed with a key (decided 2026-11-20, below).
 - Each version also becomes available under Apache 2.0 two years after it is released.
 
-The enterprise module is commercial software, used under an agreement with shippinAI.
+The enterprise module is commercial software, used under an agreement with shippinAI. It is what a hosting company buys to sell hosting, in the way WHMCS is bought: customers, plans and coverage, sign-up, provisioning for customers, metering and billing. The owner decided this on 2026-11-20.
 
 Outside contributions need a contributor agreement first, so that contributed code can also ship in the enterprise edition. None is set up yet. Until it is, only shippinAI's own commits are accepted.
 
