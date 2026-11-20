@@ -26,6 +26,7 @@ import (
 
 	"shippin.cloud/console/internal/actions"
 	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/limits"
 	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/settings"
 )
@@ -48,6 +49,8 @@ type Module struct {
 	Caller CallerPolicy
 	// Lifecycle is the module's organization lifecycle (policy.go). At most one module sets it.
 	Lifecycle OrgLifecycle
+	// Limits is the module's limits policy (internal/limits). At most one module sets it.
+	Limits limits.Policy
 	// Migrations are the module's own *.sql files, at the root of this file system (an embed.FS
 	// sub-directory, for instance). They run after the panel's, in name order, in the same lock and
 	// migration table, recorded as module:<Name>/<file>. They may build on the panel's tables.
@@ -258,6 +261,11 @@ func check(ms []Module) error {
 		}
 		if m.Lifecycle != nil {
 			if err := claim("policy", "organization lifecycle", "module "+m.Name); err != nil {
+				return err
+			}
+		}
+		if m.Limits != nil {
+			if err := claim("policy", "limits", "module "+m.Name); err != nil {
 				return err
 			}
 		}

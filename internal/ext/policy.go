@@ -3,6 +3,8 @@ package ext
 import (
 	"context"
 	"time"
+
+	"shippin.cloud/console/internal/limits"
 )
 
 // Policies are the places where the panel needs a business rule (docs/editions.md). The panel asks the
@@ -86,6 +88,17 @@ func Lifecycle() OrgLifecycle {
 	for _, m := range Modules() {
 		if m.Lifecycle != nil {
 			return m.Lifecycle
+		}
+	}
+	return nil
+}
+
+// Limits is the registered module's limits policy, or nil when no module sets one. The policy's types
+// are in internal/limits, so the work it limits can use them without importing this package.
+func Limits() limits.Policy {
+	for _, m := range Modules() {
+		if m.Limits != nil {
+			return m.Limits
 		}
 	}
 	return nil

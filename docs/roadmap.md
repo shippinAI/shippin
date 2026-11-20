@@ -95,7 +95,7 @@ Gaps checked in the code on 2026-11-19, and where each is closed:
 
 | Gap | Found | Closed by |
 | --- | --- | --- |
-| Limits are read in two places | `hostd` keeps its own `plans.<name>.quota_gib` beside the catalog's plans. | S1, the limits policy: limits come from one place. |
+| Limits are read in two places | `hostd` keeps its own `plans.<name>` sizes (quota, CPU, memory, disks, VM) in its config file beside the catalog's plans, and reads them in eleven places. | Build-runner limits come through the limits policy (S1). hostd's sizes are the per-customer silo's, so they move with hostd in S3, where the enterprise module's limits policy supplies them and hostd's own plan list goes. |
 | No row-level security; four overlapping organization tables | `tenants`, `orgs`, `identity_orgs` and `tenant_teams`; no table has a row policy. | S3's new baseline: one organizations table, and a row policy on every table scoped to an organization, with a test that fails on one without. |
 | 315 routes outside the action schema | `internal/api/testdata/mcpl-undescribed.txt`, which may only shrink. | Each group as its work comes up; workspaces and guests with D1. |
 | Tenant database backups are a stub | A backup is recorded as `pending_backend`; restore always refuses. | Real dumps to storage the owner configures, then restore, after D1. |

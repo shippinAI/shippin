@@ -10,6 +10,7 @@ import (
 
 	"shippin.cloud/console/internal/actions"
 	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/limits"
 	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/settings"
 )
@@ -169,5 +170,26 @@ func TestOneOrganizationLifecycle(t *testing.T) {
 	}
 	if err := check([]Module{{Name: "a", Lifecycle: nopLifecycle{}}, {Name: "b", Lifecycle: nopLifecycle{}}}); err == nil {
 		t.Error("two modules must not both set the organization lifecycle")
+	}
+}
+
+type nopLimits struct{}
+
+func (nopLimits) Runners(context.Context, limits.Querier, string, string) (limits.Runners, error) {
+	return limits.Runners{}, nil
+}
+
+func TestOneLimitsPolicy(t *testing.T) {
+	restore := Swap(Module{Name: "a", Limits: nopLimits{}})
+	if Limits() == nil {
+		t.Error("the module's limits are not the ones used")
+	}
+	restore()
+	defer Swap()()
+	if Limits() != nil {
+		t.Error("with no module there is no module limits policy")
+	}
+	if err := check([]Module{{Name: "a", Limits: nopLimits{}}, {Name: "b", Limits: nopLimits{}}}); err == nil {
+		t.Error("two modules must not both set the limits policy")
 	}
 }

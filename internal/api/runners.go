@@ -29,7 +29,7 @@ func (a *API) runnersOn(ctx context.Context) bool {
 
 func (a *API) runnerDeps(ctx context.Context) runner.Deps {
 	return runner.Deps{Pool: a.db.Pool, GitHub: githubPort{a}, Machines: machinePort{a},
-		JobLimit: time.Duration(a.liveRunners(ctx).JobLimitMinutes) * time.Minute}
+		JobLimit: time.Duration(a.liveRunners(ctx).JobLimitMinutes) * time.Minute, Limits: a.limits()}
 }
 
 // enqueueRunner adds a runner job to the durable queue, joining a live one for the same target.
@@ -60,7 +60,7 @@ func (a *API) runRunnerRemove(ctx context.Context, j *jobs.Job, step func(string
 		return nil, err
 	}
 	if tenant != "" {
-		if err := runner.StartWaiting(ctx, a.db.Pool, a.enqueueRunner, tenant); err != nil {
+		if err := runner.StartWaitingUnder(ctx, a.db.Pool, a.limits(), a.enqueueRunner, tenant); err != nil {
 			log.Printf("runners: start waiting jobs of %s: %v", tenant, err)
 		}
 	}
