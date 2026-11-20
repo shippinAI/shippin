@@ -84,10 +84,23 @@ The 2026-11-19 direction: before anything else, the enterprise code leaves this 
 | Step | Result someone can see | Proof required |
 | --- | --- | --- |
 | S0. The split is the contract | [Editions and licensing](editions.md), [What Shippin is](objective.md) and the [code map](architecture.md) say what belongs to each edition. | Every requirement ID belongs to the panel, the module, or both, with each part stated. |
-| S1. Extension points | `app.Main`, the module registry in `internal/ext` (actions, settings sections, permissions, job kinds, migrations), the caller, organization lifecycle, limits and placement policies, and panel modules under `web/src/modules/`. No behaviour changes. | A test module registers one of each, and the tests see it work end to end. The panel with no module behaves as before. |
+| S1. Extension points | `app.Main`, the module registry in `internal/ext` (actions, settings sections, permissions, job kinds, migrations), the caller, organization lifecycle, limits and placement policies, and panel pages from folders, a module's included (F1 in the [panel framework](web-framework.md)). No behaviour changes. | A test module registers one of each, and the tests see it work end to end. The panel with no module behaves as before. |
 | S2. The enterprise repository | `shippinAI/shippin-enterprise` builds an enterprise image from the panel, pinned at a commit, plus its module. | The enterprise image runs the same panel; its CI passes. |
 | S3. The code moves | One area at a time, enterprise first, then removed here: sign-up and acquisition; plans, coverage and customers; access to customers; `hostd` and per-customer isolation, tenant databases and hosted Vaultix; then a new database baseline (PRE-01) in which the installation's own team is an ordinary organization. | After each area, both review deploys are seen in a browser: the panel without it, the enterprise build doing what it did before, as Admin, Staff and Customer. |
 | S4. It stays separate | A check in CI fails on enterprise packages, tables, routes or permissions in this repository. | The check fails on a planted example and passes on main. |
+
+Between S1 and S2, the rest of the [panel framework](web-framework.md) is built, in this order: F5 rot checks, F4 lexicon, F2 tokens from one source, F3 components and their gallery. Each is one commit, seen on the review deploy.
+
+Gaps checked in the code on 2026-11-19, and where each is closed:
+
+| Gap | Found | Closed by |
+| --- | --- | --- |
+| Limits are read in two places | `hostd` keeps its own `plans.<name>.quota_gib` beside the catalog's plans. | S1, the limits policy: limits come from one place. |
+| No row-level security; four overlapping organization tables | `tenants`, `orgs`, `identity_orgs` and `tenant_teams`; no table has a row policy. | S3's new baseline: one organizations table, and a row policy on every table scoped to an organization, with a test that fails on one without. |
+| 315 routes outside the action schema | `internal/api/testdata/mcpl-undescribed.txt`, which may only shrink. | Each group as its work comes up; workspaces and guests with D1. |
+| Tenant database backups are a stub | A backup is recorded as `pending_backend`; restore always refuses. | Real dumps to storage the owner configures, then restore, after D1. |
+| One managed service kind | `internal/managed` provisions only `rrflow-state`. | Stage 7: PostgreSQL first, then S3, DNS and mail, through the same managed-service model. |
+| No metering, invoicing or payment | The billing permissions are reserved placeholders. | Stage 14, after the owner decides whether hosting and billing are public modules or enterprise. |
 
 ### The hosted development space
 
