@@ -31,8 +31,8 @@ func (a *API) opEnableTenantVM(w http.ResponseWriter, r *http.Request, c *caller
 	if !ok {
 		return
 	}
-	if t.Status != "active" && t.Status != "failed" {
-		auth.Problem(w, http.StatusConflict, "Tenant is "+t.Status+".")
+	if ok, why, module := a.workReady(*t, true); !ok {
+		auth.Problem(w, http.StatusConflict, notReadyReason(why, module, "Tenant is "+t.Status+"."))
 		return
 	}
 	if !a.auditOperator(w, r, c, t.ID, "tenant.vm.enable", t.Plan) {
@@ -67,9 +67,11 @@ func (a *API) opTenantVMAction(w http.ResponseWriter, r *http.Request, c *caller
 		auth.Problem(w, http.StatusBadRequest, "Unknown action.")
 		return
 	}
-	if act != "stop" && t.Status != "active" {
-		auth.Problem(w, http.StatusConflict, "Tenant is "+t.Status+".")
-		return
+	if act != "stop" {
+		if ok, why, module := a.workReady(*t, false); !ok {
+			auth.Problem(w, http.StatusConflict, notReadyReason(why, module, "Tenant is "+t.Status+"."))
+			return
+		}
 	}
 	if !a.auditOperator(w, r, c, t.ID, "tenant.vm."+act, "") {
 		return

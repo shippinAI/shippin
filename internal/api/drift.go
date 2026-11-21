@@ -41,7 +41,7 @@ func (a *API) checkDrift(ctx context.Context) {
 		return
 	}
 	for _, t := range ts {
-		if t.Status != "active" {
+		if ok, _, _ := a.workReady(t, false); !ok {
 			continue
 		}
 		inv, partial, err := a.host.TenantInventory(ctx, t.ID)

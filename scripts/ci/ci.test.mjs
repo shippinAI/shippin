@@ -7,6 +7,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { check, problems, isTestFile } from './test-integrity.mjs';
 import { redBranches, pushedRef, pushDir, inMain } from './agent-hooks.mjs';
+import { tally, summarize } from './database-tests.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -128,4 +129,28 @@ test('a pushed commit counts as promoted once main contains it, even after later
   r.git('push', '-q', 'origin', `${second}:refs/heads/main`);
   assert.equal(inMain(first, r.dir), true, 'main moved past it');
   assert.equal(inMain(elsewhere, r.dir), false, 'a commit main does not contain');
+});
+
+test('a skipped database test is counted, and the run refuses a missing URL', () => {
+  const result = tally([
+    { Action: 'output', Package: 'p', Test: 'TestDB', Output: '    db_test.go:18: SHIPPIN_TEST_DATABASE_URL not set\n' },
+    { Action: 'skip', Package: 'p', Test: 'TestDB' },
+    { Action: 'output', Package: 'p', Test: 'TestPTY', Output: '    pty_test.go:10: host PTY is Linux only\n' },
+    { Action: 'skip', Package: 'p', Test: 'TestPTY' },
+    { Action: 'pass', Package: 'p', Test: 'TestUnit' },
+    { Action: 'pass', Package: 'p' },
+  ]);
+  assert.equal(result.databaseSkips.length, 1);
+  assert.equal(result.databaseSkips[0].test, 'TestDB');
+  assert.equal(result.tests.pass, 1);
+  assert.equal(result.tests.skip, 2);
+  assert.equal(result.packages.pass, 1);
+  assert.match(summarize(result), /1 skipped for SHIPPIN_TEST_DATABASE_URL/);
+  assert.match(summarize(result), /1 passed, 0 failed, 2 skipped/);
+
+  const env = { ...process.env };
+  delete env.SHIPPIN_TEST_DATABASE_URL;
+  const refused = spawnSync(process.execPath, [path.join(here, 'database-tests.mjs')], { encoding: 'utf8', env });
+  assert.notEqual(refused.status, 0);
+  assert.match(refused.stderr + refused.stdout, /SHIPPIN_TEST_DATABASE_URL is required/);
 });

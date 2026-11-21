@@ -51,8 +51,8 @@ func (a *API) runBoundaryJob(ctx context.Context, j *jobs.Job, step func(string)
 	if err != nil || t == nil {
 		return nil, errors.Join(errors.New("tenant lookup failed"), err)
 	}
-	if t.Status != "active" {
-		return nil, errors.New("tenant is " + t.Status + "; waiting for it to be active")
+	if ok, why, module := a.workReady(*t, false); !ok {
+		return nil, errors.New(notReadyReason(why, module, "tenant is "+t.Status+"; waiting for it to be active"))
 	}
 	fail := func(err error) (any, error) {
 		if hostclient.Rejected(err) || errors.Is(err, projects.ErrVMTaken) {
