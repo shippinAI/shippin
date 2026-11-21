@@ -27,7 +27,7 @@ Not this panel, so they stay separate:
 | `EonsofStupid/shippin-host-console` | Empty. |
 
 
-There is no private or per-installation repository (OPEN-01). Scripts that one installation used, removed from `main` in `424a25a`, are re-authored as configurable panel features; the [absorption ledger](absorption/capability-absorption.md) tracks them.
+There is no fork and no per-installation repository (OPEN-01). The enterprise edition is a separate private module that extends this panel and never copies it ([Editions and licensing](editions.md)). Scripts that one installation used, removed from `main` in `424a25a`, are re-authored as configurable panel features; the [absorption ledger](absorption/capability-absorption.md) tracks them.
 
 ## How anything comes in
 

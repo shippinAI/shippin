@@ -12,7 +12,7 @@ import (
 func (a *API) SyncStaff(ctx context.Context) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	if err := a.db.SeedStaff(ctx); err != nil {
+	if err := a.db.SeedStaffWith(ctx, modulePresets()); err != nil {
 		log.Printf("staff seed: %v", err)
 	}
 	if a.cfg.Staff.TeamToken == "" {

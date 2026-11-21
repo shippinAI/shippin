@@ -15,15 +15,20 @@ type Issued struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-// ownRow locks the tenant's own server row and returns its stored state. One merely assigned to it is read-only.
-func ownRow(ctx context.Context, tx pgx.Tx, tenant, id string) (State, error) {
+// ownRow locks the tenant's own server row and returns its stored state. One the tenant may only use
+// (through the placement policy) is read-only.
+func (s *Store) ownRow(ctx context.Context, tx pgx.Tx, tenant, id string) (State, error) {
 	if uuid.Validate(id) != nil {
 		return "", ErrNotFound
 	}
+	hosts, err := s.hosts(ctx, s.Pool, tenant)
+	if err != nil {
+		return "", err
+	}
 	var st string
 	var owner string
-	err := tx.QueryRow(ctx, `SELECT state, tenant_id::text FROM servers WHERE id=$1 AND (tenant_id=$2 OR EXISTS (SELECT 1 FROM server_assignments a WHERE a.server_id=servers.id AND a.tenant_id=$2)) FOR UPDATE`,
-		id, tenant).Scan(&st, &owner)
+	err = tx.QueryRow(ctx, `SELECT state, tenant_id::text FROM servers WHERE id=$1 AND (tenant_id=$2 OR id = ANY($3::uuid[])) FOR UPDATE`,
+		id, tenant, hosts).Scan(&st, &owner)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrNotFound
 	}
@@ -40,7 +45,7 @@ func (s *Store) IssueToken(ctx context.Context, tenant, id, by string, ttl time.
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	st, err := ownRow(ctx, tx, tenant, id)
+	st, err := s.ownRow(ctx, tx, tenant, id)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +75,7 @@ func (s *Store) Revoke(ctx context.Context, tenant, id string) error {
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	st, err := ownRow(ctx, tx, tenant, id)
+	st, err := s.ownRow(ctx, tx, tenant, id)
 	if err != nil {
 		return err
 	}

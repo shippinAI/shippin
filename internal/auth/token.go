@@ -36,9 +36,31 @@ func (f *Flow) Require(next http.HandlerFunc) http.HandlerFunc {
 			Problem(w, http.StatusUnauthorized, "Sign in to continue.")
 			return
 		}
+		if strings.HasPrefix(t, AccessKeyPrefix) {
+			uid, method, ok := "", "", false
+			if f.Keys != nil {
+				uid, method, ok = f.Keys(r.Context(), t)
+			}
+			if !ok {
+				Problem(w, http.StatusUnauthorized, "That access key is unknown, expired or revoked.")
+				return
+			}
+			ctx := context.WithValue(r.Context(), localKey{}, uid)
+			ctx = context.WithValue(ctx, methodKey{}, method)
+			next(w, r.WithContext(context.WithValue(ctx, keyKey{}, true)))
+			return
+		}
 		next(w, r.WithContext(context.WithValue(r.Context(), ctxKey{}, t)))
 	}
 }
+
+// AccessKeyPrefix starts a person's access key, which acts as their local session (internal/identity/access_key).
+const AccessKeyPrefix = "shp_"
+
+type keyKey struct{}
+
+// ViaAccessKey reports whether the request was admitted with an access key rather than a session.
+func ViaAccessKey(ctx context.Context) bool { v, _ := ctx.Value(keyKey{}).(bool); return v }
 
 type methodKey struct{}
 

@@ -50,12 +50,7 @@ export function DevspacePage() {
   if (!project.data) return <p className="text-base text-fg-muted">Project not found.</p>;
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-e2">
-      <DevspaceBar
-        project={project.data}
-        projects={projects.data ?? []}
-        ws={ws}
-        onSwitch={(id) => nav(`/t/${tenantId}/projects/${id}`)}
-      />
+      <DevspaceBar project={project.data} projects={projects.data ?? []} ws={ws} onSwitch={(id) => nav(`/t/${tenantId}/projects/${id}`)} />
       <DevspaceJob tenantId={tenantId} jobId={open.data?.job?.id} />
       <div className="flex min-h-0 flex-1">
         <DevspaceRail value={surface} onChange={setSurface} />

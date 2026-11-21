@@ -8,7 +8,9 @@ export function RequireAuth() {
   if (me.isPending)
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="animate-pulse motion-reduce:animate-none"><BrandMark size={40} /></div>
+        <div className="animate-pulse motion-reduce:animate-none">
+          <BrandMark size={40} />
+        </div>
       </div>
     );
   if (me.isError) return <Navigate to="/login" replace />;
@@ -21,5 +23,22 @@ export function LandingRedirect() {
   const t = me?.tenants[0];
   if (t) return <Navigate to={`/t/${t.tenant_id}/workspaces`} replace />;
   const caps = me?.capabilities ?? {};
-  return <Navigate to={caps["provider.panel"] ? "/admin" : caps["ops.view"] ? "/ops/servers" : caps["operator.view"] ? "/operator" : caps["infra.hosts"] ? "/operator/hosts" : caps["provider.panel"] ? "/admin" : "/welcome"} replace />;
+  return (
+    <Navigate
+      to={
+        caps["provider.panel"]
+          ? "/admin"
+          : caps["ops.view"]
+            ? "/ops/servers"
+            : caps["operator.view"]
+              ? "/operator"
+              : caps["infra.hosts"]
+                ? "/operator/hosts"
+                : caps["provider.panel"]
+                  ? "/admin"
+                  : "/welcome"
+      }
+      replace
+    />
+  );
 }

@@ -1,4 +1,5 @@
-// One shell tab plus Zellij's compact status bar (key hints for new users).
+// One shell tab plus Zellij's compact status bar (key hints for new users). shippin-term names
+// the shell tab after the workspace in a copy of this file, so keep that tab's name line as is.
 layout {
     default_tab_template {
         children

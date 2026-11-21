@@ -1,17 +1,15 @@
 package api
 
+import (
+	"fmt"
+
+	"shippin.cloud/console/internal/ext"
+)
+
 // Perm is one entry of the permission catalog: the only fixed list in staff authorization,
-// because routes are code. Roles (data) pick from it; every operator route declares one.
-type Perm struct {
-	Key      string `json:"key"`
-	Section  string `json:"section"`
-	Label    string `json:"label"`
-	Risk     bool   `json:"high_risk"`
-	Reserved bool   `json:"reserved"` // no route yet; may be assigned, grants nothing today
-	// Grantable permissions may also be granted to one principal directly (Team > Direct grants),
-	// cloud-IAM style. Only the Owner preset holds them by default; every other role is denied.
-	Grantable bool `json:"grantable"`
-}
+// because routes are code. Roles (data) pick from it; every operator route declares one. A module
+// adds its own through internal/ext (docs/editions.md).
+type Perm = ext.Perm
 
 // permPanel is the pseudo-permission "holds any staff permission" (panel shell, /me switch).
 const permPanel = "panel"
@@ -19,7 +17,8 @@ const permPanel = "panel"
 // permOwner marks an Owner: the last active holder can't lose it (last-Owner guard).
 const permOwner = "team.write"
 
-var permCatalog = []Perm{
+// panelPerms are the panel's own permissions.
+var panelPerms = []Perm{
 	{Key: "tenants.read", Section: "Tenants", Label: "View tenants and tenant VMs"},
 	{Key: "tenants.lifecycle", Section: "Tenants", Label: "Create, provision, suspend, resume; enable and run tenant VMs", Risk: true},
 	{Key: "tenants.delete", Section: "Tenants", Label: "Delete tenants", Risk: true},
@@ -56,6 +55,8 @@ var permCatalog = []Perm{
 	{Key: "provision.intent.create", Section: "Customers", Label: "Record a provision intent (desired state for an operator to apply)", Risk: true, Grantable: true},
 	{Key: "platform.settings.read", Section: "Platform", Label: "View ops-editable platform settings (IdP account page, rrflow auto-attach)", Grantable: true},
 	{Key: "platform.settings.write", Section: "Platform", Label: "Change ops-editable platform settings (audited)", Risk: true, Grantable: true},
+	{Key: "acquisition.read", Section: "Acquisition", Label: "View imported acquisition source metadata and lead contact details", Grantable: true},
+	{Key: "acquisition.sync", Section: "Acquisition", Label: "Import one bounded page from a configured acquisition source", Risk: true, Grantable: true},
 	{Key: "infra.read", Section: "Infrastructure", Label: "View hosts, guests, node detail and the change history"},
 	{Key: "infra.hosts.write", Section: "Infrastructure", Label: "Add, test and detach hosts", Risk: true},
 	{Key: "infra.network.write", Section: "Infrastructure", Label: "Configure and remove network integrations", Risk: true},
@@ -73,13 +74,39 @@ var permCatalog = []Perm{
 	{Key: "team.settings", Section: "Team", Label: "Change team settings (approvals, timeouts, mode)", Risk: true},
 }
 
-var permIndex = func() map[string]Perm {
-	m := map[string]Perm{}
-	for _, p := range permCatalog {
+// permCatalog is the panel's permissions and every registered module's; permIndex is the same by key.
+// LoadModules sets both once at start, before the API is built.
+var permCatalog, permIndex = catalogOf(panelPerms, nil)
+
+// LoadModules adds the registered modules' permissions to the catalog. app.Main calls it once, after the
+// modules' init functions have registered them and before api.New. A permission the panel already
+// declares stops the binary.
+func LoadModules() {
+	permCatalog, permIndex = catalogOf(panelPerms, ext.Perms())
+}
+
+func catalogOf(panel, modules []Perm) ([]Perm, map[string]Perm) {
+	all := append(append([]Perm{}, panel...), modules...)
+	m := make(map[string]Perm, len(all))
+	for _, p := range all {
+		if _, dup := m[p.Key]; dup {
+			panic(fmt.Sprintf("api: permission %s is declared twice", p.Key))
+		}
 		m[p.Key] = p
 	}
-	return m
-}()
+	return all, m
+}
+
+// modulePresets are the permissions modules add to preset staff roles on a fresh database, by role key.
+func modulePresets() map[string][]string {
+	out := map[string][]string{}
+	for _, p := range ext.Perms() {
+		for _, role := range p.Presets {
+			out[role] = append(out[role], p.Key)
+		}
+	}
+	return out
+}
 
 // knownPerm reports whether k is in the catalog.
 func knownPerm(k string) bool { _, ok := permIndex[k]; return ok }
@@ -87,15 +114,15 @@ func knownPerm(k string) bool { _, ok := permIndex[k]; return ok }
 // grantablePerm reports whether k may be granted to a principal directly.
 func grantablePerm(k string) bool { return permIndex[k].Grantable }
 
-// GranularCatalogPerms are the customer-catalog permissions (Owner preset + direct grants only).
+// GranularCatalogPerms are the explicit development-account permissions. Keep this allowlist
+// separate from the full grantable catalog so newly grantable sensitive capabilities are not
+// silently inherited by every configured development staff account.
 func GranularCatalogPerms() []string {
-	out := []string{}
-	for _, p := range permCatalog {
-		if p.Grantable {
-			out = append(out, p.Key)
-		}
+	return []string{
+		"catalog.plans.read", "catalog.prices.read", "catalog.plans.write", "config.defaults.write",
+		"customers.read", "customers.contacts.read", "customers.notes.read", "customers.write", "customers.services.write", "config.effective.read", "provision.intent.create",
+		"platform.settings.read", "platform.settings.write",
 	}
-	return out
 }
 
 // highRisk reports whether any of perms is a high-risk permission.

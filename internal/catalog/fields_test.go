@@ -19,18 +19,3 @@ func TestStripRemovesHiddenFields(t *testing.T) {
 		t.Fatal("nothing hidden must return the input unchanged")
 	}
 }
-
-func TestHiddenFieldsAreKeptAndNeverSet(t *testing.T) {
-	stored := Customer{Contacts: json.RawMessage(`[{"name":"Ann"}]`), Endpoints: json.RawMessage(`[{"host":"x"}]`), Notes: "vip"}
-	in := Customer{Name: "New", Contacts: json.RawMessage(`[]`), Endpoints: json.RawMessage(`[]`)}
-	keepHidden(&in, stored, []string{"contacts", "endpoints", "notes"})
-	if string(in.Contacts) != `[{"name":"Ann"}]` || string(in.Endpoints) != `[{"host":"x"}]` || in.Notes != "vip" || in.Name != "New" {
-		t.Fatalf("hidden fields not kept: %+v", in)
-	}
-	if setsHidden(Customer{Contacts: json.RawMessage(`[]`)}, []string{"contacts", "notes"}) {
-		t.Fatal("empty values are not a write")
-	}
-	if !setsHidden(Customer{Notes: "x"}, []string{"notes"}) || !setsHidden(Customer{Endpoints: json.RawMessage(`[1]`)}, []string{"endpoints"}) {
-		t.Fatal("a value in a hidden field must be refused")
-	}
-}

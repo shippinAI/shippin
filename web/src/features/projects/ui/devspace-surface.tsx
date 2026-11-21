@@ -40,13 +40,20 @@ export function DevspaceSurface({ tenantId, surface, ws, project, agent }: Props
       {surface === "terminal" && (
         <div className="absolute inset-x-0 bottom-0 z-20 border-t border-line bg-surface">
           <div className="px-3 py-2">
-            <Button size="sm" variant="ghost" tooltip="Show the official install commands for this terminal" onPress={() => setAppsOpen((v) => !v)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              tooltip="Show the official install commands for this terminal"
+              onPress={() => setAppsOpen((v) => !v)}
+            >
               {appsOpen ? "Hide install commands" : "Install an app"}
             </Button>
           </div>
           {appsOpen && (
             <div className="max-h-64 overflow-auto px-4 pb-3">
-              <p className="mb-2 text-xs text-fg-muted">Copy a command and paste it into this terminal. It installs the app and starts the vendor sign-in.</p>
+              <p className="mb-2 text-xs text-fg-muted">
+                Copy a command and paste it into this terminal. It installs the app and starts the vendor sign-in.
+              </p>
               <AppCards tenantId={tenantId} />
             </div>
           )}
@@ -54,7 +61,9 @@ export function DevspaceSurface({ tenantId, surface, ws, project, agent }: Props
       )}
       {engine && running && !ready && <DevspaceSignIn onSignIn={session.signIn} checking={session.state === "checking"} />}
       {engine && !running && (
-        <div className="p-8"><EmptyState title="Starting your devspace" description="Your files and open editors come back exactly as you left them." /></div>
+        <div className="p-8">
+          <EmptyState title="Starting your devspace" description="Your files and open editors come back exactly as you left them." />
+        </div>
       )}
       {surface === "home" && <DevspaceHome ws={ws} project={project} />}
       {surface === "build" && (
@@ -66,14 +75,18 @@ export function DevspaceSurface({ tenantId, surface, ws, project, agent }: Props
       {surface === "previews" && (
         <div className="p-6">
           {running ? (
-            <a className="text-primary underline" href={`https://${ws.host}`} target="_blank" rel="noopener">{ws.host}</a>
+            <a className="text-primary underline" href={`https://${ws.host}`} target="_blank" rel="noopener">
+              {ws.host}
+            </a>
           ) : (
             <EmptyState title="No previews yet" description="Start your app and its address shows up here." />
           )}
         </div>
       )}
       {surface === "files" && (
-        <div className="p-8"><EmptyState title="Files are coming soon" description="Until then, use Code to browse and edit your files." /></div>
+        <div className="p-8">
+          <EmptyState title="Files are coming soon" description="Until then, use Code to browse and edit your files." />
+        </div>
       )}
     </div>
   );

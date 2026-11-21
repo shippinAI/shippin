@@ -16,20 +16,30 @@ export function MobileNav() {
   const icon = "size-4";
   const isTenant = (id: string) => tenantNav.some((n) => n.id === id);
   const tenantHref = (to: string) => (to.startsWith("/") ? to : `/t/${t}${to ? `/${to}` : ""}`);
-  const entries = applyNav([...accountNav, ...tenantNav, ...infrastructureNav].filter((i) => i.mobile && i.to !== undefined && allowed(i)), overrides)
+  const entries = applyNav(
+    [...accountNav, ...tenantNav, ...infrastructureNav].filter((i) => i.mobile && i.to !== undefined && allowed(i)),
+    overrides,
+  )
     .filter((i) => t || !isTenant(i.id))
     .map((i) => ({ ...i, href: isTenant(i.id) ? tenantHref(i.to ?? "") : i.to }));
   return (
     <div className="md:hidden">
-      <Menu label="Navigation"
+      <Menu
+        label="Navigation"
         trigger={
-          <Button aria-label="Open navigation" data-testid="mobile-nav"
-            className="focus-ring inline-flex size-9 items-center justify-center rounded-lg text-fg-muted outline-none data-pressed:bg-raised">
+          <Button
+            aria-label="Open navigation"
+            data-testid="mobile-nav"
+            className="focus-ring inline-flex size-9 items-center justify-center rounded-lg text-fg-muted outline-none data-pressed:bg-raised"
+          >
             <MenuIcon className="size-5" aria-hidden />
           </Button>
-        }>
+        }
+      >
         {entries.map((i) => (
-          <MenuItem key={i.id} href={i.href}><i.icon className={icon} aria-hidden /> {i.label}</MenuItem>
+          <MenuItem key={i.id} href={i.href}>
+            <i.icon className={icon} aria-hidden /> {i.label}
+          </MenuItem>
         ))}
       </Menu>
     </div>

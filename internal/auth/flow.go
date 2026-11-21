@@ -23,6 +23,8 @@ type Flow struct {
 	Client *http.Client
 	Store  *Store
 	cache  *idCache
+	// Keys resolves a person's access key to their directory user and the sign-in method it carries.
+	Keys func(ctx context.Context, token string) (userID, method string, ok bool)
 }
 
 func NewFlow(cfg *config.Config, store *Store) *Flow {

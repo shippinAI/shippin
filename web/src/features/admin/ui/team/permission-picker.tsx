@@ -15,11 +15,23 @@ export function PermissionPicker({ catalog, value, onChange, isDisabled }: Props
         return (
           <div key={s} className="rounded-lg border border-line bg-canvas/30 p-2">
             <Label className="flex items-center justify-between px-2 pb-1 text-xs font-semibold tracking-wide text-fg-subtle uppercase">
-              {s} <span className="font-normal tabular-nums normal-case">{n}/{ps.length}</span>
+              {s}{" "}
+              <span className="font-normal tabular-nums normal-case">
+                {n}/{ps.length}
+              </span>
             </Label>
             {ps.map((p) => (
-              <Checkbox key={p.key} value={p.key}
-                description={<><span className="font-mono">{p.key}</span>{p.high_risk && <span className="ml-1.5 text-warning">high risk</span>}{p.reserved && <span className="ml-1.5">reserved</span>}</>}>
+              <Checkbox
+                key={p.key}
+                value={p.key}
+                description={
+                  <>
+                    <span className="font-mono">{p.key}</span>
+                    {p.high_risk && <span className="ml-1.5 text-warning">high risk</span>}
+                    {p.reserved && <span className="ml-1.5">reserved</span>}
+                  </>
+                }
+              >
                 {p.label}
               </Checkbox>
             ))}

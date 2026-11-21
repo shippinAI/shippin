@@ -19,7 +19,8 @@ var serverSlug = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
 // serverStore is the CP-P1 registry; the clock comes from config, never from code.
 func (a *API) serverStore() *servers.Store {
 	c := a.cfg.Servers
-	return &servers.Store{Pool: a.db.Pool, Clock: servers.Clock{Interval: time.Duration(c.HeartbeatSeconds) * time.Second, Missed: c.MissedBeats}}
+	return &servers.Store{Pool: a.db.Pool, Clock: servers.Clock{Interval: time.Duration(c.HeartbeatSeconds) * time.Second, Missed: c.MissedBeats},
+		Placement: a.placement()}
 }
 
 // serverRoutes (CP-P1): org owners/admins manage servers; hostd enrolls with a single-use token

@@ -15,7 +15,9 @@ export function ChatThread({ sessionId, slot }: { sessionId: string; slot?: (sen
   const end = useRef<HTMLDivElement>(null);
   const msgs = q.data?.messages ?? [];
   // Braces: newer Chromium returns a Promise from scrollIntoView, which React would call as cleanup.
-  useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs.length, draft]);
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: "end" });
+  }, [msgs.length, draft]);
   const tenantId = q.data?.session.tenant_id ?? "";
   const copy = useCopyApp(tenantId);
   const onPrompt = (t: string) => send.mutate(t);
@@ -24,7 +26,12 @@ export function ChatThread({ sessionId, slot }: { sessionId: string; slot?: (sen
   };
   const lastId = msgs[msgs.length - 1]?.id;
   if (q.isPending) return <Skeleton className="m-4 h-40" />;
-  if (q.isError) return <p role="alert" className="p-4 text-base text-danger">This chat couldn't be loaded.</p>;
+  if (q.isError)
+    return (
+      <p role="alert" className="p-4 text-base text-danger">
+        This chat couldn't be loaded.
+      </p>
+    );
   return (
     <div className="flex h-full min-h-0 flex-col">
       {slot?.(onPrompt)}
@@ -33,15 +40,23 @@ export function ChatThread({ sessionId, slot }: { sessionId: string; slot?: (sen
         {tenantId && (
           <details open className="mb-4 rounded-xl border border-line bg-canvas/40 p-3">
             <summary className="cursor-pointer text-base font-medium text-fg">Install an app in your terminal</summary>
-            <p className="mt-2 text-base text-fg-muted">Copy a command and paste it into your own terminal. It installs the app and starts the vendor sign-in.</p>
-            <div className="mt-3"><AppCards tenantId={tenantId} /></div>
+            <p className="mt-2 text-base text-fg-muted">
+              Copy a command and paste it into your own terminal. It installs the app and starts the vendor sign-in.
+            </p>
+            <div className="mt-3">
+              <AppCards tenantId={tenantId} />
+            </div>
           </details>
         )}
         {ready.data && !ready.data.ready && msgs.length === 0 && (
-          <ul className="mb-4"><MessageItem m={{ role: "error", content: ready.data.detail, ui: ready.data.ui ?? [] }} onPrompt={onPrompt} onCopy={onCopy} /></ul>
+          <ul className="mb-4">
+            <MessageItem m={{ role: "error", content: ready.data.detail, ui: ready.data.ui ?? [] }} onPrompt={onPrompt} onCopy={onCopy} />
+          </ul>
         )}
         <ul className="space-y-4" aria-live="polite">
-          {msgs.map((m) => <MessageItem key={m.id} m={m} onPrompt={onPrompt} onCopy={onCopy} fresh={m.id === lastId && send.isSuccess} />)}
+          {msgs.map((m) => (
+            <MessageItem key={m.id} m={m} onPrompt={onPrompt} onCopy={onCopy} fresh={m.id === lastId && send.isSuccess} />
+          ))}
           {pending && !msgs.some((m) => m.role === "user" && m.content === pending) && (
             <MessageItem m={{ role: "user", content: pending, ui: [] }} onPrompt={onPrompt} />
           )}

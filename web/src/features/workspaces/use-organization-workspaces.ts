@@ -23,7 +23,9 @@ export function useSaveOrganizationWorkspace(tenant: string) {
   return useMutation({
     mutationFn: ({ id, ...input }: WorkspaceInput & { id?: string }) =>
       apiSend<OrganizationWorkspace>(id ? "PATCH" : "POST", `${base(tenant)}${id ? `/${id}` : ""}`, input),
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: workspaceKey(tenant) }); },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: workspaceKey(tenant) });
+    },
   });
 }
 
@@ -31,6 +33,8 @@ export function useDeleteOrganizationWorkspace(tenant: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => apiSend("DELETE", `${base(tenant)}/${id}`),
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: workspaceKey(tenant) }); },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: workspaceKey(tenant) });
+    },
   });
 }

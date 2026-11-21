@@ -1,0 +1,8 @@
+# Standard-library-only helper, for disposable acquisition qualification, not deployment.
+FROM golang:1.26.10-bookworm@sha256:5de7c99eb78ca5e515a4c340235d0955ec5964a5071c492c15503d7c267da473 AS build
+WORKDIR /src
+COPY scripts/test-acquisition/helper/main.go ./main.go
+RUN CGO_ENABLED=0 go build -trimpath -o /out/acquisition-fixture main.go
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:aafe993665bf6200db38a02c11a9351e782a84b6a45e7f33b6695638c88e3931
+COPY --from=build /out/acquisition-fixture /acquisition-fixture
+ENTRYPOINT ["/acquisition-fixture"]

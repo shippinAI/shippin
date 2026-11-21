@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/gh"
 	"shippin.cloud/console/internal/hostclient"
 )
 
@@ -22,7 +23,7 @@ func (a *API) createReq(ctx context.Context, t *tenantView, w db.Workspace) host
 // gitTokenFor mints the 1-hour installation token for a project's GitHub repo, narrowed to that one
 // repository and github.token_permissions (nil when the project isn't an ok GitHub import).
 func (a *API) gitTokenFor(ctx context.Context, project string) *hostclient.GitToken {
-	if a.gh == nil || project == "" {
+	if app, _ := a.github(ctx); app == nil || project == "" {
 		return nil
 	}
 	src, err := a.db.SourceOf(ctx, project)
@@ -46,7 +47,11 @@ func (a *API) pushTokenAfterStart(ctx context.Context, tenant string, ws db.Work
 }
 
 func (a *API) mint(ctx context.Context, inst, repo int64) *hostclient.GitToken {
-	t, err := a.gh.InstallationToken(ctx, inst, []int64{repo}, a.cfg.GitHub.TokenPermissions)
+	app, g, err := a.githubOn(ctx)
+	if err != nil {
+		return nil
+	}
+	t, err := app.InstallationToken(ctx, inst, []int64{repo}, g.TokenPermissions)
 	if err != nil {
 		log.Printf("github: token for installation %d: %v", inst, err)
 		return nil
@@ -57,8 +62,8 @@ func (a *API) mint(ctx context.Context, inst, repo int64) *hostclient.GitToken {
 // githubMaintenance (reconciler): every refresh_minutes re-push tokens into running imported
 // workspaces; every poll_minutes reconcile installations with GitHub (webhooks may not arrive).
 func (a *API) githubMaintenance(ctx context.Context) {
-	g := a.cfg.GitHub
-	if a.gh == nil {
+	app, g := a.github(ctx)
+	if app == nil {
 		return
 	}
 	now := time.Now()
@@ -68,7 +73,7 @@ func (a *API) githubMaintenance(ctx context.Context) {
 	}
 	if now.Sub(a.ghTick.poll) >= time.Duration(g.PollMinutes)*time.Minute {
 		a.ghTick.poll = now
-		a.pollInstallations(ctx)
+		a.pollInstallations(ctx, app)
 		_ = a.db.PruneDeliveries(ctx)
 	}
 }
@@ -89,8 +94,8 @@ func (a *API) refreshTokens(ctx context.Context) {
 }
 
 // pollInstallations marks installations GitHub no longer lists as deleted, and syncs suspension.
-func (a *API) pollInstallations(ctx context.Context) {
-	live, err := a.gh.Installations(ctx)
+func (a *API) pollInstallations(ctx context.Context, app *gh.App) {
+	live, err := app.Installations(ctx)
 	if err != nil {
 		log.Printf("github: poll: %v", err)
 		return
@@ -113,15 +118,16 @@ func (a *API) pollInstallations(ctx context.Context) {
 			log.Printf("github: poll %d: %v", id, err)
 		}
 		if state == "active" {
-			a.syncRepos(ctx, id)
+			a.syncRepos(ctx, app, id)
 		}
 	}
 }
 
 // syncRepos re-derives which imported projects of installation inst still have repo access.
-func (a *API) syncRepos(ctx context.Context, inst int64) {
-	rs, err := a.gh.Repos(ctx, inst, a.cfg.GitHub.MaxRepos)
-	if err != nil || len(rs) >= a.cfg.GitHub.MaxRepos { // a capped listing can't prove a repo is gone
+func (a *API) syncRepos(ctx context.Context, app *gh.App, inst int64) {
+	_, g := a.github(ctx)
+	rs, err := app.Repos(ctx, inst, g.MaxRepos)
+	if err != nil || len(rs) >= g.MaxRepos { // a capped listing can't prove a repo is gone
 		return
 	}
 	ids := make([]int64, 0, len(rs))

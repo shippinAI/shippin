@@ -25,11 +25,23 @@ export function useTeamWrites(tenantId: string) {
   const b = `/v1/tenants/${tenantId}`;
   return {
     invite: useTeamWrite(tenantId, (v: InviteBody) => apiSend("POST", `${b}/members`, v), "Invite sent"),
-    setRoles: useTeamWrite(tenantId, (v: { user: string; roles: string[] }) => apiSend("PATCH", `${b}/members/${v.user}`, { roles: v.roles }), "Roles updated"),
+    setRoles: useTeamWrite(
+      tenantId,
+      (v: { user: string; roles: string[] }) => apiSend("PATCH", `${b}/members/${v.user}`, { roles: v.roles }),
+      "Roles updated",
+    ),
     remove: useTeamWrite(tenantId, (user: string) => apiSend("DELETE", `${b}/members/${user}`), "Member removed"),
     createTeam: useTeamWrite(tenantId, (v: { name: string; description: string }) => apiSend("POST", `${b}/teams`, v), "Team created"),
     deleteTeam: useTeamWrite(tenantId, (team: string) => apiSend("DELETE", `${b}/teams/${team}`), "Team deleted"),
-    addToTeam: useTeamWrite(tenantId, (v: { team: string; user: string; role: string }) => apiSend("PUT", `${b}/teams/${v.team}/members/${v.user}`, { role: v.role }), "Team updated"),
-    removeFromTeam: useTeamWrite(tenantId, (v: { team: string; user: string }) => apiSend("DELETE", `${b}/teams/${v.team}/members/${v.user}`), "Team updated"),
+    addToTeam: useTeamWrite(
+      tenantId,
+      (v: { team: string; user: string; role: string }) => apiSend("PUT", `${b}/teams/${v.team}/members/${v.user}`, { role: v.role }),
+      "Team updated",
+    ),
+    removeFromTeam: useTeamWrite(
+      tenantId,
+      (v: { team: string; user: string }) => apiSend("DELETE", `${b}/teams/${v.team}/members/${v.user}`),
+      "Team updated",
+    ),
   };
 }

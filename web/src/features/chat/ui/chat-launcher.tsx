@@ -13,11 +13,18 @@ export function ChatLauncher() {
   if (pathname.startsWith("/chat") || pathname === "/login" || pathname === "/device") return null;
   return (
     <>
-      <Button aria-label="Open chat" onPress={() => chatUI.openOverlay()}
-        className="fixed bottom-5 right-5 z-40 flex size-12 items-center justify-center rounded-full bg-primary text-primary-fg shadow-e3 outline-none data-focus-visible:ring-2 data-focus-visible:ring-primary/40">
+      <Button
+        aria-label="Open chat"
+        onPress={() => chatUI.openOverlay()}
+        className="fixed bottom-5 right-5 z-40 flex size-12 items-center justify-center rounded-full bg-primary text-primary-fg shadow-e3 outline-none data-focus-visible:ring-2 data-focus-visible:ring-primary/40"
+      >
         <MessageCircle className="size-5" aria-hidden />
       </Button>
-      {open && <Suspense fallback={null}><ChatOverlay /></Suspense>}
+      {open && (
+        <Suspense fallback={null}>
+          <ChatOverlay />
+        </Suspense>
+      )}
     </>
   );
 }

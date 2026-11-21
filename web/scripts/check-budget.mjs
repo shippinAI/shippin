@@ -10,7 +10,9 @@ const budget = JSON.parse(readFileSync(new URL("../budget.json", import.meta.url
 const kb = (n) => (n / 1000).toFixed(1);
 const gz = (file) => gzipSync(readFileSync(join(dist, file))).length;
 const sizes = new Map(
-  readdirSync(join(dist, "assets")).filter((f) => f.endsWith(".js")).map((f) => [`assets/${f}`, gz(`assets/${f}`)]),
+  readdirSync(join(dist, "assets"))
+    .filter((f) => f.endsWith(".js"))
+    .map((f) => [`assets/${f}`, gz(`assets/${f}`)]),
 );
 
 let failed = false;
@@ -22,7 +24,9 @@ for (const entry of budget.entries) {
   files.forEach((f) => initial.add(f));
   const ok = total <= budget.initial_js_gz_kb * 1000;
   failed ||= !ok;
-  console.log(`${ok ? "ok  " : "FAIL"} ${entry} initial JS ${kb(total)} KB gz (budget ${budget.initial_js_gz_kb}) over ${files.length} files`);
+  console.log(
+    `${ok ? "ok  " : "FAIL"} ${entry} initial JS ${kb(total)} KB gz (budget ${budget.initial_js_gz_kb}) over ${files.length} files`,
+  );
 }
 for (const [file, size] of [...sizes].sort((a, b) => b[1] - a[1])) {
   const cap = (budget.chunk_overrides ?? []).find((o) => file.startsWith(o.match))?.gz_kb ?? budget.route_chunk_gz_kb;

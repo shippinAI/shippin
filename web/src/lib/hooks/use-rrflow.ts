@@ -17,7 +17,11 @@ export function useAttachRRFlow(tenantId: string, projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (workspaceId?: string) =>
-      apiSend<AttachResult>("POST", `/v1/tenants/${tenantId}/projects/${projectId}/services/rrflow`, workspaceId ? { workspace_id: workspaceId } : {}),
+      apiSend<AttachResult>(
+        "POST",
+        `/v1/tenants/${tenantId}/projects/${projectId}/services/rrflow`,
+        workspaceId ? { workspace_id: workspaceId } : {},
+      ),
     onSuccess: () => {
       toast.success("Attaching rrflow", "It starts on your private server and connects to this devspace.");
       void qc.invalidateQueries({ queryKey: key(tenantId, projectId) });
@@ -26,7 +30,7 @@ export function useAttachRRFlow(tenantId: string, projectId: string) {
   });
 }
 
-export const useRRFlowState = <T,>(tenantId: string, projectId: string, serviceId: string | undefined, kind: RRKind) =>
+export const useRRFlowState = <T>(tenantId: string, projectId: string, serviceId: string | undefined, kind: RRKind) =>
   useQuery({
     queryKey: [...key(tenantId, projectId), serviceId, kind],
     queryFn: () => apiGet<T>(`/v1/tenants/${tenantId}/projects/${projectId}/services/${serviceId}/rrflow/${kind}?limit=50`),

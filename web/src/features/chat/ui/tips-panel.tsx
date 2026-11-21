@@ -14,5 +14,9 @@ export function TipsPanel() {
   });
   const items = q.data?.items ?? [];
   if (!items.length) return null;
-  return <div className="mb-4"><A2UIRenderer blocks={items} onPrompt={() => {}} /></div>;
+  return (
+    <div className="mb-4">
+      <A2UIRenderer blocks={items} onPrompt={() => {}} />
+    </div>
+  );
 }

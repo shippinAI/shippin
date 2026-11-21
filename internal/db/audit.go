@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // AuditEntry is one append-only audit row (the table rejects UPDATE, DELETE and TRUNCATE).
@@ -34,6 +35,17 @@ func auditArgs(e AuditEntry) []any {
 // AddAudit appends one entry.
 func (d *DB) AddAudit(ctx context.Context, e AuditEntry) error {
 	_, err := d.Pool.Exec(ctx, auditInsert, auditArgs(e)...)
+	return err
+}
+
+// Execer runs a statement: a pool, or the transaction of the change an entry records.
+type Execer interface {
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+}
+
+// AddAuditOn appends one entry on q, so it is committed or rolled back with the change it records.
+func AddAuditOn(ctx context.Context, q Execer, e AuditEntry) error {
+	_, err := q.Exec(ctx, auditInsert, auditArgs(e)...)
 	return err
 }
 

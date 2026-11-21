@@ -19,8 +19,7 @@ const eventFailureMessages: Record<string, string> = {
 };
 
 export function currentGenerationFailure(events: DeploymentEvent[], generation: number) {
-  return [...events].reverse().find((event) =>
-    event.generation === generation && event.event_type === "operation_failed");
+  return [...events].reverse().find((event) => event.generation === generation && event.event_type === "operation_failed");
 }
 
 export function deploymentFailureMessage(failureCode: string | undefined) {

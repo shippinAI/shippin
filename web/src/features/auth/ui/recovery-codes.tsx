@@ -15,8 +15,14 @@ export function RecoveryCodes({ codes, next }: { codes: string[]; next?: ReactNo
         ))}
       </ul>
       <div className="mt-4 flex gap-3">
-        <Button variant="secondary" tooltip="Copy all recovery codes" onPress={() => void navigator.clipboard?.writeText(codes.join("\n"))}>Copy</Button>
-        {next ?? <Button variant="primary" tooltip="Open the panel" onPress={() => window.location.assign("/")}>I saved them, continue</Button>}
+        <Button variant="secondary" tooltip="Copy all recovery codes" onPress={() => void navigator.clipboard?.writeText(codes.join("\n"))}>
+          Copy
+        </Button>
+        {next ?? (
+          <Button variant="primary" tooltip="Open the panel" onPress={() => window.location.assign("/")}>
+            I saved them, continue
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -30,14 +30,19 @@ export function WorkspaceSwitch() {
         <Menu
           label="Switch tenant"
           trigger={
-            <Button aria-label="Switch tenant" className="focus-ring flex items-center border-l border-line px-2 text-fg-subtle data-hovered:bg-overlay data-hovered:text-fg">
+            <Button
+              aria-label="Switch tenant"
+              className="focus-ring flex items-center border-l border-line px-2 text-fg-subtle data-hovered:bg-overlay data-hovered:text-fg"
+            >
               <ChevronDown className="size-3.5" />
             </Button>
           }
         >
           {own.map((t, i) => (
             <MenuItem key={t.tenant_id} id={t.tenant_id} textValue={t.name} onAction={() => go(`/t/${t.tenant_id}/workspaces`)}>
-              <span className="flex size-6 items-center justify-center rounded-sm bg-overlay text-2xs font-semibold">{initials(t.name)}</span>
+              <span className="flex size-6 items-center justify-center rounded-sm bg-overlay text-2xs font-semibold">
+                {initials(t.name)}
+              </span>
               <span className="flex-1 truncate">{t.name}</span>
               {i === 0 && <Check className="size-4 text-primary" />}
             </MenuItem>

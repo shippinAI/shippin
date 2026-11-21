@@ -46,7 +46,7 @@ func (a *API) idempotent(w http.ResponseWriter, r *http.Request, scope string, h
 	}
 	sum := sha256.Sum256(append([]byte(requestHead), body...))
 	hash := hex.EncodeToString(sum[:])
-	ttl := config.Sec(a.cfg.Jobs.IdempotencyHours * 3600)
+	ttl := config.Sec(a.liveJobs(r.Context()).IdempotencyHours * 3600)
 	rec, err := a.db.ClaimIdemKey(r.Context(), scope, key, hash, ttl)
 	switch {
 	case err != nil:

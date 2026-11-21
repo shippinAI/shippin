@@ -1,12 +1,11 @@
 {
   "basePath": "/v1",
-  "operationCount": 172,
+  "operationCount": 228,
   "tags": [
     "agents-runtime",
     "audit",
     "bridge-runtime",
     "bundle-runtime",
-    "catalog",
     "chat-runtime",
     "compute-enrollment",
     "compute-nodes",
@@ -15,6 +14,8 @@
     "folders",
     "github-runtime",
     "identity",
+    "infrastructure",
+    "integrations",
     "jobs",
     "managed-runtime",
     "me",
@@ -23,9 +24,12 @@
     "platform",
     "projects-runtime",
     "rrflow",
+    "runtime",
     "secrets",
+    "services",
     "settings",
     "subscriptions-runtime",
+    "tenancy",
     "tenants",
     "workspace-runtime",
     "workspaces"
@@ -209,56 +213,6 @@
         "bundle-runtime"
       ],
       "implementationStatus": "registered"
-    },
-    {
-      "method": "GET",
-      "path": "/operator/catalog/services",
-      "operationId": "listCatalogServices",
-      "summary": "List configured service definitions (operators only)",
-      "tags": [
-        "catalog"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "POST",
-      "path": "/operator/catalog/services",
-      "operationId": "createCatalogService",
-      "summary": "Create a configurable service definition (operators only)",
-      "tags": [
-        "catalog"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "DELETE",
-      "path": "/operator/catalog/services/{id}",
-      "operationId": "deleteCatalogService",
-      "summary": "Delete a service definition without active plan references (operators only)",
-      "tags": [
-        "catalog"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "GET",
-      "path": "/operator/catalog/services/{id}",
-      "operationId": "getCatalogService",
-      "summary": "Read one service definition (operators only)",
-      "tags": [
-        "catalog"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "PUT",
-      "path": "/operator/catalog/services/{id}",
-      "operationId": "updateCatalogService",
-      "summary": "Update a service definition (operators only)",
-      "tags": [
-        "catalog"
-      ],
-      "implementationStatus": "unknown"
     },
     {
       "method": "GET",
@@ -753,6 +707,72 @@
       "implementationStatus": "registered"
     },
     {
+      "method": "GET",
+      "path": "/me/identity/access-keys",
+      "operationId": "shippin.identity.access_key.list",
+      "summary": "List your access keys, with when each expires and was last used.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.identity.access_key.list"
+    },
+    {
+      "method": "POST",
+      "path": "/me/identity/access-keys",
+      "operationId": "shippin.identity.access_key.create",
+      "summary": "Make an access key an AI client or script uses to act as you; it is shown once.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.identity.access_key.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/identity/access-keys/{accessKeyId}",
+      "operationId": "shippin.identity.access_key.revoke",
+      "summary": "Revoke one of your access keys; whatever uses it stops at once.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.identity.access_key.revoke"
+    },
+    {
+      "method": "GET",
+      "path": "/me/identity/ssh-keys",
+      "operationId": "shippin.identity.ssh_key.list",
+      "summary": "List the SSH keys on your account, which Shippin puts on the workspaces you create.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.identity.ssh_key.list"
+    },
+    {
+      "method": "POST",
+      "path": "/me/identity/ssh-keys",
+      "operationId": "shippin.identity.ssh_key.create",
+      "summary": "Add an SSH public key to your account; it is put on your running workspaces too.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.identity.ssh_key.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/identity/ssh-keys/{sshKeyId}",
+      "operationId": "shippin.identity.ssh_key.delete",
+      "summary": "Remove an SSH key from your account and from your workspaces.",
+      "tags": [
+        "identity"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.identity.ssh_key.delete"
+    },
+    {
       "method": "POST",
       "path": "/session/magic",
       "operationId": "requestMagicLink",
@@ -860,6 +880,72 @@
     },
     {
       "method": "GET",
+      "path": "/operator/infrastructure/host-detection",
+      "operationId": "shippin.infrastructure.host_detection.get",
+      "summary": "Find out from an address alone whether an Incus or Proxmox VE server answers there, and show its certificate.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.host_detection.get"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/infrastructure/metrics",
+      "operationId": "shippin.infrastructure.metric.list",
+      "summary": "Read a host's or guest's CPU, memory, disk and network over a time range, averaged into steps.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.metric.list"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/integrations/github-installations",
+      "operationId": "shippin.integrations.github_installation.list",
+      "summary": "List the organization's GitHub connections, and whether you may add one.",
+      "tags": [
+        "integrations"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.integrations.github_installation.list"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/integrations/github-repositories",
+      "operationId": "shippin.integrations.github_repository.list",
+      "summary": "List the organization's GitHub repositories and where each is assigned.",
+      "tags": [
+        "integrations"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.integrations.github_repository.list"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
+      "operationId": "shippin.integrations.github_repository.delete",
+      "summary": "Unassign a GitHub repository, so its jobs no longer get Shippin runners.",
+      "tags": [
+        "integrations"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.integrations.github_repository.delete"
+    },
+    {
+      "method": "PUT",
+      "path": "/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
+      "operationId": "shippin.integrations.github_repository.update",
+      "summary": "Assign a GitHub repository to a workspace or project, and allow its jobs on Shippin runners.",
+      "tags": [
+        "integrations"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.integrations.github_repository.update"
+    },
+    {
+      "method": "GET",
       "path": "/jobs",
       "operationId": "listJobs",
       "summary": "List jobs visible to the caller",
@@ -932,43 +1018,13 @@
     },
     {
       "method": "GET",
-      "path": "/me/ssh-keys",
-      "operationId": "listMySSHKeys",
-      "summary": "My SSH public keys (installed on every workspace I own)",
-      "tags": [
-        "me"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "POST",
-      "path": "/me/ssh-keys",
-      "operationId": "addMySSHKey",
-      "summary": "Add a key; it is pushed to my running workspaces",
-      "tags": [
-        "me"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "DELETE",
-      "path": "/me/ssh-keys/{keyId}",
-      "operationId": "deleteMySSHKey",
-      "summary": "Remove a key from my account and workspaces",
-      "tags": [
-        "me"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
-      "method": "GET",
       "path": "/tenants/{tenantId}/members",
       "operationId": "listMembers",
       "summary": "List members and their roles",
       "tags": [
         "members"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "registered"
     },
     {
       "method": "POST",
@@ -978,7 +1034,7 @@
       "tags": [
         "members"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "registered"
     },
     {
       "method": "DELETE",
@@ -988,7 +1044,7 @@
       "tags": [
         "members"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "registered"
     },
     {
       "method": "PATCH",
@@ -998,7 +1054,7 @@
       "tags": [
         "members"
       ],
-      "implementationStatus": "planned"
+      "implementationStatus": "registered"
     },
     {
       "method": "GET",
@@ -1149,6 +1205,94 @@
         "platform"
       ],
       "implementationStatus": "unknown"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/platform/secret-store",
+      "operationId": "shippin.platform.secret_store.delete",
+      "summary": "Disconnect the secret store, once no setting keeps a key there.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.secret_store.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/platform/secret-store",
+      "operationId": "shippin.platform.secret_store.get",
+      "summary": "See where this installation keeps the keys entered in the panel.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.secret_store.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/platform/secret-store",
+      "operationId": "shippin.platform.secret_store.update",
+      "summary": "Connect this installation to its Vaultix account with a machine identity, or change the identity.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.secret_store.update"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/platform/secret-store/test",
+      "operationId": "shippin.platform.secret_store.test",
+      "summary": "Check that the panel can still sign in to its secret store and write, read and delete a value there.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.secret_store.test"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/platform/settings",
+      "operationId": "shippin.platform.setting.list",
+      "summary": "List the installation's settings sections, with each value and where it comes from.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.setting.list"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/platform/settings/{settingId}",
+      "operationId": "shippin.platform.setting.get",
+      "summary": "Read one settings section.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.setting.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/platform/settings/{settingId}",
+      "operationId": "shippin.platform.setting.update",
+      "summary": "Change a settings section. Keys go to the secret store, never the database.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.setting.update"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/platform/settings/{settingId}/versions",
+      "operationId": "shippin.platform.setting.version.list",
+      "summary": "See who changed a settings section, when and why.",
+      "tags": [
+        "platform"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.platform.setting.version.list"
     },
     {
       "method": "GET",
@@ -1348,6 +1492,50 @@
     },
     {
       "method": "GET",
+      "path": "/operator/runtime/runners",
+      "operationId": "shippin.runtime.runner.list",
+      "summary": "List every runner machine, with its organization, job, host, state and age.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.runner.list"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/runtime/runners/{runnerId}",
+      "operationId": "shippin.runtime.runner.delete",
+      "summary": "Remove a stuck runner machine, with a reason.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.runner.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/runtime/runner-jobs",
+      "operationId": "shippin.runtime.runner_job.list",
+      "summary": "List the organization's runner jobs, newest first.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.runner_job.list"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/runtime/runner-jobs/{runnerJobId}",
+      "operationId": "shippin.runtime.runner_job.get",
+      "summary": "Read one runner job: its repository, size, state and timing.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.runner_job.get"
+    },
+    {
+      "method": "GET",
       "path": "/tenants/{tenantId}/secrets/{env}",
       "operationId": "listSecrets",
       "summary": "List secret metadata in an environment (values never listed)",
@@ -1400,6 +1588,116 @@
       ],
       "implementationStatus": "planned",
       "feature": "feature.secrets"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/services/catalog-services",
+      "operationId": "shippin.services.catalog_service.list",
+      "summary": "List the catalog's service definitions, required ones first.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.catalog_service.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/services/catalog-services",
+      "operationId": "shippin.services.catalog_service.create",
+      "summary": "Add a service to the catalog with its config schema, defaults and optional pinned deployment source and runtime contract.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.catalog_service.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/services/catalog-services/{catalogServiceId}",
+      "operationId": "shippin.services.catalog_service.delete",
+      "summary": "Remove a service from the catalog; plans and organizations lose it, and it is refused while a deployment uses it.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.catalog_service.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/services/catalog-services/{catalogServiceId}",
+      "operationId": "shippin.services.catalog_service.get",
+      "summary": "Read one catalog service definition with its config schema, defaults and pinned deployment source.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.catalog_service.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/services/catalog-services/{catalogServiceId}",
+      "operationId": "shippin.services.catalog_service.update",
+      "summary": "Replace a catalog service's definition: label, config schema, defaults, deployment source and runtime contract.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.catalog_service.update"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/services/runner-sizes",
+      "operationId": "shippin.services.runner_size.list",
+      "summary": "List the runner sizes customers' jobs can ask for.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.runner_size.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/services/runner-sizes",
+      "operationId": "shippin.services.runner_size.create",
+      "summary": "Offer a runner size: its label, cores, memory, disk and image.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.runner_size.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/services/runner-sizes/{runnerSizeId}",
+      "operationId": "shippin.services.runner_size.delete",
+      "summary": "Remove a runner size no waiting or running job needs.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.runner_size.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/services/runner-sizes/{runnerSizeId}",
+      "operationId": "shippin.services.runner_size.get",
+      "summary": "Read one runner size.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.runner_size.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/services/runner-sizes/{runnerSizeId}",
+      "operationId": "shippin.services.runner_size.update",
+      "summary": "Change a runner size, or stop offering it.",
+      "tags": [
+        "services"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.services.runner_size.update"
     },
     {
       "method": "GET",
@@ -1554,6 +1852,336 @@
       ],
       "implementationStatus": "registered",
       "feature": "feature.ai"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/acquisition-sources",
+      "operationId": "shippin.tenancy.acquisition_source.list",
+      "summary": "List configured acquisition sources without exposing source credentials or lead contact data.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenancy/acquisition-sources",
+      "operationId": "shippin.tenancy.acquisition_source.create",
+      "summary": "Register a private acquisition source with pinned TLS and a write-only signer key.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.create"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/acquisition-sources/{acquisitionSourceId}",
+      "operationId": "shippin.tenancy.acquisition_source.get",
+      "summary": "Read a source's nonsecret connection and trust configuration.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/tenancy/acquisition-sources/{acquisitionSourceId}",
+      "operationId": "shippin.tenancy.acquisition_source.update",
+      "summary": "Update a source endpoint or trust settings with an expected generation and explicit pause state.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.update"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/acquisition-sources/{acquisitionSourceId}/leads",
+      "operationId": "shippin.tenancy.acquisition_source.lead.list",
+      "summary": "Review up to 100 current acquisition leads with consent details and explicit unverified status.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.lead.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenancy/acquisition-sources/{acquisitionSourceId}/sync",
+      "operationId": "shippin.tenancy.acquisition_source.sync",
+      "summary": "Import one bounded page from an authorized acquisition source.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.acquisition_source.sync"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/coverage-tiers",
+      "operationId": "shippin.tenancy.coverage_tier.list",
+      "summary": "List the coverage tiers, lowest rank first.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.coverage_tier.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenancy/coverage-tiers",
+      "operationId": "shippin.tenancy.coverage_tier.create",
+      "summary": "Create a coverage tier with its support hours, response targets, services and sign-in rule.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.coverage_tier.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/tenancy/coverage-tiers/{coverageTierId}",
+      "operationId": "shippin.tenancy.coverage_tier.delete",
+      "summary": "Remove a coverage tier that no plan includes; organizations moved to it fall back to their plan's.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.coverage_tier.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/coverage-tiers/{coverageTierId}",
+      "operationId": "shippin.tenancy.coverage_tier.get",
+      "summary": "Read one coverage tier.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.coverage_tier.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/tenancy/coverage-tiers/{coverageTierId}",
+      "operationId": "shippin.tenancy.coverage_tier.update",
+      "summary": "Change a coverage tier's support, services, sign-in rule or price.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.coverage_tier.update"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/customers",
+      "operationId": "shippin.tenancy.customer.list",
+      "summary": "List the customers: each organization's plan, coverage, contacts and provisioning state, oldest first.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.customer.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenancy/customers",
+      "operationId": "shippin.tenancy.customer.create",
+      "summary": "Add a draft customer on a plan, before its organization is provisioned.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.customer.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/tenancy/customers/{customerId}",
+      "operationId": "shippin.tenancy.customer.delete",
+      "summary": "Remove a draft customer that was never provisioned and has no workspaces.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.customer.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/customers/{customerId}",
+      "operationId": "shippin.tenancy.customer.get",
+      "summary": "Read one customer.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.customer.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/tenancy/customers/{customerId}",
+      "operationId": "shippin.tenancy.customer.update",
+      "summary": "Change a customer's name, plan, coverage, contacts, endpoints or notes.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.customer.update"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/customers/{customerId}/effective-config",
+      "operationId": "shippin.tenancy.customer.effective_config.get",
+      "summary": "Show the settings and services a customer ends up with once every layer is merged, and why.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.customer.effective_config.get"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/customers/{customerId}/provision-intents",
+      "operationId": "shippin.tenancy.customer.provision_intent.list",
+      "summary": "List a customer's latest provisioning requests, newest first.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.customer.provision_intent.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenancy/customers/{customerId}/provision-intents",
+      "operationId": "shippin.tenancy.customer.provision_intent.create",
+      "summary": "Record the customer's merged configuration as the state to provision; an operator applies it later.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.customer.provision_intent.create"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/customers/{customerId}/services",
+      "operationId": "shippin.tenancy.customer.service.list",
+      "summary": "List a customer's own settings for catalog services, over what its plan gives.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.customer.service.list"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/tenancy/customers/{customerId}/services/{serviceId}",
+      "operationId": "shippin.tenancy.customer.service.delete",
+      "summary": "Drop a customer's own settings for a service, so its plan decides again.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.customer.service.delete"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/tenancy/customers/{customerId}/services/{serviceId}",
+      "operationId": "shippin.tenancy.customer.service.update",
+      "summary": "Turn a catalog service on or off for one customer, or override its settings.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.customer.service.update"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/plans",
+      "operationId": "shippin.tenancy.plan.list",
+      "summary": "List the plans, lowest rank first, each with the services it includes.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/tenancy/plans",
+      "operationId": "shippin.tenancy.plan.create",
+      "summary": "Create a plan with its label, price, rank and the coverage tier it includes.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/tenancy/plans/{planId}",
+      "operationId": "shippin.tenancy.plan.delete",
+      "summary": "Remove a plan that no customer is on.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/tenancy/plans/{planId}",
+      "operationId": "shippin.tenancy.plan.get",
+      "summary": "Read one plan with the services it includes.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/tenancy/plans/{planId}",
+      "operationId": "shippin.tenancy.plan.update",
+      "summary": "Change a plan's label, description, price, rank, visibility or coverage tier.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.update"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/tenancy/plans/{planId}/services/{serviceId}",
+      "operationId": "shippin.tenancy.plan.service.delete",
+      "summary": "Stop a plan from including a catalog service.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.service.delete"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/tenancy/plans/{planId}/services/{serviceId}",
+      "operationId": "shippin.tenancy.plan.service.update",
+      "summary": "Include a catalog service in a plan, or change its lock mode and limits there.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.plan.service.update"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/tenancy/coverage",
+      "operationId": "shippin.tenancy.coverage.get",
+      "summary": "Read what your organization's coverage includes: support hours, response targets and services.",
+      "tags": [
+        "tenancy"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.tenancy.coverage.get"
     },
     {
       "method": "POST",

@@ -27,8 +27,11 @@ export function AIConnectionsPage() {
   const start = (p: AIProvider) => activate.mutate(p.id, { onSuccess: () => setActive(p) });
   return (
     <>
-      <PageHeader eyebrow="Account" title="AI subscriptions"
-        description="Connect your own Claude, ChatGPT/Codex and Grok plans on a private runner. Sign in with the official CLI and your local browser. The central Devagotchi.com hub will connect approved runners to your devspace; that integration is not available yet." />
+      <PageHeader
+        eyebrow="Account"
+        title="AI subscriptions"
+        description="Connect your own Claude, ChatGPT/Codex and Grok plans on a private runner. Sign in with the official CLI and your local browser. The central Devagotchi.com hub will connect approved runners to your devspace; that integration is not available yet."
+      />
       <Card elevation={2} className="overflow-hidden">
         <CardHeader title={tenant ? `In ${tenant.name}` : "AI subscriptions"} description={data?.terms_note} />
         {!data?.enabled ? (
@@ -43,15 +46,28 @@ export function AIConnectionsPage() {
                   <Bot className="size-5 text-hue-ai" aria-hidden />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium text-fg">{p.label}</div>
-                    <div className="text-xs text-fg-subtle">{p.vendor}{c?.checked_at ? ` · checked ${timeAgo(c.checked_at)}` : ""}</div>
+                    <div className="text-xs text-fg-subtle">
+                      {p.vendor}
+                      {c?.checked_at ? ` · checked ${timeAgo(c.checked_at)}` : ""}
+                    </div>
                   </div>
                   <AIStatusBadge status={c?.status ?? "not_connected"} />
-                  <Button size="sm" variant={connected ? "secondary" : "primary"} isDisabled={!tid || activate.isPending}
-                    tooltip="Opens your private terminal with the vendor's sign-in command" onPress={() => start(p)}>
+                  <Button
+                    size="sm"
+                    variant={connected ? "secondary" : "primary"}
+                    isDisabled={!tid || activate.isPending}
+                    tooltip="Opens your private terminal with the vendor's sign-in command"
+                    onPress={() => start(p)}
+                  >
                     <Plug className="size-4" /> {connected ? "Reconnect" : "Connect"}
                   </Button>
                   {connected && (
-                    <Button size="sm" variant="ghost" tooltip="Runs the vendor's own sign-out in your terminal" onPress={() => setLeaving(p)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      tooltip="Runs the vendor's own sign-out in your terminal"
+                      onPress={() => setLeaving(p)}
+                    >
                       <LogOut className="size-4" /> Sign out
                     </Button>
                   )}
@@ -61,7 +77,13 @@ export function AIConnectionsPage() {
           </ul>
         )}
       </Card>
-      <AITerminalModal tenantId={tid} provider={active} home={home} touchSeconds={data?.touch_seconds ?? 0} onClose={() => setActive(null)} />
+      <AITerminalModal
+        tenantId={tid}
+        provider={active}
+        home={home}
+        touchSeconds={data?.touch_seconds ?? 0}
+        onClose={() => setActive(null)}
+      />
       <ConfirmDialog
         isOpen={!!leaving}
         onOpenChange={(o) => !o && setLeaving(null)}

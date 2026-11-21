@@ -8,7 +8,21 @@ export type AppsView = {
   status_detail: string;
   kvm: boolean;
   blocks: A2UIBlock[];
-  apps: { id: string; title: string; summary: string; command: string; update?: string; alt_id?: string; alt_label?: string; alt_command?: string; alt_update?: string; alt_update_label?: string; docs_url: string; docs_label: string; where: string }[];
+  apps: {
+    id: string;
+    title: string;
+    summary: string;
+    command: string;
+    update?: string;
+    alt_id?: string;
+    alt_label?: string;
+    alt_command?: string;
+    alt_update?: string;
+    alt_update_label?: string;
+    docs_url: string;
+    docs_label: string;
+    where: string;
+  }[];
 };
 
 /** Operator view: status only. No install command is sent to the staff screen. */

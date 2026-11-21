@@ -4,11 +4,16 @@ import (
 	"bufio"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
 	"testing"
+
+	"shippin.cloud/console/internal/actions"
+	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/identity"
 )
 
 // recorder captures registered patterns (Router) without serving anything.
@@ -22,20 +27,6 @@ var pathParam = regexp.MustCompile(`\{[^}]+\}`)
 
 // norm maps "/v1/tenants/{tenantId}/x" and "/tenants/{id}/x" to "/tenants/{}/x".
 func norm(p string) string { return pathParam.ReplaceAllString(strings.TrimPrefix(p, "/v1"), "{}") }
-
-// codePaths are the registered /v1 API paths (method dropped), normalised.
-func codePaths(t *testing.T) []string {
-	rec := &recorder{}
-	(&API{cfg: testCfg()}).Register(rec)
-	out := []string{}
-	for _, p := range rec.patterns {
-		_, path, _ := strings.Cut(p, " ")
-		if strings.HasPrefix(path, "/v1/") && !slices.Contains(out, norm(path)) {
-			out = append(out, norm(path))
-		}
-	}
-	return out
-}
 
 // specPaths reads the top-level `paths:` keys of openapi.yaml (two-space indented "/x:" lines).
 func specPaths(t *testing.T, file string) []string {
@@ -62,40 +53,77 @@ func specPaths(t *testing.T, file string) []string {
 	return out
 }
 
-// TestOpenAPIContract: every API route is in the spec and every spec path is served, except the
-// recorded drift (testdata/openapi-drift.txt: "code <path>" or "spec <path>"), which may only
-// shrink. Set OPENAPI_SPEC to the openapi.yaml path.
+// TestOpenAPIContract holds each served path to one owner. An action's path is documented by
+// api/openapi/actions.gen.json, generated from the action, and the hand-written openapi.yaml must not
+// document it too. Every other served path is in openapi.yaml, except those in
+// testdata/openapi-drift.txt, which may only shrink (UPDATE_OPENAPI=1 rewrites it). Which methods
+// openapi.yaml marks registered or planned is TestOpenAPIMethodContract's.
 func TestOpenAPIContract(t *testing.T) {
-	file := os.Getenv("OPENAPI_SPEC")
-	if file == "" {
-		t.Skip("OPENAPI_SPEC not set")
+	actionPaths := map[string]bool{}
+	for _, g := range actions.All {
+		_, p, _ := strings.Cut(g.Route, " ")
+		actionPaths[norm(p)] = true
 	}
-	allowed := map[string]bool{}
-	raw, _ := os.ReadFile(filepath.Join("testdata", "openapi-drift.txt"))
-	for _, l := range strings.Split(string(raw), "\n") {
-		if l = strings.TrimSpace(l); l != "" && l[0] != '#' {
-			allowed[l] = true
+	spec := specPaths(t, specFile())
+	for _, p := range spec {
+		if actionPaths[p] {
+			t.Errorf("openapi.yaml documents %s, which is an action's: actions.gen.json owns it, remove it from openapi.yaml", p)
 		}
 	}
-	code, spec := codePaths(t), specPaths(t, file)
+	var undocumented []string
 	seen := map[string]bool{}
-	check := func(kind string, have, other []string) {
-		for _, p := range have {
-			if slices.Contains(other, p) {
-				continue
-			}
-			line := kind + " " + p
-			seen[line] = true
-			if !allowed[line] {
-				t.Errorf("new drift: %s (add it to the spec, or to testdata/openapi-drift.txt with a reason)", line)
-			}
+	for _, pat := range servedPatterns(t) {
+		_, p, _ := strings.Cut(pat, " ")
+		if p = norm(p); actionPaths[p] || seen[p] || slices.Contains(spec, p) {
+			continue
+		}
+		seen[p] = true
+		undocumented = append(undocumented, "code "+p)
+	}
+	ratchet(t, "testdata/openapi-drift.txt", undocumented, "UPDATE_OPENAPI",
+		"served paths that are neither actions nor in api/openapi/openapi.yaml",
+		"document it in openapi.yaml, or better, make it an action, whose contract is generated")
+}
+
+// specFile is the hand-written contract: OPENAPI_SPEC, or the repository's own.
+func specFile() string {
+	if f := os.Getenv("OPENAPI_SPEC"); f != "" {
+		return f
+	}
+	return filepath.Join("..", "..", "api", "openapi", "openapi.yaml")
+}
+
+// servedAPI is the API with everything mounted that an installation can mount.
+func servedAPI() *API {
+	a := gateAPI("op_superadmin")
+	a.flow = &auth.Flow{}
+	a.directory = identity.New(nil, a.cfg, nil, nil) // so local-account routes are mounted too
+	return a
+}
+
+// servedPatterns are the served "METHOD /v1/..." patterns.
+func servedPatterns(t *testing.T) []string {
+	t.Helper()
+	rec := &patternRec{mux: http.NewServeMux()}
+	servedAPI().Register(rec)
+	var out []string
+	for _, pat := range rec.all {
+		if _, path, ok := strings.Cut(pat, " "); ok && strings.HasPrefix(path, "/v1/") {
+			out = append(out, pat)
 		}
 	}
-	check("code", code, spec)
-	check("spec", spec, code)
-	for l := range allowed {
-		if !seen[l] {
-			t.Errorf("stale drift entry (now in sync, remove it): %s", l)
+	return out
+}
+
+// pyYAML is a Python with PyYAML for the checks that resolve the spec's references; without one they
+// are skipped, and say so.
+func pyYAML(t *testing.T) string {
+	t.Helper()
+	for _, py := range []string{"python3", "python"} {
+		if exec.Command(py, "-c", "import yaml").Run() == nil {
+			return py
 		}
 	}
+	t.Skip("no python with PyYAML: the hand-written spec's method check needs it")
+	return ""
 }

@@ -11,7 +11,8 @@ var StaffPresets = []StaffRole{
 		"catalog.plans.read", "catalog.prices.read", "catalog.plans.write", "config.defaults.write", "customers.read",
 		"customers.contacts.read", "customers.notes.read", "customers.write", "customers.services.write",
 		"config.effective.read", "provision.intent.create", "platform.settings.read", "platform.settings.write",
-		"infra.read", "infra.hosts.write", "infra.fleets.write", "infra.guests.power", "infra.guests.snapshot", "infra.guests.restore", "infra.guests.backup", "infra.guests.manage", "infra.storage.write", "infra.self"}},
+		"infra.read", "infra.hosts.write", "infra.fleets.write", "infra.guests.power", "infra.guests.snapshot", "infra.guests.restore", "infra.guests.backup", "infra.guests.manage", "infra.storage.write", "infra.self",
+		"acquisition.read", "acquisition.sync"}},
 	{Key: "staff.platform_admin", Name: "Platform Admin", Description: "Configures the platform: tenants, templates, mail, DNS, edge.", Permissions: []string{
 		"tenants.read", "tenants.lifecycle", "tenants.delete", "workspaces.read", "workspaces.act", "identity.read",
 		"host.read", "host.admin_tools", "edge.read", "access.request", "audit.read", "templates.read", "templates.write",

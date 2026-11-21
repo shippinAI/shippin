@@ -35,20 +35,57 @@ export function TerminalPage() {
       <div className="flex items-center gap-2 border-b border-line px-4 py-2">
         <h1 className="text-base font-semibold text-fg">Terminal</h1>
         <HelpPopover title="Zellij basics" placement="bottom">
-          <p>This terminal opens the workspace's <strong className="text-fg">Zellij</strong> session <span className="font-mono">shippin</span>. Closing the tab keeps it running; come back and you're where you left off.</p>
-          <p><span className="font-mono text-fg">Ctrl p</span> then <span className="font-mono text-fg">n</span>: new pane · <span className="font-mono text-fg">Ctrl t</span> then <span className="font-mono text-fg">n</span>: new tab · <span className="font-mono text-fg">Ctrl o</span> then <span className="font-mono text-fg">d</span>: detach. The bar at the bottom shows the keys.</p>
+          <p>
+            This terminal opens the workspace's <strong className="text-fg">Zellij</strong> session{" "}
+            <span className="font-mono">shippin</span>. Closing the tab keeps it running; come back and you're where you left off.
+          </p>
+          <p>
+            <span className="font-mono text-fg">Ctrl p</span> then <span className="font-mono text-fg">n</span>: new pane ·{" "}
+            <span className="font-mono text-fg">Ctrl t</span> then <span className="font-mono text-fg">n</span>: new tab ·{" "}
+            <span className="font-mono text-fg">Ctrl o</span> then <span className="font-mono text-fg">d</span>: detach. The bar at the
+            bottom shows the keys.
+          </p>
           <p>Turn Zellij off for a plain shell.</p>
         </HelpPopover>
         <span className="flex-1" />
-        <Switch tooltip="On: the persistent Zellij session. Off: a plain shell" isSelected={zellij} onChange={(v) => { setZellij(v); setSession((n) => n + 1); }}>Zellij</Switch>
-        <Button size="sm" variant="ghost" tooltip="Sign GitHub and the AI CLIs in" onPress={() => navigate(`${wsBase}/connect`)}><KeyRound className="size-4" /> Connect accounts</Button>
-        <Button size="sm" variant="secondary" tooltip="Use your own WezTerm: download a config with an ssh domain to this workspace" onPress={() => setWez(true)}><MonitorUp className="size-4" /> Open in WezTerm</Button>
-        <Button size="sm" variant="ghost" onPress={() => setSession((n) => n + 1)} tooltip={zellij ? "Reconnect to the Zellij session" : "Open a fresh shell"}><RotateCw className="size-4" /> {zellij ? "Reconnect" : "New session"}</Button>
+        <Switch
+          tooltip="On: the persistent Zellij session. Off: a plain shell"
+          isSelected={zellij}
+          onChange={(v) => {
+            setZellij(v);
+            setSession((n) => n + 1);
+          }}
+        >
+          Zellij
+        </Switch>
+        <Button size="sm" variant="ghost" tooltip="Sign GitHub and the AI CLIs in" onPress={() => navigate(`${wsBase}/connect`)}>
+          <KeyRound className="size-4" /> Connect accounts
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          tooltip="Use your own WezTerm: download a config with an ssh domain to this workspace"
+          onPress={() => setWez(true)}
+        >
+          <MonitorUp className="size-4" /> Open in WezTerm
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onPress={() => setSession((n) => n + 1)}
+          tooltip={zellij ? "Reconnect to the Zellij session" : "Open a fresh shell"}
+        >
+          <RotateCw className="size-4" /> {zellij ? "Reconnect" : "New session"}
+        </Button>
       </div>
       <details open className="max-h-72 overflow-auto border-b border-line px-4 py-2">
         <summary className="cursor-pointer text-base font-medium text-fg">Install an app</summary>
-        <p className="mt-1 text-xs text-fg-muted">Copy a command and paste it into this terminal. It installs the app and starts the vendor sign-in, on your account.</p>
-        <div className="mt-2"><AppCards tenantId={tenantId} /></div>
+        <p className="mt-1 text-xs text-fg-muted">
+          Copy a command and paste it into this terminal. It installs the app and starts the vendor sign-in, on your account.
+        </p>
+        <div className="mt-2">
+          <AppCards tenantId={tenantId} />
+        </div>
       </details>
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_340px] overflow-hidden">
         <TerminalPane key={session} tenantId={tenantId} workspaceId={workspaceId} bus={bus} mux={zellij ? "zellij" : "plain"} />

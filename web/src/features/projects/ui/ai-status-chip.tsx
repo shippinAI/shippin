@@ -13,8 +13,14 @@ export function AIStatusChip() {
   const home = q.data.homes.find((h) => h.tenant_id === tenantId);
   const n = q.data.connections.filter((c) => c.home_id === home?.id && c.status === "connected").length;
   return (
-    <Button variant="ghost" size="sm" onPress={() => nav("/account/ai")}
-      tooltip={n ? "Your own AI subscriptions are available in your workspaces here" : "Connect your own Claude, Codex or Grok subscription"}>
+    <Button
+      variant="ghost"
+      size="sm"
+      onPress={() => nav("/account/ai")}
+      tooltip={
+        n ? "Your own AI subscriptions are available in your workspaces here" : "Connect your own Claude, Codex or Grok subscription"
+      }
+    >
       <Bot className="size-4" /> {n ? `AI: ${n} connected` : "Connect AI"}
     </Button>
   );

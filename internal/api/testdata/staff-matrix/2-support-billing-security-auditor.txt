@@ -46,11 +46,13 @@ POST /v1/operator/staff-mode/exit
 GET /v1/operator/tenants/{tenantId}/vm
 GET /v1/operator/tenants/{tenantId}/apps
 GET /v1/operator/boundaries
+GET /v1/operator/runtime/runners
 GET /v1/operator/workspaces
 GET /v1/operator/identity
 GET /v1/operator/templates
 GET /v1/operator/host
 GET /v1/operator/edge
+GET /v1/operator/infrastructure/metrics
 GET /v1/operator/break-glass/pending
 POST /v1/operator/break-glass/{grantId}/{decision}
 GET /v1/operator/audit
@@ -70,10 +72,12 @@ POST /v1/operator/staff-mode/exit
 GET /v1/operator/tenants/{tenantId}/vm
 GET /v1/operator/tenants/{tenantId}/apps
 GET /v1/operator/boundaries
+GET /v1/operator/runtime/runners
 GET /v1/operator/workspaces
 GET /v1/operator/templates
 GET /v1/operator/host
 GET /v1/operator/edge
+GET /v1/operator/infrastructure/metrics
 GET /v1/operator/audit
 GET /v1/operator/team
 GET /v1/operator/team/permission-grants

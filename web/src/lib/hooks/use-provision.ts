@@ -2,10 +2,24 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiSend } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 
-export type OperatorTenant = { id: string; idp_org_id: string; name: string; plan_id: string; status: string; ssh_ip?: string; error?: string; created_at: string };
+export type OperatorTenant = {
+  id: string;
+  idp_org_id: string;
+  name: string;
+  plan_id: string;
+  status: string;
+  ssh_ip?: string;
+  error?: string;
+  created_at: string;
+};
 
 export const useAllTenants = (enabled: boolean) =>
-  useQuery({ queryKey: ["operator", "tenants"], queryFn: () => apiGet<{ items: OperatorTenant[] }>("/v1/tenants"), enabled, refetchInterval: 15_000 });
+  useQuery({
+    queryKey: ["operator", "tenants"],
+    queryFn: () => apiGet<{ items: OperatorTenant[] }>("/v1/tenants"),
+    enabled,
+    refetchInterval: 15_000,
+  });
 
 /** Re-run idempotent provisioning. The API returns a friendly reason to customers and the raw cause to operators. */
 export function useRetryProvision() {

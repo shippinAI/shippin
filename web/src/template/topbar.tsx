@@ -29,7 +29,9 @@ export function Topbar({ crumb }: { crumb: string }) {
         <Command className="size-3" /> K <span className="ml-1">Command palette · v0.2</span>
       </div>
       {caps?.["operator.view"] && <UpdateStatus />}
-      <Suspense fallback={null}><OrgSwitcher /></Suspense>
+      <Suspense fallback={null}>
+        <OrgSwitcher />
+      </Suspense>
       <AdminPanelLink />
       <IconButton
         icon={RefreshCw}
@@ -39,7 +41,11 @@ export function Topbar({ crumb }: { crumb: string }) {
           toast.success("Data refreshed");
         }}
       />
-      <IconButton icon={BookOpen} label="API reference (openapi v0.1)" onPress={() => toast.info("API docs", "Published with the control-plane API in v0.2.")} />
+      <IconButton
+        icon={BookOpen}
+        label="API reference (openapi v0.1)"
+        onPress={() => toast.info("API docs", "Published with the control-plane API in v0.2.")}
+      />
     </div>
   );
 }

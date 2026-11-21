@@ -4,8 +4,13 @@ import type { Server } from "./server-types";
 export type OrgType = "operations" | "customer";
 
 export type OrgItem = {
-  id: string; slug: string; type: OrgType; name: string;
-  roles: string[]; has_devspace: boolean; tenant_id?: string;
+  id: string;
+  slug: string;
+  type: OrgType;
+  name: string;
+  roles: string[];
+  has_devspace: boolean;
+  tenant_id?: string;
 };
 
 export type OrgList = { items: OrgItem[]; staff_roles: string[] };

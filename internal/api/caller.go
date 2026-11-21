@@ -43,6 +43,9 @@ type caller struct {
 }
 
 func (a *API) caller(w http.ResponseWriter, r *http.Request) (*caller, bool) {
+	if a.resolveCaller != nil { // tests only
+		return a.resolveCaller(w, r)
+	}
 	var c *caller
 	var err error
 	if uid := auth.LocalUser(r.Context()); uid != "" && auth.FromContext(r.Context()) == "" {
@@ -110,19 +113,17 @@ func (a *API) callerFromIdentity(r *http.Request, id *auth.Identity) (*caller, e
 	for _, t := range ts {
 		ids = append(ids, t.ID)
 	}
-	cover, err := a.tenantCoverage(r.Context(), ids)
+	rules, err := a.orgRules(r.Context(), ids)
 	if err != nil {
 		return nil, err
 	}
 	c.method = auth.SignInMethod(r.Context())
 	for _, t := range ts {
-		c.tenants = append(c.tenants, tenantView{Tenant: t, Roles: roles[t.IdpOrgID], coverage: cover[t.ID].Tier, signIn: cover[t.ID].SignIn})
+		c.tenants = append(c.tenants, tenantView{Tenant: t, Roles: roles[t.IdpOrgID], coverage: rules[t.ID].Label, signIn: rules[t.ID].SignIn})
 	}
-	// Staff who may hold grants see the granted tenants (only those, only while active).
-	if a.decideQuiet(r, c, "access.request") || a.decideQuiet(r, c, "access.breakglass") {
-		if err := a.addGrantedTenants(r, c); err != nil {
-			return nil, err
-		}
+	// Organizations the caller reaches without membership (the caller policy), only while active.
+	if err := a.addAccess(r, c); err != nil {
+		return nil, err
 	}
 	c.installOwner = strings.HasPrefix(id.Sub, localSubPrefix) && c.op != "" && c.op == a.cfg.Operator.Role
 	owner := a.cfg.Roles.Owner

@@ -6,12 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/devaccounts"
 	"shippin.cloud/console/internal/identity"
 )
 
@@ -24,6 +27,7 @@ func (a *API) registerDirectory(mux Router) {
 	mux.HandleFunc("POST /v1/setup/handover/password", a.handoverPassword)
 	mux.HandleFunc("POST /v1/setup/handover/owner", a.handoverOwner)
 	mux.HandleFunc("POST /v1/session/password", a.passwordLogin)
+	a.transport(mux, "POST /auth/dev", Redirect, a.devLogin)
 	mux.HandleFunc("PUT /v1/directory/me/password", a.passwordChange)
 	mux.HandleFunc("POST /v1/session/magic", a.magicBegin)
 	mux.HandleFunc("POST /v1/session/magic/redeem", a.magicRedeem)
@@ -144,6 +148,35 @@ func (a *API) passwordLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.startSession(w, r, u.ID, "password")
+}
+
+// devLogin is one-click sign-in as a development account (docs/development.md): a browser form post that
+// sets the session and goes to the panel. It works only for an account listed in SHIPPIN_DEV_ACCOUNTS, on a
+// development address, and through the same password check as any sign-in, using the listed accounts'
+// password from the environment. Cross-origin posts are refused by SameOrigin like every other write.
+func (a *API) devLogin(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	email := strings.ToLower(strings.TrimSpace(r.PostFormValue("email")))
+	listed := false
+	for _, acct := range devaccounts.QuickSignIn(r.Host) {
+		listed = listed || acct.Email == email
+	}
+	if !listed {
+		http.Redirect(w, r, "/login?error=dev_unavailable", http.StatusSeeOther)
+		return
+	}
+	u, err := a.directory.AuthenticatePassword(r.Context(), email, os.Getenv("SHIPPIN_DEV_ACCOUNTS_PASSWORD"), clientIP(r))
+	if err != nil {
+		slog.Warn("development sign-in refused; the account is missing or its password differs", "email", email)
+		http.Redirect(w, r, "/login?error=dev_account", http.StatusSeeOther)
+		return
+	}
+	if _, err := a.flow.StartLocal(w, r, u.ID, "dev_account"); err != nil {
+		http.Redirect(w, r, "/login?error=exchange", http.StatusSeeOther)
+		return
+	}
+	slog.Warn("development sign-in", "email", email)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (a *API) passwordChange(w http.ResponseWriter, r *http.Request) {

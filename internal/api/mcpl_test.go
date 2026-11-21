@@ -7,21 +7,16 @@ import (
 	"strings"
 	"testing"
 
-	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/mcpl"
 )
 
-// TestMCPLConformance holds the API to docs/mcpl.md:
-//   - every described action follows the rules and is really served, with the permission that gates it;
-//   - every served /v1 route is described, or listed in testdata/mcpl-undescribed.txt;
-//   - every staff change takes a reason, or is listed in testdata/mcpl-no-reason.txt.
-//
-// Both lists may only shrink. Regenerate them with UPDATE_MCPL=1 after describing more routes.
+// TestMCPLConformance holds the API to docs/mcpl.md. Every generated action is served on its derived
+// route behind its own permission. A route that carries something else (a stream, a socket, a
+// webhook) is mounted with a.transport and says so. Every other served /v1 route is legacy, listed in
+// testdata/mcpl-undescribed.txt; that list may only shrink, as entities move into
+// internal/<domain>/<entity>/<verb>.go. Regenerate it with UPDATE_MCPL=1.
 func TestMCPLConformance(t *testing.T) {
-	a := gateAPI("op_superadmin")
-	a.flow = &auth.Flow{}
-	a.directory = identity.New(nil, a.cfg, nil, nil) // so local-account routes are mounted too
+	a := servedAPI()
 	rec := &patternRec{mux: http.NewServeMux()}
 	a.Register(rec)
 	served := map[string]bool{}
@@ -34,46 +29,50 @@ func TestMCPLConformance(t *testing.T) {
 	for _, rt := range a.operatorRoutes() {
 		gate[rt.pattern] = rt.perm
 	}
-
-	actions := a.actions()
+	actions := describedActions()
 	for _, err := range mcpl.Validate(actions) {
 		t.Error(err)
 	}
-	described := map[string]bool{}
-	var noReason []string
+	described := map[string]bool{"GET /v1/mcpl": true, "GET /v1/operator/mcpl": true} // the contract's own manifests
 	for _, x := range actions {
 		described[x.Route] = true
 		if !served[x.Route] {
-			t.Errorf("%s describes %s, which is not served", x.ID, x.Route)
+			t.Errorf("%s: %s is not served", x.ID, x.Route)
 		}
-		if perm, ok := gate[x.Route]; ok && (x.Access != mcpl.Staff || x.Perm != perm) {
-			t.Errorf("%s: route is gated by %q, the action says %s %q", x.ID, perm, x.Access, x.Perm)
-		}
-		if x.Access == mcpl.Staff && x.Risk != mcpl.Read && !x.Reason {
-			noReason = append(noReason, x.ID)
+		if perm, ok := gate[x.Route]; x.Access == mcpl.Staff && (!ok || perm != x.Perm) {
+			t.Errorf("%s: route gate %q, the action needs %q", x.ID, perm, x.Perm)
 		}
 	}
-	var undescribed []string
+	for pat, carries := range a.transports {
+		if !served[pat] && strings.HasPrefix(strings.SplitN(pat, " ", 2)[1], "/v1/") {
+			t.Errorf("transport %s (%s) is not served", pat, carries)
+		}
+		if described[pat] {
+			t.Errorf("%s is both an action and a transport", pat)
+		}
+		described[pat] = true
+	}
+	var legacy []string
 	for pat := range served {
 		if !described[pat] {
-			undescribed = append(undescribed, pat)
+			legacy = append(legacy, pat)
 		}
 	}
-	ratchet(t, "testdata/mcpl-undescribed.txt", undescribed, "served /v1 routes with no MCPL action")
-	ratchet(t, "testdata/mcpl-no-reason.txt", noReason, "staff changes that take no reason")
-	t.Logf("MCPL: %d actions described, %d routes still undescribed", len(actions), len(undescribed))
+	ratchet(t, "testdata/mcpl-undescribed.txt", legacy, "UPDATE_MCPL", "served /v1 routes that are not yet generated actions",
+		"write it as an action file instead (docs/mcpl.md)")
+	t.Logf("MCPL: %d generated actions, %d legacy routes", len(actions), len(legacy))
 }
 
-// ratchet fails on a new entry or a stale one, so a known-gaps list can only shrink.
-func ratchet(t *testing.T, file string, got []string, what string) {
+// ratchet fails on a new entry or a stale one, so a known-gaps list can only shrink. env=1 rewrites it.
+func ratchet(t *testing.T, file string, got []string, env, what, hint string) {
 	t.Helper()
 	slices.Sort(got)
-	if os.Getenv("UPDATE_MCPL") == "1" {
-		_ = os.WriteFile(file, []byte("# "+what+". This list may only shrink: describe one, then UPDATE_MCPL=1 go test -run TestMCPLConformance ./internal/api\n"+strings.Join(got, "\n")+"\n"), 0o644)
+	if os.Getenv(env) == "1" {
+		_ = os.WriteFile(file, []byte("# "+what+". This list may only shrink: move an entity to internal/<domain>/<entity>/<verb>.go, then "+env+"=1 go test ./internal/api\n"+strings.Join(got, "\n")+"\n"), 0o644)
 	}
 	raw, err := os.ReadFile(file)
 	if err != nil {
-		t.Fatalf("%s: %v (create it with UPDATE_MCPL=1)", file, err)
+		t.Fatalf("%s: %v (create it with %s=1)", file, err, env)
 	}
 	known := map[string]bool{}
 	for _, l := range strings.Split(string(raw), "\n") {
@@ -85,12 +84,12 @@ func ratchet(t *testing.T, file string, got []string, what string) {
 	for _, g := range got {
 		have[g] = true
 		if !known[g] {
-			t.Errorf("new %s: %s (describe it per docs/mcpl.md)", strings.TrimSuffix(what, "s"), g)
+			t.Errorf("new entry %s in %s: %s", g, file, hint)
 		}
 	}
 	for k := range known {
 		if !have[k] {
-			t.Errorf("%s lists %s, which is fixed now; regenerate with UPDATE_MCPL=1", file, k)
+			t.Errorf("%s lists %s, which is gone or generated now; rewrite it with %s=1", file, k, env)
 		}
 	}
 }

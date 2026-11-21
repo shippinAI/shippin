@@ -105,7 +105,8 @@ func (s *Service) TakeOverSetup(ctx context.Context, actor, password string) (st
 		}
 		return "", err
 	}
-	for _, q := range []string{`DELETE FROM identity_passkeys WHERE user_id::text=$1`, `DELETE FROM identity_recovery WHERE user_id::text=$1`} {
+	for _, q := range []string{`DELETE FROM identity_passkeys WHERE user_id::text=$1`, `DELETE FROM identity_recovery WHERE user_id::text=$1`,
+		`DELETE FROM access_keys WHERE user_id::text=$1`} {
 		if _, err := tx.Exec(ctx, q, id); err != nil {
 			return "", err
 		}

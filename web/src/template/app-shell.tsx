@@ -34,7 +34,7 @@ export function AppShell() {
   const t = useText();
   const { tenant } = useTenant();
   const refused = tenant?.sign_in_met === false ? tenant : undefined;
-  const crumb = pathname.startsWith("/operator/hosts") ? t("infra.title") : crumbs.find(([re]) => re.test(pathname))?.[1] ?? "Home";
+  const crumb = pathname.startsWith("/operator/hosts") ? t("infra.title") : (crumbs.find(([re]) => re.test(pathname))?.[1] ?? "Home");
   return (
     <div className="flex h-full">
       <Sidebar />
@@ -45,7 +45,11 @@ export function AppShell() {
           {refused ? <SignInRequired tenant={refused} /> : <AccessBanner />}
           <Suspense fallback={null}>
             {!refused && <Outlet />}
-            {chatOn && <Suspense fallback={null}><ChatLauncher /></Suspense>}
+            {chatOn && (
+              <Suspense fallback={null}>
+                <ChatLauncher />
+              </Suspense>
+            )}
           </Suspense>
         </main>
       </div>

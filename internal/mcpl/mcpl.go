@@ -40,6 +40,10 @@ const (
 	Member   Access = "member"    // a tenant member; the tenant's own roles apply
 )
 
+// MemberRoles are what a member action may require of the caller in the organization: "" anyone who
+// sees it, "manage" a manager, "decide" an owner or admin who approves platform access.
+var MemberRoles = []string{"", "manage", "decide"}
+
 // Action is one thing a person can do, described once.
 type Action struct {
 	// ID is shippin.<domain>.<entity>.<verb>, for example shippin.tenancy.plan.update.
@@ -71,8 +75,6 @@ var (
 	idPattern    = regexp.MustCompile(`^shippin\.[a-z]+\.[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*\.[a-z][a-z_]*$`)
 	eventPattern = regexp.MustCompile(`^shippin\.[a-z]+\.[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*\.[a-z][a-z_]*$`)
 	routePattern = regexp.MustCompile(`^(GET|POST|PUT|PATCH|DELETE) /v1(/[a-z0-9{][a-zA-Z0-9_.{}-]*)+$`)
-	readVerbs    = []string{"list", "get", "check", "search", "export"}
-	deleteVerbs  = []string{"delete", "remove", "revoke", "reset", "clear"}
 )
 
 // Validate checks every action against the rules in docs/mcpl.md and returns each problem found.
@@ -101,33 +103,20 @@ func Validate(actions []Action) []error {
 		}
 		method, _, _ := strings.Cut(a.Route, " ")
 		verb := a.ID[strings.LastIndex(a.ID, ".")+1:]
-		switch a.Risk {
-		case Read:
-			if method != "GET" && !slices.Contains(readVerbs, verb) {
-				fail(a, "a read is a GET or a %v verb", readVerbs)
-			}
-		case Write:
-			if method == "GET" || method == "DELETE" {
-				fail(a, "a write is not a %s", method)
-			}
-		case Destructive:
-			if method == "GET" {
-				fail(a, "a destructive action is not a GET")
-			}
-		default:
-			fail(a, "risk must be read, write or destructive")
-		}
-		if method == "GET" && a.Risk != Read {
-			fail(a, "a GET is a read")
-		}
-		if method == "DELETE" && a.Risk != Destructive {
-			fail(a, "a DELETE is destructive")
-		}
-		if method == "DELETE" && !slices.Contains(deleteVerbs, verb) {
-			fail(a, "a DELETE's verb is one of %v", deleteVerbs)
+		if v := VerbOf(verb, Spec{}); method != v.Method {
+			fail(a, "%s is a %s (mcpl.Verbs)", verb, v.Method)
+		} else if a.Risk != v.Risk {
+			fail(a, "%s is a %s action, not %s", verb, v.Risk, a.Risk)
 		}
 		switch a.Access {
-		case Public, SignedIn, Member:
+		case Public, SignedIn:
+			if a.Perm != "" {
+				fail(a, "a %s action has no permission; the action decides the rest", a.Access)
+			}
+		case Member:
+			if !slices.Contains(MemberRoles, a.Perm) {
+				fail(a, "a member action's permission is one of %q", MemberRoles)
+			}
 		case Staff:
 			if a.Perm == "" {
 				fail(a, "a staff action names its permission")
@@ -150,6 +139,8 @@ func Validate(actions []Action) []error {
 			if a.Risk == Read {
 				fail(a, "a read emits no event")
 			}
+		} else if a.Risk != Read {
+			fail(a, "a change emits an event")
 		}
 	}
 	return errs

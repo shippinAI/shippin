@@ -1,23 +1,37 @@
 # The Shippin panel: the web bundle, the console binary and nothing about any one installation.
 # Everything a site chooses comes from the environment at run time. See compose.yaml.
 
+# Everything derived from the action files is generated again here, from the source alone: the
+# registry, the panel's typed action map and the actions' OpenAPI document (docs/mcpl.md). The image
+# is what the source says even if a committed copy is stale; the tests catch a stale copy.
+# The Go toolchain is pinned to a patch release (go.mod names the same one): a floating tag hides which
+# security fixes a build has.
+FROM golang:1.26.11-bookworm AS source
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN go generate ./internal/actions
+
 FROM node:24-bookworm-slim AS web
 WORKDIR /src/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY web/ ./
 COPY api/ /src/api/
-RUN npm run build
+COPY --from=source /src/web/src/lib/api/actions.gen.ts src/lib/api/actions.gen.ts
+COPY --from=source /src/api/openapi/actions.gen.json /src/api/openapi/actions.gen.json
+RUN npm run generate:openapi && npm run build
 
-FROM golang:1.26-bookworm AS server
-WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-# Go stamps the commit from .git, which is how the panel knows when it is behind.
-# A source archive has no .git and builds unstamped.
-RUN CGO_ENABLED=0 go build -trimpath -o /out/shippin-console ./cmd/console \
-  || CGO_ENABLED=0 go build -buildvcs=false -trimpath -o /out/shippin-console ./cmd/console
+FROM source AS server
+# The version and channel come from the build (docs/release.md): CI passes them for edge builds and
+# releases, and a plain `docker build` is the local development build. Go stamps the commit from .git,
+# which is how the panel knows when it is behind; a source archive has no .git and builds unstamped.
+ARG VERSION=0.0.0-dev
+ARG CHANNEL=local
+RUN LDFLAGS="-X shippin.cloud/console/internal/version.version=${VERSION} -X shippin.cloud/console/internal/version.channel=${CHANNEL}" \
+  && { CGO_ENABLED=0 go build -trimpath -ldflags "$LDFLAGS" -o /out/shippin-console ./cmd/console \
+  || CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags "$LDFLAGS" -o /out/shippin-console ./cmd/console; }
 
 FROM debian:trixie-slim
 RUN apt-get update -qq \

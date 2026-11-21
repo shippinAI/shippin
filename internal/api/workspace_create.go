@@ -26,8 +26,8 @@ func (a *API) createWorkspace(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusForbidden, "Creating workspaces needs the org owner or admin role.")
 		return
 	}
-	if t.Status != "active" || t.SSHIP == "" {
-		auth.Problem(w, http.StatusConflict, "This tenant isn't provisioned yet.")
+	if ok, why := a.orgReady(t.Tenant); !ok {
+		auth.Problem(w, http.StatusConflict, why)
 		return
 	}
 	a.idempotent(w, r, t.ID+":"+c.id.Sub, func(w http.ResponseWriter, r *http.Request) { a.newWorkspace(w, r, c, t) })
@@ -56,7 +56,7 @@ func (a *API) newWorkspace(w http.ResponseWriter, r *http.Request, c *caller, t 
 		auth.Problem(w, http.StatusBadRequest, msg)
 		return
 	}
-	keys, err := a.userKeys(r, c.id.Sub)
+	keys, err := a.userKeys(r.Context(), c.id.Sub)
 	if err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "SSH keys are unavailable right now.")
 		return

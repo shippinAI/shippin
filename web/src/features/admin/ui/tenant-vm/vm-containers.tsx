@@ -13,7 +13,9 @@ export function VMContainers({ items }: { items: VMContainer[] }) {
       {items.map((c) => (
         <li key={c.name} className="flex items-center gap-3 px-3 py-2 text-sm">
           <Box className="size-3.5 shrink-0 text-fg-subtle" strokeWidth={1.75} />
-          <span className="min-w-0 flex-1 truncate font-mono text-fg" title={c.name}>{c.name}</span>
+          <span className="min-w-0 flex-1 truncate font-mono text-fg" title={c.name}>
+            {c.name}
+          </span>
           <span className="font-mono text-fg-muted tabular-nums">{c.ipv4 || "—"}</span>
           <span className="w-16 text-right text-fg-muted tabular-nums">{formatBytes(c.memory_bytes)}</span>
           <StatusBadge status={c.status} />

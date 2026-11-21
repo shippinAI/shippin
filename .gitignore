@@ -4,6 +4,8 @@ dist/
 *.log
 .cache/
 /.ai/data/
+/.ai/lexicon/
+/.claude/settings.local.json
 web/node_modules/
 web/dist/
 bin/

@@ -19,6 +19,21 @@ how parts work, `absorption/` for where older code went, and `archive/` for
 superseded plans. An installation's values are never committed; they belong in
 its database and panel (CFG-01), and until then in its uncommitted site file.
 
+The [foundation delivery plan](foundation-delivery.md) maps the deploy-and-claim
+journey, UI grouping and provider proofs to these owners. It distinguishes current
+packages from target contexts; moving an entity does not create a second authority.
+
+Hypervisor guest inventory is read from the attached provider by `internal/hv/`
+through the authorized infrastructure API. Existing VMs and containers need no
+Shippin creation or per-guest import record. Incus discovery is scoped to the
+connection's configured project (the default project when omitted). The panel's
+`use-hosts.ts` owns the shared guest query used by infrastructure and service
+selection; it refreshes every 15 seconds while observed and supports manual refresh.
+Failed refreshes retain labelled last-known rows and disable guest actions in the
+provider view until recovery. Discovery does not assign tenant ownership or grant
+staff permissions. Host attachment, live deployment verification, and guest shell
+or console support remain separate capabilities.
+
 `internal/orgs/` owns the explicit registry links between the internal Operations
 organization, its local identity organization and the system tenant, and between
 customer organizations and their tenants. Staff invitations and assignments use

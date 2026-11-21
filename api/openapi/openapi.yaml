@@ -61,10 +61,6 @@ tags:
 paths:
   /me:
     $ref: paths/me.yaml#/me
-  /me/ssh-keys:
-    $ref: paths/ssh-keys.yaml#/keys
-  /me/ssh-keys/{keyId}:
-    $ref: paths/ssh-keys.yaml#/key
   /tenants:
     $ref: paths/tenants.yaml#/tenants
   /tenants/{tenantId}:
@@ -173,10 +169,6 @@ paths:
     $ref: paths/compute-nodes.yaml#/enrollments
   /operator/compute/enrollments/{enrollmentId}:
     $ref: paths/compute-nodes.yaml#/enrollment
-  /operator/catalog/services:
-    $ref: paths/catalog.yaml#/services
-  /operator/catalog/services/{id}:
-    $ref: paths/catalog.yaml#/service
   /operator/agenthub-connection:
     $ref: paths/agenthub-runtime.yaml#/connection
   /operator/agenthub-connection/test:

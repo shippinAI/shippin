@@ -21,11 +21,19 @@ export function SetupChecklist({ tenantId, scope }: { tenantId: string; scope: "
       <CardHeader
         title="Setup checklist"
         description={q.data ? `${q.data.done} of ${q.data.total} done` : q.isError ? "Setup state is unavailable." : "Checking…"}
-        actions={canFix && (
-          <Button size="sm" variant="secondary" tooltip="Provision rrflow state for every project missing it" isDisabled={fix.isPending} onPress={() => fix.mutate()}>
-            Provision rrflow
-          </Button>
-        )}
+        actions={
+          canFix && (
+            <Button
+              size="sm"
+              variant="secondary"
+              tooltip="Provision rrflow state for every project missing it"
+              isDisabled={fix.isPending}
+              onPress={() => fix.mutate()}
+            >
+              Provision rrflow
+            </Button>
+          )
+        }
       />
       <ul className="divide-y divide-line" aria-label="Setup checks">
         {checks.map((c) => {
@@ -37,12 +45,18 @@ export function SetupChecklist({ tenantId, scope }: { tenantId: string; scope: "
                 <p className="font-medium text-fg">{c.label}</p>
                 {c.detail && <p className="text-base text-fg-muted">{c.detail}</p>}
               </div>
-              <Badge tone={c.state === "ok" ? "success" : c.state === "error" ? "danger" : c.state === "todo" ? "warning" : "neutral"}>{label[c.state]}</Badge>
+              <Badge tone={c.state === "ok" ? "success" : c.state === "error" ? "danger" : c.state === "todo" ? "warning" : "neutral"}>
+                {label[c.state]}
+              </Badge>
             </li>
           );
         })}
       </ul>
-      {fix.isError && <p role="alert" className="px-4 pb-3 text-base text-danger">{fix.error.message}</p>}
+      {fix.isError && (
+        <p role="alert" className="px-4 pb-3 text-base text-danger">
+          {fix.error.message}
+        </p>
+      )}
     </Card>
   );
 }

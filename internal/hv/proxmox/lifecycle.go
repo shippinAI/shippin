@@ -358,6 +358,10 @@ func (c *Client) CreateGuest(ctx context.Context, s hv.GuestSpec) (hv.Guest, err
 	if !guestName.MatchString(s.Name) {
 		return hv.Guest{}, errors.New("proxmox: a guest name starts with a letter and uses letters, digits and dashes")
 	}
+	if s.UserData != "" {
+		// A guest that needs its first-boot data must not be made without it.
+		return hv.Guest{}, fmt.Errorf("%w: proxmox cannot pass cloud-init user data to a new guest yet", hv.ErrUnsupported)
+	}
 	if s.Kind == hv.KindCT && s.Image == "" {
 		return hv.Guest{}, errors.New("proxmox: a container needs a template; download one to this node first")
 	}

@@ -13,7 +13,10 @@ export function ProjectUsage({ tenantId, projects }: { tenantId: string; project
   const total = rows.reduce((s, p) => s + p.monthly_usd, 0);
   return (
     <Card>
-      <CardHeader title="Usage & cost" description={rows.length ? `About ${usd(total)}/month at current use.` : "Live CPU, memory, disk and traffic per project."} />
+      <CardHeader
+        title="Usage & cost"
+        description={rows.length ? `About ${usd(total)}/month at current use.` : "Live CPU, memory, disk and traffic per project."}
+      />
       {q.isError && <p className="px-5 pb-4 text-sm text-fg-muted">Usage is not available right now.</p>}
       <ul className="divide-y divide-line">
         {rows.map((p) => (
@@ -29,7 +32,9 @@ export function ProjectUsage({ tenantId, projects }: { tenantId: string; project
               <span>Disk {bytes(p.disk_bytes)}</span>
               <span>Out {bytes(p.net_tx_bytes)}</span>
               <span title="CPU used and traffic since start">used {usd(p.accrued_usd)}</span>
-              <span>{p.instances.length} instance{p.instances.length === 1 ? "" : "s"}</span>
+              <span>
+                {p.instances.length} instance{p.instances.length === 1 ? "" : "s"}
+              </span>
             </div>
           </li>
         ))}

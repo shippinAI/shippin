@@ -8,7 +8,7 @@ import { useInfraCan, useInfraOverview, type InfraNode } from "../../../lib/hook
 import { useNavigate, useParams } from "../../../lib/router/router";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { PageHeader } from "../../../template/page-header";
-import { FLEETS_TAB, NETWORKS_TAB, OVERVIEW_TAB, providersWithHosts, selectedTab, tabHref } from "../model";
+import { FLEETS_TAB, NETWORKS_TAB, OVERVIEW_TAB, hostHref, providersWithHosts, selectedTab, tabHref } from "../model";
 import { AddHostDialog } from "./add-host-dialog";
 import { FleetsTab } from "./fleets-tab";
 import { OverviewTab } from "./overview-tab";
@@ -31,14 +31,29 @@ export function InfrastructurePage() {
         eyebrow={t("infra.eyebrow")}
         title={t("infra.title")}
         description={t("infra.description")}
-        actions={q.data && may("infra.hosts.write") && (
-          <Button variant="primary" size="sm" tooltip={t("infra.add.tooltip")} onPress={() => open()}>
-            <Plus className="size-4" /> {t("infra.add")}
-          </Button>
-        )}
+        actions={
+          q.data &&
+          may("infra.hosts.write") && (
+            <Button variant="primary" size="sm" tooltip={t("infra.add.tooltip")} onPress={() => open()}>
+              <Plus className="size-4" /> {t("infra.add")}
+            </Button>
+          )
+        }
       />
-      {q.isPending && <div className="space-y-4">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-24" />)}</div>}
-      {q.isError && <EmptyState illustration={<Server className="size-10 text-fg-subtle" />} title={t("infra.loadError.title")} description={q.error.message} />}
+      {q.isPending && (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }, (_, i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+      )}
+      {q.isError && (
+        <EmptyState
+          illustration={<Server className="size-10 text-fg-subtle" />}
+          title={t("infra.loadError.title")}
+          description={q.error.message}
+        />
+      )}
       {q.data && (
         <>
           <Tabs
@@ -46,14 +61,31 @@ export function InfrastructurePage() {
             selected={selectedTab(q.data, tab)}
             onSelect={(id) => nav(tabHref(id))}
             tabs={[
-              { id: OVERVIEW_TAB, label: t("infra.tab.overview"), content: <OverviewTab data={q.data} onAdd={may("infra.hosts.write") ? open : undefined} /> },
-              ...providers.map((p) => ({ id: p.kind, label: `${p.label} (${p.nodes.length})`, content: <ProviderTab provider={p} onEdit={(node) => setAdding({ kind: node.kind, editNode: node })} /> })),
+              {
+                id: OVERVIEW_TAB,
+                label: t("infra.tab.overview"),
+                content: <OverviewTab data={q.data} onAdd={may("infra.hosts.write") ? open : undefined} />,
+              },
+              ...providers.map((p) => ({
+                id: p.kind,
+                label: `${p.label} (${p.nodes.length})`,
+                content: <ProviderTab provider={p} onEdit={(node) => setAdding({ kind: node.kind, editNode: node })} />,
+              })),
               { id: FLEETS_TAB, label: t("infra.tab.fleets", { count: q.data.fleets.length }), content: <FleetsTab data={q.data} /> },
               { id: NETWORKS_TAB, label: "Networks", content: <NetworkConnectionsTab /> },
             ]}
           />
-          <AddHostDialog data={q.data} isOpen={adding !== null} initialKind={adding?.kind} initialExisting={adding?.existing} editNode={adding?.editNode}
-            onOpenChange={(o) => { if (!o) setAdding(null); }} onAdded={(kind) => nav(tabHref(kind))} />
+          <AddHostDialog
+            data={q.data}
+            isOpen={adding !== null}
+            initialKind={adding?.kind}
+            initialExisting={adding?.existing}
+            editNode={adding?.editNode}
+            onOpenChange={(o) => {
+              if (!o) setAdding(null);
+            }}
+            onAdded={(kind, hostId) => nav(hostHref(kind, hostId))}
+          />
         </>
       )}
     </>

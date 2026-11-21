@@ -116,8 +116,9 @@ func (a *API) createFromPrompt(w http.ResponseWriter, r *http.Request, c *caller
 func (a *API) queuePrompt(r *http.Request, c *caller, tenant, project, run string) *jobOut {
 	payload, _ := json.Marshal(map[string]string{"run_id": run})
 	job := jobs.Job{TenantID: tenant, Kind: jobs.KindProjectPrompt, TargetType: "project", TargetID: project,
-		MaxAttempts: a.cfg.Jobs.MaxAttempts, CreatedBy: c.id.Sub, Payload: payload}
-	if a.runner == nil {
+		MaxAttempts: a.liveJobs(r.Context()).MaxAttempts, CreatedBy: c.id.Sub, Payload: payload}
+	runner := a.jobRunner()
+	if runner == nil {
 		go a.promptDetached(job)
 		return nil
 	}
@@ -126,6 +127,6 @@ func (a *API) queuePrompt(r *http.Request, c *caller, tenant, project, run strin
 		log.Printf("prompt %s: enqueue: %v", project, err)
 		return nil
 	}
-	a.runner.Wake()
+	runner.Wake()
 	return jobView(got, c.op != "")
 }

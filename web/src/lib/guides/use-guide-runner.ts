@@ -11,14 +11,21 @@ export function useGuideRunner(guides: Guide[], bus: TerminalBus) {
   const [index, setIndex] = useState(0);
   const [status, setStatus] = useState<Record<string, StepStatus>>({});
   const guide = useMemo(() => guides.find((g) => g.id === guideId) ?? null, [guides, guideId]);
-  const open = useCallback((id: string) => { setGuideId(id); setIndex(0); setStatus({}); }, []);
+  const open = useCallback((id: string) => {
+    setGuideId(id);
+    setIndex(0);
+    setStatus({});
+  }, []);
   const mark = (id: string, s: StepStatus) => setStatus((m) => ({ ...m, [id]: s }));
-  const run = useCallback((i: number) => {
-    const step = guide?.steps[i];
-    if (!step) return;
-    if (step.command) bus.type(step.command, !step.edit);
-    mark(step.id, "ran");
-  }, [guide, bus]);
+  const run = useCallback(
+    (i: number) => {
+      const step = guide?.steps[i];
+      if (!step) return;
+      if (step.command) bus.type(step.command, !step.edit);
+      mark(step.id, "ran");
+    },
+    [guide, bus],
+  );
   const next = useCallback(() => {
     const step = guide?.steps[index];
     if (step) mark(step.id, "done");

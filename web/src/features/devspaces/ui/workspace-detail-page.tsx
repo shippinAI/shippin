@@ -37,17 +37,27 @@ export function WorkspaceDetailPage() {
   const actions = (
     <>
       <OpenButton ws={ws} size="md" />
-      <LinkButton href={`/t/${ws.tenant_id}/workspaces/${ws.id}/terminal`} variant="secondary" tooltip="A plain terminal with guided steps, no IDE">
+      <LinkButton
+        href={`/t/${ws.tenant_id}/workspaces/${ws.id}/terminal`}
+        variant="secondary"
+        tooltip="A plain terminal with guided steps, no IDE"
+      >
         <SquareTerminal className="size-4" /> Terminal
       </LinkButton>
-      <LinkButton href={`/t/${ws.tenant_id}/workspaces/${ws.id}/connect`} variant="secondary" tooltip="GitHub, Claude, Codex and Grok sign-ins">
+      <LinkButton
+        href={`/t/${ws.tenant_id}/workspaces/${ws.id}/connect`}
+        variant="secondary"
+        tooltip="GitHub, Claude, Codex and Grok sign-ins"
+      >
         <KeyRound className="size-4" /> Connect accounts
       </LinkButton>
       <Button
         variant="secondary"
         isDisabled={ws.state !== "running" || !ws.vscode_url}
         tooltip="Open in desktop VS Code (Remote-SSH, uses your account SSH key)"
-        onPress={() => { window.location.href = ws.vscode_url ?? ""; }}
+        onPress={() => {
+          window.location.href = ws.vscode_url ?? "";
+        }}
       >
         <Code2 className="size-4" /> Open in VS Code
       </Button>
@@ -64,7 +74,11 @@ export function WorkspaceDetailPage() {
       <PageHeader
         eyebrow={tenant?.name}
         title={ws.name}
-        description={<span className="flex items-center gap-3"><StateBadge state={ws.state} /> Created {timeAgo(ws.created_at)}</span>}
+        description={
+          <span className="flex items-center gap-3">
+            <StateBadge state={ws.state} /> Created {timeAgo(ws.created_at)}
+          </span>
+        }
         actions={actions}
       />
       {ws.state === "provisioning" && <ProvisionProgress ws={ws} />}
@@ -84,7 +98,11 @@ export function WorkspaceDetailPage() {
         defaultTab={tab}
         tabs={[
           { id: "overview", label: "Overview", content: <OverviewTab ws={ws} /> },
-          { id: "previews", label: `Previews${ws.preview_urls.length ? ` (${ws.preview_urls.length})` : ""}`, content: <PreviewsTab ws={ws} canEdit={can || ws.created_by === me} /> },
+          {
+            id: "previews",
+            label: `Previews${ws.preview_urls.length ? ` (${ws.preview_urls.length})` : ""}`,
+            content: <PreviewsTab ws={ws} canEdit={can || ws.created_by === me} />,
+          },
           { id: "publish", label: "Publish", content: <PublishTab ws={ws} canEdit={can || ws.created_by === me} /> },
           { id: "networking", label: "Networking", content: <NetworkingTab ws={ws} canManage={can} /> },
           { id: "domains", label: "Domains", content: <DomainsTab ws={ws} canManage={can} /> },

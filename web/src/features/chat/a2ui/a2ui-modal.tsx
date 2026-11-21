@@ -14,14 +14,22 @@ export function A2UIModal({ b, onPrompt, onCopy }: { b: A2UIBlock; onPrompt: (te
       </Button>
       <ModalDialog isOpen={open} onOpenChange={setOpen} title={b.title ?? ""}>
         <div className="px-6 py-5">
-        <p className="whitespace-pre-line text-base text-fg-muted">{b.body}</p>
-        {!!b.items?.length && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {b.items.map((it, i) => (
-              <A2UIAction key={i} b={it} onPrompt={(t) => { setOpen(false); onPrompt(t); }} onCopy={onCopy} />
-            ))}
-          </div>
-        )}
+          <p className="whitespace-pre-line text-base text-fg-muted">{b.body}</p>
+          {!!b.items?.length && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {b.items.map((it, i) => (
+                <A2UIAction
+                  key={i}
+                  b={it}
+                  onPrompt={(t) => {
+                    setOpen(false);
+                    onPrompt(t);
+                  }}
+                  onCopy={onCopy}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </ModalDialog>
     </>

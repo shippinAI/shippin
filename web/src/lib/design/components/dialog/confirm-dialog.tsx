@@ -22,11 +22,11 @@ export function ConfirmDialog({ isOpen, onOpenChange, title, body, confirmLabel,
     <ModalDialog isOpen={isOpen} onOpenChange={onOpenChange} title={title}>
       <div className="space-y-4 px-6 py-5 text-base text-fg-muted">
         {body}
-        {typeToConfirm && (
-          <TextField label={`Type ${typeToConfirm} to confirm`} value={typed} onChange={setTyped} autoFocus />
-        )}
+        {typeToConfirm && <TextField label={`Type ${typeToConfirm} to confirm`} value={typed} onChange={setTyped} autoFocus />}
         <div className="flex justify-end gap-2 border-t border-line pt-4">
-          <Button variant="ghost" tooltip="Keep it" onPress={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="ghost" tooltip="Keep it" onPress={() => onOpenChange(false)}>
+            Cancel
+          </Button>
           <Button
             variant="danger"
             isDisabled={!ok}

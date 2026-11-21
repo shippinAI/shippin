@@ -48,7 +48,7 @@ func (a *API) runPromptJob(ctx context.Context, j *jobs.Job, step func(string)) 
 	_ = a.runs.SetWorkspace(ctx, run.ID, ws.ID)
 	if ws.State == "provisioning" {
 		_ = a.runs.SetState(ctx, run.ID, agentruns.Provisioning, "")
-		wj := a.workspaceJob(*ws, j.CreatedBy)
+		wj := a.workspaceJob(ctx, *ws, j.CreatedBy)
 		wj.Attempts, wj.MaxAttempts = j.Attempts, j.MaxAttempts
 		if _, err := a.runWorkspaceJob(ctx, &wj, step); err != nil {
 			if jobs.IsPermanent(err) || j.Attempts >= j.MaxAttempts {
@@ -82,11 +82,7 @@ func (a *API) promptWorkspace(ctx context.Context, j *jobs.Job, run *agentruns.R
 	if msg != "" {
 		return nil, jobs.Permanent(errors.New(msg))
 	}
-	keys, _ := a.db.SSHKeys(ctx, j.CreatedBy)
-	pub := []string{}
-	for _, k := range keys {
-		pub = append(pub, k.PublicKey)
-	}
+	pub, _ := a.userKeys(ctx, j.CreatedBy)
 	id, _ := uuid.NewV7()
 	label := strings.TrimRight(name[:min(len(name), 31)], "-")
 	ws := db.Workspace{ID: id.String(), TenantID: j.TenantID, Name: label, State: "provisioning", SSHKeys: pub,

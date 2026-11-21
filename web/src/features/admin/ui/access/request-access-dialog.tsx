@@ -30,11 +30,21 @@ export function RequestAccessDialog({ target, onClose }: Props) {
       isOpen
       onOpenChange={(o) => !o && onClose()}
       title="Request access"
-      description={<>The owners and admins of <span className="text-fg">{target.tenantName}</span> see your request with Approve / Deny. Nothing opens until they approve.</>}
+      description={
+        <>
+          The owners and admins of <span className="text-fg">{target.tenantName}</span> see your request with Approve / Deny. Nothing opens
+          until they approve.
+        </>
+      }
     >
       <div className="space-y-4 px-6 py-5">
         <ScopeSelect target={target} value={ws} onChange={setWs} />
-        <Select label="Duration" options={(cfg?.durations ?? []).map((d) => ({ id: d, label: durationLabel(d) }))} value={duration} onChange={setDuration} />
+        <Select
+          label="Duration"
+          options={(cfg?.durations ?? []).map((d) => ({ id: d, label: durationLabel(d) }))}
+          value={duration}
+          onChange={setDuration}
+        />
         <TextField
           label="Reason"
           multiline
@@ -42,15 +52,24 @@ export function RequestAccessDialog({ target, onClose }: Props) {
           value={reason}
           onChange={setReason}
           placeholder="e.g. Ticket #4821: the customer asked us to look at a failing build in their workspace."
-          description={cfg ? `Shown to the customer and kept in the audit log. ${cfg.reason_min}–${cfg.reason_max} characters (${n}).` : undefined}
+          description={
+            cfg ? `Shown to the customer and kept in the audit log. ${cfg.reason_min}–${cfg.reason_max} characters (${n}).` : undefined
+          }
         />
         <div className="flex items-center justify-end gap-2 border-t border-line pt-4">
-          <Button variant="ghost" tooltip="Close without requesting" onPress={onClose}>Cancel</Button>
+          <Button variant="ghost" tooltip="Close without requesting" onPress={onClose}>
+            Cancel
+          </Button>
           <Button
             variant="primary"
             isDisabled={!valid || create.isPending}
             tooltip={valid ? "Send the request to the customer" : "Add a reason and choose a duration"}
-            onPress={() => create.mutate({ tenant_id: target.tenantId, workspace_id: ws || undefined, reason: reason.trim(), duration }, { onSuccess: onClose })}
+            onPress={() =>
+              create.mutate(
+                { tenant_id: target.tenantId, workspace_id: ws || undefined, reason: reason.trim(), duration },
+                { onSuccess: onClose },
+              )
+            }
           >
             <ShieldQuestion className="size-4" /> Send request
           </Button>

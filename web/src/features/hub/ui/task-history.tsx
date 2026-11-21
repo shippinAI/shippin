@@ -4,11 +4,17 @@ import { Button, Disclosure, DisclosurePanel, Heading } from "react-aria-compone
 import { useHubEvents } from "../use-hub";
 
 const label: Record<string, string> = {
-  created: "created", claimed: "claimed", progress: "progress", approval_requested: "asked for approval",
-  approved: "approved", rejected: "rejected", done: "finished",
+  created: "created",
+  claimed: "claimed",
+  progress: "progress",
+  approval_requested: "asked for approval",
+  approved: "approved",
+  rejected: "rejected",
+  done: "finished",
 };
 
-const time = (iso: string) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const time = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
 /** A card's event history, fetched on first expand and kept fresh by the live stream. */
 export function TaskHistory({ taskId }: { taskId: string }) {

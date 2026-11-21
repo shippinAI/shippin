@@ -61,7 +61,8 @@ func (a *API) activateSubscription(w http.ResponseWriter, r *http.Request) {
 
 // startAIJob enqueues ai.activate for home h, or runs it in the background with jobs disabled.
 func (a *API) startAIJob(ctx context.Context, w http.ResponseWriter, c *caller, h *subs.Home, in aiJob) (*jobOut, error) {
-	if a.runner == nil {
+	r := a.jobRunner()
+	if r == nil {
 		go func() {
 			if _, err := a.activateHome(context.Background(), h.ID, in); err != nil {
 				log.Printf("ai home %s: %v", h.ID, err)
@@ -75,13 +76,13 @@ func (a *API) startAIJob(ctx context.Context, w http.ResponseWriter, c *caller, 
 		target = "ai_logout:" + in.Logout
 	}
 	j, _, err := a.jobs.Enqueue(ctx, jobs.Job{TenantID: h.TenantID, Kind: jobs.KindAIActivate, TargetType: target,
-		TargetID: h.ID, MaxAttempts: a.cfg.Jobs.MaxAttempts, CreatedBy: c.id.Sub, Payload: payload})
+		TargetID: h.ID, MaxAttempts: a.liveJobs(ctx).MaxAttempts, CreatedBy: c.id.Sub, Payload: payload})
 	if err != nil {
 		log.Printf("ai home %s: enqueue: %v", h.ID, err)
 		_ = a.subs.SetUtility(ctx, h.ID, "error", false)
 		return nil, err
 	}
-	a.runner.Wake()
+	r.Wake()
 	w.Header().Set("Location", "/v1/jobs/"+j.ID)
 	return jobView(j, c.op != ""), nil
 }

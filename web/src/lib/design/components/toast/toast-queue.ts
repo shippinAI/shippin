@@ -7,10 +7,8 @@ export type ToastContent = { title: string; description?: string; tone: ToastTon
 export const toastQueue = new ToastQueue<ToastContent>({ maxVisibleToasts: 3 });
 
 export const toast = {
-  success: (title: string, description?: string) =>
-    toastQueue.add({ title, description, tone: "success" }, { timeout: 4000 }),
-  info: (title: string, description?: string) =>
-    toastQueue.add({ title, description, tone: "info" }, { timeout: 4000 }),
+  success: (title: string, description?: string) => toastQueue.add({ title, description, tone: "success" }, { timeout: 4000 }),
+  info: (title: string, description?: string) => toastQueue.add({ title, description, tone: "info" }, { timeout: 4000 }),
   /** Errors persist until dismissed. */
   error: (title: string, description?: string) => toastQueue.add({ title, description, tone: "error" }),
 };

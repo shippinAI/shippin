@@ -4,9 +4,21 @@ import { useOperations, type OperationStatus } from "../../../lib/hooks/use-infr
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import type { TextKey } from "../../../lib/ui-config/text-keys";
 
-const tones: Record<OperationStatus, BadgeTone> = { queued: "neutral", running: "info", succeeded: "success", failed: "danger", unknown: "warning", skipped: "neutral" };
+const tones: Record<OperationStatus, BadgeTone> = {
+  queued: "neutral",
+  running: "info",
+  succeeded: "success",
+  failed: "danger",
+  unknown: "warning",
+  skipped: "neutral",
+};
 const words: Record<OperationStatus, TextKey> = {
-  queued: "infra.op.queued", running: "infra.op.running", succeeded: "infra.op.succeeded", failed: "infra.op.failed", unknown: "infra.op.unknown", skipped: "infra.op.skipped",
+  queued: "infra.op.queued",
+  running: "infra.op.running",
+  succeeded: "infra.op.succeeded",
+  failed: "infra.op.failed",
+  unknown: "infra.op.unknown",
+  skipped: "infra.op.skipped",
 };
 
 /** Every change to a guest and how it ended. It comes from the server, so it survives leaving the page. */
@@ -25,13 +37,30 @@ export function ActivityCard({ serverId, showHost }: { serverId?: string; showHo
             <li key={o.id} className="px-5 py-3 text-base" data-testid="operation">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone={tones[o.status]}>{t(words[o.status])}</Badge>
-                <span className="text-fg"><span className="font-medium">{o.verb}</span> <span className="font-mono text-sm">{o.guest}</span></span>
+                <span className="text-fg">
+                  <span className="font-medium">{o.verb}</span> <span className="font-mono text-sm">{o.guest}</span>
+                </span>
                 {showHost && o.server_label && <span className="text-fg-muted">{t("infra.activity.on", { host: o.server_label })}</span>}
-                {o.guest_status && o.status === "succeeded" && <span className="text-fg-subtle">{t("infra.activity.nowStatus", { status: o.guest_status })}</span>}
-                <span className="ml-auto text-xs text-fg-subtle">{o.actor_name ? `${o.actor_name} · ` : ""}{new Date(o.started_at).toLocaleString()}</span>
+                {o.guest_status && o.status === "succeeded" && (
+                  <span className="text-fg-subtle">{t("infra.activity.nowStatus", { status: o.guest_status })}</span>
+                )}
+                <span className="ml-auto text-xs text-fg-subtle">
+                  {o.actor_name ? `${o.actor_name} · ` : ""}
+                  {new Date(o.started_at).toLocaleString()}
+                </span>
               </div>
-              {o.note && <p className="mt-1 break-words text-sm text-fg-muted" data-testid="operation-note">{t("infra.activity.why", { note: o.note })}</p>}
-              {o.detail && <p className={`mt-1 break-words text-sm ${o.status === "failed" ? "text-danger" : o.status === "unknown" ? "text-warning" : "text-fg-muted"}`}>{o.detail}</p>}
+              {o.note && (
+                <p className="mt-1 break-words text-sm text-fg-muted" data-testid="operation-note">
+                  {t("infra.activity.why", { note: o.note })}
+                </p>
+              )}
+              {o.detail && (
+                <p
+                  className={`mt-1 break-words text-sm ${o.status === "failed" ? "text-danger" : o.status === "unknown" ? "text-warning" : "text-fg-muted"}`}
+                >
+                  {o.detail}
+                </p>
+              )}
             </li>
           ))}
         </ul>

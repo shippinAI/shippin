@@ -15,6 +15,12 @@ export const CatalogPerm = {
   intentCreate: "provision.intent.create",
 } as const;
 
+/** Permissions for the separate, private early-access acquisition source. */
+export const AcquisitionPerm = {
+  read: "acquisition.read",
+  sync: "acquisition.sync",
+} as const;
+
 /** can(p) from the caller's effective permissions (/v1/operator/access). The API enforces the
  * same decision (403, or the field is left out of the response); hiding here is only UX. */
 export function useCan() {

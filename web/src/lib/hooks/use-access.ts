@@ -35,7 +35,8 @@ export function useDecideAccess(tenantId?: string) {
   return useMutation({
     mutationFn: ({ grant, decision }: { grant: Grant; decision: Decision }) =>
       apiSend<Grant>("POST", `/v1/tenants/${tenantId}/access/${grant.id}/${decision}`),
-    onSuccess: (_d, { grant, decision }) => toast.success(copy[decision][0], `${grant.requester_name} · ${grant.workspace_name || "whole project space"}`),
+    onSuccess: (_d, { grant, decision }) =>
+      toast.success(copy[decision][0], `${grant.requester_name} · ${grant.workspace_name || "whole project space"}`),
     onError: (e, { decision }) => toast.error(copy[decision][1], e.message),
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: ["tenant", tenantId] });

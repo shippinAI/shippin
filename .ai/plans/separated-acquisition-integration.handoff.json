@@ -1,0 +1,239 @@
+{
+  "schema_version": "clyffy.handoff.v1",
+  "id": "separated-acquisition-integration-20261114",
+  "status": "ready",
+  "objective": "Upgrade and actually qualify the isolated browser fixture against independently keyed source export and management without replacing existing synthetic source binding, cursor or data.",
+  "baseline_commit": "f84972fa238d4be1783ac41b7f2d6f8ab904e1a4",
+  "evidence": [
+    {
+      "kind": "source",
+      "location": "AGENTS.md",
+      "claim": "Reviewed existing actual fixture, helper, browser flow, UI contracts or platform working rules."
+    },
+    {
+      "kind": "source",
+      "location": "deploy/tests/acquisition.compose.yaml",
+      "claim": "Reviewed existing actual fixture, helper, browser flow, UI contracts or platform working rules."
+    },
+    {
+      "kind": "source",
+      "location": "deploy/tests/Containerfile.acquisition-fixture",
+      "claim": "Reviewed existing actual fixture, helper, browser flow, UI contracts or platform working rules."
+    },
+    {
+      "kind": "source",
+      "location": "scripts/test-acquisition/flow.mjs",
+      "claim": "Reviewed existing actual fixture, helper, browser flow, UI contracts or platform working rules."
+    },
+    {
+      "kind": "source",
+      "location": "scripts/test-acquisition/run.ps1",
+      "claim": "Reviewed existing actual fixture, helper, browser flow, UI contracts or platform working rules."
+    },
+    {
+      "kind": "source",
+      "location": "scripts/test-acquisition/README.md",
+      "claim": "Reviewed existing actual fixture, helper, browser flow, UI contracts or platform working rules."
+    },
+    {
+      "kind": "source",
+      "location": "scripts/test-acquisition/helper/main.go",
+      "claim": "Reviewed existing actual fixture, helper, browser flow, UI contracts or platform working rules."
+    },
+    {
+      "kind": "source",
+      "location": "scripts/test-acquisition/helper/main_test.go",
+      "claim": "Reviewed existing actual fixture, helper, browser flow, UI contracts or platform working rules."
+    },
+    {
+      "kind": "source",
+      "location": "web/scripts/test-acquisition-integration.mjs",
+      "claim": "Reviewed existing actual fixture, helper, browser flow, UI contracts or platform working rules."
+    },
+    {
+      "kind": "source",
+      "location": "internal/acquisition/contracts.go",
+      "claim": "Reviewed existing actual fixture, helper, browser flow, UI contracts or platform working rules."
+    },
+    {
+      "kind": "source",
+      "location": "web/src/lib/api/actions.gen.ts",
+      "claim": "Reviewed existing actual fixture, helper, browser flow, UI contracts or platform working rules."
+    },
+    {
+      "kind": "source",
+      "location": "docs/reference/acquisition-import.md",
+      "claim": "Reviewed existing actual fixture, helper, browser flow, UI contracts or platform working rules."
+    },
+    {
+      "kind": "cross-repo",
+      "location": "source PR4 d47aad0b25ab6881aa5b10429cc4a833d05bc08e cmd/marketing-admin/main.go",
+      "claim": "SHA-256 db477e0d3aa2b7fb383f8ca336f638e656de05eec984047120a1934e36ae05f8; explicit separated mode, independent verifier and export DSN flags."
+    },
+    {
+      "kind": "cross-repo",
+      "location": "source PR4 internal/marketingadmin/handler.go",
+      "claim": "SHA-256 283027a520d44c6e7773588d2a9e865bdf7dfc2f384c522688f87a67239d27d7; route-first exporter GET and independently keyed admin mutations."
+    },
+    {
+      "kind": "cross-repo",
+      "location": "source PR4 deploy/signup/export-runtime-grants.sql",
+      "claim": "SHA-256 52020f3a9d0b1a452da01653927c934ca543d4189a44a12821321022e46d1167; review-only source export role grant template."
+    }
+  ],
+  "constraints": [
+    "Only exact synthetic fixture, example.test identities and owned containers; root coordinates actual Docker/browser execution.",
+    "No live credentials, real installation, GitHub writes, production traffic or provisioning.",
+    "Never rerun source prepare, delete/reset data or volumes, overwrite existing secret files, source encryption/signing keys or TLS private key; only the explicitly backed-up certificate-only replacement is allowed.",
+    "Certificate-only renewal is allowed only after guarded backup and key-pair verification; preserve the same private key and all data.",
+    "Platform source ID and immutable binding/cursor must survive signer cutover; no pretend recreation or replay as proof.",
+    "No automatic recovery, source epoch, production identity, session/encryption-key rotation or CI browser evidence is claimed.",
+    "Previous denied governance journal scope remains closed; do not retry journal writes.",
+    "The earlier acceptance lead is already tombstoned: query actual current state, preserve historical record, and use a fresh signup after migration."
+  ],
+  "authorized_scope": [
+    "deploy/tests/acquisition.compose.yaml",
+    "scripts/test-acquisition/helper",
+    "scripts/test-acquisition/run.ps1",
+    "scripts/test-acquisition/flow.mjs",
+    "scripts/test-acquisition/README.md",
+    "web/scripts/test-acquisition-integration.mjs"
+  ],
+  "anchors": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "b18ce7c45343efea101e7b53d24b1109562430bbcab29f4ab73d5e74fe80304f"
+    },
+    {
+      "path": "deploy/tests/acquisition.compose.yaml",
+      "sha256": "6f4ec2860cbdbe690e177719ac19fe383f648b8b4fbd632f76a8f1a4a898f48c"
+    },
+    {
+      "path": "deploy/tests/Containerfile.acquisition-fixture",
+      "sha256": "af47e21d08bedbd0c300714cb5ba1c3ed23982b6f6ad9e53b43f265ad4f9d066"
+    },
+    {
+      "path": "scripts/test-acquisition/flow.mjs",
+      "sha256": "b581fb27654e017d1ad473b0c2278ff258b95b202e8496bd2ba0108b25ab9c21"
+    },
+    {
+      "path": "scripts/test-acquisition/run.ps1",
+      "sha256": "9d75d1943fa12447fda2f345c8f0b13768c18f567057994c7e069afde895a921"
+    },
+    {
+      "path": "scripts/test-acquisition/README.md",
+      "sha256": "a4bfb67766ed68e2fb18953b041e00fda2bbadcd19771f89110c06642fce0374"
+    },
+    {
+      "path": "scripts/test-acquisition/helper/main.go",
+      "sha256": "2b47bba82a0d217828502a65d356e0147f557871157671f8c32a030cc677b594"
+    },
+    {
+      "path": "scripts/test-acquisition/helper/main_test.go",
+      "sha256": "c980207d89cae47122558887cd5673d025dcd676af46064f755d7f9afec544e1"
+    },
+    {
+      "path": "web/scripts/test-acquisition-integration.mjs",
+      "sha256": "af38425359eba5637bbb804ebaa2805d44460593443c3f78bfbcd14b43c3f956"
+    },
+    {
+      "path": "internal/acquisition/contracts.go",
+      "sha256": "32663d292c4aed2f6551b49273ebf7fc186ce91ff8b70bf3c7ba96dbc6fd6ccb"
+    },
+    {
+      "path": "web/src/lib/api/actions.gen.ts",
+      "sha256": "4d5b4cad9200f4250e30537c77965cd25c8cc108e419aacc2cada5298ffda17f"
+    },
+    {
+      "path": "docs/reference/acquisition-import.md",
+      "sha256": "22bf9638dab11275e68ce45bfede473601ec358c107003ee3fb204c6f9f1f53c"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "separated-fixture",
+      "title": "Upgrade synthetic browser fixture to separated source authority",
+      "status": "pending",
+      "paths": [
+        "deploy/tests/acquisition.compose.yaml",
+        "scripts/test-acquisition/helper",
+        "scripts/test-acquisition/run.ps1",
+        "scripts/test-acquisition/flow.mjs",
+        "scripts/test-acquisition/README.md",
+        "web/scripts/test-acquisition-integration.mjs"
+      ],
+      "depends_on": [],
+      "steps": [
+        "Root reviews this handoff and owns orchestration of the verified synthetic fixture. Preserve all current source and platform volumes, rows, source binding, encryption key, admin signer, TLS private key and private files. Do not run source containercheck prepare again: it initializes/replaces key material. Do not delete or reset source/platform databases, compose volumes, rows or cursors. Test only guarded synthetic fixture and an explicitly recorded example.test lead; never real installations.",
+        "Before changes verify exact source PR4 commit d47aad0b25ab6881aa5b10429cc4a833d05bc08e and runtime image provenance, platform commit f84972fa238d4be1783ac41b7f2d6f8ab904e1a4, fixed fixture project/container/database identity and loopback origins; check local file digests and ownership. Query and capture the ACTUAL current source summary, immutable tenant/project/issuer/audience, cursor and any known tombstone state; do not use stale pre-deletion record.summary. The previous acceptance lead was already tombstoned, so do not claim it remains active. Preserve the historical fixture record unchanged or make a non-overwriting backup and use a distinct new record path. If an existing fixture cannot be verified as synthetic and owned, stop, rather than modifying it. Fresh synthetic baseline is allowed only in separately owned fixture resources; do not replace existing ones.",
+        "Create fixture-only exporter setup without re-running original source prepare. In explicitly opted-in guarded run.ps1 use bounded exact-container PostgreSQL psql to create a distinct non-owner, non-member export login and grant only CONNECT, schema USAGE and SELECT on shippin_marketing.schema_version, scopes, leads and tombstone_auth, matching source PR4 grant template. Check exact expected synthetic DB and source tables first, effective privileges/role membership after; if any role/file already exists unexpectedly or permissions differ stop rather than granting/revoking against an unknown role. Write only a new protected export DSN and newly generated Ed25519 exporter signer/verifier with exclusive-create semantics; no password/key in arguments, logs, output or record files. Preserve original admin key and its DSN, source encryption key, certificate key and scope.",
+        "Update Compose private source admin command to actual PR4 flags: -mode separated, existing admin DSN and admin verifier with issuer fixture-management/audience source-management, separate export DSN and NEW export verifier with issuer fixture/audience source-admin. The original fixture signer remains the management key, and the new exporter key remains distinct. Keep existing endpoint, source project, tenant, source DB, existing platform issuer/audience and cursor unchanged. Verify source startup refuses same keys, unknown mode or missing export DSN as synthetic negative checks; never bind public admin ports.",
+        "If admin TLS certificate is expired or too close to expiry, allow certificate-only fixture renewal: verify exact fixture and existing certificate/private-key pair; back up the old certificate without overwriting existing files; generate a new certificate using the SAME existing TLS private key and loopback SAN, replace only the certificate atomically and retain the backup. Do not regenerate or change any TLS private key, signing keys, database, source encryption key or source data. Recreate only the synthetic admin process as required. First use platform UI/API audited CA-only update with expected generation, preserve all other fields and signing key; prove source ID, immutable binding, cursor and data unchanged, and verify transport before treating a later signer mismatch as an authorization failure.",
+        "Record a before-cutover baseline on the same platform source with valid prior admin-only endpoint and signer, including the actual current cursor and existing terminal deletion state. Do not claim the prior deleted lead remains active. After switching source process to separated mode, verify old admin signer cannot perform exporter GET and the platform's existing stored old signer causes a real import failure without cursor, count or record changes. Through the real authenticated panel update ONLY the platform signing seed to the new exporter key with expected config generation and reason; assert source ID, origin/dial destination, tenant, project, issuer, audience, CA, paused state and cursor unchanged. A subsequent real pull succeeds without duplicate or replay; configuration generation change is expected. Avoid conflating TLS failures with signer rejection.",
+        "Update fixture helper so actual target-discovery GET uses the exporter private key and exporter issuer/audience; validate exact requested 32hex active source record and example.test address. DELETE uses the original, separately signed management key with fixture-management/source-management and required scope. Prove exporter-signed token containing forged admin issuer, audience and marketing:write is denied for POST and DELETE without source mutation, and the admin key cannot use the exporter-only GET. Keep helper standard library only because existing Containerfile copies only main.go; no new Go database dependency, no secret or response-body logging.",
+        "Run actual fresh or preserved synthetic browser journey under root orchestration: fresh public consent signup after migration, real operator UI source state/import, duplicate retry, actual wrong signer and wrong TLS trust without cursor advance, anonymous/customer/reader and cross-origin denials, restart/recreate only owned processes with unchanged volumes, persistence of same binding and consent record, guarded synthetic source DELETE, tombstone import and repeat proving no resurrection. Assert browser cache/localStorage/sessionStorage/rendered document has no signing seed and transient inputs clear. Preserve fixture record and other old data; cleanup only exact newly created temporary resources, never existing volumes or private files.",
+        "Add focused helper unit tests for opt-in, IDs, role/key/cert setup non-overwrite and separate-token method selection; JS syntax, Go helper tests and PowerShell parser/static checks. Record exact commands, failures, prerequisites and skips. Do not weaken assertions or substitute mocked/import-only tests for browser, runtime, independent role or persisted Postgres evidence. Existing CI acquisition job runs backend real-Postgres tests only and does not prove this browser flow; report independently observed synthetic browser results separately and no public/live claims."
+      ],
+      "checks": [
+        {
+          "argv": [
+            "go",
+            "test",
+            "./scripts/test-acquisition/helper"
+          ],
+          "expected": "Fixture guards, split signer and non-overwrite helper tests pass."
+        },
+        {
+          "argv": [
+            "node",
+            "--check",
+            "scripts/test-acquisition/flow.mjs"
+          ],
+          "expected": "Browser flow syntax passes."
+        },
+        {
+          "argv": [
+            "node",
+            "--check",
+            "web/scripts/test-acquisition-integration.mjs"
+          ],
+          "expected": "Wrapper syntax passes."
+        },
+        {
+          "argv": [
+            "pwsh",
+            "-NoProfile",
+            "-Command",
+            "[void][System.Management.Automation.Language.Parser]::ParseFile('scripts/test-acquisition/run.ps1',[ref]$null,[ref]$null)"
+          ],
+          "expected": "Launcher parses; record runtime PowerShell errors separately."
+        },
+        {
+          "argv": [
+            "npm",
+            "--prefix",
+            "web",
+            "test"
+          ],
+          "expected": "Existing panel tests pass; failures/skips reported."
+        }
+      ],
+      "acceptance": [
+        "Real separated source accepts newly provisioned exporter identity for v1 GET while only original management key may mutate.",
+        "Real platform keeps its existing source binding, current cursor and previously observed tombstone state across certificate-only renewal if needed, key-only cutover and restart; a fresh post-migration consent record imports successfully.",
+        "Authenticated browser flow proves signup, import, wrong-signer/transport denials, duplicate retry, guarded delete, tombstone propagation and no resurrection.",
+        "All roles, keys, files and state touched are confirmed synthetic and owned; no old secret or unrelated data is replaced/deleted, with only the explicitly backed-up certificate-only replacement allowed.",
+        "Observed browser qualification is reported separately from backend CI and never as a live deployment claim."
+      ]
+    }
+  ],
+  "next_task": "separated-fixture",
+  "escalation_triggers": [
+    "Source PR4 or platform PR21 anchor/contract differs from actual fixture.",
+    "Fixture ownership, database identity, existing role or private-file provenance cannot be verified.",
+    "Required operation would overwrite source data, signer, encryption key, TLS private key or unknown existing file.",
+    "Certificate-only renewal cannot preserve the existing private key or platform source binding.",
+    "Real endpoint/credentials, production role provisioning, or platform/source product-code changes become necessary.",
+    "Existing browser or security assertion would need to be weakened."
+  ]
+}

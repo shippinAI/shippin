@@ -127,3 +127,35 @@ func TestUpdatesConfigFailsClosed(t *testing.T) {
 		t.Error("disabled needs nothing")
 	}
 }
+
+// Staff who may view the platform settings see the build too, with its version and channel; staff
+// without that permission do not.
+func TestVersionForStaffWhoMayViewPlatformSettings(t *testing.T) {
+	for _, c := range []struct {
+		perms map[string]bool
+		want  int
+	}{
+		{map[string]bool{"platform.settings.read": true}, http.StatusOK},
+		{map[string]bool{"team.read": true}, http.StatusForbidden},
+	} {
+		a := infraAPI(t, "", &memHV{})
+		a.cfg.Staff.Mode = "enforce"
+		a.resolveCaller = func(http.ResponseWriter, *http.Request) (*caller, bool) {
+			return &caller{id: &auth.Identity{Sub: "s1"}, staff: &staffView{Perms: c.perms, MFA: true}}, true
+		}
+		rec := httptest.NewRecorder()
+		a.versionInfo(rec, httptest.NewRequest(http.MethodGet, "/v1/version", nil))
+		if rec.Code != c.want {
+			t.Fatalf("%v: %d %s", c.perms, rec.Code, rec.Body)
+		}
+		if c.want != http.StatusOK {
+			continue
+		}
+		var out struct {
+			Running struct{ Version, Channel string }
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil || out.Running.Version != "0.0.0-dev" || out.Running.Channel != "local" {
+			t.Fatalf("the build must say its version and channel: %s %v", rec.Body, err)
+		}
+	}
+}

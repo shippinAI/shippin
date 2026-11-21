@@ -1,3 +1,4 @@
+import type { CatalogDeploymentSource as SavedDeploymentSource } from "../../../../lib/api/actions.gen";
 import type { CatalogDeploymentSource } from "../../../../lib/api/catalog-types";
 
 export type DeploymentSourceDraft = {
@@ -16,14 +17,20 @@ export const emptyDeploymentSource: DeploymentSourceDraft = {
   credential_ref: "",
 };
 
-export function sourceDraft(source?: CatalogDeploymentSource | null): DeploymentSourceDraft {
-  return source ? {
-    kind: source.kind,
-    reference: source.reference,
-    commit: source.commit ?? "",
-    context_path: source.context_path ?? "",
-    credential_ref: source.credential_ref ?? "",
-  } : emptyDeploymentSource;
+const sourceKinds: readonly string[] = ["github", "git", "oci"] satisfies CatalogDeploymentSource["kind"][];
+const isSourceKind = (kind: string): kind is CatalogDeploymentSource["kind"] => sourceKinds.includes(kind);
+
+/** The form's draft of a saved source; the server stores only the kinds it accepts. */
+export function sourceDraft(source?: SavedDeploymentSource | null): DeploymentSourceDraft {
+  return source && isSourceKind(source.kind)
+    ? {
+        kind: source.kind,
+        reference: source.reference,
+        commit: source.commit ?? "",
+        context_path: source.context_path ?? "",
+        credential_ref: source.credential_ref ?? "",
+      }
+    : emptyDeploymentSource;
 }
 
 export function deploymentSourceFromDraft(draft: DeploymentSourceDraft): CatalogDeploymentSource | null {
@@ -49,24 +56,41 @@ export function validDeploymentSource(source: CatalogDeploymentSource | null): b
   if (!source.reference || source.reference.length > 2048 || !validCredentialRef(source.credential_ref ?? "")) return false;
   if (source.context_path && !validContextPath(source.context_path)) return false;
   if (source.kind === "oci") {
-    return /^[-A-Za-z0-9.]+(?::\d{1,5})?\/[A-Za-z0-9._/-]+@sha256:[a-f0-9]{64}$/.test(source.reference) &&
-      !source.commit && !source.context_path;
+    return (
+      /^[-A-Za-z0-9.]+(?::\d{1,5})?\/[A-Za-z0-9._/-]+@sha256:[a-f0-9]{64}$/.test(source.reference) && !source.commit && !source.context_path
+    );
   }
   if (source.kind !== "github" && source.kind !== "git") return false;
   if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(source.commit ?? "")) return false;
   try {
     const url = new URL(source.reference);
-    const parts = url.pathname.replace(/\.git$/, "").replace(/^\/+|\/+$/g, "").split("/");
-    return url.protocol === "https:" && !!url.hostname && !url.username && !url.password && !url.search && !url.hash &&
-      parts.length >= 2 && parts.at(-1) !== "" && (source.kind !== "github" || url.hostname.toLowerCase() === "github.com");
+    const parts = url.pathname
+      .replace(/\.git$/, "")
+      .replace(/^\/+|\/+$/g, "")
+      .split("/");
+    return (
+      url.protocol === "https:" &&
+      !!url.hostname &&
+      !url.username &&
+      !url.password &&
+      !url.search &&
+      !url.hash &&
+      parts.length >= 2 &&
+      parts.at(-1) !== "" &&
+      (source.kind !== "github" || url.hostname.toLowerCase() === "github.com")
+    );
   } catch {
     return false;
   }
 }
 
 function validContextPath(value: string): boolean {
-  return value.length <= 512 && !value.startsWith("/") && !value.includes("\\") &&
-    value.split("/").every((segment) => !!segment && segment !== "." && segment !== "..");
+  return (
+    value.length <= 512 &&
+    !value.startsWith("/") &&
+    !value.includes("\\") &&
+    value.split("/").every((segment) => !!segment && segment !== "." && segment !== "..")
+  );
 }
 
 function validCredentialRef(value: string): boolean {
@@ -74,7 +98,14 @@ function validCredentialRef(value: string): boolean {
   if (value.length > 1024) return false;
   try {
     const url = new URL(value);
-    if (!(url.protocol === "vaultix:" || url.protocol === "sops:") || url.username || url.password || url.search || (!url.host && !url.pathname)) return false;
+    if (
+      !(url.protocol === "vaultix:" || url.protocol === "sops:") ||
+      url.username ||
+      url.password ||
+      url.search ||
+      (!url.host && !url.pathname)
+    )
+      return false;
     return url.protocol === "vaultix:" ? !url.hash : url.hash.startsWith("#/");
   } catch {
     return false;

@@ -15,19 +15,15 @@ type contractMethod struct {
 }
 
 func TestOpenAPIMethodContract(t *testing.T) {
-	spec := os.Getenv("OPENAPI_SPEC")
-	if spec == "" {
-		t.Skip("OPENAPI_SPEC not set")
-	}
-	rec := &recorder{}
-	(&API{cfg: testCfg()}).Register(rec)
+	spec, py := specFile(), pyYAML(t)
+	rec := &recorder{patterns: servedPatterns(t)}
 	if dest := os.Getenv("CONTRACT_ROUTES_OUT"); dest != "" {
 		b, _ := json.MarshalIndent(rec.patterns, "", "  ")
 		if err := os.WriteFile(dest, b, 0600); err != nil {
 			t.Fatal(err)
 		}
 	}
-	cmd := exec.Command("python", filepath.Join(filepath.Dir(spec), "tests", "contract_routes.py"), spec)
+	cmd := exec.Command(py, filepath.Join(filepath.Dir(spec), "tests", "contract_routes.py"), spec)
 	raw, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("local contract resolution: %v: %s", err, raw)

@@ -24,7 +24,13 @@ export type A2UIComponent = Base &
     | { component: "Column" | "Row" | "List"; children: ChildList; align?: string; justify?: string }
     | { component: "TextField"; label: Dynamic<string>; value: DataPath; variant?: "shortText" | "longText" | "number" | "obscured" }
     | { component: "CheckBox"; label: Dynamic<string>; value: DataPath }
-    | { component: "ChoicePicker"; label?: Dynamic<string>; options: { label: string; value: string }[]; value: DataPath; variant?: "mutuallyExclusive" | "multipleSelection" }
+    | {
+        component: "ChoicePicker";
+        label?: Dynamic<string>;
+        options: { label: string; value: string }[];
+        value: DataPath;
+        variant?: "mutuallyExclusive" | "multipleSelection";
+      }
     | { component: "Divider"; axis?: "horizontal" | "vertical" }
   );
 

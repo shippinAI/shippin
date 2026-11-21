@@ -18,7 +18,11 @@ export function WorkspacesEmpty({ tenantId }: { tenantId?: string }) {
     <Card>
       <CardHeader title="Workspaces" description="Dev environments in your tenant" actions={items.length ? open : undefined} />
       {items.length === 0 ? (
-        <EmptyState title="No workspaces yet" description="Spin up a full dev box with its own IDE, terminal and SSH access." action={open} />
+        <EmptyState
+          title="No workspaces yet"
+          description="Spin up a full dev box with its own IDE, terminal and SSH access."
+          action={open}
+        />
       ) : (
         <ul className="divide-y divide-line">
           {items.slice(0, 5).map((w) => (

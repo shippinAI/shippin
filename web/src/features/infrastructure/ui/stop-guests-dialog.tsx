@@ -29,11 +29,13 @@ export function StopGuestsDialog({ serverId, guests, isOpen, onOpenChange }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  const toggle = (id: string, on: boolean) => setChosen((s) => {
-    const next = new Set(s);
-    if (on) next.add(id); else next.delete(id);
-    return next;
-  });
+  const toggle = (id: string, on: boolean) =>
+    setChosen((s) => {
+      const next = new Set(s);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   const ordered = candidates.filter((g) => chosen.has(g.id)).map((g) => g.id);
   return (
     <ModalDialog isOpen={isOpen} onOpenChange={onOpenChange} title={t("infra.stop.title")} description={t("infra.stop.description")}>
@@ -43,7 +45,13 @@ export function StopGuestsDialog({ serverId, guests, isOpen, onOpenChange }: Pro
           {candidates.map((g) => (
             <li key={g.id}>
               <label className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-base ${g.self ? "text-fg-subtle" : "text-fg"}`}>
-                <input type="checkbox" aria-label={g.name || g.id} checked={chosen.has(g.id)} disabled={g.self} onChange={(e) => toggle(g.id, e.target.checked)} />
+                <input
+                  type="checkbox"
+                  aria-label={g.name || g.id}
+                  checked={chosen.has(g.id)}
+                  disabled={g.self}
+                  onChange={(e) => toggle(g.id, e.target.checked)}
+                />
                 <span className="font-medium">{g.name || g.id}</span>
                 <span className="font-mono text-xs text-fg-subtle">{g.id}</span>
                 {g.self && <span className="ml-auto text-xs text-warning">{t("infra.stop.self")}</span>}
@@ -51,13 +59,25 @@ export function StopGuestsDialog({ serverId, guests, isOpen, onOpenChange }: Pro
             </li>
           ))}
         </ul>
-        <Switch isSelected={force} onChange={setForce} tooltip={t("infra.stop.forceTooltip")}>{t("infra.stop.force")}</Switch>
+        <Switch isSelected={force} onChange={setForce} tooltip={t("infra.stop.forceTooltip")}>
+          {t("infra.stop.force")}
+        </Switch>
         <TextField label={t("infra.note.label")} description={t("infra.note.help")} value={note} onChange={setNote} />
-        {stop.error && <p role="alert" className="text-base text-danger">{stop.error.message}</p>}
+        {stop.error && (
+          <p role="alert" className="text-base text-danger">
+            {stop.error.message}
+          </p>
+        )}
         <div className="flex justify-end gap-2 border-t border-line pt-4">
-          <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={() => onOpenChange(false)}>{t("infra.dialog.cancel")}</Button>
-          <Button variant="primary" isDisabled={ordered.length === 0 || stop.isPending || !noteOK(note)} tooltip={t("infra.stop.submitTooltip")}
-            onPress={() => stop.mutate({ guests: ordered, force, note: note.trim() }, { onSuccess: () => onOpenChange(false) })}>
+          <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={() => onOpenChange(false)}>
+            {t("infra.dialog.cancel")}
+          </Button>
+          <Button
+            variant="primary"
+            isDisabled={ordered.length === 0 || stop.isPending || !noteOK(note)}
+            tooltip={t("infra.stop.submitTooltip")}
+            onPress={() => stop.mutate({ guests: ordered, force, note: note.trim() }, { onSuccess: () => onOpenChange(false) })}
+          >
             {t("infra.stop.submit", { count: ordered.length })}
           </Button>
         </div>

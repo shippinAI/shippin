@@ -16,13 +16,24 @@ export function AppCards({ tenantId }: { tenantId: string }) {
     if (b.name) copy.mutate(b.name);
   };
   if (q.isPending) return <Skeleton className="h-24" />;
-  if (q.isError || !q.data) return <p className="text-base text-fg-muted">App status is unavailable. The install commands are on the cards once the console can read the VM.</p>;
+  if (q.isError || !q.data)
+    return (
+      <p className="text-base text-fg-muted">
+        App status is unavailable. The install commands are on the cards once the console can read the VM.
+      </p>
+    );
   return (
     <div>
       {q.data.status_detail && <p className="mb-2 text-xs text-fg-muted">{q.data.status_detail}</p>}
       {q.data.can_prepare && (
         <div className="mb-3">
-          <Button size="sm" variant="secondary" isDisabled={prep.isPending} tooltip="Install the desktop session on the VM. This does not install Claude, Codex, or ChatGPT." onPress={() => setConfirm(true)}>
+          <Button
+            size="sm"
+            variant="secondary"
+            isDisabled={prep.isPending}
+            tooltip="Install the desktop session on the VM. This does not install Claude, Codex, or ChatGPT."
+            onPress={() => setConfirm(true)}
+          >
             Prepare desktop
           </Button>
         </div>

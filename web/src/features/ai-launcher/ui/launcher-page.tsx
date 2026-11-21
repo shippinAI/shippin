@@ -14,7 +14,8 @@ export function LauncherPage() {
   const [open, setOpen] = useState<string | null>(null);
   const sessions = list.data?.sessions ?? [];
   const active = open ?? sessions.find((s) => s.running)?.id ?? null;
-  const start = (id: string) => launch.mutate(id, { onSuccess: () => setOpen(id), onError: (e) => toast.error("Could not start", e.message) });
+  const start = (id: string) =>
+    launch.mutate(id, { onSuccess: () => setOpen(id), onError: (e) => toast.error("Could not start", e.message) });
   return (
     <main className="flex h-dvh flex-col gap-3 bg-canvas p-4 text-fg">
       <header className="flex flex-wrap items-center gap-2">
@@ -23,25 +24,47 @@ export function LauncherPage() {
         {sessions.map((s) => (
           <div key={s.id} className="flex items-center gap-1 rounded-xl border border-line bg-raised/60 p-1 pl-2">
             <Badge tone={s.running ? "success" : "neutral"}>{s.running ? "running" : "stopped"}</Badge>
-            <Button variant={active === s.id ? "primary" : "ghost"} isDisabled={launch.isPending}
+            <Button
+              variant={active === s.id ? "primary" : "ghost"}
+              isDisabled={launch.isPending}
               tooltip={s.running ? `Open ${s.label} (resumes where you left off)` : `Start ${s.label} in a persistent session`}
-              onPress={() => start(s.id)}>
+              onPress={() => start(s.id)}
+            >
               <TerminalSquare className="size-4" aria-hidden /> {s.running ? `Open ${s.label}` : `Launch ${s.label}`}
             </Button>
-            {s.running && <Button variant="ghost" tooltip={`End the ${s.label} session`} onPress={() => { stop.mutate(s.id); if (active === s.id) setOpen(null); }}>
-              <Square className="size-3.5" aria-hidden /><span className="sr-only">Stop {s.label}</span></Button>}
+            {s.running && (
+              <Button
+                variant="ghost"
+                tooltip={`End the ${s.label} session`}
+                onPress={() => {
+                  stop.mutate(s.id);
+                  if (active === s.id) setOpen(null);
+                }}
+              >
+                <Square className="size-3.5" aria-hidden />
+                <span className="sr-only">Stop {s.label}</span>
+              </Button>
+            )}
           </div>
         ))}
-        {list.isError && <span role="alert" className="text-danger">Launcher unavailable: {list.error.message}</span>}
+        {list.isError && (
+          <span role="alert" className="text-danger">
+            Launcher unavailable: {list.error.message}
+          </span>
+        )}
       </header>
       <p className="text-sm text-fg-muted">
-        Sign in inside the tool with your own subscription (its normal login). Closing this tab or losing the network only
-        detaches: the session keeps running and reopens here.
+        Sign in inside the tool with your own subscription (its normal login). Closing this tab or losing the network only detaches: the
+        session keeps running and reopens here.
       </p>
       <section className="min-h-0 flex-1" aria-label="Session">
-        {active
-          ? <AITerminal key={active} id={active} />
-          : <div className="grid h-full place-items-center rounded-xl border border-dashed border-line text-fg-subtle">Pick a tool to start.</div>}
+        {active ? (
+          <AITerminal key={active} id={active} />
+        ) : (
+          <div className="grid h-full place-items-center rounded-xl border border-dashed border-line text-fg-subtle">
+            Pick a tool to start.
+          </div>
+        )}
       </section>
     </main>
   );
