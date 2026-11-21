@@ -28,13 +28,15 @@ export type Guest = {
 
 export type Task = { upid: string; status: string; exitstatus: string; type: string; log?: string[]; done: boolean };
 
-export const useGuests = (base: string) =>
-  useQuery({
-    queryKey: ["hv", base, "guests"],
-    queryFn: () => apiGet<{ items: Guest[] }>(`${base}/guests`),
-    enabled: !!base,
-    refetchInterval: 15_000,
-  });
+/** One live inventory cache for every screen using this attached host. */
+export const guestInventoryQuery = (base: string) => ({
+  queryKey: ["hv", base, "guests"],
+  queryFn: () => apiGet<{ items: Guest[] }>(`${base}/guests`),
+  enabled: !!base,
+  refetchInterval: 15_000,
+});
+
+export const useGuests = (base: string) => useQuery(guestInventoryQuery(base));
 
 export const useSnapshots = (base: string, guest: string) =>
   useQuery({

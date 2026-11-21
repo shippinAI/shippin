@@ -4,6 +4,7 @@ import { apiGet, apiSend } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 import { useText } from "../ui-config/use-ui-config";
 import { useMe } from "./use-api";
+import { useGuests } from "./use-hosts";
 
 export type InfraField = {
   name: string;
@@ -16,22 +17,6 @@ export type InfraField = {
   default?: string;
 };
 export type InfraGuestCount = { total: number; running: number };
-export type InfraGuest = {
-  id: string;
-  name: string;
-  kind: string;
-  status: string;
-  metrics?: {
-    cpu_fraction: number;
-    cpu_count?: number;
-    memory_used_bytes: number;
-    memory_total_bytes: number;
-    disk_used_bytes: number;
-    disk_total_bytes: number;
-    network_in_bytes?: number;
-    network_out_bytes?: number;
-  };
-};
 export type ClusterMember = { name: string; online: boolean; local?: boolean };
 export type ReplicationJob = {
   id: string;
@@ -267,13 +252,7 @@ export function useTestSystemIdentityMapping(id: string) {
 export const useInfraOverview = (enabled = true) =>
   useQuery({ queryKey: overviewKey, queryFn: () => apiGet<InfraOverview>("/v1/infra/overview"), refetchInterval: 30_000, enabled });
 
-export const useInfraGuests = (serverId: string) =>
-  useQuery({
-    queryKey: [...overviewKey, serverId, "guests"],
-    queryFn: () => apiGet<{ items: InfraGuest[] }>(`/v1/infra/servers/${encodeURIComponent(serverId)}/guests`),
-    enabled: !!serverId,
-    staleTime: 15_000,
-  });
+export const useInfraGuests = (serverId: string) => useGuests(serverId ? `/v1/infra/servers/${encodeURIComponent(serverId)}` : "");
 
 export const useNetworkConnections = () =>
   useQuery({
@@ -396,9 +375,7 @@ const bodyOf = (v: HostValues) => ({
 
 function useRefresh() {
   const qc = useQueryClient();
-  return () => {
-    void qc.invalidateQueries({ queryKey: ["infra"] });
-  };
+  return () => qc.invalidateQueries({ queryKey: ["infra"] });
 }
 
 /** can(p) for one infrastructure permission. The API decides the same thing again; this only hides what would be refused. */
@@ -419,20 +396,21 @@ export const useTestHost = () =>
 /** Creates a host with its API, or attaches an API to a server the registry already has. */
 export function useAddHost() {
   const refresh = useRefresh();
+  const qc = useQueryClient();
   const t = useText();
   return useMutation({
     mutationFn: (v: ((NewHost & { existing?: undefined }) | (HostValues & { existing: string; label: string })) & { note: string }) =>
       v.existing
-        ? apiSend("PUT", `/v1/infra/servers/${v.existing}`, bodyOf(v), { note: v.note })
-        : apiSend(
+        ? apiSend<{ id: string; kind: string }>("PUT", `/v1/infra/servers/${v.existing}`, bodyOf(v), { note: v.note })
+        : apiSend<{ id: string; kind: string }>(
             "POST",
             "/v1/infra/servers",
             { label: v.label, slug: (v as NewHost).slug, site: (v as NewHost).site, ...bodyOf(v) },
             { note: v.note },
           ),
-    onSuccess: (_d, v) => {
+    onSuccess: async (d, v) => {
+      await Promise.all([refresh(), qc.invalidateQueries({ queryKey: ["hv", `/v1/infra/servers/${encodeURIComponent(d.id)}`] })]);
       toast.success(t("infra.toast.added", { label: v.label }), t("infra.toast.addedBody"));
-      refresh();
     },
     onError: (e) => toast.error(t("infra.toast.addFailed"), e.message),
   });
