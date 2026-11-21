@@ -19,6 +19,10 @@ how parts work, `absorption/` for where older code went, and `archive/` for
 superseded plans. An installation's values are never committed; they belong in
 its database and panel (CFG-01), and until then in its uncommitted site file.
 
+The [foundation delivery plan](foundation-delivery.md) maps the deploy-and-claim
+journey, UI grouping and provider proofs to these owners. It distinguishes current
+packages from target contexts; moving an entity does not create a second authority.
+
 `internal/orgs/` owns the explicit registry links between the internal Operations
 organization, its local identity organization and the system tenant, and between
 customer organizations and their tenants. Staff invitations and assignments use

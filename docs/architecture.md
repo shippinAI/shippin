@@ -2,7 +2,9 @@
 
 How the code is organized, how far it is from that today, and the order it gets
 rewritten in. [What Shippin is](objective.md) defines the product; this page says
-where each part of it lives. Measured 2026-11-10.
+where each part of it lives. The measurements below are historical, from 2026-11-10.
+The [foundation delivery plan](foundation-delivery.md) grounds the next packets in
+the 2026-11-20 source and connects these contexts to navigation and behavior checks.
 
 ## Contexts
 
@@ -38,13 +40,14 @@ The module plugs into the panel through `internal/ext`:
 
 Code in this repository never imports the module. A context that needs a business rule asks a policy, and the panel's default answers it for a self-hosted installation.
 
-Today the enterprise code still sits in this repository, mixed into these contexts: `internal/tenancy/{plan,coverage,coverage_tier,customer,acquisition_source}`, `internal/acquisition`, `internal/tenantdb`, `internal/vaultixhost`, `internal/hostd`, and the tenant, access, sign-up and onboarding handlers in `internal/api`. The [roadmap](roadmap.md#separation-first) moves it out before any other rewrite.
+Today the enterprise code still sits in this repository, mixed into these contexts: `internal/tenancy/{plan,coverage,coverage_tier,customer,acquisition_source}`, `internal/acquisition`, `internal/tenantdb`, `internal/vaultixhost`, `internal/hostd`, and the tenant, access, sign-up and onboarding handlers in `internal/api`. The [roadmap](roadmap.md#separation-first) moves it out before broad context rewrites; P1/P2 complete the immediate deploy-and-claim foundation in existing owners.
 
 ## The shape of a context
 
-`internal/catalog` already works this way, and it is the pattern to follow:
+This is the target pattern. Existing MCPL entities such as
+`internal/platform/setting` demonstrate it; legacy context code still needs migration:
 
-- One package holds a context's types, rules, storage and HTTP handlers.
+- A context owns its types, rules, storage and transport through cohesive entity packages.
 - Each entity is a folder, `internal/<domain>/<entity>/`, holding its types and storage (`<entity>.go`), one file per action (`<verb>.go`) and its tests beside them. The folder and file give the action its [MCPL](mcpl.md) ID and route; `go generate ./internal/actions` writes the registry, the panel's typed action map and the OpenAPI document, and `cmd/console` mounts them; `go run ./cmd/mcplgen new` starts a new one. Nothing lists routes by hand.
 - `internal/tenancy/coverage_tier` is the first entity in this shape; the rest of `internal/catalog` follows it.
 - It takes what it needs through a small `Deps` struct, and never reaches into another context's tables.
@@ -76,7 +79,7 @@ contexts. `deploy/` still holds scripts from when one site was run by hand.
 
 ## Order of the rewrite
 
-The [separation](roadmap.md#separation-first) comes first: the enterprise code leaves before any context is rewritten, so no context is rewritten twice. Then one context at a time. Each step moves the handlers and storage into the context
+After P1/P2, the [separation](roadmap.md#separation-first) precedes broad context rewrites, so no context is rewritten twice. Then one context at a time. Each step moves the handlers and storage into the context
 and rewrites what is wrong rather than carrying it over. The routes stay the same
 unless the step says otherwise, and each step ends by overwriting the review deploy.
 

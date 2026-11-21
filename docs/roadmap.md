@@ -5,7 +5,9 @@ self-hosted panel in this repository, and an enterprise module for running a
 multi-tenant hosted cloud ([Editions and licensing](editions.md)). This page says
 what exists today, the order the rest gets built in, and what each stage must prove.
 
-Updated 2026-11-19: the public repository is the self-hosted panel, in the spirit of Coolify. Everything multi-tenant and commercial moves to the private enterprise repository `shippinAI/shippin-enterprise`, and that separation comes before any other work. Workspaces in the panel run on the owner's own hosts through the hypervisor's API.
+Updated 2026-11-20: the immediate delivery priority is a reachable, claimable installation and a coherently grouped panel, followed by real Incus and Proxmox journeys. The [foundation delivery plan](foundation-delivery.md) defines P1–P7, ownership and observable acceptance gates. P1 and P2 use the existing owners and may precede the full enterprise extraction; broad context rewrites still follow the separation. A plan is not deployment evidence.
+
+The 2026-11-19 edition decision remains: the public repository is the self-hosted panel, in the spirit of Coolify. Multi-tenant and commercial capabilities move to the private enterprise repository `shippinAI/shippin-enterprise`. Workspaces in the panel run on the owner's own hosts through the hypervisor's API.
 
 Updated 2026-11-13: the hosted development space (SOLO-01 to COACH-01) comes first for solo developers, in the spirit of Lovable on their own subscriptions, and it teaches as it goes.
 
@@ -72,14 +74,17 @@ Updated 2026-11-15. Each request from the owner, the requirement it falls under 
 
 ## Order of work
 
-The separation comes first. Then code is rewritten into its contexts as each
+The [foundation packets](foundation-delivery.md#delivery-packets) govern immediate delivery:
+P1 reaches and claims an installation; P2 makes context and navigation coherent.
+The enterprise separation remains the prerequisite for broad context rewrites.
+Code is then rewritten into its contexts as each
 stage reaches them, in the order in the [code map](architecture.md). The first milestone is the friends-and-family
 launch: the [acceptance journey](objective.md#acceptance-journey-friends-and-family)
 on our own Incus and Proxmox hosts. Public clouds and billing come after it.
 
 ### Separation, first
 
-The 2026-11-19 direction: before anything else, the enterprise code leaves this repository. Each step is closed only by its proof, and every commit leaves both editions working. Enterprise code moves with its tests; it is not rewritten on the way.
+The 2026-11-19 separation direction, qualified by the P1/P2 foundation priority above: enterprise code leaves before broad context rewrites. Each step is closed only by its proof, and every commit leaves both editions working. Enterprise code moves with its tests; it is not rewritten on the way.
 
 | Step | Result someone can see | Proof required |
 | --- | --- | --- |
@@ -89,7 +94,7 @@ The 2026-11-19 direction: before anything else, the enterprise code leaves this 
 | S3. The code moves | One area at a time, enterprise first, then removed here: sign-up and acquisition; plans, coverage and customers; access to customers; `hostd` and per-customer isolation, tenant databases and hosted Vaultix; then a new database baseline (PRE-01) in which the installation's own team is an ordinary organization. | After each area, both review deploys are seen in a browser: the panel without it, the enterprise build doing what it did before, as Admin, Staff and Customer. |
 | S4. It stays separate | A check in CI fails on enterprise packages, tables, routes or permissions in this repository. | The check fails on a planted example and passes on main. |
 
-Between S1 and S2, the rest of the [panel framework](web-framework.md) is built, in this order: F5 rot checks, F4 lexicon, F2 tokens from one source, F3 components and their gallery. Each is one commit, seen on the review deploy.
+The [panel framework](web-framework.md) track continues in this order: F5 rot checks, F4 lexicon, F2 tokens from one source, F3 components and their gallery. It does not block P1/P2 or reaching S2. Each step is checked and seen on the review deploy; the framework document distinguishes working machinery from planned tooling.
 
 The [builds and releases](release.md) track runs beside it, decided by the owner on 2026-11-20: a private edge build from every green `main`, and public tagged releases. The order: R1 build info and R2 Go checks first; R3 licenses before S2; then R4 edge and R5 releases; R6 updates after Phase 4.
 
