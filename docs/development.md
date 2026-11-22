@@ -45,7 +45,7 @@ Use it with `cd web && npm run dev` to change both sides at once. It runs in Git
 
 ## Check your work
 
-`scripts/check.sh` runs what CI runs that does not need a dedicated machine. It
+`scripts/check.sh` runs what CI runs that does not need PostgreSQL. It
 resolves either `go` or `go.exe`, so the same command works from Unix shells and
 Git Bash on Windows:
 
@@ -53,7 +53,7 @@ Git Bash on Windows:
 scripts/check.sh
 ```
 
-Before the first release CI stays fast and leaves these to you, when you change that code. Run `go test -p 1 ./...` with `SHIPPIN_TEST_DATABASE_URL` pointing at a disposable Postgres for the database tests, and set `SHIPPIN_TEST_CLICKHOUSE_URL` for the ClickHouse ones. Run the Debian installer only on a disposable machine.
+The Checks workflow, which the Gate requires before it moves main, runs the database tests. It sets `SHIPPIN_TEST_DATABASE_URL` to a disposable PostgreSQL 17 and runs `go test -p 1 ./...` (the packages share that database and rebuild its schema). If the variable is missing, or a test still skips because it is, the job fails. To run the same tests yourself, point `SHIPPIN_TEST_DATABASE_URL` at a disposable Postgres and use `go test -p 1 ./...`. Set `SHIPPIN_TEST_CLICKHOUSE_URL` for the ClickHouse tests. Run the Debian installer only on a disposable machine.
 
 ## Review it
 

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -16,7 +16,15 @@ function check(files) {
     mkdirSync(join(web, p, ".."), { recursive: true });
     writeFileSync(join(web, p), text);
   }
-  const r = spawnSync(process.execPath, [script, "--web", web], { encoding: "utf8" });
+  return run(web);
+}
+
+// Runs the check. REF, BEFORE and PR_BASE are cleared so the fixture is not judged as a queue branch.
+function run(web, env = {}) {
+  const r = spawnSync(process.execPath, [script, "--web", web], {
+    encoding: "utf8",
+    env: { ...process.env, REF: "", BEFORE: "", PR_BASE: "", ...env },
+  });
   return { ok: r.status === 0, out: r.stdout + r.stderr };
 }
 
@@ -62,4 +70,53 @@ test("lib depends on no feature, and only generated files name a module", () => 
 
 test("a bucket folder is refused", () => {
   assert.match(check({ ...base, "src/lib/utils/u.ts": "export const U = 1;\n" }).out, /src\/lib\/utils: a bucket folder/);
+});
+
+const lineA = "features/b/ui/b.tsx -> features/a/ui/a.tsx";
+const lineB = "features/c/ui/c.tsx -> features/a/ui/a.tsx";
+
+// A git checkout of a web/ tree, with one committed crossing and main at that commit.
+function repoWithBaseline() {
+  const web = mkdtempSync(join(tmpdir(), "bounds-git-"));
+  const git = (...args) =>
+    execFileSync("git", ["-c", "user.email=test@example.invalid", "-c", "user.name=Test", ...args], { cwd: web, encoding: "utf8" });
+  git("init", "-q", "-b", "main");
+  const files = {
+    ...base,
+    "src/features/b/ui/b.tsx": 'import { A } from "../../a/ui/a";\n',
+    "scripts/boundaries-baseline.txt": `${lineA}\n`,
+  };
+  for (const [p, text] of Object.entries(files)) {
+    mkdirSync(join(web, p, ".."), { recursive: true });
+    writeFileSync(join(web, p), text);
+  }
+  git("add", "-A");
+  git("commit", "-q", "-m", "base");
+  const main = git("rev-parse", "HEAD").trim();
+  git("update-ref", "refs/remotes/origin/main", main);
+  return { web, git, main };
+}
+
+test("a line added to the baseline since the base branch fails", () => {
+  const r = repoWithBaseline();
+  mkdirSync(join(r.web, "src/features/c/ui"), { recursive: true });
+  writeFileSync(join(r.web, "src/features/c/ui/c.tsx"), 'import { A } from "../../a/ui/a";\n');
+  writeFileSync(join(r.web, "scripts/boundaries-baseline.txt"), `${lineA}\n${lineB}\n`);
+  r.git("add", "-A");
+  r.git("commit", "-q", "-m", "grow the baseline");
+  const grew = run(r.web);
+  assert.ok(!grew.ok, grew.out);
+  assert.ok(grew.out.includes(`adds "${lineB}"`), grew.out);
+  assert.match(grew.out, /may only shrink/);
+
+  // The same growth is still a failure on a queue branch whose previous tip already contains it.
+  const tip = r.git("rev-parse", "HEAD").trim();
+  const queued = run(r.web, { REF: "refs/heads/queue/main", BEFORE: tip });
+  assert.ok(!queued.ok, queued.out);
+  assert.match(queued.out, /may only shrink/);
+
+  writeFileSync(join(r.web, "src/features/c/ui/c.tsx"), 'import { A } from "../../a";\n');
+  writeFileSync(join(r.web, "scripts/boundaries-baseline.txt"), `${lineA}\n`);
+  const shrunk = run(r.web);
+  assert.ok(shrunk.ok, shrunk.out);
 });

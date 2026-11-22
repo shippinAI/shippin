@@ -83,7 +83,7 @@ A page folder holds the page and nothing shared. The code a page uses belongs to
   - `scripts/**/*.test.mjs` run with `node --test`.
 - **Boundaries** (`scripts/check-boundaries.mjs`):
   - `web/src/lib` imports no feature, page, template, app or module code. Its tests may.
-  - A feature reaches another only through that feature's `index.ts`. The 52 imports into other features' internals that existed when the check arrived are listed in `scripts/boundaries-baseline.txt`. That list may only shrink: a new import fails, and so does a listed one that is gone until its line is removed.
+  - A feature reaches another only through that feature's `index.ts`. The 52 imports into other features' internals that existed when the check arrived are listed in `scripts/boundaries-baseline.txt`. That list may only shrink: a new import fails, and so does a listed one that is gone until its line is removed. The check also compares the file with its version at the merge base (main, or the pull request's base) and fails if a line was added, so writing the new import into the baseline does not make it pass.
   - Nothing outside `web/src/modules` imports a module. The generated route files only name module folders.
   - No folder is a bucket (`common`, `shared`, `utils`, `util`, `helpers`, `misc`). Code belongs to the thing it serves.
 - **Generated files are current.** The routes (`scripts/routes.mjs --check`) and the OpenAPI index (`generate-openapi-index.mjs --check`) are regenerated in check mode, and a difference fails. The tokens join them with F2.

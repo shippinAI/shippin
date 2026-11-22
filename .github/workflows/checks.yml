@@ -60,13 +60,36 @@ jobs:
       - run: npm run check-records
   console:
     runs-on: ubuntu-latest
+    # Database tests share one disposable database and rebuild its schema, so packages run one at a
+    # time. The URL is required: without it every database test skips, and this job — which the Gate
+    # needs before main moves — would stay green. Postgres 17 matches the panel's own database.
+    # Host auth is trust, same as a local test cluster: the audit tests log in as a second role
+    # with an empty password (internal/db/audit_owner_db_test.go).
+    services:
+      postgres:
+        image: postgres:17.11-bookworm
+        env:
+          POSTGRES_USER: shippin_test
+          POSTGRES_PASSWORD: disposable_ci_only
+          POSTGRES_DB: shippin_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['127.0.0.1:5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U shippin_test -d shippin_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      SHIPPIN_TEST_DATABASE_URL: postgres://shippin_test:disposable_ci_only@127.0.0.1:5432/shippin_test?sslmode=disable
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: '1.26.x'
           cache: false
-      - run: go test ./...
+      - name: Test, including the database tests
+        run: node scripts/ci/database-tests.mjs
       - run: go vet ./...
       - run: go build -o /tmp/shippin-console ./cmd/console
       - run: go build -o /tmp/shippin-hostd ./cmd/shippin-hostd
@@ -104,13 +127,23 @@ jobs:
         working-directory: web
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Fetch main so the boundary baseline can be compared with it
+        working-directory: ${{ github.workspace }}
+        run: git fetch origin main
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-      - run: npm test
+      - name: Test
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+          REF: ${{ github.ref }}
+        run: npm test
       - run: npm run build
       - run: npm run budget
       - run: npm run tokens
