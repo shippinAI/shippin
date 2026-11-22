@@ -1,0 +1,60 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base
+  title="Shippin Run MCP"
+  description="Runner tools for Cursor, Claude, and Lovable. JSON results. set_runs_on previews unless apply is true."
+>
+  <section class="hero">
+    <div>
+      <p class="kicker">MCP</p>
+      <h1>Tools with JSON results.</h1>
+      <p class="lede">The stdio server is <code>shippin-run mcp</code>. The same dispatcher answers <code>POST /mcp</code> on the control plane when you send the bearer token. Business rules live in one Go package.</p>
+    </div>
+  </section>
+  <section>
+    <h2>Tools</h2>
+    <div class="table-scroll" tabindex="0">
+      <table>
+        <thead>
+          <tr><th scope="col">Tool</th><th scope="col">What it returns</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">connect_repo</th><td>Registration level, approval, desired runners, and a workflow preview. Personal accounts are forced to per-repository registration.</td></tr>
+          <tr><th scope="row">list_runners</th><td>Rows from <code>ci_runners.json</code>. No probe.</td></tr>
+          <tr><th scope="row">get_runner_health</th><td>GitHub, substrate, and host-load signals, plus the overall pill.</td></tr>
+          <tr><th scope="row">list_jobs</th><td>Stored jobs without log bodies.</td></tr>
+          <tr><th scope="row">get_job_logs</th><td>One log, redacted again on read. Expired logs come back empty.</td></tr>
+          <tr><th scope="row">explain_failure</th><td>A summary, signal codes, and a next step. No model call.</td></tr>
+          <tr><th scope="row">set_runs_on</th><td>A diff. <code>apply: true</code> opens a pull request and requires the GitHub App.</td></tr>
+          <tr><th scope="row">get_usage</th><td>Seconds and a list-price amount. The note says payment is not collected.</td></tr>
+          <tr><th scope="row">set_log_retention</th><td>Days to keep logs for one repository. Zero discards the body.</td></tr>
+          <tr><th scope="row">approve_repo</th><td>Records an operator approval and a desired runner. Needs a reason.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section>
+    <h2>Cursor and Claude</h2>
+    <pre><code>{`{
+  "mcpServers": {
+    "shippin-run": {
+      "command": "shippin-run",
+      "args": ["mcp"],
+      "env": { "SHIPPIN_RUN_STATE_DIR": "/var/lib/shippin-run" }
+    }
+  }
+}`}</code></pre>
+    <h2>Lovable, or any remote client</h2>
+    <p>Point the client at the control plane URL you host. The static site does not serve MCP.</p>
+    <pre><code>{`{
+  "mcpServers": {
+    "shippin-run": {
+      "url": "https://runners.example/mcp",
+      "headers": { "Authorization": "Bearer $SHIPPIN_RUN_API_TOKEN" }
+    }
+  }
+}`}</code></pre>
+    <p>Lovable-synced repos are detected from <code>.lovable/project.json</code> when the GitHub App can read the repository. <code>connect_repo</code> with <code>apply_workflow: true</code> opens the pull request that adds or patches the workflow.</p>
+  </section>
+</Base>

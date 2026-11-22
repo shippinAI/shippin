@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shippin.cloud/schemas/ci-runners",
+  "title": "Shippin Run fleet file",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["runners"],
+  "properties": {
+    "runners": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "repos"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "name": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["qemu", "lxc"]},
+          "vmid": {"type": "integer", "minimum": 1},
+          "host": {"type": "string"},
+          "repos": {"type": "array", "items": {"type": "string"}},
+          "size": {"type": "string"},
+          "labels": {"type": "array", "items": {"type": "string"}},
+          "account": {"type": "string"},
+          "account_kind": {"enum": ["user", "organization"]},
+          "status": {"type": "string"},
+          "provision_detail": {"type": "string"}
+        }
+      }
+    }
+  }
+}
