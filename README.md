@@ -57,6 +57,8 @@ cd web && npm ci && npm run dev  # the panel, with hot reload, at http://localho
 | `internal/hv/` | Hypervisor drivers: Proxmox and Incus. |
 | `cmd/shippin-hostd`, `internal/hostd/` | The host agent. |
 | `agent/` | A small host-side diagnostic for Incus and Proxmox. |
+| `.agents/library/` | Canonical assistant skills. Nested in git, exported flat for an assistant. |
+| `.agents/skills/` | Workflow skills for agents editing this repository. |
 | `api/openapi/` | The published API contract. |
 | `config/` | Examples. An installation's real values stay out of git. |
 | `install/`, `install.sh`, `compose.yaml`, `Dockerfile` | The ways to install it. |

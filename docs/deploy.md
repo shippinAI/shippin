@@ -224,7 +224,7 @@ Migrations run forward only, so going back to an older build means restoring a d
 
 If the new process fails its health check, the installer says so and stops. Start the previous binary again, or fix what it reports and re-run. The older Incus release scripts under `deploy/` can still roll a release back when `CONSOLE_IP`, `DOMAIN`, and `SECRETS_FILE` are set in the environment. They no longer default to a site address.
 
-GitHub Actions on pushes and pull requests runs the Shippin Go tests and builds, the web tests and build, the public-tree literal scan and gitleaks. Historical Proxmox source captures are retained for review but are not built, installed, or executed by product CI.
+GitHub Actions on pushes and pull requests runs the Shippin Go tests and builds, the web tests and build, the assistant skill linter, the public-tree literal scan and gitleaks. Historical Proxmox source captures are retained for review but are not built, installed, or executed by product CI.
 
 ## Site tooling
 

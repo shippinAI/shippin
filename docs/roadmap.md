@@ -20,7 +20,7 @@ Updated 2026-11-11 from the owner's direction:
 
 ## Every request, in one place
 
-Updated 2026-11-15. Each request from the owner, the requirement it falls under in [What Shippin is](objective.md), and where it really stands. **Done** means seen working on the review deploy or a real system; **built** means tests pass but it has not been seen working for real; **designed** means a written design only.
+Updated 2026-11-19 (assistant skill library row) and 2026-11-15. Each request from the owner, the requirement it falls under in [What Shippin is](objective.md), and where it really stands. **Done** means seen working on the review deploy or a real system; **built** means tests pass but it has not been seen working for real; **designed** means a written design only.
 
 | Request | Requirement | Status |
 | --- | --- | --- |
@@ -48,6 +48,7 @@ Updated 2026-11-15. Each request from the owner, the requirement it falls under 
 | A license that lets people self-host but not compete | OPEN-01 | **Done:** FSL-1.1-ALv2, licensor shippinAI. A contributor agreement is not set up. |
 | An enterprise edition, managed and unmanaged, in its own repository | OPEN-01 | **Designed:** [Editions and licensing](editions.md), a private module over this panel with a signed license key; not a fork. The repository is `shippinAI/shippin-enterprise` (decided 2026-11-19). Extension points, the key check and the repository itself are not built. |
 | A personal lexicon and prompt recipes from the owner's own chats | (tooling, later COACH-01) | **Done** as tooling (`governance/lexicon.mjs`). 16 terms and 14 recipes wait for the owner to confirm them. |
+| A reviewed skill library assistants load by intent | GUIDE-01, COACH-01 | **Built** in [`.agents/library/`](../.agents/library/README.md): the tree, the linter, and the flat export. No assistant has loaded it, and shippin.bot is still not started. |
 
 ## Where it stands
 
