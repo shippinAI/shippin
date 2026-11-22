@@ -37,7 +37,7 @@ type Props = {
   initialExisting?: string;
   editNode?: InfraNode;
   onOpenChange: (open: boolean) => void;
-  onAdded: (kind: string) => void;
+  onAdded: (kind: string, hostId: string) => void;
 };
 
 /** What a test found, and if the server's certificate is unknown, the decision to trust it. When the
@@ -183,9 +183,9 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
       add.mutate(
         { ...hostValues(), existing: editNode.id, label: editNode.label, note: note.trim() },
         {
-          onSuccess: () => {
+          onSuccess: (host) => {
             onOpenChange(false);
-            onAdded(provider.kind);
+            onAdded(host.kind, host.id);
           },
         },
       );
@@ -195,9 +195,9 @@ export function AddHostDialog({ data, isOpen, initialKind, initialExisting, edit
       ? { ...hostValues(), existing: detached.id, label: label.trim() || detached.label || detached.slug, note: note.trim() }
       : { ...hostValues(), label: label.trim(), slug, site, note: note.trim() };
     add.mutate(request, {
-      onSuccess: () => {
+      onSuccess: (host) => {
         onOpenChange(false);
-        onAdded(provider.kind);
+        onAdded(host.kind, host.id);
       },
     });
   };

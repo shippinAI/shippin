@@ -1,0 +1,24 @@
+# golangci-lint for the Go code (docs/release.md). CI reports only issues on lines a change touches
+# (--new-from-merge-base=origin/main), so the findings that existed when it arrived never block work but
+# every new line meets these rules.
+version: "2"
+run:
+  timeout: 10m
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - bodyclose # an HTTP response body left open
+    - errorlint # an error compared or cast without errors.Is / errors.As
+    - gosec # security: injection, weak crypto, file permissions, unchecked input
+    - misspell
+    - nilerr # returns nil where an error was just checked
+    - noctx # an HTTP request without a context
+  exclusions:
+    generated: lax
+    rules:
+      # Tests may write fixtures with loose permissions and skip error checks on throwaway values.
+      - path: _test\.go
+        linters: [errcheck, gosec, noctx, bodyclose]
+formatters:
+  enable:
+    - gofmt

@@ -8,7 +8,7 @@ import { useInfraCan, useInfraOverview, type InfraNode } from "../../../lib/hook
 import { useNavigate, useParams } from "../../../lib/router/router";
 import { useText } from "../../../lib/ui-config/use-ui-config";
 import { PageHeader } from "../../../template/page-header";
-import { FLEETS_TAB, NETWORKS_TAB, OVERVIEW_TAB, providersWithHosts, selectedTab, tabHref } from "../model";
+import { FLEETS_TAB, NETWORKS_TAB, OVERVIEW_TAB, hostHref, providersWithHosts, selectedTab, tabHref } from "../model";
 import { AddHostDialog } from "./add-host-dialog";
 import { FleetsTab } from "./fleets-tab";
 import { OverviewTab } from "./overview-tab";
@@ -84,7 +84,7 @@ export function InfrastructurePage() {
             onOpenChange={(o) => {
               if (!o) setAdding(null);
             }}
-            onAdded={(kind) => nav(tabHref(kind))}
+            onAdded={(kind, hostId) => nav(hostHref(kind, hostId))}
           />
         </>
       )}

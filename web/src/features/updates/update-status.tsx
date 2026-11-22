@@ -8,7 +8,7 @@ import { useText } from "../../lib/ui-config/use-ui-config";
 
 type UpdateInfo = {
   short: string;
-  running: { commit: string; built_at?: string; modified?: boolean };
+  running: { version: string; channel: "local" | "edge" | "release"; commit: string; built_at?: string; modified?: boolean };
   command?: string;
   source?: string;
   update?: {
@@ -41,9 +41,11 @@ export function UpdateStatus() {
   const available = !!u?.available;
   const label = available
     ? t("update.available", { count: u!.behind })
-    : data.short
-      ? t("update.build", { build: data.short })
-      : t("update.unstamped");
+    : data.running.channel === "release"
+      ? t("update.version", { version: data.running.version })
+      : data.short
+        ? t("update.build", { build: data.short })
+        : t("update.unstamped");
   return (
     <Popover
       title={available ? t("update.title") : t("update.currentTitle")}
@@ -64,7 +66,10 @@ export function UpdateStatus() {
     >
       <div className="space-y-2 text-sm" data-testid="update-details">
         <p className="text-fg-muted">
-          {t("update.running")} <code className="font-mono">{data.short || t("update.unstamped")}</code>
+          {t("update.running")} <code className="font-mono">{data.running.version}</code>, {t(`update.channel.${data.running.channel}`)}
+        </p>
+        <p className="text-fg-muted">
+          {t("update.commit")} <code className="font-mono">{data.short || t("update.unstamped")}</code>
           {data.running.modified ? ` ${t("update.modified")}` : ""}
         </p>
         {u?.error && <p className="text-warning">{u.error}</p>}

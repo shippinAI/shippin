@@ -9,6 +9,7 @@ running.
 - [Roadmap](roadmap.md): what exists today, and the order of the rest, starting with separating the enterprise code.
 - [Design system](design-system.md): tokens, accessibility and speed rules for the panel.
 - [Panel framework](web-framework.md): routes and navigation from folders, the lexicon, rot checks, tokens and components.
+- [Builds and releases](release.md): the local, edge and release channels, versions, what a release carries and the checks before anything is published.
 - [MCPL](mcpl.md): one canonical action surface for people, the API and an AI acting for a person; the rules every route and input follows.
 - [Build runners](runners.md): GitHub Actions jobs on single-use runner machines, per organization (RUN-01).
 - [Settings and secrets](settings.md): every setting edited in the panel, and keys saved to the installation's Vaultix account (CFG-01).
@@ -21,8 +22,10 @@ running.
 
 - [Deploy](deploy.md): containers or a Debian/Ubuntu machine, TLS, upgrades.
 - [Develop](development.md): the local loop and the checks to run before pushing.
+- [Legacy runner prototype](reference/shippin-run.md): preserved fleet-file tools and their boundary; current panel runners are described in [Build runners](runners.md).
 - [Attach a hypervisor](reference/proxmox-connector.md): Incus and Proxmox.
 - [Source ownership](source-of-truth.md): which folder owns what.
+- [Assistant skills](../.agents/library/README.md): the canonical library external assistants load after a flat export.
 - [Panel variants](panel-variants.md): every other place a panel lived, and what became of it.
 - [Hosting plans](plans.md): the plans the catalog and host agent use today, and the coverage tiers beside them. Enterprise; moves to the enterprise repository.
 

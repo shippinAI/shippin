@@ -5,7 +5,9 @@ self-hosted panel in this repository, and an enterprise module for running a
 multi-tenant hosted cloud ([Editions and licensing](editions.md)). This page says
 what exists today, the order the rest gets built in, and what each stage must prove.
 
-Updated 2026-11-19: the public repository is the self-hosted panel, in the spirit of Coolify. Everything multi-tenant and commercial moves to the private enterprise repository `shippinAI/shippin-enterprise`, and that separation comes before any other work. Workspaces in the panel run on the owner's own hosts through the hypervisor's API.
+Updated 2026-11-20: the immediate delivery priority is a reachable, claimable installation and a coherently grouped panel, followed by real Incus and Proxmox journeys. The [foundation delivery plan](foundation-delivery.md) defines P1–P7, ownership and observable acceptance gates. P1 and P2 use the existing owners and may precede the full enterprise extraction; broad context rewrites still follow the separation. A plan is not deployment evidence.
+
+The 2026-11-19 edition decision remains: the public repository is the self-hosted panel, in the spirit of Coolify. Multi-tenant and commercial capabilities move to the private enterprise repository `shippinAI/shippin-enterprise`. Workspaces in the panel run on the owner's own hosts through the hypervisor's API.
 
 Updated 2026-11-13: the hosted development space (SOLO-01 to COACH-01) comes first for solo developers, in the spirit of Lovable on their own subscriptions, and it teaches as it goes.
 
@@ -18,7 +20,7 @@ Updated 2026-11-11 from the owner's direction:
 
 ## Every request, in one place
 
-Updated 2026-11-15. Each request from the owner, the requirement it falls under in [What Shippin is](objective.md), and where it really stands. **Done** means seen working on the review deploy or a real system; **built** means tests pass but it has not been seen working for real; **designed** means a written design only.
+Updated 2026-11-19 (assistant skill library row) and 2026-11-15. Each request from the owner, the requirement it falls under in [What Shippin is](objective.md), and where it really stands. **Done** means seen working on the review deploy or a real system; **built** means tests pass but it has not been seen working for real; **designed** means a written design only.
 
 | Request | Requirement | Status |
 | --- | --- | --- |
@@ -46,6 +48,7 @@ Updated 2026-11-15. Each request from the owner, the requirement it falls under 
 | A license that lets people self-host but not compete | OPEN-01 | **Done:** FSL-1.1-ALv2, licensor shippinAI. A contributor agreement is not set up. |
 | An enterprise edition, managed and unmanaged, in its own repository | OPEN-01 | **Designed:** [Editions and licensing](editions.md), a private module over this panel with a signed license key; not a fork. The repository is `shippinAI/shippin-enterprise` (decided 2026-11-19). Extension points, the key check and the repository itself are not built. |
 | A personal lexicon and prompt recipes from the owner's own chats | (tooling, later COACH-01) | **Done** as tooling (`governance/lexicon.mjs`). 16 terms and 14 recipes wait for the owner to confirm them. |
+| A reviewed skill library assistants load by intent | GUIDE-01, COACH-01 | **Built** in [`.agents/library/`](../.agents/library/README.md): the tree, the linter, and the flat export. No assistant has loaded it, and shippin.bot is still not started. |
 
 ## Where it stands
 
@@ -67,19 +70,23 @@ Updated 2026-11-15. Each request from the owner, the requirement it falls under 
 | Customer machines (VM-01) | A VM-per-organization design and a first implementation ([VM-first tenants](reference/vm-first-tenants.md)), from October 2026. | Not verified on the current build. A customer ordering a VM from their plan in the panel, by size, image and region, does not exist. |
 | One-click services (CAT-01) | Catalog, versioned deployment plans and an Incus OCI application executor (volume, container, start, host health probe) exist. A tenant's starter database runs on a shared PostgreSQL on the platform host. | No catalog entry for PostgreSQL, ClickHouse, Coolify or our products. Nothing deploys onto a customer's VM yet. The Incus executor has never run against a real host. It needs AgentHub with no alternative, does not re-run after a review passes, cannot act on an earlier generation's container, and ignores declared ports. Proxmox has no application path. |
 | Terminal (TERM-01) | A browser terminal opens the workspace's Zellij session, follows the pane's size, and reconnects to it by itself after a drop; open and close are audited with how long it ran and why it ended. Tested against a local PTY, not yet on a real workspace. It can hand off to WezTerm, has guides beside it, and has AI app cards with exact install commands. | The plain-language layer: asking in words, seeing the commands before they run, errors explained, and one-press common jobs. The same terminal on a customer's VM. |
-| Build runners (RUN-01) | Staff offer runner sizes; an organization assigns its GitHub repositories to workspaces and projects; GitHub's job events are recorded per organization, waiting or refused against the plan's sizes and minutes. A machine is started per job within the plan's jobs-at-once limit, fair between organizations, never twice, and removed when the job ends or after the time limit; staff list and remove runner machines. The organization's Build runners page and staff's Runner sizes page are in the panel. Tested against fakes, and on the local Incus rig with a container (it cannot run VMs). PRs #18 and #20 are being replaced, not merged. | A runner image and a real job end to end on a VM, which needs a GitHub App and the runner release; staff's runner machines page; cancelling jobs and keeping logs; Proxmox, clouds and customers' own servers; the catalog entry for a customer's own runner. |
+| Build runners (RUN-01) | Staff offer runner sizes; an organization assigns its GitHub repositories to workspaces and projects; GitHub's job events are recorded per organization, waiting or refused against the plan's sizes and minutes. A machine is started per job within the plan's jobs-at-once limit, fair between organizations, never twice, and removed when the job ends or after the time limit; staff list and remove runner machines. The organization's Build runners page and staff's Runner sizes page are in the panel. Tested against fakes, and on the local Incus rig with a container (it cannot run VMs). PR #18 preserves the earlier standalone fleet prototype with an enforced console dependency boundary; it does not replace this runtime. PR #20 retains its original history while keeping the current runtime; [source disposition](runner-service.md) records superseded wiring and open profile/gateway gaps. | A runner image and a real job end to end on a VM, which needs a GitHub App and the runner release; staff's runner machines page; cancelling jobs and keeping logs; Proxmox, clouds and customers' own servers; the catalog entry for a customer's own runner. |
 | DevPulse sync (SYNC-01) | Device-code sign-in and short-lived sessions for `shippin-bridge`. | A published client API for listing projects, syncing files both ways with conflicts shown, opening sessions and following runs; and a per-device list with revocation in the panel. |
+| Legacy fleet prototype (PR #18) | Standalone fleet-file compatibility tools and static demo are preserved, with tests for request deadlines, secret redaction, retention purge, redirects and workflow safety. See [disposition](reference/shippin-run.md#platform-boundary). | These tools are not integrated panel features and do not complete RUN-01 or CFG-01. Current platform capability is the Build runners row above. |
 
 ## Order of work
 
-The separation comes first. Then code is rewritten into its contexts as each
+The [foundation packets](foundation-delivery.md#delivery-packets) govern immediate delivery:
+P1 reaches and claims an installation; P2 makes context and navigation coherent.
+The enterprise separation remains the prerequisite for broad context rewrites.
+Code is then rewritten into its contexts as each
 stage reaches them, in the order in the [code map](architecture.md). The first milestone is the friends-and-family
 launch: the [acceptance journey](objective.md#acceptance-journey-friends-and-family)
 on our own Incus and Proxmox hosts. Public clouds and billing come after it.
 
 ### Separation, first
 
-The 2026-11-19 direction: before anything else, the enterprise code leaves this repository. Each step is closed only by its proof, and every commit leaves both editions working. Enterprise code moves with its tests; it is not rewritten on the way.
+The 2026-11-19 separation direction, qualified by the P1/P2 foundation priority above: enterprise code leaves before broad context rewrites. Each step is closed only by its proof, and every commit leaves both editions working. Enterprise code moves with its tests; it is not rewritten on the way.
 
 | Step | Result someone can see | Proof required |
 | --- | --- | --- |
@@ -89,7 +96,9 @@ The 2026-11-19 direction: before anything else, the enterprise code leaves this 
 | S3. The code moves | One area at a time, enterprise first, then removed here: sign-up and acquisition; plans, coverage and customers; access to customers; `hostd` and per-customer isolation, tenant databases and hosted Vaultix; then a new database baseline (PRE-01) in which the installation's own team is an ordinary organization. | After each area, both review deploys are seen in a browser: the panel without it, the enterprise build doing what it did before, as Admin, Staff and Customer. |
 | S4. It stays separate | A check in CI fails on enterprise packages, tables, routes or permissions in this repository. | The check fails on a planted example and passes on main. |
 
-Between S1 and S2, the rest of the [panel framework](web-framework.md) is built, in this order: F5 rot checks, F4 lexicon, F2 tokens from one source, F3 components and their gallery. Each is one commit, seen on the review deploy.
+The [panel framework](web-framework.md) track continues in this order: F5 rot checks, F4 lexicon, F2 tokens from one source, F3 components and their gallery. It does not block P1/P2 or reaching S2. Each step is checked and seen on the review deploy; the framework document distinguishes working machinery from planned tooling.
+
+The [builds and releases](release.md) track runs beside it, decided by the owner on 2026-11-20: a private edge build from every green `main`, and public tagged releases. The order: R1 build info and R2 Go checks first; R3 licenses before S2; then R4 edge and R5 releases; R6 updates after Phase 4.
 
 Gaps checked in the code on 2026-11-19, and where each is closed:
 
@@ -100,7 +109,7 @@ Gaps checked in the code on 2026-11-19, and where each is closed:
 | 315 routes outside the action schema | `internal/api/testdata/mcpl-undescribed.txt`, which may only shrink. | Each group as its work comes up; workspaces and guests with D1. |
 | Tenant database backups are a stub | A backup is recorded as `pending_backend`; restore always refuses. | Real dumps to storage the owner configures, then restore, after D1. |
 | One managed service kind | `internal/managed` provisions only `rrflow-state`. | Stage 7: PostgreSQL first, then S3, DNS and mail, through the same managed-service model. |
-| No metering, invoicing or payment | The billing permissions are reserved placeholders. | Stage 14, after the owner decides whether hosting and billing are public modules or enterprise. |
+| No metering, invoicing or payment | The billing permissions are reserved placeholders. | Stage 14, in the enterprise edition: the owner decided on 2026-11-20 that the hosting layer (customers, plans, billing, provisioning, sign-up) is licensed to hosting companies with a signed key, like WHMCS. |
 
 ### The hosted development space
 

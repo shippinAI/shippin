@@ -1,0 +1,4 @@
+# Findings checked by hand and found not to be secrets. Each line is a gitleaks fingerprint, never a value.
+# Design prose naming code identifiers, in files since moved to docs/absorption (checked 2026-11-20).
+4d7a33799c5bd1dcdddf4da8bede2b3208678e30:docs/design/platform-absorption-plan.md:generic-api-key:149
+d8e01fddcde2c6ecf837d3b12ddad5f9709861e7:docs/design/capability-absorption.md:generic-api-key:53

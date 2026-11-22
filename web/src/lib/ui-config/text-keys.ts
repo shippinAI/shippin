@@ -1,6 +1,14 @@
 // The panel strings an installation can reword, with their defaults. `ui.text` in the config file
 // or the Interface page overrides one by key. Add a string here rather than writing it inline.
 export const textDefaults = {
+  "infra.inventory.description":
+    "VMs and containers visible through this host connection, including those created elsewhere. The list refreshes automatically.",
+  "infra.inventory.checked": "Last successful refresh: {time}",
+  "infra.inventory.refresh": "Refresh inventory",
+  "infra.inventory.refreshing": "Refreshing inventory…",
+  "infra.inventory.refreshTooltip": "Read the current VMs and containers from this host",
+  "infra.inventory.stale": "Refresh failed. These are the last known machines; guest actions are unavailable until inventory recovers.",
+  "infra.inventory.failed": "Inventory could not be loaded.",
   "organization.create": "Create customer organization",
   "organization.createDescription":
     "Create a local organization and its default workspace. Infrastructure is provisioned separately; projects wait until capacity is available.",
@@ -541,6 +549,11 @@ export const textDefaults = {
   "home.instances.hint": "Platform host",
   "update.available": "Update available ({count})",
   "update.build": "Build {build}",
+  "update.version": "Version {version}",
+  "update.channel.local": "local development build",
+  "update.channel.edge": "edge build",
+  "update.channel.release": "release",
+  "update.commit": "Commit",
   "update.unstamped": "Unknown build",
   "update.title": "A new version is available",
   "update.currentTitle": "This panel",

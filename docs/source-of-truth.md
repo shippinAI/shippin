@@ -9,7 +9,7 @@ merging current public branches does not adopt that private history.
 `api/openapi/` owns the draft API contract. `cmd/console` and `internal/` own the
 control plane imported from shippin-console `e35ab817bbfedc626f35aa2f42760df49d4684c2`.
 `web/` owns the panel, and there is only one. See [panel variants](panel-variants.md). `cmd/shippin-hostd` and `internal/hostd` own the host agent.
-`internal/hv/` owns the hypervisor drivers. `agent/` owns a host-side diagnostic. `third_party/warden-ct102` is a
+`internal/hv/` owns the hypervisor drivers. `agent/` owns a host-side diagnostic, not assistant skills. `.agents/library/` owns the canonical skill library that external assistants load after a flat export. `.agents/skills/` owns the flat workflow skills for agents editing this repository. `third_party/warden-ct102` is a
 reference import that is not served, kept until its remaining features are ported. `install/panel/`, `install/docker/`,
 `Dockerfile` and `compose.yaml` own deployment.
 `install/primary-image/` owns the development image builder. `governance/` owns the
@@ -18,6 +18,21 @@ local plan and journal tooling. `docs/` holds the product definition
 how parts work, `absorption/` for where older code went, and `archive/` for
 superseded plans. An installation's values are never committed; they belong in
 its database and panel (CFG-01), and until then in its uncommitted site file.
+
+The [foundation delivery plan](foundation-delivery.md) maps the deploy-and-claim
+journey, UI grouping and provider proofs to these owners. It distinguishes current
+packages from target contexts; moving an entity does not create a second authority.
+
+Hypervisor guest inventory is read from the attached provider by `internal/hv/`
+through the authorized infrastructure API. Existing VMs and containers need no
+Shippin creation or per-guest import record. Incus discovery is scoped to the
+connection's configured project (the default project when omitted). The panel's
+`use-hosts.ts` owns the shared guest query used by infrastructure and service
+selection; it refreshes every 15 seconds while observed and supports manual refresh.
+Failed refreshes retain labelled last-known rows and disable guest actions in the
+provider view until recovery. Discovery does not assign tenant ownership or grant
+staff permissions. Host attachment, live deployment verification, and guest shell
+or console support remain separate capabilities.
 
 `internal/orgs/` owns the explicit registry links between the internal Operations
 organization, its local identity organization and the system tenant, and between
@@ -67,8 +82,24 @@ result is reconciled separately. Only a verified pass can produce `ready`.
 Upgrades, backup/restore, complete service lifecycle and Proxmox application
 execution are not implemented, so this partial runtime is not yet a turnkey
 deployable service.
-`internal/jobs/` remains the durable worker lease/retry mechanism, not deployment
-truth. `internal/hv/incus/` and `internal/hv/proxmox/` retain provider-specific
+`internal/runtime/runner` and `internal/runtime/runner_job` own platform build
+runners. `internal/gh` owns their GitHub integration, `internal/services/runner_size`
+their sizes, and `internal/integrations/github_repository` their tenant-scoped
+repository assignments. Their actions use MCPL and the single `web/` panel; see
+[build runners](runners.md). `internal/jobs/` remains the durable worker lease/retry
+mechanism, not deployment truth.
+
+PR #18's earlier file-based prototype is retained in `internal/runfleet` and
+`cmd/shippin-run` for standalone legacy fleet-file compatibility and evaluation.
+It does not own platform runners, share panel credentials or databases, or grant
+tenant access. The console must not depend on this package; a dependency-boundary
+test enforces that separation. Its static demo is `site/shippin-run`, not a panel.
+The prototype's original source, tests and limitations remain available without
+replacing the newer runtime. [Its disposition](reference/shippin-run.md#platform-boundary)
+distinguishes preservation from platform feature completion. The Warden HTML stays
+unmounted.
+
+`internal/hv/incus/` and `internal/hv/proxmox/` retain provider-specific
 guest behavior; `internal/hostd/` owns only the bounded in-guest bootstrap and
 workload operations exposed through its authenticated contract. No provider or
 builder implementation may be hidden in the

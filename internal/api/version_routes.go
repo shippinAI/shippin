@@ -131,15 +131,18 @@ func updateCommand(cfg config.Updates, getenv func(string) string) string {
 	return ""
 }
 
-// versionInfo is this panel's build and, for operators, whether a newer one exists.
+// versionInfo is this panel's build (version, channel, commit) and, for operators, whether a newer one exists.
 func (a *API) versionInfo(w http.ResponseWriter, r *http.Request) {
 	c, ok := a.resolve(w, r)
 	if !ok {
 		return
 	}
+	// Operators, and staff who may read the platform settings, see which build runs (docs/release.md).
 	if c.op == "" {
-		auth.Problem(w, http.StatusForbidden, "Build information needs an operator role.")
-		return
+		if ok, _ := a.decide(r.Context(), c, "platform.settings.read"); !ok {
+			auth.Problem(w, http.StatusForbidden, "Build information needs an operator role or permission to view platform settings.")
+			return
+		}
 	}
 	running := version.Current()
 	out := map[string]any{"running": running, "short": running.Short(), "command": updateCommand(a.cfg.Updates, os.Getenv)}

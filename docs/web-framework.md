@@ -4,6 +4,14 @@ How the panel in `web/` is organised, so that a page, its navigation entry, its 
 
 The rule behind all of it: **a rule only exists if CI fails when it is broken.** A convention that is only written down decays.
 
+Status checked 2026-11-20: F1 routes/navigation and F5 checks are implemented.
+F4's product lexicon and F2's token-generation source are planned; the documented
+`docs/lexicon.toml` and `web/tokens/` do not yet exist. Existing CSS token enforcement
+remains implemented. F3 has components, while its complete gallery acceptance
+still needs verification. The [foundation delivery plan](foundation-delivery.md)
+defines context grouping, shell loading states and incremental migration using
+this machinery. The sections below specify the target where tooling is absent.
+
 ## Routes and navigation come from folders (F1)
 
 No route or navigation entry is listed by hand. Each folder under `web/src/routes/<app>/` is a URL of that app:
@@ -80,10 +88,12 @@ A page folder holds the page and nothing shared. The code a page uses belongs to
   - No folder is a bucket (`common`, `shared`, `utils`, `util`, `helpers`, `misc`). Code belongs to the thing it serves.
 - **Generated files are current.** The routes (`scripts/routes.mjs --check`) and the OpenAPI index (`generate-openapi-index.mjs --check`) are regenerated in check mode, and a difference fails. The tokens join them with F2.
 - **Hard-coded installation names** fail too (`scripts/check-hardcoding.mjs`), as before.
-- **Formatting.** Biome formats the web code (`web/biome.json`: two-space indent, 140 columns, double quotes, trailing commas). `npm test` runs `biome format` and fails on a file that is not formatted; `npx biome format --write` fixes it. Generated files are left as their generators write them.
-- **Nothing unused (to build).** knip, run in CI, will fail on files, exports and dependencies nothing uses. It is a new development dependency, so it waits for the owner's approval to download it.
+- **Formatting.** Biome formats the web code (`web/biome.json`: two-space indent, 140 columns, double quotes, trailing commas). `npm test` runs `biome format` and fails on a file that is not formatted; `npx biome format --write` fixes it. Generated files are left as their generators write them. The commit that first formatted everything is in `.git-blame-ignore-revs`.
+- **Lint.** Biome's recommended rules run over the web code (`scripts/check-lint.mjs`). The 176 errors and warnings that existed when it arrived are counted per file and rule in `scripts/lint-baseline.txt`.
+- **Nothing unused.** knip (`web/knip.json`, `scripts/check-unused.mjs`) finds files, exports, types and dependencies nothing uses. Route folders are entry points. The 121 findings that existed when it arrived are in `scripts/unused-baseline.txt`.
+- **How the two baselines work.** Both may only shrink (`scripts/baseline.mjs`). A finding above its count fails, and so does a count above what is found, so a fix is recorded with `--update`, which lowers counts and never adds one.
 
-## Lexicon (F4)
+## Lexicon (F4, planned)
 
 `docs/lexicon.toml` defines each product term once:
 - what it means;
@@ -96,7 +106,7 @@ It holds product terms only, never a person's own vocabulary.
 - **The ratchet.** Uses that exist today are listed in `web/scripts/lexicon-baseline.txt`. That list may only shrink, the same way the MCPL list of older routes does.
 - **Retired terms.** A retired term is merged into the term that replaced it. It is not kept as an alias.
 
-## Tokens from one source (F2)
+## Tokens from one source (F2, generation planned)
 
 The tokens in the [design system](design-system.md) are written once, in the DTCG format, under `web/tokens/`. Style Dictionary builds them into:
 - `web/src/styles/tokens.css`, for both the dark and the light theme;

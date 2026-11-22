@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Cpu } from "lucide-react";
 import { Badge } from "../../../lib/design/components/badge/badge";
 import { Button } from "../../../lib/design/components/button/button";
@@ -42,6 +42,7 @@ import { CreateGuestCard } from "./create-guest-card";
 import { MetricsHistory } from "./metrics-history";
 import { NodeFacts } from "./node-details";
 import { SystemIdentityForm } from "./system-identity-form";
+import { GuestInventoryStatus } from "./guest-inventory-status";
 
 function useGuestColumns(): ColumnDef<Guest>[] {
   const t = useText();
@@ -152,7 +153,8 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
   const guests = useGuests(base);
   const storage = useStorageInventory(base, provider.capabilities.includes("storage_inventory"));
   const [guestId, setGuestId] = useState("");
-  const guest = (guests.data?.items ?? []).find((g) => g.id === guestId);
+  // Cached rows remain useful during an outage, but they must not offer current-state actions.
+  const guest = guests.isSuccess ? guests.data.items.find((g) => g.id === guestId) : undefined;
   const snaps = useSnapshots(can("snapshot_list") ? base : "", guest?.id ?? "");
   const operations = useOperations(node.id);
   const snap = useSnapshot(base);
@@ -170,6 +172,13 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
   const [upid, setUpid] = useState("");
   const [lookup, setLookup] = useState("");
   const task = useTask(can("tasks") ? base : "", lookup);
+  useEffect(() => {
+    if (guests.isError) {
+      setChange(null);
+      setStopping(false);
+      setPowerChange(null);
+    }
+  }, [guests.isError]);
   // One slow change holds its own guest, and only that one.
   const guestBusy =
     !!guest && (powerChange?.guest === guest.id || (operations.data?.items ?? []).some((o) => operationOpen(o) && o.guest === guest.id));
@@ -194,7 +203,13 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
                 </Button>
               )}
               {can("lifecycle") && may("infra.guests.power") && (
-                <Button size="sm" variant="secondary" tooltip={t("infra.stop.tooltip")} onPress={() => setStopping(true)}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  tooltip={t("infra.stop.tooltip")}
+                  isDisabled={!guests.isSuccess}
+                  onPress={() => setStopping(true)}
+                >
                   {t("infra.stop.open")}
                 </Button>
               )}
@@ -220,7 +235,13 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
             </div>
           }
         />
-        {guests.isPending && node.online ? (
+        <GuestInventoryStatus
+          updatedAt={guests.dataUpdatedAt}
+          refreshing={guests.isFetching}
+          error={guests.error}
+          onRefresh={() => void guests.refetch()}
+        />
+        {guests.isPending ? (
           <div className="space-y-3 p-5">
             {Array.from({ length: 4 }, (_, i) => (
               <Skeleton key={i} className="h-9" />
@@ -232,7 +253,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
               label={node.label}
               columns={columns}
               rows={guests.data?.items ?? []}
-              onRowAction={setGuestId}
+              onRowAction={guests.isSuccess ? setGuestId : undefined}
               empty={
                 <EmptyState
                   illustration={<Cpu className="size-10 text-fg-subtle" />}
@@ -510,8 +531,13 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
         <ActivityCard serverId={node.id} />
       </div>
       <ChangeNoteDialog change={change} onClose={() => setChange(null)} />
-      <StopGuestsDialog serverId={node.id} guests={guests.data?.items ?? []} isOpen={stopping} onOpenChange={setStopping} />
-      {powerChange && (
+      <StopGuestsDialog
+        serverId={node.id}
+        guests={guests.data?.items ?? []}
+        isOpen={stopping && guests.isSuccess}
+        onOpenChange={setStopping}
+      />
+      {powerChange && guests.isSuccess && (
         <GuestPowerDialog
           base={base}
           guest={powerChange.guest}

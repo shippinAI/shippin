@@ -26,11 +26,14 @@ import (
 	"shippin.cloud/console/internal/mail"
 	"shippin.cloud/console/internal/spa"
 	"shippin.cloud/console/internal/tlsfile"
+	"shippin.cloud/console/internal/version"
 )
 
 // Main runs the console until it is told to stop. `console setup` prints a one-time setup code instead.
 func Main() {
 	setupLogging()
+	b := version.Current()
+	slog.Info("shippin console", "version", b.Version, "channel", b.Channel, "commit", b.Short(), "modified", b.Modified)
 	if len(os.Args) > 1 && os.Args[1] == "setup" {
 		runSetup()
 		return

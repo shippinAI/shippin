@@ -49,9 +49,15 @@ export function check(base, head, cwd = process.cwd()) {
     const diff = status === 'D' ? '' : git(['diff', '-U0', `${base}`, `${head}`, '--', file], cwd);
     const found = problems(file, status[0], diff);
     if (!found.length) continue;
-    // Any commit in the range that touches the file and says why covers it.
-    const commits = git(['log', '--format=%H', `${base}..${head}`, '--', file], cwd).split('\n').filter(Boolean);
-    const why = commits.map(c => git(['log', '-1', '--format=%B', c], cwd).match(TRAILER)?.[1]).find(Boolean);
+    // Simplified path history hides a reconciliation merge when it takes one
+    // parent's version. Include it, but only accept an explanation from a commit
+    // that actually changes this path relative to its first parent. Otherwise an
+    // unrelated later merge could excuse an earlier unexplained removal.
+    const commits = git(['log', '--full-history', '--format=%H', `${base}..${head}`, '--', file], cwd).split('\n').filter(Boolean);
+    const why = commits.some(c => {
+      if (!TRAILER.test(git(['log', '-1', '--format=%B', c], cwd))) return false;
+      return git(['diff', '--name-only', `${c}^1`, c, '--', file], cwd).trim() !== '';
+    });
     if (!why) findings.push({ file, found });
   }
   return findings;
