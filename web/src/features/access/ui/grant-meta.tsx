@@ -3,8 +3,13 @@ import { Badge, type BadgeTone } from "../../../lib/design/components/badge/badg
 import type { Grant, GrantStatus } from "../../../lib/api/access-types";
 
 const tones: Record<GrantStatus, [string, BadgeTone]> = {
-  pending: ["Pending", "warning"], approved: ["Active", "success"], denied: ["Denied", "neutral"],
-  revoked: ["Revoked", "danger"], expired: ["Expired", "neutral"], ended: ["Ended", "neutral"], cancelled: ["Cancelled", "neutral"],
+  pending: ["Pending", "warning"],
+  approved: ["Active", "success"],
+  denied: ["Denied", "neutral"],
+  revoked: ["Revoked", "danger"],
+  expired: ["Expired", "neutral"],
+  ended: ["Ended", "neutral"],
+  cancelled: ["Cancelled", "neutral"],
 };
 
 /** Status badge for a grant; break-glass grants carry a red marker. */
@@ -12,7 +17,11 @@ export function GrantStatusBadge({ grant: g }: { grant: Grant }) {
   const [label, tone] = tones[g.status] ?? [g.status, "neutral" as BadgeTone];
   return (
     <span className="inline-flex items-center gap-1.5">
-      {g.kind === "breakglass" && <Badge tone="danger"><Siren className="size-3" /> Break-glass</Badge>}
+      {g.kind === "breakglass" && (
+        <Badge tone="danger">
+          <Siren className="size-3" /> Break-glass
+        </Badge>
+      )}
       <Badge tone={tone}>{label}</Badge>
     </span>
   );

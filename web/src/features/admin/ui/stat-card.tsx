@@ -17,7 +17,14 @@ export function StatCard({ label, value, hint, icon: Icon, hue, pct }: Props) {
         {value === undefined ? <Skeleton className="h-6 w-16" /> : value}
       </div>
       {pct !== undefined && (
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-raised" role="meter" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label={label}>
+        <div
+          className="mt-3 h-1.5 overflow-hidden rounded-full bg-raised"
+          role="meter"
+          aria-valuenow={Math.round(pct)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={label}
+        >
           <div className="h-full rounded-full transition-[width]" style={{ width: `${Math.min(100, pct)}%`, background: tone }} />
         </div>
       )}

@@ -59,16 +59,9 @@ func (c *Client) Nodes(ctx context.Context) ([]string, error) {
 
 // Details reads the attached node and, when there is one, its cluster.
 func (c *Client) Details(ctx context.Context) (hv.NodeDetails, error) {
-	node := c.Endpoint.Node
-	if node == "" {
-		nodes, err := c.Nodes(ctx)
-		if err != nil {
-			return hv.NodeDetails{}, err
-		}
-		if len(nodes) == 0 {
-			return hv.NodeDetails{}, fmt.Errorf("proxmox: no nodes reported")
-		}
-		node = nodes[0]
+	node, err := c.attachedNode(ctx)
+	if err != nil {
+		return hv.NodeDetails{}, err
 	}
 	body, code, err := c.do(ctx, http.MethodGet, "/nodes/"+url.PathEscape(node)+"/status", nil)
 	if err != nil {

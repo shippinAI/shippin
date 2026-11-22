@@ -56,8 +56,9 @@ type agentStartIn struct {
 func (a *API) queueAgentStart(ctx context.Context, run *agentruns.Run, by string, resume bool) *jobs.Job {
 	payload, _ := json.Marshal(agentStartIn{Resume: resume})
 	j := jobs.Job{TenantID: run.TenantID, Kind: jobs.KindAgentStart, TargetType: "agent_run", TargetID: run.ID,
-		MaxAttempts: a.cfg.Jobs.MaxAttempts, CreatedBy: by, Payload: payload}
-	if a.runner == nil {
+		MaxAttempts: a.liveJobs(ctx).MaxAttempts, CreatedBy: by, Payload: payload}
+	r := a.jobRunner()
+	if r == nil {
 		go func() {
 			if _, err := a.runAgentStartJob(context.Background(), &j, func(string) {}); err != nil {
 				log.Printf("agent run %s: %v", run.ID, err)
@@ -70,7 +71,7 @@ func (a *API) queueAgentStart(ctx context.Context, run *agentruns.Run, by string
 		log.Printf("agent run %s: enqueue: %v", run.ID, err)
 		return nil
 	}
-	a.runner.Wake()
+	r.Wake()
 	return got
 }
 

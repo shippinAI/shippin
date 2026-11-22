@@ -9,12 +9,16 @@ export function SetupBanner({ tenant }: { tenant: TenantRef }) {
   if (tenant.status === "active") return null;
   const failed = tenant.status === "failed";
   return (
-    <div className={`mb-8 flex items-center gap-4 rounded-xl border px-5 py-4 ${failed ? "border-danger/30 bg-danger/10" : "border-info/30 bg-info/10"}`}>
+    <div
+      className={`mb-8 flex items-center gap-4 rounded-xl border px-5 py-4 ${failed ? "border-danger/30 bg-danger/10" : "border-info/30 bg-info/10"}`}
+    >
       {failed ? <AlertTriangle className="size-5 shrink-0 text-danger" /> : <Loader2 className="size-5 shrink-0 animate-spin text-info" />}
       <div className="flex-1">
         <div className="text-base font-medium text-fg">{failed ? "Setup didn't finish" : "Setting up your organization"}</div>
         <div className="text-sm text-fg-muted">
-          {failed ? "Your organization exists, but its resources aren't ready yet. Retrying is safe." : "Your network and storage are being created."}
+          {failed
+            ? "Your organization exists, but its resources aren't ready yet. Retrying is safe."
+            : "Your network and storage are being created."}
         </div>
       </div>
       {failed && (

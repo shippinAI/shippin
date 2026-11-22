@@ -22,7 +22,11 @@ export function InfoItem({ label, value, mono, copy = true }: Props) {
         <span className={`truncate text-base text-fg ${mono ? "font-mono text-sm" : ""}`}>{value || "—"}</span>
         {copy && value && (
           <Tooltip content={`Copy ${label.toLowerCase()}`}>
-            <Button aria-label={`Copy ${label}`} onPress={onCopy} className="focus-ring cursor-default rounded-sm p-0.5 text-fg-subtle data-hovered:text-fg">
+            <Button
+              aria-label={`Copy ${label}`}
+              onPress={onCopy}
+              className="focus-ring cursor-default rounded-sm p-0.5 text-fg-subtle data-hovered:text-fg"
+            >
               {done ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
             </Button>
           </Tooltip>

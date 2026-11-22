@@ -15,6 +15,14 @@ const (
 	LockBounded     = "bounded"
 )
 
+// Lock is a lock mode as an action takes it. It lists the modes above, so the panel's types and the
+// OpenAPI document list them from here.
+type Lock string
+
+func (Lock) Values() []string {
+	return []string{LockLocked, LockOverridable, LockMergeable, LockBounded}
+}
+
 // LayerOrder is the precedence chain, parent first.
 var LayerOrder = []string{"system", "plan", "tenant", "workspace"}
 

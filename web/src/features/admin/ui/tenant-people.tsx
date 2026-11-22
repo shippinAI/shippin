@@ -20,11 +20,17 @@ export function TenantPeople({ tenantId }: { tenantId: string }) {
   if (!d) return null;
   return (
     <>
-      {d.errors.length > 0 && <p role="alert" className="mx-5 mt-2 text-xs text-warning">{d.errors.join("; ")}</p>}
+      {d.errors.length > 0 && (
+        <p role="alert" className="mx-5 mt-2 text-xs text-warning">
+          {d.errors.join("; ")}
+        </p>
+      )}
       <Section title={`Organization members in ${idp} (${d.members.length})`} empty={d.members.length === 0}>
         {d.members.map((m) => (
           <li key={m.user_id} className="flex justify-between gap-3">
-            <span className="truncate">{m.name || m.user_id} <span className="text-fg-subtle">{m.email}</span></span>
+            <span className="truncate">
+              {m.name || m.user_id} <span className="text-fg-subtle">{m.email}</span>
+            </span>
             <span className="shrink-0 font-mono text-2xs text-fg-muted">{m.roles.join(", ")}</span>
           </li>
         ))}
@@ -33,7 +39,9 @@ export function TenantPeople({ tenantId }: { tenantId: string }) {
         {(d.teams ?? []).map((t) => (
           <li key={t.id} className="flex justify-between gap-3">
             <span className="truncate font-medium">{t.name}</span>
-            <span className="text-fg-subtle">{t.members.length} member{t.members.length === 1 ? "" : "s"}</span>
+            <span className="text-fg-subtle">
+              {t.members.length} member{t.members.length === 1 ? "" : "s"}
+            </span>
           </li>
         ))}
       </Section>
@@ -49,7 +57,9 @@ export function TenantPeople({ tenantId }: { tenantId: string }) {
         {d.projects.map((p) => (
           <li key={p.id} className="flex justify-between gap-3">
             <span className="truncate font-medium">{p.name}</span>
-            <span className="text-fg-subtle">{p.state} · {p.workspaces} devspace{p.workspaces === 1 ? "" : "s"}</span>
+            <span className="text-fg-subtle">
+              {p.state} · {p.workspaces} devspace{p.workspaces === 1 ? "" : "s"}
+            </span>
           </li>
         ))}
       </Section>

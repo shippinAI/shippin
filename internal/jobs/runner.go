@@ -30,18 +30,25 @@ type Runner struct {
 	owner    string
 	handlers map[string]Handler
 	wake     chan struct{}
+	// stop closes when Stop is called: the workers claim nothing more and Run returns once the jobs
+	// they hold are done.
+	stop     chan struct{}
+	stopOnce sync.Once
 }
 
 // NewRunner builds a runner; the lease owner is host/pid/random so replicas never collide.
 func NewRunner(s *Store, set Settings) *Runner {
 	host, _ := os.Hostname()
 	id, _ := uuid.NewRandom()
-	return &Runner{store: s, set: set, handlers: map[string]Handler{}, wake: make(chan struct{}, 1),
+	return &Runner{store: s, set: set, handlers: map[string]Handler{}, wake: make(chan struct{}, 1), stop: make(chan struct{}),
 		owner: fmt.Sprintf("%s/%d/%s", host, os.Getpid(), id.String()[:8])}
 }
 
 // Register adds the handler for a kind (before Run).
 func (r *Runner) Register(kind string, h Handler) { r.handlers[kind] = h }
+
+// Has reports whether a handler is registered for kind.
+func (r *Runner) Has(kind string) bool { _, ok := r.handlers[kind]; return ok }
 
 // Wake makes an idle worker poll now (call after Enqueue).
 func (r *Runner) Wake() {
@@ -51,7 +58,21 @@ func (r *Runner) Wake() {
 	}
 }
 
-// Run starts the workers and blocks until ctx is done and every worker has stopped.
+// Stop makes Run return once the jobs its workers hold now are finished; they claim no more. Unlike
+// canceling Run's context (shutdown), it does not interrupt a job. Stop may be called more than once.
+func (r *Runner) Stop() { r.stopOnce.Do(func() { close(r.stop) }) }
+
+// stopped reports whether Stop was called.
+func (r *Runner) stopped() bool {
+	select {
+	case <-r.stop:
+		return true
+	default:
+		return false
+	}
+}
+
+// Run starts the workers and blocks until ctx is done or Stop is called, and every worker has stopped.
 func (r *Runner) Run(ctx context.Context) {
 	kinds := make([]string, 0, len(r.handlers))
 	for k := range r.handlers {
@@ -67,7 +88,7 @@ func (r *Runner) Run(ctx context.Context) {
 }
 
 func (r *Runner) work(ctx context.Context, kinds []string) {
-	for ctx.Err() == nil {
+	for ctx.Err() == nil && !r.stopped() {
 		j, err := r.claim(ctx, kinds)
 		if err != nil && ctx.Err() == nil {
 			log.Printf("jobs: claim: %v", err)
@@ -78,6 +99,7 @@ func (r *Runner) work(ctx context.Context, kinds []string) {
 		}
 		select {
 		case <-ctx.Done():
+		case <-r.stop:
 		case <-r.wake:
 		case <-time.After(r.set.Poll):
 		}

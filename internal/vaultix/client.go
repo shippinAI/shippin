@@ -88,7 +88,15 @@ func (c *Client) do(ctx context.Context, tok, method, path string, in, out any) 
 	defer resp.Body.Close()
 	switch {
 	case resp.StatusCode == http.StatusNotFound:
-		return ErrNotFound
+		// A real 404 says what is missing (the project, the environment or folder, or the secret);
+		// keep that for whoever reads the error. It still matches ErrNotFound.
+		var e struct {
+			Message string `json:"message"`
+		}
+		if json.NewDecoder(io.LimitReader(resp.Body, 4096)).Decode(&e) != nil || e.Message == "" {
+			return ErrNotFound
+		}
+		return fmt.Errorf("%w: %s", ErrNotFound, e.Message)
 	case resp.StatusCode >= 300:
 		// Infisical error bodies name the problem, not values; still, keep only the message.
 		var e struct {

@@ -21,16 +21,28 @@ export function WorkspaceMenu({ ws, canManage }: { ws: Workspace; canManage: boo
         label={`Actions for ${ws.name}`}
         trigger={
           <Tooltip content={why}>
-            <Button aria-label={`Actions for ${ws.name}`} isDisabled={locked} className="focus-ring inline-flex size-8 cursor-default items-center justify-center rounded-lg border border-line bg-raised text-fg-muted data-hovered:text-fg data-disabled:opacity-40">
+            <Button
+              aria-label={`Actions for ${ws.name}`}
+              isDisabled={locked}
+              className="focus-ring inline-flex size-8 cursor-default items-center justify-center rounded-lg border border-line bg-raised text-fg-muted data-hovered:text-fg data-disabled:opacity-40"
+            >
               <MoreHorizontal className="size-4" />
             </Button>
           </Tooltip>
         }
       >
-        <MenuItem id="start" isDisabled={running} onAction={() => run("start")}><Play className="size-4" /> Power on</MenuItem>
-        <MenuItem id="stop" isDisabled={!running} onAction={() => run("stop")}><Square className="size-4" /> Power off</MenuItem>
-        <MenuItem id="restart" isDisabled={!running} onAction={() => run("restart")}><RotateCw className="size-4" /> Restart</MenuItem>
-        <MenuItem id="delete" onAction={() => setConfirm(true)}><Trash2 className="size-4 text-danger" /> <span className="text-danger">Delete…</span></MenuItem>
+        <MenuItem id="start" isDisabled={running} onAction={() => run("start")}>
+          <Play className="size-4" /> Power on
+        </MenuItem>
+        <MenuItem id="stop" isDisabled={!running} onAction={() => run("stop")}>
+          <Square className="size-4" /> Power off
+        </MenuItem>
+        <MenuItem id="restart" isDisabled={!running} onAction={() => run("restart")}>
+          <RotateCw className="size-4" /> Restart
+        </MenuItem>
+        <MenuItem id="delete" onAction={() => setConfirm(true)}>
+          <Trash2 className="size-4 text-danger" /> <span className="text-danger">Delete…</span>
+        </MenuItem>
       </Menu>
       <ConfirmDialog
         isOpen={confirm}

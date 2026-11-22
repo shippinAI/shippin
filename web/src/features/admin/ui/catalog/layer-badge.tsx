@@ -12,7 +12,10 @@ export function LayerBadge({ layer, refId }: { layer: Layer; refId?: string }) {
   return (
     <Tooltip content={explain(layer)}>
       <Button className="focus-ring cursor-help rounded-full" aria-label={`From ${layer} ${refId ?? ""}`}>
-        <Badge tone={layerTone[layer]}>{layer}{refId ? ` · ${refId.length > 12 ? refId.slice(0, 8) + "…" : refId}` : ""}</Badge>
+        <Badge tone={layerTone[layer]}>
+          {layer}
+          {refId ? ` · ${refId.length > 12 ? refId.slice(0, 8) + "…" : refId}` : ""}
+        </Badge>
       </Button>
     </Tooltip>
   );

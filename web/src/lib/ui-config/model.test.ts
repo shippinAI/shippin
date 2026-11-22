@@ -8,11 +8,28 @@ const items = [
 ];
 
 assert.deepEqual(applyNav(items), items, "no overrides keep the built-in list");
-assert.deepEqual(applyNav(items, [{ id: "b", label: "Renamed" }]).map((i) => i.label), ["A", "Renamed", "C"]);
-assert.deepEqual(applyNav(items, [{ id: "b", hidden: true }]).map((i) => i.id), ["a", "c"]);
-assert.deepEqual(applyNav(items, [{ id: "c", order: 1 }]).map((i) => i.id), ["a", "c", "b"], "ties keep built-in order");
-assert.deepEqual(applyNav(items, [{ id: "a", order: 9 }]).map((i) => i.id), ["b", "c", "a"]);
-assert.deepEqual(applyNav(items, [{ id: "unknown", label: "X" }]).map((i) => i.id), ["a", "b", "c"], "an id from another version is ignored");
+assert.deepEqual(
+  applyNav(items, [{ id: "b", label: "Renamed" }]).map((i) => i.label),
+  ["A", "Renamed", "C"],
+);
+assert.deepEqual(
+  applyNav(items, [{ id: "b", hidden: true }]).map((i) => i.id),
+  ["a", "c"],
+);
+assert.deepEqual(
+  applyNav(items, [{ id: "c", order: 1 }]).map((i) => i.id),
+  ["a", "c", "b"],
+  "ties keep built-in order",
+);
+assert.deepEqual(
+  applyNav(items, [{ id: "a", order: 9 }]).map((i) => i.id),
+  ["b", "c", "a"],
+);
+assert.deepEqual(
+  applyNav(items, [{ id: "unknown", label: "X" }]).map((i) => i.id),
+  ["a", "b", "c"],
+  "an id from another version is ignored",
+);
 assert.equal(applyNav(items, [{ id: "b", label: "" }])[1]!.label, "B", "an empty label keeps the default");
 assert.equal(applyNav(items, [{ id: "b", label: "R" }])[1]!.extra, 2, "other fields survive");
 assert.equal(items[1]!.label, "B", "the built-in list is not changed");
@@ -26,13 +43,28 @@ assert.equal(textFor({ text: { "infra.title": "" } }, "infra.title"), "Hosts & n
 assert.equal(textFor({}, "infra.provider.add", { label: "X" }), "Add X");
 
 const compact = compactUi({
-  nav: { items: [{ id: "keep", label: " Nodes " }, { id: "drop", label: "  " }, { id: "hide", hidden: true }, { id: "move", order: 2 }], sections: [{ id: "none" }] },
+  nav: {
+    items: [
+      { id: "keep", label: " Nodes " },
+      { id: "drop", label: "  " },
+      { id: "hide", hidden: true },
+      { id: "move", order: 2 },
+    ],
+    sections: [{ id: "none" }],
+  },
   text: { "a.b": " x ", "c.d": "   " },
-  providers: [{ kind: "drop", label: "", fields: [{ name: "f", label: "" }] }, { kind: "keep", label: "L", fields: [{ name: "f", default: " v " }, { name: "g" }] }],
+  providers: [
+    { kind: "drop", label: "", fields: [{ name: "f", label: "" }] },
+    { kind: "keep", label: "L", fields: [{ name: "f", default: " v " }, { name: "g" }] },
+  ],
   default_site: "  ",
   drivers: [{ kind: "x", fields: [], capabilities: [], verbs: [] }],
 });
-assert.deepEqual(compact.nav?.items, [{ id: "keep", label: "Nodes" }, { id: "hide", hidden: true }, { id: "move", order: 2 }]);
+assert.deepEqual(compact.nav?.items, [
+  { id: "keep", label: "Nodes" },
+  { id: "hide", hidden: true },
+  { id: "move", order: 2 },
+]);
 assert.deepEqual(compact.nav?.sections, []);
 assert.deepEqual(compact.text, { "a.b": "x" });
 assert.deepEqual(compact.providers, [{ kind: "keep", label: "L", fields: [{ name: "f", default: "v" }] }]);
@@ -40,16 +72,34 @@ assert.equal(compact.default_site, undefined);
 assert.equal((compact as { drivers?: unknown }).drivers, undefined, "driver facts are not stored as configuration");
 
 const remote = { name: " mirror ", server: " https://images.test ", protocol: "simplestreams" };
-const withImages = compactUi({ providers: [
-  { kind: "keeps", images: [{ id: " m:debian/13 ", label: " Debian ", kind: "ct" }, { id: " ", label: "" }], image_remotes: [remote, { name: "", server: "", protocol: "oci" }] },
-  { kind: "cleared", images: [], image_remotes: [] },
-  { kind: "inherits", label: "L", images: null, image_remotes: null },
-  { kind: "absent" },
-] });
-assert.deepEqual(withImages.providers, [
-  { kind: "keeps", fields: [], images: [{ id: "m:debian/13", label: "Debian", kind: "ct" }], image_remotes: [{ name: "mirror", server: "https://images.test", protocol: "simplestreams" }] },
-  { kind: "cleared", fields: [], images: [], image_remotes: [] },
-  { kind: "inherits", label: "L", fields: [] },
-], "a save keeps images, drops blank rows, stores a cleared list, and leaves null to the config file");
+const withImages = compactUi({
+  providers: [
+    {
+      kind: "keeps",
+      images: [
+        { id: " m:debian/13 ", label: " Debian ", kind: "ct" },
+        { id: " ", label: "" },
+      ],
+      image_remotes: [remote, { name: "", server: "", protocol: "oci" }],
+    },
+    { kind: "cleared", images: [], image_remotes: [] },
+    { kind: "inherits", label: "L", images: null, image_remotes: null },
+    { kind: "absent" },
+  ],
+});
+assert.deepEqual(
+  withImages.providers,
+  [
+    {
+      kind: "keeps",
+      fields: [],
+      images: [{ id: "m:debian/13", label: "Debian", kind: "ct" }],
+      image_remotes: [{ name: "mirror", server: "https://images.test", protocol: "simplestreams" }],
+    },
+    { kind: "cleared", fields: [], images: [], image_remotes: [] },
+    { kind: "inherits", label: "L", fields: [] },
+  ],
+  "a save keeps images, drops blank rows, stores a cleared list, and leaves null to the config file",
+);
 
 console.log("ui-config model ok");

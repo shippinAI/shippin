@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"shippin.cloud/console/internal/catalog"
+	"shippin.cloud/console/internal/placement"
 )
 
 var (
@@ -25,9 +26,20 @@ var (
 	ErrInvalidConfig         = errors.New("deployment configuration is invalid")
 )
 
-type Store struct{ pool *pgxpool.Pool }
+// Store keeps deployments. A deployment's target must be a server its organization may use, which the
+// placement policy decides.
+type Store struct {
+	pool      *pgxpool.Pool
+	placement placement.Policy
+}
 
-func NewStore(pool *pgxpool.Pool) *Store { return &Store{pool: pool} }
+// NewStore is a Store whose targets are the servers assigned to the organization (placement.Assigned).
+func NewStore(pool *pgxpool.Pool) *Store { return NewStoreUnder(pool, placement.Assigned{}) }
+
+// NewStoreUnder is a Store whose targets come from the placement policy p.
+func NewStoreUnder(pool *pgxpool.Pool, p placement.Policy) *Store {
+	return &Store{pool: pool, placement: p}
+}
 
 type CreateInput struct {
 	ServiceID      string          `json:"service_id"`
@@ -170,11 +182,16 @@ func (s *Store) Create(ctx context.Context, tenant, actor string, input CreateIn
 	if err != nil {
 		return nil, false, err
 	}
+	// The policy holds what it read until this transaction ends, so the target cannot be taken away
+	// while the deployment is recorded on it.
+	hosts, err := s.placement.Hosts(ctx, tx, tenant)
+	if err != nil {
+		return nil, false, err
+	}
 	var provider string
 	err = tx.QueryRow(ctx, `SELECT s.hv_kind FROM servers s
-		JOIN server_assignments a ON a.server_id=s.id AND a.tenant_id=$2
-		WHERE s.id=$1 AND s.state IN ('planned','active') AND s.hv_kind IN ('incus','proxmox')
-		FOR SHARE OF s, a`, input.TargetSystemID, tenant).Scan(&provider)
+		WHERE s.id=$1 AND s.id = ANY($2::uuid[]) AND s.state IN ('planned','active') AND s.hv_kind IN ('incus','proxmox')
+		FOR SHARE OF s`, input.TargetSystemID, hosts).Scan(&provider)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, false, ErrTargetUnavailable
 	}
@@ -404,9 +421,12 @@ func (s *Store) Targets(ctx context.Context, tenant string) ([]Target, error) {
 	if !validUUID(tenant) {
 		return nil, ErrNotFound
 	}
+	hosts, err := s.placement.Hosts(ctx, s.pool, tenant)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := s.pool.Query(ctx, `SELECT s.id::text,s.label,s.site,s.hv_kind,s.state FROM servers s
-		JOIN server_assignments a ON a.server_id=s.id AND a.tenant_id=$1
-		WHERE s.state IN ('planned','active') AND s.hv_kind IN ('incus','proxmox') ORDER BY s.label,s.id`, tenant)
+		WHERE s.id = ANY($1::uuid[]) AND s.state IN ('planned','active') AND s.hv_kind IN ('incus','proxmox') ORDER BY s.label,s.id`, hosts)
 	if err != nil {
 		return nil, err
 	}

@@ -15,7 +15,13 @@ export function TenantDrawer({ tenant: t, onClose }: { tenant?: AdminTenant; onC
       isOpen={!!t}
       onOpenChange={(o) => !o && onClose()}
       title={t?.name ?? ""}
-      subtitle={t && <span className="inline-flex items-center gap-2"><StatusBadge status={t.status} /> {t.plan_id} plan</span>}
+      subtitle={
+        t && (
+          <span className="inline-flex items-center gap-2">
+            <StatusBadge status={t.status} /> {t.plan_id} plan
+          </span>
+        )
+      }
       footer={t && <TenantActions tenant={t} onDeleted={onClose} />}
     >
       {t && (
@@ -36,14 +42,22 @@ export function TenantDrawer({ tenant: t, onClose }: { tenant?: AdminTenant; onC
             <CopyField label="Created" value={new Date(t.created_at).toLocaleString()} />
           </div>
           <TenantPeople tenantId={t.id} />
-          <div className="mx-5 mt-2"><SetupChecklist tenantId={t.id} scope="operator" /></div>
+          <div className="mx-5 mt-2">
+            <SetupChecklist tenantId={t.id} scope="operator" />
+          </div>
           {t.status !== "deleted" && <TenantVMCard tenant={t} />}
           <div className="mx-5 mt-2 rounded-lg border border-line bg-raised/50 px-4 py-3">
             <div className="text-sm font-medium text-fg">Workspace access</div>
-            <p className="mt-0.5 text-xs text-fg-muted">Opening this tenant's IDEs or previews, or acting on its workspaces, needs the customer's approval (or audited break-glass).</p>
-            <div className="mt-3 flex gap-2"><AccessLauncher tenantId={t.id} tenantName={t.name} disabled={t.status === "deleted"} /></div>
+            <p className="mt-0.5 text-xs text-fg-muted">
+              Opening this tenant's IDEs or previews, or acting on its workspaces, needs the customer's approval (or audited break-glass).
+            </p>
+            <div className="mt-3 flex gap-2">
+              <AccessLauncher tenantId={t.id} tenantName={t.name} disabled={t.status === "deleted"} />
+            </div>
           </div>
-          <p className="px-6 py-4 text-xs text-fg-subtle">{t.workspace_count} workspace{t.workspace_count === 1 ? "" : "s"}. Suspending stops them and blocks starts until resumed.</p>
+          <p className="px-6 py-4 text-xs text-fg-subtle">
+            {t.workspace_count} workspace{t.workspace_count === 1 ? "" : "s"}. Suspending stops them and blocks starts until resumed.
+          </p>
         </div>
       )}
     </Drawer>

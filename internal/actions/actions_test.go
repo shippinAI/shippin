@@ -51,3 +51,10 @@ func TestEveryActionFollowsTheRules(t *testing.T) {
 		t.Fatal("no actions found")
 	}
 }
+
+// Every generated reaction follows the rules and follows events an action emits.
+func TestEveryReactionFollowsTheRules(t *testing.T) {
+	for _, err := range mcpl.ValidateReactions(Reactions, All) {
+		t.Error(err)
+	}
+}

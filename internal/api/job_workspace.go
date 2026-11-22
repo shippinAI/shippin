@@ -20,24 +20,25 @@ type acceptedWorkspace struct {
 // startWorkspace hands a saved workspace to the job runner, or (jobs disabled) to a goroutine.
 // An enqueue error isn't fatal: the reconciler re-enqueues workspaces left provisioning.
 func (a *API) startWorkspace(w http.ResponseWriter, ctx context.Context, c *caller, t *tenantView, ws db.Workspace) {
-	if a.runner == nil {
+	r := a.jobRunner()
+	if r == nil {
 		go a.provisionWorkspace(*t, ws)
 		writeStatus(w, http.StatusAccepted, a.view(t, ws, nil))
 		return
 	}
-	j, _, err := a.jobs.Enqueue(ctx, a.workspaceJob(ws, c.id.Sub))
+	j, _, err := a.jobs.Enqueue(ctx, a.workspaceJob(ctx, ws, c.id.Sub))
 	if err != nil {
 		log.Printf("workspace %s: enqueue: %v", ws.ID, err)
 	} else {
-		a.runner.Wake()
+		r.Wake()
 		w.Header().Set("Location", "/v1/jobs/"+j.ID)
 	}
 	writeStatus(w, http.StatusAccepted, acceptedWorkspace{a.view(t, ws, nil), jobView(j, c.op != "")})
 }
 
-func (a *API) workspaceJob(ws db.Workspace, by string) jobs.Job {
+func (a *API) workspaceJob(ctx context.Context, ws db.Workspace, by string) jobs.Job {
 	return jobs.Job{TenantID: ws.TenantID, Kind: jobs.KindWorkspaceProvision, TargetType: "workspace",
-		TargetID: ws.ID, MaxAttempts: a.cfg.Jobs.MaxAttempts, CreatedBy: by}
+		TargetID: ws.ID, MaxAttempts: a.liveJobs(ctx).MaxAttempts, CreatedBy: by}
 }
 
 // runWorkspaceJob provisions one workspace. hostd's create is idempotent (existing volume and

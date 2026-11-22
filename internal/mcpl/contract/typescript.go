@@ -98,12 +98,19 @@ func ts(n *node, indent string) string {
 		return "boolean"
 	case "array":
 		e := ts(n.elem, indent)
+		if n.nullElem {
+			e += " | null"
+		}
 		if strings.ContainsAny(e, " |&") && !strings.HasPrefix(e, "{") {
 			e = "(" + e + ")"
 		}
 		return e + "[]"
 	case "map":
-		return "Record<string, " + ts(n.elem, indent) + ">"
+		e := ts(n.elem, indent)
+		if n.nullElem {
+			e += " | null"
+		}
+		return "Record<string, " + e + ">"
 	case "ref":
 		return n.ref
 	case "object":

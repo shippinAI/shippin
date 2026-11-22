@@ -54,16 +54,24 @@ function operationsOf(pathKey, item) {
 
 const doc = await load(SOURCE);
 const generated = JSON.parse(await fs.readFile(ACTIONS, "utf8"));
-const items = await Promise.all(Object.entries(doc.paths ?? {}).map(async ([key, value]) => operationsOf(key, await resolveItem(value, path.dirname(SOURCE)))));
+const items = await Promise.all(
+  Object.entries(doc.paths ?? {}).map(async ([key, value]) => operationsOf(key, await resolveItem(value, path.dirname(SOURCE)))),
+);
 const actions = Object.entries(generated.paths ?? {}).map(([key, value]) => operationsOf(key, value));
-const operations = [...items, ...actions].flat().sort((a, b) => a.tags[0].localeCompare(b.tags[0]) || a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
+const operations = [...items, ...actions]
+  .flat()
+  .sort((a, b) => a.tags[0].localeCompare(b.tags[0]) || a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
 // No timestamp: the same contract must produce the same bytes, so a build leaves the tree clean.
-const text = `${JSON.stringify({
-  basePath: doc.servers?.[0]?.url ?? "/v1",
-  operationCount: operations.length,
-  tags: [...new Set(operations.flatMap((o) => o.tags))].sort((a, b) => a.localeCompare(b)),
-  operations,
-}, null, 2)}\n`;
+const text = `${JSON.stringify(
+  {
+    basePath: doc.servers?.[0]?.url ?? "/v1",
+    operationCount: operations.length,
+    tags: [...new Set(operations.flatMap((o) => o.tags))].sort((a, b) => a.localeCompare(b)),
+    operations,
+  },
+  null,
+  2,
+)}\n`;
 
 if (process.argv.includes("--check")) {
   const current = await fs.readFile(OUTPUT, "utf8").catch(() => "");

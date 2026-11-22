@@ -57,17 +57,27 @@ export function usePlatformServiceMutation() {
         const { id, ...body } = input;
         return apiSend(id ? "PUT" : "POST", id ? `/v1/operator/platform-services/${id}` : "/v1/operator/platform-services", body);
       },
-      onSuccess: () => { toast.success("Platform service saved"); return refresh(); },
+      onSuccess: () => {
+        toast.success("Platform service saved");
+        return refresh();
+      },
       onError: (e) => toast.error("Service not saved", e.message),
     }),
     disable: useMutation({
-      mutationFn: (service: PlatformService & { reason: string }) => apiSend("DELETE", `/v1/operator/platform-services/${service.id}`, { revision: service.revision, reason: service.reason }),
-      onSuccess: () => { toast.success("Platform service disabled"); return refresh(); },
+      mutationFn: (service: PlatformService & { reason: string }) =>
+        apiSend("DELETE", `/v1/operator/platform-services/${service.id}`, { revision: service.revision, reason: service.reason }),
+      onSuccess: () => {
+        toast.success("Platform service disabled");
+        return refresh();
+      },
       onError: (e) => toast.error("Service not disabled", e.message),
     }),
     check: useMutation({
       mutationFn: (id: string) => apiSend("POST", `/v1/operator/platform-services/${id}/check`, {}),
-      onSuccess: () => { toast.success("Health check recorded"); return refresh(); },
+      onSuccess: () => {
+        toast.success("Health check recorded");
+        return refresh();
+      },
       onError: (e) => toast.error("Health check failed", e.message),
     }),
   };

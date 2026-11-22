@@ -61,7 +61,8 @@ func (a *API) enqueueWorkspaceAction(w http.ResponseWriter, r *http.Request, t *
 		auth.Problem(w, http.StatusConflict, "This tenant is being deleted.")
 		return
 	}
-	if a.runner == nil {
+	runner := a.jobRunner()
+	if runner == nil {
 		auth.Problem(w, 503, "Durable operations are unavailable. No action was started.")
 		return
 	}
@@ -70,7 +71,7 @@ func (a *API) enqueueWorkspaceAction(w http.ResponseWriter, r *http.Request, t *
 		in.Grant = g.ID
 	}
 	payload, _ := json.Marshal(in)
-	j, err := a.jobs.EnqueueAction(r.Context(), jobs.Job{TenantID: t.ID, TargetID: ws.ID, CreatedBy: strings.TrimPrefix(who, "operator "), MaxAttempts: max(a.cfg.Jobs.MaxAttempts, 1), Payload: payload}, st[0], jobs.ActionAcceptance{
+	j, err := a.jobs.EnqueueAction(r.Context(), jobs.Job{TenantID: t.ID, TargetID: ws.ID, CreatedBy: strings.TrimPrefix(who, "operator "), MaxAttempts: max(a.liveJobs(r.Context()).MaxAttempts, 1), Payload: payload}, st[0], jobs.ActionAcceptance{
 		Scope: t.ID + ":" + strings.TrimPrefix(who, "operator "), Key: r.Header.Get("Idempotency-Key"),
 		Response: func(j *jobs.Job) ([]byte, error) {
 			return json.Marshal(map[string]any{"id": ws.ID, "state": st[0], "job": jobView(j, false)})
@@ -84,7 +85,7 @@ func (a *API) enqueueWorkspaceAction(w http.ResponseWriter, r *http.Request, t *
 		auth.Problem(w, 503, "The operation could not be recorded. No action was started.")
 		return
 	}
-	a.runner.Wake()
+	runner.Wake()
 	w.Header().Set("Location", "/v1/jobs/"+j.ID)
 	writeStatus(w, http.StatusAccepted, map[string]any{"id": ws.ID, "state": st[0], "job": jobView(j, false)})
 }

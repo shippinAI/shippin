@@ -124,3 +124,45 @@ func TestBackoffDoublesAndCaps(t *testing.T) {
 		}
 	}
 }
+
+// Stop lets the job a worker holds finish, uninterrupted, then Run returns; nothing new is claimed.
+func TestRunnerStopFinishesWhatItHolds(t *testing.T) {
+	s, _, tid := testJobs(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	started, release := make(chan struct{}), make(chan struct{})
+	var interrupted atomic.Bool
+	r := NewRunner(s, fast)
+	r.Register(KindWorkspaceProvision, func(ctx context.Context, j *Job, _ func(string)) (any, error) {
+		close(started)
+		<-release
+		interrupted.Store(ctx.Err() != nil)
+		return map[string]string{"done": "yes"}, nil
+	})
+	ran := make(chan struct{})
+	go func() { r.Run(ctx); close(ran) }()
+	held, _, _ := s.Enqueue(ctx, job(tid, "held"))
+	r.Wake()
+	<-started
+	r.Stop()
+	r.Stop() // twice is fine
+	select {
+	case <-ran:
+		t.Fatal("Run returned while a job was still running")
+	case <-time.After(300 * time.Millisecond):
+	}
+	close(release)
+	select {
+	case <-ran:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Run did not return after its job finished")
+	}
+	if got := waitDone(t, s, held.ID); got.Status != Succeeded || interrupted.Load() {
+		t.Fatalf("the held job: %+v, interrupted %v", got, interrupted.Load())
+	}
+	later, _, _ := s.Enqueue(ctx, job(tid, "later"))
+	time.Sleep(200 * time.Millisecond)
+	if got, _ := s.Get(ctx, later.ID); got == nil || got.Status != Queued {
+		t.Fatalf("a stopped runner claimed new work: %+v", got)
+	}
+}

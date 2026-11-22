@@ -12,7 +12,9 @@ export const useGitHubRepos = (tenantId: string, enabled: boolean) =>
   });
 
 /** Where an org owner/admin starts installing the Shippin GitHub App (server-side redirect). */
-export const githubInstallURL = (tenantId: string) => `/v1/tenants/${tenantId}/github/install`;
+/** GitHub's install page for this organization; `return` names the panel page to come back to. */
+export const githubInstallURL = (tenantId: string, back?: "runners") =>
+  `/v1/tenants/${tenantId}/github/install${back ? `?return=${back}` : ""}`;
 
 export function useImportRepo(tenantId: string) {
   const qc = useQueryClient();
@@ -33,7 +35,10 @@ export function usePublishProject(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (b: { projectId: string; installation_id: number; repo_id?: number }) =>
-      apiSend<{ repo: string }>("POST", `/v1/tenants/${tenantId}/projects/${b.projectId}/github/publish`, { installation_id: b.installation_id, repo_id: b.repo_id ?? 0 }),
+      apiSend<{ repo: string }>("POST", `/v1/tenants/${tenantId}/projects/${b.projectId}/github/publish`, {
+        installation_id: b.installation_id,
+        repo_id: b.repo_id ?? 0,
+      }),
     onSuccess: (r) => {
       toast.success(`Synced to ${r.repo}`, "The folder is pushed and linked.");
       void qc.invalidateQueries({ queryKey: ["tenant", tenantId] });

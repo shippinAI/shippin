@@ -17,7 +17,9 @@ export function SignInRequired({ tenant }: { tenant: TenantRef }) {
         </div>
         <p className="text-base text-fg-muted">{body}</p>
         <div>
-          <Button variant="primary" tooltip={text("signInRequired.signOut")} onPress={() => window.location.assign("/auth/logout")}>{text("signInRequired.signOut")}</Button>
+          <Button variant="primary" tooltip={text("signInRequired.signOut")} onPress={() => window.location.assign("/auth/logout")}>
+            {text("signInRequired.signOut")}
+          </Button>
         </div>
       </Card>
     </div>

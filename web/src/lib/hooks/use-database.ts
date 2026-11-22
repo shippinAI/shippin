@@ -1,6 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
-  DbAsk, DbAudit, DbBackup, DbBackupList, DbInfo, DbPage, DbQueryResult, DbSnippet, DbTable, DbTemplate,
+  DbAsk,
+  DbAudit,
+  DbBackup,
+  DbBackupList,
+  DbInfo,
+  DbPage,
+  DbQueryResult,
+  DbSnippet,
+  DbTable,
+  DbTemplate,
 } from "../api/database-types";
 import { toast } from "../design/components/toast/toast-queue";
 
@@ -41,7 +50,11 @@ async function dbGet<T>(path: string): Promise<T> {
 const root = (t: string) => ["tenant", t, "db"] as const;
 
 export const useDbInfo = (tenantId?: string) =>
-  useQuery({ queryKey: [...root(tenantId ?? ""), "info"], queryFn: () => dbGet<DbInfo>(`/v1/tenants/${tenantId}/db`), enabled: !!tenantId });
+  useQuery({
+    queryKey: [...root(tenantId ?? ""), "info"],
+    queryFn: () => dbGet<DbInfo>(`/v1/tenants/${tenantId}/db`),
+    enabled: !!tenantId,
+  });
 
 export const useDbTables = (tenantId?: string) =>
   useQuery({
@@ -50,7 +63,17 @@ export const useDbTables = (tenantId?: string) =>
     enabled: !!tenantId,
   });
 
-export type BrowseArgs = { schema: string; table: string; limit: number; offset: number; sort?: string; dir?: string; column?: string; op?: string; value?: string };
+export type BrowseArgs = {
+  schema: string;
+  table: string;
+  limit: number;
+  offset: number;
+  sort?: string;
+  dir?: string;
+  column?: string;
+  op?: string;
+  value?: string;
+};
 
 export const useDbBrowse = (tenantId: string, q: BrowseArgs | null) =>
   useQuery({
@@ -119,8 +142,10 @@ export function useApplyTemplate(tenantId: string, readOnly: boolean) {
 export function useCreateTable(tenantId: string, readOnly: boolean) {
   const refresh = useRefresh(tenantId);
   return useMutation({
-    mutationFn: (body: { name: string; columns: { name: string; type: string; nullable: boolean; primary_key: boolean; default?: string }[] }) =>
-      dbSend("POST", `/v1/tenants/${tenantId}/db/tables`, { ...body, read_only: readOnly }),
+    mutationFn: (body: {
+      name: string;
+      columns: { name: string; type: string; nullable: boolean; primary_key: boolean; default?: string }[];
+    }) => dbSend("POST", `/v1/tenants/${tenantId}/db/tables`, { ...body, read_only: readOnly }),
     onSuccess: () => {
       toast.success("Table created");
       refresh();
@@ -133,7 +158,11 @@ export function useAddColumn(tenantId: string, table: string, readOnly: boolean)
   const refresh = useRefresh(tenantId);
   return useMutation({
     mutationFn: (body: { name: string; type: string; nullable: boolean; default?: string }) =>
-      dbSend("POST", `/v1/tenants/${tenantId}/db/tables/${encodeURIComponent(table)}/columns`, { ...body, primary_key: false, read_only: readOnly }),
+      dbSend("POST", `/v1/tenants/${tenantId}/db/tables/${encodeURIComponent(table)}/columns`, {
+        ...body,
+        primary_key: false,
+        read_only: readOnly,
+      }),
     onSuccess: () => {
       toast.success("Column added");
       refresh();
@@ -146,8 +175,11 @@ export function useSaveRow(tenantId: string, table: string, readOnly: boolean) {
   const refresh = useRefresh(tenantId);
   return useMutation({
     mutationFn: (body: { pk?: Record<string, unknown>; values: Record<string, unknown>; insert: boolean }) =>
-      dbSend<{ row: Record<string, unknown> }>(body.insert ? "POST" : "PUT", `/v1/tenants/${tenantId}/db/tables/${encodeURIComponent(table)}/rows`,
-        body.insert ? { values: body.values, read_only: readOnly } : { pk: body.pk, values: body.values, read_only: readOnly }),
+      dbSend<{ row: Record<string, unknown> }>(
+        body.insert ? "POST" : "PUT",
+        `/v1/tenants/${tenantId}/db/tables/${encodeURIComponent(table)}/rows`,
+        body.insert ? { values: body.values, read_only: readOnly } : { pk: body.pk, values: body.values, read_only: readOnly },
+      ),
     onSuccess: () => refresh(),
     onError: (e: Error) => toast.error("Row not saved", e.message),
   });

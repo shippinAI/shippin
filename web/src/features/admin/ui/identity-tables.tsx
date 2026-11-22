@@ -9,7 +9,10 @@ const short = (s: string, p: string) => s.replace(p, "").toLowerCase().replaceAl
 
 export const userColumns: ColumnDef<AdminUser>[] = [
   {
-    id: "name", label: "User", isRowHeader: true, render: (u) => (
+    id: "name",
+    label: "User",
+    isRowHeader: true,
+    render: (u) => (
       <div className="min-w-0">
         <div className="truncate font-medium text-fg">{u.name || u.login}</div>
         <div className="truncate text-xs text-fg-subtle">{u.login}</div>
@@ -17,9 +20,17 @@ export const userColumns: ColumnDef<AdminUser>[] = [
     ),
   },
   {
-    id: "email", label: "Email", render: (u) => u.email ? (
-      <span className="inline-flex items-center gap-1.5">{u.email}{u.email_verified && <Badge tone="success">verified</Badge>}</span>
-    ) : <span className="text-fg-subtle">—</span>,
+    id: "email",
+    label: "Email",
+    render: (u) =>
+      u.email ? (
+        <span className="inline-flex items-center gap-1.5">
+          {u.email}
+          {u.email_verified && <Badge tone="success">verified</Badge>}
+        </span>
+      ) : (
+        <span className="text-fg-subtle">—</span>
+      ),
   },
   { id: "kind", label: "Type", width: "100px", render: (u) => <Badge tone={u.kind === "machine" ? "info" : "neutral"}>{u.kind}</Badge> },
   { id: "org", label: "Organization", render: (u) => u.org || <span className={mono}>{u.org_id}</span> },
@@ -36,19 +47,39 @@ export const idpColumns: ColumnDef<AdminIdP>[] = [
 
 export const appColumns: ColumnDef<AdminApp>[] = [
   {
-    id: "name", label: "Application", isRowHeader: true, render: (a) => (
+    id: "name",
+    label: "Application",
+    isRowHeader: true,
+    render: (a) => (
       <div>
         <div className="font-medium text-fg">{a.name}</div>
-        <div className="text-xs text-fg-subtle">{a.project} · {short(a.app_type, "OIDC_APP_TYPE_")}</div>
+        <div className="text-xs text-fg-subtle">
+          {a.project} · {short(a.app_type, "OIDC_APP_TYPE_")}
+        </div>
       </div>
     ),
   },
   { id: "client", label: "Client ID", render: (a) => <span className={mono}>{a.client_id || "—"}</span> },
-  { id: "auth", label: "Auth", width: "110px", render: (a) => <span className="capitalize">{a.auth_method ? short(a.auth_method, "OIDC_AUTH_METHOD_TYPE_") : "—"}</span> },
   {
-    id: "redirects", label: "Redirect URIs", render: (a) => (
+    id: "auth",
+    label: "Auth",
+    width: "110px",
+    render: (a) => <span className="capitalize">{a.auth_method ? short(a.auth_method, "OIDC_AUTH_METHOD_TYPE_") : "—"}</span>,
+  },
+  {
+    id: "redirects",
+    label: "Redirect URIs",
+    render: (a) => (
       <ul className="space-y-0.5">
-        {a.redirect_uris.length ? a.redirect_uris.map((u) => <li key={u} className={`max-w-md truncate ${mono}`} title={u}>{u}</li>) : <li className="text-fg-subtle">—</li>}
+        {a.redirect_uris.length ? (
+          a.redirect_uris.map((u) => (
+            <li key={u} className={`max-w-md truncate ${mono}`} title={u}>
+              {u}
+            </li>
+          ))
+        ) : (
+          <li className="text-fg-subtle">—</li>
+        )}
       </ul>
     ),
   },

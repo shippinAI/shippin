@@ -17,10 +17,13 @@ export function AdminLayout() {
   if (access.isPending)
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="animate-pulse motion-reduce:animate-none"><BrandMark size={40} /></div>
+        <div className="animate-pulse motion-reduce:animate-none">
+          <BrandMark size={40} />
+        </div>
       </div>
     );
-  if (access.isError) return <AccessDenied status={access.error instanceof ApiError ? access.error.status : 0} message={access.error.message} />;
+  if (access.isError)
+    return <AccessDenied status={access.error instanceof ApiError ? access.error.status : 0} message={access.error.message} />;
   return (
     <div className="flex h-full flex-col md:flex-row">
       <AdminSidebar />

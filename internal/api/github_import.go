@@ -29,7 +29,10 @@ type importIn struct {
 // installation must be bound to the tenant, and GitHub must list the repo for it.
 func (a *API) githubImport(w http.ResponseWriter, r *http.Request) {
 	c, t, ok := a.tenantCtx(w, r)
-	if !ok || !a.githubFor(w, t) {
+	if !ok {
+		return
+	}
+	if _, _, ok := a.githubFor(w, r, t); !ok {
 		return
 	}
 	if !c.canDecide(t) {
@@ -60,7 +63,12 @@ func (a *API) importRepo(w http.ResponseWriter, r *http.Request, c *caller, t *t
 		auth.Problem(w, http.StatusNotFound, "That GitHub installation isn't connected to this tenant.")
 		return
 	}
-	repo, err := a.gh.Repo(r.Context(), in.InstallationID, in.RepoID, a.cfg.GitHub.MaxRepos)
+	app, g, err := a.githubOn(r.Context())
+	if err != nil {
+		auth.Problem(w, http.StatusNotFound, "GitHub import isn't available in this tenant.")
+		return
+	}
+	repo, err := app.Repo(r.Context(), in.InstallationID, in.RepoID, g.MaxRepos)
 	if err != nil || repo == nil {
 		auth.Problem(w, http.StatusNotFound, "Shippin can't see that repository. Check the App's repository access on GitHub.")
 		return

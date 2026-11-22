@@ -5,8 +5,15 @@
 # their own subscriptions in their own container. WEZTERM=1 (default) adds the WezTerm mux; Zellij always. Pin CLIs via AI_PKGS / AI_OPTIONAL_PKGS (npm specs).
 set -euo pipefail
 P="--project platform"; TOOLCHAIN=${TOOLCHAIN:-dev}; ALIAS=${ALIAS:-shippin/dev-debian13}; B=img-builder-$$; HERE=$(dirname "$0")
-OVS=$(curl -s https://api.github.com/repos/gitpod-io/openvscode-server/releases/latest | python3 -c "import sys,json;print(json.load(sys.stdin)['tag_name'])")
-GOV=$(curl -s 'https://go.dev/dl/?mode=json' | python3 -c "import sys,json;print(json.load(sys.stdin)[0]['version'])")
+# Each part is the latest stable release when the image is built, and each download is checked against
+# the checksum its publisher gives: go.dev's sha256, GitHub's release-asset digest, SHA256SUMS files.
+OVS_JSON=$(curl -fsSL https://api.github.com/repos/gitpod-io/openvscode-server/releases/latest)
+OVS=$(python3 -c "import sys,json;print(json.load(sys.stdin)['tag_name'])" <<<"$OVS_JSON")
+OVS_SHA=$(python3 -c "import sys,json;print(next(a['digest'].split(':',1)[1] for a in json.load(sys.stdin)['assets'] if a['name']==sys.argv[1]))" "$OVS-linux-x64.tar.gz" <<<"$OVS_JSON")
+GO_JSON=$(curl -fsSL 'https://go.dev/dl/?mode=json')
+GOV=$(python3 -c "import sys,json;print(next(r['version'] for r in json.load(sys.stdin) if r['stable']))" <<<"$GO_JSON")
+GO_SHA=$(python3 -c "import sys,json;print(next(f['sha256'] for r in json.load(sys.stdin) for f in r['files'] if f['filename']==sys.argv[1]))" "$GOV.linux-amd64.tar.gz" <<<"$GO_JSON")
+ZJ=${ZELLIJ_VERSION:-$(curl -fsSL https://api.github.com/repos/zellij-org/zellij/releases/latest | python3 -c "import sys,json;print(json.load(sys.stdin)['tag_name'])")}
 case $TOOLCHAIN in
   dev) PKGS="nodejs npm"; GO=1; DESC="git, $GOV, Node" ;;
   blank) PKGS=""; GO=0; DESC="git" ;;
@@ -23,16 +30,17 @@ NODEV=""; if [ "$AI" = 1 ]; then PKGS=$(echo " $PKGS " | sed -e "s/ nodejs / /" 
   NODEV=${NODE_VERSION:-$(curl -s https://nodejs.org/dist/index.json | python3 -c "import sys,json;print(next(r['version'] for r in json.load(sys.stdin) if r['lts']))")}; DESC="$DESC, Claude Code, Codex, Grok CLI"; fi
 # ttyd (sign-in terminal) is not packaged in Debian 13: pinned upstream static binary, checked against its SHA256SUMS.
 TTYD=${TTYD_VERSION:-$(curl -s https://api.github.com/repos/tsl0922/ttyd/releases/latest | python3 -c "import sys,json;print(json.load(sys.stdin)['tag_name'])")}
+echo "versions: openvscode-server $OVS, $GOV, Zellij $ZJ, Node ${NODEV:-distro}, ttyd $TTYD"
 trap 'incus delete -f $B $P </dev/null >/dev/null 2>&1 || true' EXIT  # never leave a builder behind
 incus launch -q images:debian/13 $B $P </dev/null; sleep 10
-incus exec $B $P --env GOV=$GOV --env OVS=$OVS --env PKGS="$PKGS" --env GO=$GO --env TC=$TOOLCHAIN --env AI=$AI --env TTYD=$TTYD --env NODEV=$NODEV -- bash -euxc '
+incus exec $B $P --env GOV=$GOV --env GO_SHA=$GO_SHA --env OVS=$OVS --env OVS_SHA=$OVS_SHA --env PKGS="$PKGS" --env GO=$GO --env TC=$TOOLCHAIN --env AI=$AI --env TTYD=$TTYD --env NODEV=$NODEV -- bash -euxc '
 export DEBIAN_FRONTEND=noninteractive
 apt-get -qq update && apt-get -qq install -y --no-install-recommends openssh-server git curl ca-certificates sudo build-essential vim less htop tmux unzip jq locales iproute2 $PKGS >/dev/null
-if [ "$GO" = 1 ]; then curl -sL https://go.dev/dl/$GOV.linux-amd64.tar.gz | tar -C /usr/local -xz; echo "export PATH=\$PATH:/usr/local/go/bin:\$HOME/go/bin" > /etc/profile.d/go.sh; fi
+if [ "$GO" = 1 ]; then cd /tmp && curl -fsSLo go.tgz https://go.dev/dl/$GOV.linux-amd64.tar.gz && echo "$GO_SHA  go.tgz" | sha256sum -c - && tar -C /usr/local -xzf go.tgz && rm go.tgz && cd /; echo "export PATH=\$PATH:/usr/local/go/bin:\$HOME/go/bin" > /etc/profile.d/go.sh; fi
 if [ "$AI" = 1 ]; then u=https://github.com/tsl0922/ttyd/releases/download/$TTYD; cd /tmp && curl -fsSLO $u/ttyd.x86_64 && curl -fsSL $u/SHA256SUMS | grep " ttyd.x86_64$" | sha256sum -c - && install -m 0755 ttyd.x86_64 /usr/bin/ttyd && rm ttyd.x86_64 && cd /; fi
 if [ -n "$NODEV" ]; then u=https://nodejs.org/dist/$NODEV; f=node-$NODEV-linux-x64.tar.xz; cd /tmp && curl -fsSLO $u/$f && curl -fsSL $u/SHASUMS256.txt | grep " $f$" | sha256sum -c - && tar -C /usr/local --strip-components=1 -xJf $f --exclude=CHANGELOG.md --exclude=README.md --exclude=LICENSE && rm $f && cd / && node --version; fi
 if [ "$TC" = node ]; then npm install -g --no-audit --no-fund pnpm >/dev/null; fi
-mkdir -p /opt/openvscode-server && curl -sL https://github.com/gitpod-io/openvscode-server/releases/download/$OVS/$OVS-linux-x64.tar.gz | tar -C /opt/openvscode-server --strip-components=1 -xz
+cd /tmp && curl -fsSLo ovs.tgz https://github.com/gitpod-io/openvscode-server/releases/download/$OVS/$OVS-linux-x64.tar.gz && echo "$OVS_SHA  ovs.tgz" | sha256sum -c - && mkdir -p /opt/openvscode-server && tar -C /opt/openvscode-server --strip-components=1 -xzf ovs.tgz && rm ovs.tgz && cd /
 useradd -m -s /bin/bash -u 1000 dev && echo "dev ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dev && chmod 440 /etc/sudoers.d/dev
 printf "PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin no\n" > /etc/ssh/sshd_config.d/shippin.conf
 systemctl enable ssh; rm -f /etc/ssh/ssh_host_*; printf "[Unit]\nDescription=Regenerate SSH host keys\nBefore=ssh.service\nConditionPathExists=!/etc/ssh/ssh_host_ed25519_key\n[Service]\nType=oneshot\nExecStart=/usr/bin/ssh-keygen -A\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/ssh-hostkeys.service; systemctl enable ssh-hostkeys
@@ -43,12 +51,12 @@ incus exec $B $P -- systemctl enable shippin-ide </dev/null
 incus file push -r $HERE/git $B/tmp/ $P
 incus exec $B $P -- bash -euc '/tmp/git/install.sh; rm -rf /tmp/git' </dev/null
 incus file push -r $HERE/term $B/tmp/ $P  # Zellij + WezTerm mux + shippin-term (Terminal view default)
-incus exec $B $P --env WEZTERM=${WEZTERM:-1} --env ZELLIJ_VERSION=${ZELLIJ_VERSION:-} -- bash -euc 'apt-get -qq update && apt-get -qq install -y --no-install-recommends gnupg python3 >/dev/null; /tmp/term/install.sh; rm -rf /tmp/term' </dev/null
+incus exec $B $P --env WEZTERM=${WEZTERM:-1} --env ZELLIJ_VERSION=$ZJ -- bash -euc 'apt-get -qq update && apt-get -qq install -y --no-install-recommends gnupg python3 >/dev/null; /tmp/term/install.sh; rm -rf /tmp/term' </dev/null
 if [ "$AI" = 1 ]; then
   incus file push -r $HERE/ai $B/tmp/ $P
   incus exec $B $P --env AI_PKGS="$AI_PKGS" --env AI_OPTIONAL_PKGS="$AI_OPTIONAL_PKGS" -- bash -euc '/tmp/ai/install.sh; rm -rf /tmp/ai' </dev/null
 fi
 incus stop $B $P </dev/null
 incus image alias delete $ALIAS </dev/null 2>/dev/null || true  # keep the old image, move the alias
-incus publish $B $P --alias $ALIAS description="Shippin workspace $TOOLCHAIN (Debian 13, $DESC, SSH, $OVS)" </dev/null
+incus publish $B $P --alias $ALIAS description="Shippin workspace $TOOLCHAIN (Debian 13, $DESC, Zellij $ZJ, SSH, $OVS)" </dev/null
 incus image list $ALIAS </dev/null

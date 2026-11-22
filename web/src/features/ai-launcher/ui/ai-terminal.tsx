@@ -15,19 +15,34 @@ export function AITerminal({ id }: { id: string }) {
   useEffect(() => {
     const el = host.current;
     if (!el) return;
-    let gone = false, ws: WebSocket | null = null, timer = 0, tries = 0;
+    let gone = false,
+      ws: WebSocket | null = null,
+      timer = 0,
+      tries = 0;
     let dispose = () => {};
     void import("@xterm/xterm").then(({ Terminal }) => {
       if (gone) return;
       const cols = Math.max(40, Math.floor((el.clientWidth - 16) / cell.w));
       const rows = Math.max(10, Math.floor((el.clientHeight - 16) / cell.h));
-      const term = new Terminal({ cols, rows, cursorBlink: true, fontSize: 13, fontFamily: "var(--font-mono), monospace", theme: { background: tokenValue("--color-terminal") } });
+      const term = new Terminal({
+        cols,
+        rows,
+        cursorBlink: true,
+        fontSize: 13,
+        fontFamily: "var(--font-mono), monospace",
+        theme: { background: tokenValue("--color-terminal") },
+      });
       term.open(el);
       const enc = new TextEncoder();
       const connect = () => {
         ws = new WebSocket(attachURL(window.location, id, term.rows, term.cols));
         ws.binaryType = "arraybuffer";
-        ws.onopen = () => { tries = 0; setState("open"); setAttaches((n) => n + 1); term.focus(); };
+        ws.onopen = () => {
+          tries = 0;
+          setState("open");
+          setAttaches((n) => n + 1);
+          term.focus();
+        };
         ws.onmessage = (e) => term.write(new Uint8Array(e.data as ArrayBuffer));
         ws.onclose = () => {
           if (gone) return;
@@ -37,9 +52,17 @@ export function AITerminal({ id }: { id: string }) {
       };
       const sub = term.onData((d) => ws?.readyState === WebSocket.OPEN && ws.send(enc.encode(d)));
       connect();
-      dispose = () => { sub.dispose(); term.dispose(); };
+      dispose = () => {
+        sub.dispose();
+        term.dispose();
+      };
     });
-    return () => { gone = true; window.clearTimeout(timer); ws?.close(); dispose(); };
+    return () => {
+      gone = true;
+      window.clearTimeout(timer);
+      ws?.close();
+      dispose();
+    };
   }, [id]);
   return (
     <div className="relative h-full min-h-0 rounded-xl bg-terminal" data-attaches={attaches} data-state={state}>

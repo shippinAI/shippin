@@ -1,5 +1,7 @@
 # Plans
 
+Enterprise: plans and coverage belong to the enterprise module ([Editions and licensing](editions.md)), and this page moves to its repository with them.
+
 Status: canonical tier list, 2026-10-22. Decision owner: the operator Hall.
 
 This file is the source of truth for tier **names** and for the numbers below. `deploy/hostd.json`

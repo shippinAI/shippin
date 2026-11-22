@@ -9,7 +9,10 @@ test("vaultix and platform tables are not the empty-state database", () => {
     { schema: "vx_sid", name: "items", platform: false },
     { schema: "vaultix", name: "secrets", platform: false },
   ];
-  assert.deepEqual(userTables(tables).map((t) => t.name), ["todos"]);
+  assert.deepEqual(
+    userTables(tables).map((t) => t.name),
+    ["todos"],
+  );
   assert.equal(isUserTable({ schema: "vx_sid", name: "items", platform: false }), false);
 });
 

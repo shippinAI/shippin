@@ -168,6 +168,63 @@ func TestCreateGuestSendsWhatIncusExpects(t *testing.T) {
 	}
 }
 
+// A virtual machine with first-boot user data and a root disk of its own size; the user data never
+// comes back in an error, even when Incus echoes it.
+func TestCreateGuestPassesUserDataAndDisk(t *testing.T) {
+	var sent map[string]any
+	refuse := false
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/1.0/instances":
+			_ = json.NewDecoder(r.Body).Decode(&sent)
+			if refuse {
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = w.Write([]byte(`{"type":"error","error":"Invalid config: #cloud-config secret-jit"}`))
+				return
+			}
+			w.WriteHeader(http.StatusAccepted)
+			_, _ = w.Write([]byte(`{"type":"async","metadata":{"id":"op1"}}`))
+		case r.URL.Path == "/1.0/operations/op1/wait":
+			_, _ = w.Write([]byte(`{"metadata":{"status_code":200}}`))
+		case r.URL.Path == "/1.0/instances/shr-1":
+			_, _ = w.Write([]byte(`{"metadata":{"name":"shr-1","type":"virtual-machine","status":"Stopped"}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	c := guestClient(t, srv)
+	const ud = "#cloud-config secret-jit"
+	spec := hv.GuestSpec{Kind: hv.KindVM, Name: "shr-1", Image: "local:abc", Cores: 2, Memory: 8192, Disk: 40, Storage: "fast", UserData: ud}
+	if _, err := c.CreateGuest(context.Background(), spec); err != nil {
+		t.Fatal(err)
+	}
+	cfg := sent["config"].(map[string]any)
+	root, _ := sent["devices"].(map[string]any)["root"].(map[string]any)
+	if sent["type"] != "virtual-machine" || cfg["cloud-init.user-data"] != ud || cfg["limits.cpu"] != "2" || cfg["limits.memory"] != "8192MiB" {
+		t.Fatalf("%+v", sent)
+	}
+	if root["type"] != "disk" || root["path"] != "/" || root["pool"] != "fast" || root["size"] != "40GiB" {
+		t.Fatalf("root disk %+v", root)
+	}
+	// Without a pool the profile's root disk stays; without user data nothing is set for cloud-init.
+	sent = nil
+	if _, err := c.CreateGuest(context.Background(), hv.GuestSpec{Kind: hv.KindVM, Name: "shr-1", Image: "local:abc", Disk: 40}); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := sent["devices"]; ok {
+		t.Fatalf("a root disk without a pool: %+v", sent)
+	}
+	if _, ok := sent["config"].(map[string]any)["cloud-init.user-data"]; ok {
+		t.Fatalf("empty user data was sent: %+v", sent)
+	}
+	refuse = true
+	_, err := c.CreateGuest(context.Background(), spec)
+	if err == nil || strings.Contains(err.Error(), "secret-jit") || !strings.Contains(err.Error(), "[user data]") {
+		t.Fatalf("the refusal must not carry the user data: %v", err)
+	}
+}
+
 func TestAGuestThatWillNotStartIsStillSaidToExist(t *testing.T) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {

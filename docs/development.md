@@ -18,6 +18,19 @@ Open <http://localhost:5173/setup> and enter the code. The dev server proxies `/
 
 Chrome, Edge and Firefox keep the panel's `Secure` session cookie on `http://localhost`. Safari does not, so use one of those for this loop.
 
+## Legacy runner prototype
+
+PR #18's standalone fleet-file tools remain separate from the platform runtime;
+see [their boundary](reference/shippin-run.md#platform-boundary). From the repository root:
+
+```sh
+go test ./internal/runfleet ./cmd/shippin-run
+```
+
+The marketing site is `site/shippin-run`. `npm ci && npm run build && npm run budget`
+checks the JavaScript budget. `npm run lhci` needs Chrome and checks the mobile
+performance budget. CI runs both.
+
 ## The control plane
 
 `scripts/dev-server.sh` starts the database in a container, makes a session key and a certificate under `.run/` (ignored by git), prints a setup code, and runs the console from source at <https://localhost:8443>:
@@ -47,11 +60,15 @@ Before the first release CI stays fast and leaves these to you, when you change 
 There is one review deploy, and each round of work overwrites it. For signing in as different kinds of user, list development accounts in its `.env`:
 
 ```sh
-SHIPPIN_DEV_ACCOUNTS=admin@example.test=staff,user@example.test=customer
+SHIPPIN_DEV_ACCOUNTS=admin@example.test=admin,staff@example.test=staff,user@example.test=customer
 SHIPPIN_DEV_ACCOUNTS_PASSWORD=<at least 12 characters>
 ```
 
-The panel keeps them in step on every start and logs a warning while they exist. A staff account gets every staff role except Owner, the per-person catalog and customer permissions as direct grants (shown under Team > Direct grants), and no second-factor requirement. A customer account owns a test organization and has no staff access; `user@example.test=customer:pro` puts that organization on a chosen plan, and `user@example.test=customer:business:managed` also moves it to a coverage tier. The owner's account is never touched. Never set these on a real installation.
+The panel keeps them in step on every start and logs a warning while they exist. A staff account gets every staff role except Owner, the per-person catalog and customer permissions as direct grants (shown under Team > Direct grants), and no second-factor requirement. An admin account is the same with the Owner role too, so it sees and changes everything the panel offers; it is still not the installation's owner, and listing it as staff again takes Owner away on the next start. A customer account owns a test organization and has no staff access; `user@example.test=customer:pro` puts that organization on a chosen plan, and `user@example.test=customer:business:managed` also moves it to a coverage tier. The owner's account is never touched. Never set these on a real installation.
+
+On a development address (`localhost`, a loopback address, or a name ending in `.localhost` or `.test`) the sign-in page also shows a **Development sign-in** box with one button per listed account: Sign in as Admin, Staff or Customer. A button posts to `/auth/dev`, which signs in through the same password check as the password form, using `SHIPPIN_DEV_ACCOUNTS_PASSWORD`, and logs a warning. It refuses an account that is not listed, any other address, and cross-origin posts. To switch, sign out and press another button.
+
+The review deploy serves `https://localhost:<port>` with a certificate the panel made for itself, so the browser warns once. Proceed past the warning for `localhost`, or trust the certificate on your own machine: it is `/var/lib/shippin/tls/panel.crt` in the panel container (`docker compose cp panel:/var/lib/shippin/tls/panel.crt .`).
 
 Then overwrite it:
 
@@ -70,7 +87,7 @@ docker compose up -d --build
 
 ## Add a hypervisor driver
 
-Implement `hv.Driver` in `internal/hv/<kind>`, declare what it needs and offers in `internal/hv/catalog.go`, open it in `openDriver` in `internal/api/infra.go`, and add its names to `ui.providers` in `config/shippin.example.json`. The tabs, add form and actions follow from that with no panel change.
+Implement `hv.Driver` in `internal/hv/<kind>`, declare what it needs and offers in `internal/hv/catalog.go`, say how "Add host" recognises it from its address in `internal/hv/detect.go` (its default port and an unauthenticated version path), open it in `openDriver` in `internal/api/infra.go`, and add its names to `ui.providers` in `config/shippin.example.json`. The tabs, add form and actions follow from that with no panel change.
 
 ## Fork it
 

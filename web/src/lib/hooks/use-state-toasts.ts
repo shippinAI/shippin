@@ -10,7 +10,8 @@ export function useStateToasts(items?: Workspace[]) {
     for (const w of items) {
       const before = prev.current.get(w.id);
       if (before && before !== w.state) {
-        if (w.state === "running") toast.success(`${w.name} is running`, before === "provisioning" ? "Open it in your browser." : undefined);
+        if (w.state === "running")
+          toast.success(`${w.name} is running`, before === "provisioning" ? "Open it in your browser." : undefined);
         if (w.state === "stopped") toast.success(`${w.name} stopped`);
         if (w.state === "failed") toast.error(`${w.name} needs attention`, w.error);
       }

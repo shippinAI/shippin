@@ -3,12 +3,22 @@ import { Badge, type BadgeTone } from "../../../lib/design/components/badge/badg
 import { StatusDot } from "../../../lib/design/components/status-dot/status-dot";
 
 const map: Record<string, [string, BadgeTone]> = {
-  active: ["Active", "success"], running: ["Running", "success"], suspended: ["Suspended", "warning"],
-  provisioning: ["Provisioning", "info"], failed: ["Failed", "danger"], deleted: ["Deleted", "neutral"],
-  stopped: ["Stopped", "neutral"], starting: ["Starting", "info"], stopping: ["Stopping", "warning"],
-  deleting: ["Deleting", "warning"], user_state_active: ["Active", "success"], user_state_initial: ["Invited", "info"],
-  user_state_inactive: ["Inactive", "neutral"], user_state_locked: ["Locked", "danger"],
-  idp_state_active: ["Active", "success"], app_state_active: ["Active", "success"],
+  active: ["Active", "success"],
+  running: ["Running", "success"],
+  suspended: ["Suspended", "warning"],
+  provisioning: ["Provisioning", "info"],
+  failed: ["Failed", "danger"],
+  deleted: ["Deleted", "neutral"],
+  stopped: ["Stopped", "neutral"],
+  starting: ["Starting", "info"],
+  stopping: ["Stopping", "warning"],
+  deleting: ["Deleting", "warning"],
+  user_state_active: ["Active", "success"],
+  user_state_initial: ["Invited", "info"],
+  user_state_inactive: ["Inactive", "neutral"],
+  user_state_locked: ["Locked", "danger"],
+  idp_state_active: ["Active", "success"],
+  app_state_active: ["Active", "success"],
 };
 const busy = new Set(["provisioning", "starting", "stopping", "deleting"]);
 

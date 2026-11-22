@@ -1,0 +1,4 @@
+# Commits that only reformat code. Run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once, or
+# pass `--ignore-revs-file .git-blame-ignore-revs` to git blame, to see past them.
+# Panel: Biome formatted the web code (2026-11-20).
+86fc9ec256b547bdaf05c3a218d7b88fed548a49

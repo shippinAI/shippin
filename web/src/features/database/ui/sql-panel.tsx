@@ -26,13 +26,16 @@ export function SqlPanel({ tenantId, readOnly }: { tenantId: string; readOnly: b
 
   const execute = (confirmed: boolean) => {
     setError("");
-    run.mutate({ sql, read_only: readOnly, confirm: confirmed }, {
-      onSuccess: () => setConfirm(false),
-      onError: (e) => {
-        if (e instanceof DbError && e.confirmationRequired) setConfirm(true);
-        else setError(e.message);
+    run.mutate(
+      { sql, read_only: readOnly, confirm: confirmed },
+      {
+        onSuccess: () => setConfirm(false),
+        onError: (e) => {
+          if (e instanceof DbError && e.confirmationRequired) setConfirm(true);
+          else setError(e.message);
+        },
       },
-    });
+    );
   };
 
   const result = run.data;
@@ -40,13 +43,25 @@ export function SqlPanel({ tenantId, readOnly }: { tenantId: string; readOnly: b
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
       <div className="space-y-4">
         <Card>
-          <CardHeader title="SQL editor" description={hintForSQL(sql)} actions={
-            <Button variant="primary" size="sm" tooltip={readOnly ? "Read-only allows SELECT" : "Run this statement"} isDisabled={!sql.trim() || run.isPending} onPress={() => execute(false)}>
-              <Play className="size-3.5" /> Run
-            </Button>
-          } />
+          <CardHeader
+            title="SQL editor"
+            description={hintForSQL(sql)}
+            actions={
+              <Button
+                variant="primary"
+                size="sm"
+                tooltip={readOnly ? "Read-only allows SELECT" : "Run this statement"}
+                isDisabled={!sql.trim() || run.isPending}
+                onPress={() => execute(false)}
+              >
+                <Play className="size-3.5" /> Run
+              </Button>
+            }
+          />
           <div className="p-4">
-            <label className="sr-only" htmlFor="sql-editor">SQL</label>
+            <label className="sr-only" htmlFor="sql-editor">
+              SQL
+            </label>
             <textarea
               id="sql-editor"
               value={sql}
@@ -55,8 +70,16 @@ export function SqlPanel({ tenantId, readOnly }: { tenantId: string; readOnly: b
               rows={8}
               className="focus-ring w-full resize-y rounded-lg border border-line bg-canvas px-3 py-2 font-mono text-sm leading-relaxed text-fg outline-none"
             />
-            {error && <p role="alert" className="mt-3 text-sm text-danger">{error}</p>}
-            {result?.truncated && <p className="mt-3 text-sm text-warning">Showing the first {result.row_count} rows. Add a tighter WHERE clause to see a different slice.</p>}
+            {error && (
+              <p role="alert" className="mt-3 text-sm text-danger">
+                {error}
+              </p>
+            )}
+            {result?.truncated && (
+              <p className="mt-3 text-sm text-warning">
+                Showing the first {result.row_count} rows. Add a tighter WHERE clause to see a different slice.
+              </p>
+            )}
           </div>
           {result && (
             <div className="overflow-x-auto border-t border-line">
@@ -64,18 +87,29 @@ export function SqlPanel({ tenantId, readOnly }: { tenantId: string; readOnly: b
                 <thead>
                   <tr>
                     {(result.columns.length ? result.columns : ["result"]).map((c) => (
-                      <th key={c} className="border-b border-line bg-surface px-3 py-2 text-left text-xs font-medium tracking-wide text-fg-subtle uppercase">{c}</th>
+                      <th
+                        key={c}
+                        className="border-b border-line bg-surface px-3 py-2 text-left text-xs font-medium tracking-wide text-fg-subtle uppercase"
+                      >
+                        {c}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {result.rows.length === 0 && (
-                    <tr><td className="px-4 py-6 text-sm text-fg-muted" colSpan={Math.max(1, result.columns.length)}>{result.kind === "read" ? "No rows." : `${result.row_count} affected.`}</td></tr>
+                    <tr>
+                      <td className="px-4 py-6 text-sm text-fg-muted" colSpan={Math.max(1, result.columns.length)}>
+                        {result.kind === "read" ? "No rows." : `${result.row_count} affected.`}
+                      </td>
+                    </tr>
                   )}
                   {result.rows.map((row, i) => (
                     <tr key={i}>
                       {row.map((cell, j) => (
-                        <td key={j} className="border-b border-line px-3 py-2 font-mono text-sm text-fg">{cell == null ? <span className="text-fg-subtle">null</span> : String(cell)}</td>
+                        <td key={j} className="border-b border-line px-3 py-2 font-mono text-sm text-fg">
+                          {cell == null ? <span className="text-fg-subtle">null</span> : String(cell)}
+                        </td>
                       ))}
                     </tr>
                   ))}
@@ -86,9 +120,27 @@ export function SqlPanel({ tenantId, readOnly }: { tenantId: string; readOnly: b
         </Card>
         <Card>
           <CardHeader title="Ask AI" description="A hook for this organization's AI subscription. Nothing is sent to a model yet." />
-          <form className="space-y-3 p-4" onSubmit={(e) => { e.preventDefault(); ask.mutate(prompt); }}>
-            <TextField label="What should the database do?" value={prompt} onChange={setPrompt} placeholder="A table of customers with email and a signed-up date" multiline />
-            <Button type="submit" variant="secondary" size="sm" tooltip="Draft SQL later, via the AI subscription" isDisabled={!prompt.trim() || ask.isPending}>
+          <form
+            className="space-y-3 p-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              ask.mutate(prompt);
+            }}
+          >
+            <TextField
+              label="What should the database do?"
+              value={prompt}
+              onChange={setPrompt}
+              placeholder="A table of customers with email and a signed-up date"
+              multiline
+            />
+            <Button
+              type="submit"
+              variant="secondary"
+              size="sm"
+              tooltip="Draft SQL later, via the AI subscription"
+              isDisabled={!prompt.trim() || ask.isPending}
+            >
               <Sparkles className="size-3.5" /> Ask AI
             </Button>
             {ask.data && (
@@ -102,7 +154,9 @@ export function SqlPanel({ tenantId, readOnly }: { tenantId: string; readOnly: b
         </Card>
         <Disclosure title="SQL audit log">
           <ul className="max-h-72 overflow-y-auto">
-            {(audit.data?.entries ?? []).length === 0 && <li className="px-5 py-4 text-sm text-fg-muted">Statements you run show up here, including ones that were refused.</li>}
+            {(audit.data?.entries ?? []).length === 0 && (
+              <li className="px-5 py-4 text-sm text-fg-muted">Statements you run show up here, including ones that were refused.</li>
+            )}
             {(audit.data?.entries ?? []).map((e) => (
               <li key={e.id} className="border-b border-line px-5 py-3 last:border-b-0">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
@@ -120,14 +174,34 @@ export function SqlPanel({ tenantId, readOnly }: { tenantId: string; readOnly: b
       </div>
       <Card className="h-fit overflow-hidden">
         <CardHeader title="Saved snippets" description="Only you see these, inside this organization." />
-        <form className="space-y-2 border-b border-line p-4" onSubmit={(e) => { e.preventDefault(); save.mutate({ name, sql }); }}>
+        <form
+          className="space-y-2 border-b border-line p-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save.mutate({ name, sql });
+          }}
+        >
           <TextField label="Name" value={name} onChange={setName} placeholder="Open todos" />
-          <Button type="submit" size="sm" variant="secondary" tooltip="Save the statement in the editor" isDisabled={!name.trim() || !sql.trim()}>Save</Button>
+          <Button
+            type="submit"
+            size="sm"
+            variant="secondary"
+            tooltip="Save the statement in the editor"
+            isDisabled={!name.trim() || !sql.trim()}
+          >
+            Save
+          </Button>
         </form>
         <ul>
           {(snippets.data?.snippets ?? []).map((s) => (
             <li key={s.id} className="flex items-center gap-1 border-b border-line last:border-b-0">
-              <button type="button" className="focus-ring min-w-0 flex-1 truncate px-4 py-2.5 text-left text-sm text-fg" onClick={() => setSql(s.sql)}>{s.name}</button>
+              <button
+                type="button"
+                className="focus-ring min-w-0 flex-1 truncate px-4 py-2.5 text-left text-sm text-fg"
+                onClick={() => setSql(s.sql)}
+              >
+                {s.name}
+              </button>
               <IconButton icon={Trash2} label={`Delete ${s.name}`} onPress={() => remove.mutate(s.id)} />
             </li>
           ))}
@@ -138,7 +212,11 @@ export function SqlPanel({ tenantId, readOnly }: { tenantId: string; readOnly: b
         isOpen={confirm}
         onOpenChange={setConfirm}
         title="Run this destructive statement?"
-        body={<span>It can remove rows or change the shape of the table. Read-only mode is {readOnly ? "on, so it will still be refused." : "off."}</span>}
+        body={
+          <span>
+            It can remove rows or change the shape of the table. Read-only mode is {readOnly ? "on, so it will still be refused." : "off."}
+          </span>
+        }
         confirmLabel="Run statement"
         onConfirm={() => execute(true)}
       />

@@ -6,14 +6,12 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/ports"
 )
 
-// Sealer is the platform's purpose-bound at-rest encryption adapter. Callers
-// pass distinct AAD for each source signer and source/lead payload.
-type Sealer interface {
-	Seal([]byte, string) ([]byte, error)
-	Open([]byte, string) ([]byte, error)
-}
+// Sealer is the panel's at-rest encryption, a host port. Callers pass distinct
+// AAD for each source signer and source/lead payload.
+type Sealer = ports.Sealer
 
 type SourceSummary struct {
 	ID               string     `json:"id"`

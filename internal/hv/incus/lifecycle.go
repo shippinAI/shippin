@@ -154,24 +154,32 @@ func (c *Client) CreateGuest(ctx context.Context, s hv.GuestSpec) (hv.Guest, err
 	if s.Cores > 0 {
 		config["limits.cpu"] = strconv.Itoa(s.Cores)
 	}
-	raw, err := json.Marshal(map[string]any{"name": s.Name, "type": kind, "source": source, "config": config})
+	if s.UserData != "" {
+		config["cloud-init.user-data"] = s.UserData
+	}
+	req := map[string]any{"name": s.Name, "type": kind, "source": source, "config": config}
+	if s.Disk > 0 && s.Storage != "" {
+		// This root disk replaces the profile's, so it names its pool. Without a pool the profile's stays.
+		req["devices"] = map[string]any{"root": map[string]string{"type": "disk", "path": "/", "pool": s.Storage, "size": strconv.Itoa(s.Disk) + "GiB"}}
+	}
+	raw, err := json.Marshal(req)
 	if err != nil {
 		return hv.Guest{}, err
 	}
 	body, code, err := c.do(ctx, http.MethodPost, c.path("/1.0/instances"), raw)
 	if err != nil {
-		return hv.Guest{}, err
+		return hv.Guest{}, scrub(err, s.UserData)
 	}
 	if code != http.StatusOK && code != http.StatusAccepted && code != http.StatusCreated {
-		return hv.Guest{}, fmt.Errorf("incus: create HTTP %d: %s", code, clip(body))
+		return hv.Guest{}, scrub(fmt.Errorf("incus: create HTTP %d: %s", code, clip(body)), s.UserData)
 	}
 	if err := c.wait(ctx, body); err != nil {
-		return hv.Guest{}, err
+		return hv.Guest{}, scrub(err, s.UserData)
 	}
 	if s.Start {
 		g, err := c.Start(ctx, s.Name)
 		if err != nil {
-			return g, fmt.Errorf("%s was created but did not start: %w", s.Name, err)
+			return g, scrub(fmt.Errorf("%s was created but did not start: %w", s.Name, err), s.UserData)
 		}
 		return g, nil
 	}
@@ -205,4 +213,12 @@ func (c *Client) DeleteGuest(ctx context.Context, id string) error {
 		return fmt.Errorf("incus: couldn't confirm guest %s was deleted: %w", id, err)
 	}
 	return nil
+}
+
+// scrub keeps user data, which may carry a credential, out of an error Incus answered with.
+func scrub(err error, userData string) error {
+	if err == nil || userData == "" || !strings.Contains(err.Error(), userData) {
+		return err
+	}
+	return errors.New(strings.ReplaceAll(err.Error(), userData, "[user data]"))
 }

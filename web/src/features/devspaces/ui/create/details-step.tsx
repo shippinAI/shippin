@@ -35,7 +35,9 @@ export function DetailsStep({ tpl, name, setName, repo, setRepo, hosts }: Props)
         />
         <div className="flex items-center gap-2 text-sm text-fg-muted">
           <KeyRound className="size-4 text-hue-secrets" />
-          {keys ? `${keys} SSH key${keys > 1 ? "s" : ""} from your account will be added.` : "No SSH keys yet. Add them under Account › SSH keys (optional)."}
+          {keys
+            ? `${keys} SSH key${keys > 1 ? "s" : ""} from your account will be added.`
+            : "No SSH keys yet. Add them under Account › SSH keys (optional)."}
         </div>
       </div>
       <aside className="h-fit rounded-xl border border-line bg-raised/40 p-4 text-sm">
@@ -44,9 +46,20 @@ export function DetailsStep({ tpl, name, setName, repo, setRepo, hosts }: Props)
           <div className="font-medium text-fg">{tpl.name}</div>
         </div>
         <dl className="mt-3 space-y-1.5 text-fg-muted">
-          <div className="flex justify-between"><dt>Toolchain</dt><dd className="text-right text-fg">{tpl.toolchain.join(", ")}</dd></div>
-          <div className="flex justify-between"><dt>Previews</dt><dd className="text-fg">{tpl.ports.length ? tpl.ports.map((p) => `:${p}`).join(" ") : "—"}</dd></div>
-          {tpl.repo && <div className="flex items-center gap-1.5 truncate"><GitBranch className="size-3.5" />{tpl.repo}</div>}
+          <div className="flex justify-between">
+            <dt>Toolchain</dt>
+            <dd className="text-right text-fg">{tpl.toolchain.join(", ")}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt>Previews</dt>
+            <dd className="text-fg">{tpl.ports.length ? tpl.ports.map((p) => `:${p}`).join(" ") : "—"}</dd>
+          </div>
+          {tpl.repo && (
+            <div className="flex items-center gap-1.5 truncate">
+              <GitBranch className="size-3.5" />
+              {tpl.repo}
+            </div>
+          )}
         </dl>
       </aside>
     </div>

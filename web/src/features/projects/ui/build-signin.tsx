@@ -22,11 +22,23 @@ export function BuildSignIn({ tenantId, provider }: { tenantId: string; provider
       <p className="mt-1 text-sm text-fg-muted">
         Your agent runs on your own {p.vendor ?? p.label} subscription. Sign in once; the build starts by itself afterwards.
       </p>
-      <Button className="mt-3" size="sm" variant="primary" isDisabled={activate.isPending} tooltip="Opens your private sign-in terminal"
-        onPress={() => activate.mutate(p.id, { onSuccess: () => setActive(p) })}>
+      <Button
+        className="mt-3"
+        size="sm"
+        variant="primary"
+        isDisabled={activate.isPending}
+        tooltip="Opens your private sign-in terminal"
+        onPress={() => activate.mutate(p.id, { onSuccess: () => setActive(p) })}
+      >
         <KeyRound className="size-4" /> Sign in to {p.label}
       </Button>
-      <AITerminalModal tenantId={tenantId} provider={active} home={home} touchSeconds={subs.data?.touch_seconds ?? 0} onClose={() => setActive(null)} />
+      <AITerminalModal
+        tenantId={tenantId}
+        provider={active}
+        home={home}
+        touchSeconds={subs.data?.touch_seconds ?? 0}
+        onClose={() => setActive(null)}
+      />
     </div>
   );
 }

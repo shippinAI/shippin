@@ -37,6 +37,7 @@ break-glass, for every role including Owner (unchanged from the 50bcc84 design).
 | `templates.read` / `templates.write` | GET / POST, PUT, DELETE /v1/operator/templates |
 | `host.read` | GET /v1/operator/host |
 | `edge.read` | GET /v1/operator/edge |
+| `infra.read` | GET /v1/operator/infrastructure/metrics, and the read routes under /v1/infra |
 | `grants.request` | GET/POST /v1/operator/access-requests, POST .../end (own) |
 | `breakglass.request` | POST /v1/operator/break-glass |
 | `breakglass.approve` | new: POST /v1/operator/break-glass/{id}/approve |

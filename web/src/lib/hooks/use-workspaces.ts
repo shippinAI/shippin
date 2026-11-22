@@ -29,8 +29,10 @@ export function useCreateWorkspace(tenantId: string) {
 
 export type WsAction = "start" | "stop" | "restart" | "delete";
 const verbs: Record<WsAction, [string, string]> = {
-  start: ["Starting", "is starting"], stop: ["Stopping", "is stopping"],
-  restart: ["Restarting", "is restarting"], delete: ["Deleting", "is being deleted"],
+  start: ["Starting", "is starting"],
+  stop: ["Stopping", "is stopping"],
+  restart: ["Restarting", "is restarting"],
+  delete: ["Deleting", "is being deleted"],
 };
 
 export function useWorkspaceAction(tenantId: string) {

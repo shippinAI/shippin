@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -34,6 +35,27 @@ type Harness struct {
 	As     As
 	Audits []string
 	Events []mcpl.Event
+
+	reactions []mcpl.RegisteredReaction
+}
+
+// React runs these reactions on the events the served actions publish, at once and in order, as the
+// event's actor with the harness's services; a reaction's error fails the test. Pass actions.Reactions
+// to test what an entity does after its own changes.
+func (h *Harness) React(rs []mcpl.RegisteredReaction) { h.reactions = rs }
+
+func (h *Harness) publish(e mcpl.Event) {
+	h.Events = append(h.Events, e)
+	for _, r := range h.reactions {
+		if !slices.Contains(r.On, e.ID) {
+			continue
+		}
+		c := &mcpl.Call{Ctx: context.Background(), Pool: h.Pool, Actor: e.Actor, Via: "reaction", Tenant: e.Tenant,
+			Services: h.As.Services, Publish: h.publish}
+		if err := r.Run(c, e); err != nil {
+			h.t.Errorf("reaction %s on %s: %v", r.ID, e.ID, err)
+		}
+	}
 }
 
 // DB is a migrated, empty test database; the test is skipped when SHIPPIN_TEST_DATABASE_URL is unset.
@@ -73,7 +95,7 @@ func Serve(t *testing.T, all []mcpl.Registered, prefix string, as As) *Harness {
 					h.Audits = append(h.Audits, action+" "+detail)
 					return nil
 				},
-				Publish: func(e mcpl.Event) { h.Events = append(h.Events, e) }}, w, r)
+				Publish: h.publish}, w, r)
 		})
 	}
 	return h

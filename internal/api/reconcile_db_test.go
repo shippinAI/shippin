@@ -37,7 +37,7 @@ func TestReconcileRequeuesOrFailsOrphans(t *testing.T) {
 	deadEnd := provisioningWS(t, a, d, tn)
 	old := time.Now().Add(-time.Hour)
 	_, _ = d.Pool.Exec(ctx, `UPDATE workspaces SET updated_at=$1 WHERE id = ANY($2::uuid[])`, old, []string{orphan.ID, deadEnd.ID})
-	j, _, _ := a.jobs.Enqueue(ctx, a.workspaceJob(*deadEnd, "u"))
+	j, _, _ := a.jobs.Enqueue(ctx, a.workspaceJob(ctx, *deadEnd, "u"))
 	_, _ = d.Pool.Exec(ctx, `UPDATE jobs SET status='failed', error='disk full', finished_at=now() WHERE id=$1`, j.ID)
 	if !a.reconcileOnce(ctx, false) {
 		t.Fatal("reconciler did not take the leader lock")

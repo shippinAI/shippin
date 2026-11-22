@@ -21,7 +21,16 @@ test("unknown catalogs, unknown components and wrong versions are dropped", () =
   const ms = [
     { version: "v0.9", createSurface: { surfaceId: "x", catalogId: "https://evil.example/catalog" } },
     { version: "v0.9", createSurface: { surfaceId: "y", catalogId: SHIPPIN_CATALOG } },
-    { version: "v0.9", updateComponents: { surfaceId: "y", components: [{ id: "root", component: "Script", src: "x" }, { id: "ok", component: "Divider" }] } },
+    {
+      version: "v0.9",
+      updateComponents: {
+        surfaceId: "y",
+        components: [
+          { id: "root", component: "Script", src: "x" },
+          { id: "ok", component: "Divider" },
+        ],
+      },
+    },
     { version: "v0.8", deleteSurface: { surfaceId: "y" } },
   ] as unknown as A2UIMessage[];
   const s = applyAll(ms);

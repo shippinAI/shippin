@@ -8,13 +8,14 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/ext"
 )
 
 // errTenantLocked: provisioning never reactivates a suspended tenant or resurrects a deleted one.
 var errTenantLocked = errors.New("tenant is suspended or deleted")
 
-// ensureTenant maps an IdP org to a tenant (UUIDv7, created once) and runs idempotent
-// provisioning through shippin-hostd. Shared by operator create and self-service onboarding.
+// ensureTenant maps an IdP org to a tenant (UUIDv7, created once) and prepares it through the
+// organization lifecycle, which is safe to repeat. Shared by operator create and self-service onboarding.
 func (a *API) ensureTenant(ctx context.Context, orgID, name, plan string) (*db.Tenant, error) {
 	t, err := a.db.TenantByOrg(ctx, orgID)
 	if err != nil {
@@ -32,16 +33,14 @@ func (a *API) ensureTenant(ctx context.Context, orgID, name, plan string) (*db.T
 	}
 	pctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	p, err := a.host.Provision(pctx, t.ID, t.Plan)
+	addr, err := a.lifecycle().Prepare(pctx, a.runtime(), ext.Org{ID: t.ID, Name: t.Name})
 	if err != nil {
 		_ = a.db.SetTenantStatus(pctx, t.ID, "failed", "", err.Error())
 		t.Status = "failed"
 		return t, err
 	}
-	_ = a.db.SetTenantStatus(pctx, t.ID, "active", p.SSHIP, "")
-	t.Status, t.SSHIP = "active", p.SSHIP
-	a.resyncWorkspaces(pctx, *t)
-	go a.ensureVaultixWorkspace(t.ID, "")
+	_ = a.db.SetTenantStatus(pctx, t.ID, "active", addr, "")
+	t.Status, t.SSHIP = "active", addr
 	return t, nil
 }
 

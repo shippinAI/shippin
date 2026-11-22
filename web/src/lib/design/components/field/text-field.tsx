@@ -1,4 +1,13 @@
-import { FieldError, Input, Label, Text, TextArea, TextField as RacTextField, type InputProps, type TextFieldProps } from "react-aria-components";
+import {
+  FieldError,
+  Input,
+  Label,
+  Text,
+  TextArea,
+  TextField as RacTextField,
+  type InputProps,
+  type TextFieldProps,
+} from "react-aria-components";
 
 type Props = Omit<TextFieldProps, "className"> & {
   label: string;
@@ -19,9 +28,20 @@ export function TextField({ label, description, placeholder, multiline, mono, mi
       {multiline ? (
         <TextArea rows={4} placeholder={placeholder} className={`${control} resize-none py-2 ${mono ? "font-mono text-xs" : ""}`} />
       ) : (
-        <Input type={type} min={min} max={max} step={step} placeholder={placeholder} className={`${control} h-9 ${mono ? "font-mono" : ""}`} />
+        <Input
+          type={type}
+          min={min}
+          max={max}
+          step={step}
+          placeholder={placeholder}
+          className={`${control} h-9 ${mono ? "font-mono" : ""}`}
+        />
       )}
-      {description && <Text slot="description" className="text-xs text-fg-subtle">{description}</Text>}
+      {description && (
+        <Text slot="description" className="text-xs text-fg-subtle">
+          {description}
+        </Text>
+      )}
       <FieldError className="text-xs text-danger" />
     </RacTextField>
   );

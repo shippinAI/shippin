@@ -16,10 +16,19 @@ export const operationsLabel: Record<CoverageTier["operations"], string> = {
 
 export const reviewsLabel: Record<CoverageTier["reviews"], string> = { none: "None", quarterly: "Quarterly", monthly: "Monthly" };
 
-export const termLabel: Record<CoverageTier["consulting"], string> = { none: "Not offered", quoted: "On request, quoted", included: "Included" };
+export const termLabel: Record<CoverageTier["consulting"], string> = {
+  none: "Not offered",
+  quoted: "On request, quoted",
+  included: "Included",
+};
 
 export const channelLabel: Record<CoverageTier["channels"][number], string> = {
-  docs: "Documentation", community: "Community", email: "Email", chat: "Chat", phone: "Phone", video: "Video calls",
+  docs: "Documentation",
+  community: "Community",
+  email: "Email",
+  chat: "Chat",
+  phone: "Phone",
+  video: "Video calls",
 };
 
 export const signInLabel: Record<CoverageTier["sign_in"], string> = {

@@ -23,16 +23,22 @@ const stepsKey = ["platform", "steps"];
 const backupsKey = ["platform", "backups"];
 
 export const useBuiltInServices = () =>
-  useQuery({ queryKey: servicesKey, queryFn: () => apiGet<{ items: BuiltInService[] }>("/v1/operator/built-in-services"), refetchInterval: 15_000 });
+  useQuery({
+    queryKey: servicesKey,
+    queryFn: () => apiGet<{ items: BuiltInService[] }>("/v1/operator/built-in-services"),
+    refetchInterval: 15_000,
+  });
 
-export const useSetupSteps = () => useQuery({ queryKey: stepsKey, queryFn: () => apiGet<{ items: SetupStep[] }>("/v1/operator/setup-steps") });
+export const useSetupSteps = () =>
+  useQuery({ queryKey: stepsKey, queryFn: () => apiGet<{ items: SetupStep[] }>("/v1/operator/setup-steps") });
 
 export const useBackups = () => useQuery({ queryKey: backupsKey, queryFn: () => apiGet<{ items: Backup[] }>("/v1/operator/backups") });
 
 export function useAcknowledgeStep() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (step: string) => apiSend("PUT", `/v1/operator/setup-steps/${step}`, { reason: "Acknowledged during setup", understood: true }),
+    mutationFn: (step: string) =>
+      apiSend("PUT", `/v1/operator/setup-steps/${step}`, { reason: "Acknowledged during setup", understood: true }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: stepsKey }),
     onError: (e) => toast.error("Not saved", e.message),
   });
@@ -41,7 +47,8 @@ export function useAcknowledgeStep() {
 export function useSetClickHouse() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { mode: ServiceMode; url: string; reason: string }) => apiSend("PUT", "/v1/operator/built-in-services/clickhouse", { ...v, understood: true }),
+    mutationFn: (v: { mode: ServiceMode; url: string; reason: string }) =>
+      apiSend("PUT", "/v1/operator/built-in-services/clickhouse", { ...v, understood: true }),
     onSuccess: () => {
       toast.success("ClickHouse connection changed");
       return qc.invalidateQueries({ queryKey: servicesKey });
@@ -71,4 +78,5 @@ export function useDeleteBackup() {
   });
 }
 
-export const revealRecoveryKey = (reason: string) => apiSend<{ key: string }>("POST", "/v1/operator/recovery-key", { reason, understood: true });
+export const revealRecoveryKey = (reason: string) =>
+  apiSend<{ key: string }>("POST", "/v1/operator/recovery-key", { reason, understood: true });

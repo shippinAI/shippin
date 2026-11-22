@@ -10,7 +10,9 @@ export function QueryView({ isPending, error, onRetry, rows = 5, children }: Pro
   if (isPending)
     return (
       <div className="space-y-2 p-5" aria-busy>
-        {Array.from({ length: rows }, (_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+        {Array.from({ length: rows }, (_, i) => (
+          <Skeleton key={i} className="h-8 w-full" />
+        ))}
       </div>
     );
   if (error)
@@ -21,7 +23,9 @@ export function QueryView({ isPending, error, onRetry, rows = 5, children }: Pro
           <div className="font-medium text-fg">Couldn't load this section</div>
           <div className="mt-0.5 text-fg-muted">{error.message}</div>
         </div>
-        <Button size="sm" variant="secondary" tooltip="Try the request again" onPress={onRetry}>Retry</Button>
+        <Button size="sm" variant="secondary" tooltip="Try the request again" onPress={onRetry}>
+          Retry
+        </Button>
       </div>
     );
   return <>{children()}</>;

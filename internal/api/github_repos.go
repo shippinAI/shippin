@@ -18,7 +18,11 @@ type installationRepos struct {
 // githubRepos lists the repositories of this tenant's live installations (the import picker).
 func (a *API) githubRepos(w http.ResponseWriter, r *http.Request) {
 	c, t, ok := a.tenantCtx(w, r)
-	if !ok || !a.githubFor(w, t) {
+	if !ok {
+		return
+	}
+	app, g, ok := a.githubFor(w, r, t)
+	if !ok {
 		return
 	}
 	ins, err := a.db.Installations(r.Context(), t.ID)
@@ -30,7 +34,7 @@ func (a *API) githubRepos(w http.ResponseWriter, r *http.Request) {
 	for _, in := range ins {
 		row := installationRepos{ID: in.ID, AccountLogin: in.AccountLogin, Suspended: in.Suspended, Repos: []gh.Repo{}}
 		if !in.Suspended {
-			if rs, err := a.gh.Repos(r.Context(), in.ID, a.cfg.GitHub.MaxRepos); err != nil {
+			if rs, err := app.Repos(r.Context(), in.ID, g.MaxRepos); err != nil {
 				row.Error = "GitHub didn't list this installation's repositories."
 			} else {
 				row.Repos = rs

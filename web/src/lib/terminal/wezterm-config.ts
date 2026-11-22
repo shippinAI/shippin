@@ -6,9 +6,19 @@
 export type WezTermTarget = { workspace: string; host: string; port: number; user: string };
 
 /** Lua-safe domain name: letters, digits, dash. */
-export const domainName = (ws: string) => `shippin-${ws.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") || "workspace"}`;
+export const domainName = (ws: string) =>
+  `shippin-${
+    ws
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "workspace"
+  }`;
 
-const lua = (s: string) => `'${s.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/[\r\n]/g, "")}'`;
+const lua = (s: string) =>
+  `'${s
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/[\r\n]/g, "")}'`;
 
 export function weztermConfig(t: WezTermTarget): string {
   const name = domainName(t.workspace);

@@ -2,8 +2,10 @@
 // With -check it changes nothing and fails if the registry is out of date.
 //
 // mcplgen new is the factory: it starts an action where it belongs, with its test, then regenerates.
+// mcplgen react starts a reaction in an existing entity, following events its actions emit.
 //
 //	go run ./cmd/mcplgen new tenancy/plan/list -access staff -perm catalog.plans.read -summary "List the plans."
+//	go run ./cmd/mcplgen react identity/ssh_key/push_to_workspaces -on shippin.identity.ssh_key.created -summary "..."
 package main
 
 import (
@@ -13,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/mcpl/gen"
@@ -23,16 +26,23 @@ func main() {
 		scaffold(os.Args[2:])
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "react" {
+		react(os.Args[2:])
+		return
+	}
 	check := flag.Bool("check", false, "fail if the generated files are out of date, without writing")
 	root := flag.String("root", ".", "repository root")
+	module := flag.String("module", gen.Panel.Module, "Go module path of the tree at -root; a module outside this repository passes its own")
+	pkg := flag.String("pkg", gen.Panel.Package, "package name of the generated registry")
+	out := flag.String("out", gen.Panel.Out, "module-relative path of the generated registry")
 	flag.Parse()
-	if stale := generate(*root, *check); stale {
+	if stale := generate(*root, *check, gen.Target{Module: *module, Package: *pkg, Out: *out}); stale {
 		os.Exit(1)
 	}
 }
 
-func generate(root string, check bool) (stale bool) {
-	files, err := gen.Files(root)
+func generate(root string, check bool, target gen.Target) (stale bool) {
+	files, err := gen.FilesFor(root, target)
 	if err != nil {
 		fail(err)
 	}
@@ -88,13 +98,53 @@ func scaffold(args []string) {
 	if err != nil {
 		fail(err)
 	}
-	generate(*root, false)
+	regenerate(*root)
+	fmt.Println("\nNext: write the action and its test, then call it from the panel with callAction. See docs/mcpl.md.")
+}
+
+func react(args []string) {
+	fs := flag.NewFlagSet("react", flag.ExitOnError)
+	on := fs.String("on", "", "the events it follows, comma separated: shippin.<domain>.<entity>.<past verb>")
+	summary := fs.String("summary", "", "one plain sentence, ending with a full stop, saying what it does")
+	root := fs.String("root", ".", "repository root")
+	fs.Usage = func() {
+		fmt.Fprintln(os.Stderr, "usage: mcplgen react <domain>/<entity>[/<child>]/<name> -on <event>[,<event>] -summary \"...\"")
+		fs.PrintDefaults()
+	}
+	path := ""
+	if len(args) > 0 && args[0] != "" && args[0][0] != '-' {
+		path, args = args[0], args[1:]
+	}
+	_ = fs.Parse(args)
+	if path == "" {
+		fs.Usage()
+		os.Exit(2)
+	}
+	var events []string
+	for _, e := range strings.Split(*on, ",") {
+		if e = strings.TrimSpace(e); e != "" {
+			events = append(events, e)
+		}
+	}
+	written, err := gen.ScaffoldReaction(*root, gen.NewReaction{Path: path, On: events, Summary: *summary})
+	for _, f := range written {
+		fmt.Println("wrote", f)
+	}
+	if err != nil {
+		fail(err)
+	}
+	generate(*root, false, gen.Panel)
+	fmt.Println("\nNext: write the reaction and its test. See docs/mcpl.md.")
+}
+
+// regenerate writes the registry, then the typed map and OpenAPI from the compiled registry.
+func regenerate(root string) {
+	generate(root, false, gen.Panel)
 	spec := exec.Command("go", "run", "./cmd/mcplspec", "-root", ".")
-	spec.Dir, spec.Stdout, spec.Stderr = *root, os.Stdout, os.Stderr
+	spec.Dir, spec.Stdout, spec.Stderr = root, os.Stdout, os.Stderr
 	if err := spec.Run(); err != nil {
 		fail(fmt.Errorf("the typed map and OpenAPI: %v", err))
 	}
-	fmt.Println("\nNext: write the action and its test, then call it from the panel with callAction. See docs/mcpl.md.")
 }
 
 func fail(err error) {

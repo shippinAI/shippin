@@ -9,6 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"shippin.cloud/console/internal/placement"
 )
 
 // Server is one registry row as an org sees it. No secret or hash is ever part of it.
@@ -30,11 +32,22 @@ type Server struct {
 // SystemTenantID is the control plane's own tenant (migration 040). It owns the hosts added from the panel.
 const SystemTenantID = "019a0000-0000-7000-8000-00000000c0de"
 
-// Store is the registry; Clock derives stale, Now is the time seam for tests.
+// Store is the registry; Clock derives stale, Now is the time seam for tests. Placement says which
+// servers a tenant may use besides its own; nil is placement.Assigned.
 type Store struct {
-	Pool  *pgxpool.Pool
-	Clock Clock
-	Now   func() time.Time
+	Pool      *pgxpool.Pool
+	Clock     Clock
+	Now       func() time.Time
+	Placement placement.Policy
+}
+
+// hosts are the servers the tenant may use besides its own, from the placement policy.
+func (s *Store) hosts(ctx context.Context, q placement.Querier, tenant string) ([]string, error) {
+	p := s.Placement
+	if p == nil {
+		p = placement.Assigned{}
+	}
+	return p.Hosts(ctx, q, tenant)
 }
 
 func (s *Store) now() time.Time {
@@ -58,11 +71,15 @@ func (s *Store) scan(row pgx.Row) (*Server, error) {
 	return &v, nil
 }
 
-// List: the tenant's own servers, then platform hosts assigned to it (read-only), each by slug. A platform
-// host with no assignment is none of a tenant's business, so it does not appear at all.
+// List: the tenant's own servers, then platform hosts the placement policy lets it use (read-only), each
+// by slug. Any other platform host is none of a tenant's business, so it does not appear at all.
 func (s *Store) List(ctx context.Context, tenant string) ([]Server, error) {
-	rows, err := s.Pool.Query(ctx, `SELECT `+cols+` FROM servers WHERE tenant_id=$1 OR EXISTS (SELECT 1 FROM server_assignments a WHERE a.server_id=servers.id AND a.tenant_id=$1)
-		ORDER BY tenant_id<>$1, slug`, tenant)
+	hosts, err := s.hosts(ctx, s.Pool, tenant)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.Pool.Query(ctx, `SELECT `+cols+` FROM servers WHERE tenant_id=$1 OR id = ANY($2::uuid[])
+		ORDER BY tenant_id<>$1, slug`, tenant, hosts)
 	if err != nil {
 		return nil, err
 	}
@@ -78,12 +95,16 @@ func (s *Store) List(ctx context.Context, tenant string) ([]Server, error) {
 	return out, rows.Err()
 }
 
-// Get returns a server the tenant can see (its own or one assigned to it).
+// Get returns a server the tenant can see (its own or one the placement policy lets it use).
 func (s *Store) Get(ctx context.Context, tenant, id string) (*Server, error) {
 	if uuid.Validate(id) != nil {
 		return nil, ErrNotFound
 	}
-	v, err := s.scan(s.Pool.QueryRow(ctx, `SELECT `+cols+` FROM servers WHERE id=$1 AND (tenant_id=$2 OR EXISTS (SELECT 1 FROM server_assignments a WHERE a.server_id=servers.id AND a.tenant_id=$2))`, id, tenant))
+	hosts, err := s.hosts(ctx, s.Pool, tenant)
+	if err != nil {
+		return nil, err
+	}
+	v, err := s.scan(s.Pool.QueryRow(ctx, `SELECT `+cols+` FROM servers WHERE id=$1 AND (tenant_id=$2 OR id = ANY($3::uuid[]))`, id, tenant, hosts))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}

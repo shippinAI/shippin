@@ -1,6 +1,7 @@
 package ssh_key_test
 
 import (
+	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/json"
@@ -9,7 +10,9 @@ import (
 
 	"golang.org/x/crypto/ssh"
 	"shippin.cloud/console/internal/actions"
+	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/mcpl/mcpltest"
+	"shippin.cloud/console/internal/ports"
 )
 
 func newKey(t *testing.T) string {
@@ -57,5 +60,37 @@ func TestSSHKeyActions(t *testing.T) {
 	}
 	if len(h.Audits) != 2 {
 		t.Fatalf("audits: %q", h.Audits)
+	}
+}
+
+// workspaces is a fake runtime: what each person's workspaces were last given.
+type workspaces map[string][]string
+
+func (w workspaces) GiveKeys(_ context.Context, sub string, keys []string) error {
+	w[sub] = keys
+	return nil
+}
+
+// Adding or removing a key gives the person's workspaces their current set, through the runtime port.
+func TestPushToWorkspaces(t *testing.T) {
+	ws := workspaces{}
+	s := mcpl.Services{}
+	mcpl.Provide[ports.Workspaces](s, ws)
+	h := mcpltest.Serve(t, actions.All, "shippin.identity.ssh_key.", mcpltest.As{Actor: "ada", Services: s})
+	h.React(actions.Reactions)
+
+	one, two := newKey(t), newKey(t)
+	h.Call("POST", base, `{"name":"laptop","public_key":"`+one+`"}`, 201)
+	k := h.Call("POST", base, `{"name":"desk","public_key":"`+two+`"}`, 201)
+	if got := ws["ada"]; len(got) != 2 || got[0] != one || got[1] != two {
+		t.Fatalf("after two adds the workspaces have %q", got)
+	}
+	h.Call("DELETE", base+"/"+k["id"].(string), "", 204)
+	if got := ws["ada"]; len(got) != 1 || got[0] != one {
+		t.Fatalf("after removing one the workspaces have %q", got)
+	}
+	h.Call("POST", base, `{"name":"bad","public_key":"not a key"}`, 400)
+	if len(h.Events) != 3 || len(ws) != 1 {
+		t.Fatalf("a refused change reacted, or someone else was touched: %d events, %v", len(h.Events), ws)
 	}
 }

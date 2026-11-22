@@ -19,17 +19,28 @@ export function WezTermDialog({ isOpen, onOpenChange, workspace, connect }: Prop
   const name = domainName(workspace);
   const cfg = connect ? weztermConfig({ workspace, host: connect.host, port: connect.port, user: connect.user }) : "";
   return (
-    <ModalDialog isOpen={isOpen} onOpenChange={onOpenChange} title="Open in WezTerm"
-      description="Use your own WezTerm with this workspace. The connection uses your SSH key and joins the same Zellij session as this page.">
+    <ModalDialog
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      title="Open in WezTerm"
+      description="Use your own WezTerm with this workspace. The connection uses your SSH key and joins the same Zellij session as this page."
+    >
       <div className="space-y-4 px-6 py-5 text-sm text-fg-muted">
         {!connect ? (
-          <p role="alert" className="text-warning">This workspace has no SSH address yet. Start it, then try again.</p>
+          <p role="alert" className="text-warning">
+            This workspace has no SSH address yet. Start it, then try again.
+          </p>
         ) : (
           <>
             <ol className="list-decimal space-y-1 pl-5">
-              <li>Download the config and save it as <span className="font-mono text-fg">~/.wezterm.lua</span> (or merge its <span className="font-mono">ssh_domains</span>).</li>
+              <li>
+                Download the config and save it as <span className="font-mono text-fg">~/.wezterm.lua</span> (or merge its{" "}
+                <span className="font-mono">ssh_domains</span>).
+              </li>
               <li>Add your SSH key under Account → SSH keys if you haven't.</li>
-              <li>Run the command below, or pick <span className="font-mono">{name}</span> from WezTerm's launcher.</li>
+              <li>
+                Run the command below, or pick <span className="font-mono">{name}</span> from WezTerm's launcher.
+              </li>
             </ol>
             <CodeBlock label="Connect" code={`wezterm connect ${name}`} />
             <div className="flex flex-wrap gap-2">

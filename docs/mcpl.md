@@ -155,21 +155,59 @@ in the organization's audit log.
 - An event says who, in which organization, and what it acted on (`subject`: the route's IDs and the
   created item's `id`). It never carries the action's output; a follower reads the item through a get
   action, under its own permissions.
-- Inside the panel's server, `a.events.On(id, fn)` reacts to one. Pushing a person's SSH keys to their
-  running workspaces is such a reaction, not part of the action.
+- An entity reacts to one with a reaction file in its folder (see Reactions below). Pushing a
+  person's SSH keys to their running workspaces is such a reaction, not part of the action.
 - `GET /v1/me/mcpl/events` streams them (server-sent events) to the people who could have run the
   action: their own, their organizations' at their role, and staff events their permissions cover.
 
 #### Services
 
-- An action uses nothing but `c.DB` directly. Anything else (mail, the identity provider, a
-  hypervisor) is an interface its own package declares, fetched with `mcpl.Need[T](c)`.
-- `internal/api/mcpl_services.go` provides the implementations. Tests hand in fakes through
-  `mcpltest.As{Services: ...}`. An install without the service answers a plain 503.
+- An action uses nothing but `c.DB` directly. Anything else is fetched with `mcpl.Need[T](c)`. An
+  install without it answers a plain 503, and tests hand in fakes through `mcpltest.As{Services: ...}`.
+- What the entity can build from its own package (a Postgres repository, an HTTP client) it
+  provides itself, in its folder:
+
+  ```go
+  // internal/tenancy/acquisition_source/services.go
+  var Services = mcpl.Provider(func(s mcpl.Services) {
+  	mcpl.Provide[acquisition.Repository](s, acquisition.PostgresRepository{})
+  })
+  ```
+
+- What only the running panel has is a host port in `internal/ports`: its sealer (`ports.Sealer`) and
+  the workspace runtime (`ports.Workspaces`). `internal/api/mcpl_services.go` provides each port once
+  and names no entity. A new port is added only for a capability several entities could share.
+
+#### Reactions
+
+A reaction is what an entity does after an event: a file in its folder named for it.
+
+```go
+// internal/identity/ssh_key/push_to_workspaces.go
+var PushToWorkspaces = mcpl.Reaction{
+	On:      []string{"shippin.identity.ssh_key.created", "shippin.identity.ssh_key.deleted"},
+	Summary: "Give the person's workspaces their current SSH keys.",
+	Run: func(c *mcpl.Call, e mcpl.Event) error { ... },
+}
+```
+
+- Its ID comes from where it is, like an action's: `shippin.identity.ssh_key.push_to_workspaces`.
+- The generator lists it in `actions.Reactions`; the panel runs it after the change is committed, as
+  the event's actor in the event's organization, with the same services. An error is logged.
+- Generation stops on a reaction to an event no action emits, so renaming an action cannot silently
+  orphan what follows it. `On` is written out as string literals for that reason.
+- So an entity is plug-and-play: its actions, its services and its reactions are all in its folder,
+  and adding the folder is the whole change.
 
 #### Output
 
 - A list is `mcpl.Items` (`{"items": [...]}`), `create` answers 201, and `mcpl.None` answers 204.
+- A field whose shape is genuinely open (a JSON Schema, the defaults it describes) is a named
+  `map[string]json.RawMessage` type with an `UnmarshalJSON` that refuses anything but an object. It
+  is typed `Record<string, unknown>` in the panel, and keeps the values exactly as sent.
+- A type reused from another package is named after that package (`catalog.RuntimeContract` is
+  `CatalogRuntimeContract`). Two Go types that would share a name stop generation, so name a nested
+  entity's input for what it is (`plan/service` takes a `Cell`).
 
 #### Errors
 
@@ -202,6 +240,10 @@ database, as a caller you set, and collects the audit entries and events:
 h := mcpltest.Serve(t, actions.All, "shippin.identity.ssh_key.", mcpltest.As{Actor: "ada"})
 k := h.Call("POST", "/v1/me/identity/ssh-keys", body, 201)
 ```
+
+`h.React(actions.Reactions)` also runs the reactions on the events the served actions publish, at
+once, with the harness's services: the SSH key test gives a fake `ports.Workspaces` and checks what
+the workspaces were given after each add and remove.
 
 ## MCP
 
@@ -256,6 +298,23 @@ written. The factory never overwrites a file.
 `-singleton` makes an entity there is one of in its parent. `-collection` makes a custom verb act on
 the whole collection. A nested entity is a deeper path: `tenancy/plan/service/create`.
 
+Two shapes the first entities settled:
+- When the panel shows every parent's children at once (the plan and service matrix), the parent's
+  read carries them (`Plan.services`) and the nested entity has only its changes. A nested `list`
+  would cost one request per parent.
+- A link whose identity is all in the path (a plan's settings for one service) is set with `update`,
+  which creates it when it is missing; there is no separate `create`.
+- A nested action answers 404 when its parent does not exist, for reads too.
+
+`mcplgen react` starts a reaction in an existing entity:
+
+```sh
+go run ./cmd/mcplgen react identity/ssh_key/push_to_workspaces -on shippin.identity.ssh_key.created,shippin.identity.ssh_key.deleted -summary "Give the person's workspaces their current SSH keys."
+```
+
+It refuses an event no action emits, a name an action already has, and an entity that does not exist
+yet. It writes the reaction, which answers "not written yet", and a test that fails until it is.
+
 ## Domains
 
 `public`, `auth`, `access`, `identity`, `tenancy`, `infrastructure`, `services`, `runtime`,
@@ -266,13 +325,14 @@ The same list names action IDs, events, UI actions and, later, the per-domain MC
 
 | Piece | State |
 | --- | --- |
-| Generated actions | Staff: `tenancy.coverage_tier` (list, get, create, update, delete). Member: `tenancy.coverage` (get). Signed-in: `identity.ssh_key` (list, create, delete). Each has a database test. |
-| Legacy routes | 340 served `/v1` routes are not yet action files or declared transports. `internal/api/testdata/mcpl-undescribed.txt` lists them; `TestMCPLConformance` fails on a new one and on a stale entry, so the list only shrinks. |
+| Generated actions | Staff: `tenancy.coverage_tier`, `tenancy.plan`, `services.catalog_service` and `tenancy.customer` (each list, get, create, update, delete); `tenancy.plan.service` (update, delete); `tenancy.customer.service` (list, update, delete), `tenancy.customer.effective_config` (get) and `tenancy.customer.provision_intent` (list, create); `tenancy.acquisition_source`. Member: `tenancy.coverage` (get). Signed-in: `identity.ssh_key` (list, create, delete) and `identity.access_key`. Staff read: `infrastructure.host_detection` (get), which finds the kind of hypervisor at an address. Each has a database test. |
+| Legacy routes | 315 served `/v1` routes are not yet action files or declared transports. `internal/api/testdata/mcpl-undescribed.txt` lists them; `TestMCPLConformance` fails on a new one and on a stale entry, so the list only shrinks. The catalog's layered defaults stay legacy for now: a default is keyed by layer, reference and key together, and saving one is an upsert to the collection, which no single entity ID or standard verb describes yet. |
 | Mounting | Every audience: staff, member, signed-in and public. |
-| Events | Emitted by every change after commit, with in-process reactions and a stream at `GET /v1/me/mcpl/events`. |
+| Events | Emitted by every change after commit, with a stream at `GET /v1/me/mcpl/events`. |
+| Reactions and services | Declared in the entity's folder and generated into `actions.Reactions` and `actions.Providers`; host ports in `internal/ports`. SSH keys push to workspaces through a reaction; acquisition sources provide their own repository and fetcher. |
 | Manifests | `GET /v1/mcpl` (public) and `GET /v1/operator/mcpl` (staff, with what the caller may run). |
 | Contracts | Generated from the registry: the panel's typed `callAction` (parameters, body and answer from the Go types) and `api/openapi/actions.gen.json`, which the API explorer lists. The hand-written `api/openapi/openapi.yaml` keeps only routes that are not actions; `TestOpenAPIContract` refuses an action's path in it and ratchets the undocumented rest in `internal/api/testdata/openapi-drift.txt`. |
-| Factory | `mcplgen new`, tested by scaffolding every shape and finding it where it says. |
+| Factory | `mcplgen new` for actions and `mcplgen react` for reactions, tested by scaffolding every shape and finding it where it says. |
 | Build | The image regenerates the registry and contracts from source. |
 | MCP | `POST /v1/mcp` and `POST /v1/mcp/<domain>`: tools generated from the registry, dispatched through each action's own route. Access keys for AI clients, in the panel under **Account > AI access**. |
 | UI actions, components, lessons | Planned: `shippin.ui.<domain>.<workflow>.<action>` with readiness and receipts. The panel's controls have roles and labels, which browser tests already drive. |
@@ -295,7 +355,7 @@ Each disappears as its routes become action files.
    services and transports, with SSH keys and an organization's coverage moved.
 2. **Entity by entity, in the [code map](architecture.md)'s order.** Move each into
    `internal/<domain>/<entity>/`, switch its panel calls to `callAction`, and shrink the list in the
-   same commit. Plans, catalog services and customers come next, then Access.
+   same commit. Coverage, plans, catalog services and customers are done; Access is next.
 3. **Done.** MCP from the registry, with access keys as how an AI client signs in as a person.
 4. **Done.** Typed panel calls and OpenAPI generated from the registry, the factory, and generation in
    the image build.
@@ -306,8 +366,12 @@ Each disappears as its routes become action files.
 1. Pick the domain and the entity folder. If none fits, it is probably two actions.
 2. Start it with `go run ./cmd/mcplgen new <domain>/<entity>/<verb> ...`, or write `<verb>.go` by hand
    with `var <Verb> = mcpl.Def[In, Out]{Spec: ..., Run: ...}` and run `go generate ./internal/actions`.
-3. Write it and its test. Change its Go types, never the generated files.
+3. Write it and its test. Change its Go types, never the generated files. What it needs besides the
+   database goes in its folder's `services.go`, or is a host port; what it does after another
+   change is a reaction file.
 4. In the panel, call it with `callAction("<id>", params, body)`: the compiler checks the parameters
    and body, and the answer is typed.
-5. Moving a legacy route: remove its path from `api/openapi/openapi.yaml`, switch the panel's calls,
-   and shrink both ratchet files in the same commit (`UPDATE_MCPL=1 UPDATE_OPENAPI=1 go test ./internal/api`).
+5. Moving a legacy route: remove its path from `api/openapi/openapi.yaml` (and any schema nothing
+   references any more), switch the panel's calls, and shrink the ratchet files in the same commit:
+   `UPDATE_MCPL=1 UPDATE_OPENAPI=1 UPDATE_UNAUTH=1 go test ./internal/api -run 'MCPL|OpenAPI|Unauth'`
+   (no database needed). `deploy/tests/unauth-routes.txt` changes too, since the route moved.

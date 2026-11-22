@@ -76,7 +76,7 @@ print(json.dumps({n:yaml.safe_load((p/n).read_text(encoding='utf-8')) for n in n
 	// Exercise the actual acceptance handler, with an isolated DB and an idle runner.
 	a, d, tn := notifyAPI(t)
 	a.jobs = jobs.NewStore(d.Pool)
-	a.runner = jobs.NewRunner(a.jobs, jobs.Settings{})
+	a.runner.Store(jobs.NewRunner(a.jobs, jobs.Settings{}))
 	row := provisioningWS(t, a, d, tn)
 	if err := d.SetWorkspaceState(t.Context(), row.ID, "stopped", "", ""); err != nil {
 		t.Fatal(err)

@@ -7,9 +7,9 @@ import (
 	"slices"
 	"time"
 
-	"shippin.cloud/console/internal/actions"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/ext"
 	"shippin.cloud/console/internal/mcpl"
 )
 
@@ -22,7 +22,7 @@ import (
 // and permission gate.
 func (a *API) actionRoutes() []opRoute {
 	var out []opRoute
-	for _, g := range actions.All {
+	for _, g := range ext.Actions() {
 		if g.Access != mcpl.Staff {
 			continue
 		}
@@ -37,7 +37,7 @@ func (a *API) actionRoutes() []opRoute {
 
 // mountActions mounts the public, signed-in and member actions.
 func (a *API) mountActions(mux Router) {
-	for _, g := range actions.All {
+	for _, g := range ext.Actions() {
 		switch g.Access {
 		case mcpl.Staff:
 			// mounted with the operator routes
@@ -198,8 +198,9 @@ func (a *API) mayFollow(r *http.Request, c *caller, e mcpl.Event) bool {
 }
 
 func describedActions() []mcpl.Action {
-	out := make([]mcpl.Action, 0, len(actions.All))
-	for _, g := range actions.All {
+	all := ext.Actions()
+	out := make([]mcpl.Action, 0, len(all))
+	for _, g := range all {
 		out = append(out, g.Action)
 	}
 	return out
@@ -230,7 +231,17 @@ func (a *API) opMCPL(w http.ResponseWriter, r *http.Request, c *caller) {
 		}
 		rows = append(rows, row{x, allowed})
 	}
-	writeJSON(w, map[string]any{"mcpl": mcpl.Version, "domains": mcpl.Domains, "actions": rows})
+	// Reactions are listed so staff and their AI clients can see what follows a change.
+	type reaction struct {
+		ID      string   `json:"id"`
+		On      []string `json:"on"`
+		Summary string   `json:"summary"`
+	}
+	reactions := []reaction{}
+	for _, r := range ext.Reactions() {
+		reactions = append(reactions, reaction{r.ID, r.On, r.Summary})
+	}
+	writeJSON(w, map[string]any{"mcpl": mcpl.Version, "domains": mcpl.Domains, "actions": rows, "reactions": reactions})
 }
 
 func (a *API) mcplRoutes() []opRoute {
@@ -241,7 +252,7 @@ func (a *API) mcplRoutes() []opRoute {
 // actions are listed when the caller sees at least one organization.
 func (a *API) actionsFor(r *http.Request, c *caller) []mcpl.Registered {
 	var out []mcpl.Registered
-	for _, g := range actions.All {
+	for _, g := range ext.Actions() {
 		switch g.Access {
 		case mcpl.Staff:
 			if !a.decideQuiet(r, c, g.Perm) {

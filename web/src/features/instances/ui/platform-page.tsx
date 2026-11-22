@@ -22,16 +22,30 @@ export function PlatformPage() {
   return (
     <>
       {mode.data?.active && <StaffModeBanner />}
-      <PageHeader eyebrow="Operator" title="Platform health" description="The hosts this panel manages, and the services you have told it to watch." />
-      {me?.capabilities["provider.panel"] && <>
-        <InternalOrganizationCard />
-        <div className="mb-6 flex flex-wrap gap-3">
-          <Button tooltip={text("platform.staff")} onPress={() => nav("/admin/team")}>{text("platform.staff")}</Button>
-          <Button tooltip={text("platform.organizations")} onPress={() => nav("/admin/tenants")}>{text("platform.organizations")}</Button>
-          <Button tooltip={text("platform.catalog")} onPress={() => nav("/admin/services")}>{text("platform.catalog")}</Button>
-          <Button tooltip={text("platform.settings")} onPress={() => nav("/admin/platform")}>{text("platform.settings")}</Button>
-        </div>
-      </>}
+      <PageHeader
+        eyebrow="Operator"
+        title="Platform health"
+        description="The hosts this panel manages, and the services you have told it to watch."
+      />
+      {me?.capabilities["provider.panel"] && (
+        <>
+          <InternalOrganizationCard />
+          <div className="mb-6 flex flex-wrap gap-3">
+            <Button tooltip={text("platform.staff")} onPress={() => nav("/admin/team")}>
+              {text("platform.staff")}
+            </Button>
+            <Button tooltip={text("platform.organizations")} onPress={() => nav("/admin/tenants")}>
+              {text("platform.organizations")}
+            </Button>
+            <Button tooltip={text("platform.catalog")} onPress={() => nav("/admin/services")}>
+              {text("platform.catalog")}
+            </Button>
+            <Button tooltip={text("platform.settings")} onPress={() => nav("/admin/platform")}>
+              {text("platform.settings")}
+            </Button>
+          </div>
+        </>
+      )}
       <RuntimeDependencies />
       {me?.capabilities["infra.hosts"] && <InfrastructureSummary />}
       <ServicesGrid />

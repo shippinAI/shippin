@@ -184,17 +184,17 @@ func one(c *mcpl.Call, id string) (Tier, error) {
 	return t, err
 }
 
-// Exists reports whether a tier with this id exists.
-func Exists(ctx context.Context, pool *pgxpool.Pool, id string) bool {
+// Exists reports whether a tier with this id exists. q is a pool, or a change's transaction.
+func Exists(ctx context.Context, q mcpl.DB, id string) bool {
 	var ok bool
-	_ = pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM coverage_tiers WHERE id=$1)`, id).Scan(&ok)
+	_ = q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM coverage_tiers WHERE id=$1)`, id).Scan(&ok)
 	return ok
 }
 
 // Lowest is the lowest-ranked active tier, for plans created without one.
-func Lowest(ctx context.Context, pool *pgxpool.Pool) string {
+func Lowest(ctx context.Context, q mcpl.DB) string {
 	var id string
-	_ = pool.QueryRow(ctx, `SELECT id FROM coverage_tiers WHERE active ORDER BY rank, id LIMIT 1`).Scan(&id)
+	_ = q.QueryRow(ctx, `SELECT id FROM coverage_tiers WHERE active ORDER BY rank, id LIMIT 1`).Scan(&id)
 	return id
 }
 

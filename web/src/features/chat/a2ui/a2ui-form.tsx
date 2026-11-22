@@ -15,17 +15,36 @@ export function A2UIForm({ b, onPrompt }: { b: A2UIBlock; onPrompt: (text: strin
     onPrompt(text);
   };
   return (
-    <Form className="space-y-3 rounded-xl border border-line bg-canvas/40 p-3" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+    <Form
+      className="space-y-3 rounded-xl border border-line bg-canvas/40 p-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+    >
       {b.title && <p className="text-base font-medium text-fg">{b.title}</p>}
       {(b.fields ?? []).map((f) =>
         f.kind === "select" ? (
-          <Select key={f.name} label={f.label} value={values[f.name] ?? ""} onChange={(v) => set(f.name, v)}
-            options={(f.options ?? []).map((o) => ({ id: o, label: o }))} />
+          <Select
+            key={f.name}
+            label={f.label}
+            value={values[f.name] ?? ""}
+            onChange={(v) => set(f.name, v)}
+            options={(f.options ?? []).map((o) => ({ id: o, label: o }))}
+          />
         ) : (
-          <TextField key={f.name} label={f.label} multiline={f.kind === "textarea"} value={values[f.name] ?? ""} onChange={(v) => set(f.name, v)} />
+          <TextField
+            key={f.name}
+            label={f.label}
+            multiline={f.kind === "textarea"}
+            value={values[f.name] ?? ""}
+            onChange={(v) => set(f.name, v)}
+          />
         ),
       )}
-      <Button type="submit" size="sm" variant="primary" tooltip="Send to the assistant">{b.label || "Submit"}</Button>
+      <Button type="submit" size="sm" variant="primary" tooltip="Send to the assistant">
+        {b.label || "Submit"}
+      </Button>
     </Form>
   );
 }

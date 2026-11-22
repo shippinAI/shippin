@@ -1,0 +1,16 @@
+#!/bin/sh
+# Shippin pre-push: main moves only through the Gate workflow, and no push weakens a test without saying why.
+# Install once per clone: git config core.hooksPath .githooks
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  if [ "$remote_ref" = refs/heads/main ] && [ -z "${SHIPPIN_ALLOW_DIRECT_MAIN:-}" ]; then
+    echo "Refusing to push to main directly. Push to the queue instead:  git push origin main:queue/main" >&2
+    echo "The Gate workflow moves main to that commit once every check passes." >&2
+    exit 1
+  fi
+  base=origin/main
+  git rev-parse -q --verify "$base" >/dev/null || base=$(git rev-list --max-parents=0 "$local_sha" | tail -1)
+  node scripts/ci/test-integrity.mjs "$base" "$local_sha" || exit 1
+done
+exit 0

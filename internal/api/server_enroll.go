@@ -148,15 +148,15 @@ func (a *API) serverCommandResult(w http.ResponseWriter, r *http.Request) {
 	}
 	targetID := completed.DeploymentID + ":" + strconv.FormatInt(completed.Generation, 10)
 	job, _, err := a.jobs.Enqueue(r.Context(), jobs.Job{TenantID: completed.TenantID, Kind: jobs.KindDeploymentReconcile,
-		TargetType: "deployment_generation", TargetID: targetID, MaxAttempts: a.cfg.Jobs.MaxAttempts,
+		TargetType: "deployment_generation", TargetID: targetID, MaxAttempts: a.liveJobs(r.Context()).MaxAttempts,
 		Payload: payload, CreatedBy: "hostd"})
 	if err != nil {
 		log.Printf("server command reconcile enqueue: %v", err)
 		auth.Problem(w, http.StatusServiceUnavailable, "The deployment result is stored and will be reconciled on a later queue relay.")
 		return
 	}
-	if a.runner != nil {
-		a.runner.Wake()
+	if runner := a.jobRunner(); runner != nil {
+		runner.Wake()
 	}
 	writeStatus(w, http.StatusAccepted, map[string]any{"command_id": r.PathValue("commandId"), "job_id": job.ID, "accepted": true})
 }

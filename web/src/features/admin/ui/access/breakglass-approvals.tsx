@@ -19,13 +19,34 @@ export function BreakGlassApprovals({ enabled }: { enabled: boolean }) {
         return (
           <div key={g.id} className="flex items-center gap-4 border-b border-line px-5 py-3 last:border-b-0">
             <div className="min-w-0 flex-1 text-sm">
-              <div className="text-fg"><span className="font-medium">{g.requester_name}</span> → {g.tenant_name}{g.workspace_name ? ` / ${g.workspace_name}` : ""} <span className="text-fg-subtle">({g.category})</span></div>
-              <div className="text-fg-subtle">{g.reason} · {timeAgo(g.created_at)}</div>
+              <div className="text-fg">
+                <span className="font-medium">{g.requester_name}</span> → {g.tenant_name}
+                {g.workspace_name ? ` / ${g.workspace_name}` : ""} <span className="text-fg-subtle">({g.category})</span>
+              </div>
+              <div className="text-fg-subtle">
+                {g.reason} · {timeAgo(g.created_at)}
+              </div>
             </div>
-            {own ? <span className="text-xs text-fg-subtle">Your request — someone else must decide</span> : (
+            {own ? (
+              <span className="text-xs text-fg-subtle">Your request — someone else must decide</span>
+            ) : (
               <>
-                <Button variant="ghost" size="sm" tooltip="Refuse; the requester is told" onPress={() => decide.mutate({ id: g.id, decision: "deny" })}><X className="size-4" /> Deny</Button>
-                <Button variant="danger" size="sm" tooltip="Needs a fresh sign-in; starts the access now" onPress={() => decide.mutate({ id: g.id, decision: "approve" })}><Check className="size-4" /> Approve</Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  tooltip="Refuse; the requester is told"
+                  onPress={() => decide.mutate({ id: g.id, decision: "deny" })}
+                >
+                  <X className="size-4" /> Deny
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  tooltip="Needs a fresh sign-in; starts the access now"
+                  onPress={() => decide.mutate({ id: g.id, decision: "approve" })}
+                >
+                  <Check className="size-4" /> Approve
+                </Button>
               </>
             )}
           </div>

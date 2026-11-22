@@ -34,7 +34,11 @@ func (a *API) cloneAndOwn(ctx context.Context, tenant, ws, sub string, inst int6
 	if a.n2.tw == nil {
 		return nil, errNoTupleWriter // checked before the clone, so nothing lands in the devspace
 	}
-	tok, err := a.gh.PushToken(ctx, inst, repo.ID, false)
+	app, _, err := a.githubOn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tok, err := app.PushToken(ctx, inst, repo.ID, false)
 	if err != nil {
 		return nil, err
 	}

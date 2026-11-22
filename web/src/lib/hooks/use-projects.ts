@@ -8,7 +8,10 @@ const key = (t?: string) => ["tenant", t, "projects"];
 export const useProjects = (tenantId?: string, workspaceId?: string) =>
   useQuery({
     queryKey: [...key(tenantId), "list", workspaceId ?? "all"],
-    queryFn: () => apiGet<Project[]>(workspaceId ? `/v1/tenants/${tenantId}/organization-workspaces/${workspaceId}/projects` : `/v1/tenants/${tenantId}/projects`),
+    queryFn: () =>
+      apiGet<Project[]>(
+        workspaceId ? `/v1/tenants/${tenantId}/organization-workspaces/${workspaceId}/projects` : `/v1/tenants/${tenantId}/projects`,
+      ),
     enabled: !!tenantId,
   });
 
@@ -25,7 +28,10 @@ export function useCreateProject(tenantId: string) {
     mutationFn: (body: { name: string; environment: string; workspace_id?: string }) =>
       apiSend<Project>("POST", `/v1/tenants/${tenantId}/projects`, body),
     onSuccess: (p) => {
-      toast.success(`Project ${p.name} created`, p.placed ? "It has a home and is ready for a devspace." : "It will be ready once your private server is up.");
+      toast.success(
+        `Project ${p.name} created`,
+        p.placed ? "It has a home and is ready for a devspace." : "It will be ready once your private server is up.",
+      );
       void qc.invalidateQueries({ queryKey: key(tenantId) });
       void qc.invalidateQueries({ queryKey: ["tenant", tenantId, "organization-workspaces"] });
     },

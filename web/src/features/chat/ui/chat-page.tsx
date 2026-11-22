@@ -7,10 +7,16 @@ import { ChatSurface } from "./chat-surface";
 /** /chat and /chat/:sessionId: the same ChatSurface as the overlay, with the route's extras. */
 export function ChatPage() {
   const { sessionId: param } = useParams();
-  useEffect(() => { if (param) chatUI.select(param); }, [param]);
+  useEffect(() => {
+    if (param) chatUI.select(param);
+  }, [param]);
   return (
     <>
-      <PageHeader eyebrow="AI" title="Automaton" description="Provider-agnostic chat: your own Claude or ChatGPT subscription, running in your workspace. Same conversations as the chat panel." />
+      <PageHeader
+        eyebrow="AI"
+        title="Automaton"
+        description="Provider-agnostic chat: your own Claude or ChatGPT subscription, running in your workspace. Same conversations as the chat panel."
+      />
       <div className="h-[calc(100vh-13.75rem)] min-h-105 overflow-hidden rounded-xl border border-line bg-surface">
         <ChatSurface variant="page" sessionId={param ?? null} />
       </div>

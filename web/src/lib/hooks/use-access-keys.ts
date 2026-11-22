@@ -10,8 +10,7 @@ export type CreatedAccessKey = AccessKeyCreated;
 
 const key = ["me", "access-keys"];
 
-export const useAccessKeys = () =>
-  useQuery({ queryKey: key, queryFn: () => callAction("shippin.identity.access_key.list") });
+export const useAccessKeys = () => useQuery({ queryKey: key, queryFn: () => callAction("shippin.identity.access_key.list") });
 
 export function useCreateAccessKey() {
   const qc = useQueryClient();

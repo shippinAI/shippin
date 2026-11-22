@@ -43,7 +43,17 @@ export function AddKeyForm() {
             size="sm"
             isDisabled={!valid || add.isPending}
             tooltip={valid ? "Save and install on your workspaces" : "Enter a name and a valid public key"}
-            onPress={() => add.mutate({ name: name.trim(), public_key: k }, { onSuccess: () => { setName(""); setKey(""); } })}
+            onPress={() =>
+              add.mutate(
+                { name: name.trim(), public_key: k },
+                {
+                  onSuccess: () => {
+                    setName("");
+                    setKey("");
+                  },
+                },
+              )
+            }
           >
             <Plus className="size-4" /> Add key
           </Button>

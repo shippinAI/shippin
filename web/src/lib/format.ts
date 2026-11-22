@@ -8,12 +8,23 @@ export function formatBytes(n: number): string {
 export function timeAgo(iso: string): string {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return "just now";
-  const steps: [number, string][] = [[60, "m"], [3600, "h"], [86400, "d"]];
+  const steps: [number, string][] = [
+    [60, "m"],
+    [3600, "h"],
+    [86400, "d"],
+  ];
   let out = `${Math.floor(s / 60)}m`;
   for (const [sec, l] of steps) if (s >= sec) out = `${Math.floor(s / sec)}${l}`;
   return `${out} ago`;
 }
 
 export function initials(name: string): string {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "?";
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join("") || "?"
+  );
 }

@@ -10,7 +10,12 @@ export type StaffModeState = { active: boolean; required: boolean; minutes: numb
 const KEY = ["admin", "staff-mode"];
 
 export function useStaffMode() {
-  return useQuery({ queryKey: KEY, queryFn: () => apiGet<StaffModeState>("/v1/operator/staff-mode"), refetchInterval: 30_000, retry: false });
+  return useQuery({
+    queryKey: KEY,
+    queryFn: () => apiGet<StaffModeState>("/v1/operator/staff-mode"),
+    refetchInterval: 30_000,
+    retry: false,
+  });
 }
 
 export function useEnterStaffMode() {

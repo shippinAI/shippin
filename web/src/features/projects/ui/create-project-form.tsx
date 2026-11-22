@@ -19,9 +19,24 @@ export function CreateProjectForm({ tenantId, workspaceId }: { tenantId: string;
         create.mutate({ name, environment: env, workspace_id: workspaceId }, { onSuccess: () => setName("") });
       }}
     >
-      <TextField label="Name" placeholder="my-project" value={name} onChange={setName} isRequired pattern={pattern} maxLength={40} description="Lowercase letters, digits and dashes." />
+      <TextField
+        label="Name"
+        placeholder="my-project"
+        value={name}
+        onChange={setName}
+        isRequired
+        pattern={pattern}
+        maxLength={40}
+        description="Lowercase letters, digits and dashes."
+      />
       <TextField label="First environment" value={env} onChange={setEnv} isRequired pattern={pattern} maxLength={24} />
-      <Button type="submit" variant="primary" size="sm" isDisabled={create.isPending || !workspaceId} tooltip="Create the project and its first environment">
+      <Button
+        type="submit"
+        variant="primary"
+        size="sm"
+        isDisabled={create.isPending || !workspaceId}
+        tooltip="Create the project and its first environment"
+      >
         Create project
       </Button>
     </Form>

@@ -30,7 +30,7 @@ export function DevicePage() {
     queryFn: () => apiGet<{ client_name: string }>(`/v1/bridge/device/${encodeURIComponent(code)}`),
     enabled: me.isSuccess && !decide.data && code.replace(/[^A-Za-z0-9]/g, "").length === 8,
     retry: false,
-    refetchInterval: (query) => query.state.error ? false : 5_000,
+    refetchInterval: (query) => (query.state.error ? false : 5_000),
   });
   const signedOut = me.error instanceof ApiError && me.error.status === 401;
   const canDecide = !!pending.data && !pending.isError && !decide.isPending;
@@ -45,33 +45,75 @@ export function DevicePage() {
             {signedOut && (
               <>
                 <p className="text-base">Sign in with {idp} first; this code is kept for when you come back.</p>
-                <Button variant="primary" tooltip="Sign in, then come back to confirm the code" onPress={() => window.location.assign(deviceSignInURL(code))}>Continue with {idp}</Button>
+                <Button
+                  variant="primary"
+                  tooltip="Sign in, then come back to confirm the code"
+                  onPress={() => window.location.assign(deviceSignInURL(code))}
+                >
+                  Continue with {idp}
+                </Button>
               </>
             )}
-            {me.isPending && <p role="status" className="text-base">Checking your sign-in…</p>}
-            {me.isError && !signedOut && <p role="alert" className="text-base text-danger">Unable to check your sign-in. Reload this page to try again.</p>}
+            {me.isPending && (
+              <p role="status" className="text-base">
+                Checking your sign-in…
+              </p>
+            )}
+            {me.isError && !signedOut && (
+              <p role="alert" className="text-base text-danger">
+                Unable to check your sign-in. Reload this page to try again.
+              </p>
+            )}
             {me.isSuccess && decide.data == null && (
               <>
-                <TextField label="Code shown by the bridge" value={code} onChange={(next) => { setCode(next); decide.reset(); }} mono placeholder="XXXX-XXXX" />
+                <TextField
+                  label="Code shown by the bridge"
+                  value={code}
+                  onChange={(next) => {
+                    setCode(next);
+                    decide.reset();
+                  }}
+                  mono
+                  placeholder="XXXX-XXXX"
+                />
                 {pending.data && !pending.isError && (
                   <p className="text-base">
-                    <strong>{pending.data.client_name}</strong> will act as <strong>{email}</strong> on the workspaces you can open,
-                    with certificates that expire within minutes. You can revoke it any time.
+                    <strong>{pending.data.client_name}</strong> will act as <strong>{email}</strong> on the workspaces you can open, with
+                    certificates that expire within minutes. You can revoke it any time.
                   </p>
                 )}
-                {pending.error instanceof ApiError && <p role="alert" className="text-base text-danger">{pending.error.message}</p>}
+                {pending.error instanceof ApiError && (
+                  <p role="alert" className="text-base text-danger">
+                    {pending.error.message}
+                  </p>
+                )}
                 <div className="flex gap-2">
-                  <Button variant="primary" tooltip="Sign this bridge in as you" isDisabled={!canDecide} onPress={() => decide.mutate(true)}>Allow</Button>
-                  <Button variant="secondary" tooltip="Refuse this sign-in" isDisabled={!canDecide} onPress={() => decide.mutate(false)}>Deny</Button>
+                  <Button
+                    variant="primary"
+                    tooltip="Sign this bridge in as you"
+                    isDisabled={!canDecide}
+                    onPress={() => decide.mutate(true)}
+                  >
+                    Allow
+                  </Button>
+                  <Button variant="secondary" tooltip="Refuse this sign-in" isDisabled={!canDecide} onPress={() => decide.mutate(false)}>
+                    Deny
+                  </Button>
                 </div>
               </>
             )}
             {decide.data && (
               <p role="status" className="text-base">
-                {decide.data.approved ? "Approved. The waiting bridge will connect automatically. You can return to your terminal." : "Denied. The bridge was not signed in."}
+                {decide.data.approved
+                  ? "Approved. The waiting bridge will connect automatically. You can return to your terminal."
+                  : "Denied. The bridge was not signed in."}
               </p>
             )}
-            {decide.error instanceof ApiError && <p role="alert" className="text-base text-danger">{decide.error.message}</p>}
+            {decide.error instanceof ApiError && (
+              <p role="alert" className="text-base text-danger">
+                {decide.error.message}
+              </p>
+            )}
           </div>
         </Card>
       </div>

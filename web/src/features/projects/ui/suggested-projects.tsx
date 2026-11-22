@@ -17,7 +17,10 @@ export function SuggestedProjects({ tenantId }: { tenantId: string }) {
   if (!ws) return null;
   return (
     <Card elevation={2}>
-      <CardHeader title="Suggested from your devspace" description={`Found in ${ws.name}. Adopt one and it becomes a project, named after its folder.`} />
+      <CardHeader
+        title="Suggested from your devspace"
+        description={`Found in ${ws.name}. Adopt one and it becomes a project, named after its folder.`}
+      />
       <div className="px-5 pb-5">
         {q.isPending && <Skeleton className="h-16" />}
         {q.data && fresh.length === 0 && (
@@ -49,17 +52,35 @@ export function SuggestedProjects({ tenantId }: { tenantId: string }) {
 function SuggestedRow({ f, id, tenantId, workspaceId }: { f: FoundFolder; id: string; tenantId: string; workspaceId: string }) {
   const adopt = useAdopt(tenantId, workspaceId);
   return (
-    <GridListItem id={id} textValue={f.name} className="flex items-center gap-3 py-3 outline-none data-focus-visible:ring-2 data-focus-visible:ring-primary">
+    <GridListItem
+      id={id}
+      textValue={f.name}
+      className="flex items-center gap-3 py-3 outline-none data-focus-visible:ring-2 data-focus-visible:ring-primary"
+    >
       <div className="min-w-0 flex-1">
         <div className="font-medium text-fg">{f.name}</div>
         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-fg-subtle">
           <span className="font-mono">{f.path.replace("/home/dev/", "~/")}</span>
-          {f.git ? <Badge><GitBranch className="size-3" /> git</Badge> : null}
-          {f.manifests.map((m) => <Badge key={m}><Package className="size-3" /> {m}</Badge>)}
+          {f.git ? (
+            <Badge>
+              <GitBranch className="size-3" /> git
+            </Badge>
+          ) : null}
+          {f.manifests.map((m) => (
+            <Badge key={m}>
+              <Package className="size-3" /> {m}
+            </Badge>
+          ))}
           {f.git && !f.remote && <Badge tone="warning">No GitHub remote</Badge>}
         </div>
       </div>
-      <Button variant="primary" size="sm" tooltip={`Adopt as project “${f.slug}”`} isPending={adopt.isPending} onPress={() => adopt.mutate(f.path)}>
+      <Button
+        variant="primary"
+        size="sm"
+        tooltip={`Adopt as project “${f.slug}”`}
+        isPending={adopt.isPending}
+        onPress={() => adopt.mutate(f.path)}
+      >
         Adopt
       </Button>
     </GridListItem>

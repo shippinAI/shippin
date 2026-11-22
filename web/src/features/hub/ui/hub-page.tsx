@@ -17,14 +17,11 @@ export function HubPage() {
   const waiting = items.filter((t) => t.status === "needs_approval").length;
   return (
     <>
-      <PageHeader
-        eyebrow={t("hub.eyebrow")}
-        title="Board"
-        description={t("hub.description")}
-        actions={<NewTask />}
-      />
+      <PageHeader eyebrow={t("hub.eyebrow")} title="Board" description={t("hub.description")} actions={<NewTask />} />
       <div className="mb-4 flex flex-wrap items-center gap-2 text-base">
-        <Badge tone={live === "live" ? "success" : "neutral"}>{live === "live" ? "Live" : live === "connecting" ? "Connecting…" : "Offline: polling"}</Badge>
+        <Badge tone={live === "live" ? "success" : "neutral"}>
+          {live === "live" ? "Live" : live === "connecting" ? "Connecting…" : "Offline: polling"}
+        </Badge>
         {waiting > 0 && <Badge tone="warning">{waiting} waiting for your approval</Badge>}
         {me.data?.is_owner && <Badge tone="primary">You approve</Badge>}
         {tasks.isError && <span className="text-danger">The board is unavailable: {tasks.error.message}</span>}
@@ -33,16 +30,24 @@ export function HubPage() {
         {columns.map((col) => {
           const cards = items.filter((t) => t.status === col.status);
           return (
-            <section key={col.status} role="listitem" aria-label={col.label}
-              className="flex w-62 shrink-0 snap-start flex-col rounded-2xl border border-line bg-raised/60 p-2.5">
+            <section
+              key={col.status}
+              role="listitem"
+              aria-label={col.label}
+              className="flex w-62 shrink-0 snap-start flex-col rounded-2xl border border-line bg-raised/60 p-2.5"
+            >
               <header className="mb-2.5 flex items-center gap-2 px-1">
                 <span className={`size-2 rounded-full ${col.accent}`} aria-hidden />
                 <h2 className="text-sm font-semibold tracking-wide text-fg uppercase">{col.label}</h2>
                 <span className="ml-auto rounded-full bg-surface px-2 text-xs text-fg-muted">{cards.length}</span>
               </header>
               <div className="flex min-h-24 flex-col gap-2.5">
-                {cards.map((t) => <TaskCard key={t.id} task={t} isOwner={!!me.data?.is_owner} />)}
-                {cards.length === 0 && <p className="rounded-xl border border-dashed border-line px-3 py-6 text-center text-xs text-fg-subtle">Nothing here</p>}
+                {cards.map((t) => (
+                  <TaskCard key={t.id} task={t} isOwner={!!me.data?.is_owner} />
+                ))}
+                {cards.length === 0 && (
+                  <p className="rounded-xl border border-dashed border-line px-3 py-6 text-center text-xs text-fg-subtle">Nothing here</p>
+                )}
               </div>
             </section>
           );

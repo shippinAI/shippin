@@ -15,8 +15,8 @@ const reconcileLock int64 = 0x53_4849_5052_4543
 
 // runReconciler re-enqueues work whose console died, marks dead-ended workspaces failed, prunes
 // old jobs and idempotency keys, and (less often) reports inventory drift to the audit log.
-func (a *API) runReconciler(ctx context.Context) {
-	j := a.cfg.Jobs
+// It runs with the job queue section's timings it was started with, until ctx ends or stop closes.
+func (a *API) runReconciler(ctx context.Context, stop <-chan struct{}, j config.Jobs) {
 	tick := time.NewTicker(config.Sec(j.ReconcileSeconds))
 	defer tick.Stop()
 	lastDrift := time.Time{}
@@ -27,6 +27,8 @@ func (a *API) runReconciler(ctx context.Context) {
 		}
 		select {
 		case <-ctx.Done():
+			return
+		case <-stop:
 			return
 		case <-tick.C:
 		}
@@ -40,7 +42,7 @@ func (a *API) reconcileOnce(ctx context.Context, drift bool) bool {
 		return false
 	}
 	defer release()
-	j := a.cfg.Jobs
+	j := a.liveJobs(ctx)
 	stale := config.Sec(2 * j.LeaseSeconds)
 	a.relayDeploymentOutbox(ctx)
 	a.reconcileWorkspaces(ctx, stale)
@@ -53,6 +55,7 @@ func (a *API) reconcileOnce(ctx context.Context, drift bool) bool {
 	}
 	a.stopIdleTerminals(ctx)
 	a.githubMaintenance(ctx)
+	a.sweepRunners(ctx)
 	if _, err := a.jobs.Prune(ctx, config.Sec(j.KeepDays*86400)); err != nil {
 		log.Printf("reconcile: prune jobs: %v", err)
 	}
@@ -77,7 +80,7 @@ func (a *API) reconcileWorkspaces(ctx context.Context, stale time.Duration) {
 			continue
 		}
 		a.enqueue(ctx, jobs.Job{TenantID: o.TenantID, Kind: jobs.KindWorkspaceProvision, TargetType: "workspace",
-			TargetID: o.ID, MaxAttempts: a.cfg.Jobs.MaxAttempts, CreatedBy: o.CreatedBy})
+			TargetID: o.ID, MaxAttempts: a.liveJobs(ctx).MaxAttempts, CreatedBy: o.CreatedBy})
 	}
 }
 
@@ -89,7 +92,7 @@ func (a *API) reconcileTenants(ctx context.Context, stale time.Duration) {
 	}
 	for _, t := range ts {
 		a.enqueue(ctx, jobs.Job{TenantID: t.ID, Kind: jobs.KindTenantProvision, TargetType: "tenant",
-			TargetID: t.ID, MaxAttempts: a.cfg.Jobs.MaxAttempts, CreatedBy: reconcilerActor})
+			TargetID: t.ID, MaxAttempts: a.liveJobs(ctx).MaxAttempts, CreatedBy: reconcilerActor})
 	}
 }
 
@@ -101,7 +104,7 @@ func (a *API) reconcileBoundaries(ctx context.Context) {
 	}
 	for _, b := range bs {
 		a.enqueue(ctx, jobs.Job{TenantID: b.Tenant, Kind: jobs.KindBoundaryProvision, TargetType: "boundary",
-			TargetID: b.ID, MaxAttempts: a.cfg.Jobs.MaxAttempts, CreatedBy: reconcilerActor})
+			TargetID: b.ID, MaxAttempts: a.liveJobs(ctx).MaxAttempts, CreatedBy: reconcilerActor})
 	}
 }
 
@@ -114,8 +117,8 @@ func (a *API) enqueue(ctx context.Context, j jobs.Job) {
 	}
 	if created {
 		log.Printf("reconcile: queued %s for %s %s (job %s)", j.Kind, j.TargetType, j.TargetID, got.ID)
-		if a.runner != nil {
-			a.runner.Wake()
+		if r := a.jobRunner(); r != nil {
+			r.Wake()
 		}
 	}
 }

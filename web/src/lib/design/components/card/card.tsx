@@ -7,7 +7,9 @@ type Props = { children: ReactNode; className?: string; elevation?: 1 | 2 | 3; "
 export function Card({ children, className, elevation = 1, "data-testid": testId }: Props) {
   const shadow = { 1: "shadow-e1", 2: "shadow-e2", 3: "shadow-e3" }[elevation];
   return (
-    <div data-testid={testId} className={cn("rounded-xl border border-line bg-surface", shadow, className)}>{children}</div>
+    <div data-testid={testId} className={cn("rounded-xl border border-line bg-surface", shadow, className)}>
+      {children}
+    </div>
   );
 }
 

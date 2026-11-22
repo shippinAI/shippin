@@ -3,8 +3,7 @@ import { callAction } from "../api/actions";
 import type { SSHKey } from "../api/types";
 import { toast } from "../design/components/toast/toast-queue";
 
-export const useSSHKeys = () =>
-  useQuery({ queryKey: ["me", "ssh-keys"], queryFn: () => callAction("shippin.identity.ssh_key.list") });
+export const useSSHKeys = () => useQuery({ queryKey: ["me", "ssh-keys"], queryFn: () => callAction("shippin.identity.ssh_key.list") });
 
 export function useAddSSHKey() {
   const qc = useQueryClient();

@@ -2,9 +2,14 @@ import type { Job } from "./job";
 // Mirrors api/openapi (Me, Tenant) from the shippin-cloud plan repo, v0.1.
 // ⚠ Hand-typed until the generated client lands (CONSOLE-IA ground rules).
 export type TenantRef = {
-  tenant_id: string; name: string; roles: string[]; status: string; can_manage: boolean;
+  tenant_id: string;
+  name: string;
+  roles: string[];
+  status: string;
+  can_manage: boolean;
   /** The organization's plan, and how its members must sign in. */
-  plan_id?: string; sign_in?: "password" | "second_factor" | "identity_provider";
+  plan_id?: string;
+  sign_in?: "password" | "second_factor" | "identity_provider";
   /** False when this session signed in less strongly than the plan requires. */
   sign_in_met?: boolean;
   /** Set when an admin sees this tenant only through a platform access grant. */
@@ -47,16 +52,48 @@ export type PublicSettings = {
   login_providers?: { id: string; label: string }[];
   sign_in_providers?: { id: string; label: string }[];
   email_sign_in?: boolean;
+  /** One-click development accounts, offered only on a development address when SHIPPIN_DEV_ACCOUNTS is set. */
+  dev_sign_in?: { email: string; kind: "admin" | "staff" | "customer"; label: string }[];
 };
 
 export type ProbeResource = {
-  server_id: string; guest_id: string; server?: string; name?: string; kind?: string; status?: string;
-  observed: boolean; detail: string; checked_at: string;
+  server_id: string;
+  guest_id: string;
+  server?: string;
+  name?: string;
+  kind?: string;
+  status?: string;
+  observed: boolean;
+  detail: string;
+  checked_at: string;
   addresses?: { interface: string; address: string; family: string; scope?: string }[];
   network_detail?: string;
-  metrics?: { cpu_fraction: number; cpu_count?: number; memory_used_bytes: number; memory_total_bytes: number; disk_used_bytes: number; disk_total_bytes: number; network_in_bytes: number; network_out_bytes: number };
+  metrics?: {
+    cpu_fraction: number;
+    cpu_count?: number;
+    memory_used_bytes: number;
+    memory_total_bytes: number;
+    disk_used_bytes: number;
+    disk_total_bytes: number;
+    network_in_bytes: number;
+    network_out_bytes: number;
+  };
 };
-export type Probe = { id?: string; name: string; alias?: string; kind: string; instance: string; healthy: boolean; configured?: boolean; latency_ms?: number; detail: string; timeout_seconds: number; state?: "unknown" | "stale" | "operational" | "down"; observed_at?: string; resource?: ProbeResource };
+export type Probe = {
+  id?: string;
+  name: string;
+  alias?: string;
+  kind: string;
+  instance: string;
+  healthy: boolean;
+  configured?: boolean;
+  latency_ms?: number;
+  detail: string;
+  timeout_seconds: number;
+  state?: "unknown" | "stale" | "operational" | "down";
+  observed_at?: string;
+  resource?: ProbeResource;
+};
 
 export type Instance = {
   name: string;
@@ -148,9 +185,22 @@ export type Preview = { port: number; public: boolean };
 export type PreviewURL = Preview & { url: string };
 
 export type Template = {
-  id: string; slug: string; name: string; description: string; icon: string; image: string;
-  toolchain: string[]; cpu: number; memory_gib: number; disk_gib: number; repo: string; startup: string;
-  ports: number[]; enabled: boolean; sort: number; created_at: string;
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  image: string;
+  toolchain: string[];
+  cpu: number;
+  memory_gib: number;
+  disk_gib: number;
+  repo: string;
+  startup: string;
+  ports: number[];
+  enabled: boolean;
+  sort: number;
+  created_at: string;
 };
 export type TemplateRules = { repo_hosts: string[]; image_prefix: string; preview_min: number; preview_max: number };
 export type TemplateList = { items: Template[]; sizes: SizePreset[]; limits: TemplateRules };

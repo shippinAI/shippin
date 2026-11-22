@@ -29,20 +29,37 @@ export function SecretActions({ env, secretKey }: { env: string; secretKey: stri
   const copy = async () => {
     const v = shown ?? (await fetchValue());
     if (v === null) return;
-    await navigator.clipboard.writeText(v).then(() => toast.success(`${secretKey} copied`), () => toast.error("Clipboard blocked"));
+    await navigator.clipboard.writeText(v).then(
+      () => toast.success(`${secretKey} copied`),
+      () => toast.error("Clipboard blocked"),
+    );
   };
   return (
     <div className="flex items-center gap-1">
       <code className="mr-2 max-w-72 truncate rounded-sm bg-surface px-2 py-0.5 font-mono text-xs" aria-live="polite">
         {shown ?? "••••••••••••"}
       </code>
-      <IconButton icon={shown === null ? Eye : EyeOff} label={shown === null ? `Reveal ${secretKey}` : `Hide ${secretKey}`} onPress={reveal} />
+      <IconButton
+        icon={shown === null ? Eye : EyeOff}
+        label={shown === null ? `Reveal ${secretKey}` : `Hide ${secretKey}`}
+        onPress={reveal}
+      />
       <IconButton icon={Copy} label={`Copy ${secretKey}`} onPress={copy} />
       <SecretEditor env={env} editKey={secretKey} />
       <IconButton icon={Trash2} label={`Delete ${secretKey}`} onPress={() => setConfirm(true)} />
-      <ConfirmDialog isOpen={confirm} onOpenChange={setConfirm} title={`Delete ${secretKey}?`}
-        body={`It is removed from ${env}. Keyrings drop it on their next sync.`} confirmLabel="Delete"
-        onConfirm={() => del.mutate(secretKey, { onSuccess: () => toast.success(`${secretKey} deleted`), onError: (e) => toast.error("Delete failed", e.message) })} />
+      <ConfirmDialog
+        isOpen={confirm}
+        onOpenChange={setConfirm}
+        title={`Delete ${secretKey}?`}
+        body={`It is removed from ${env}. Keyrings drop it on their next sync.`}
+        confirmLabel="Delete"
+        onConfirm={() =>
+          del.mutate(secretKey, {
+            onSuccess: () => toast.success(`${secretKey} deleted`),
+            onError: (e) => toast.error("Delete failed", e.message),
+          })
+        }
+      />
     </div>
   );
 }

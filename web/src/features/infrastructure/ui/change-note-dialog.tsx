@@ -23,7 +23,10 @@ export function ChangeNoteDialog({ change, onClose }: { change: PendingChange | 
   const [note, setNote] = useState("");
   const [understood, setUnderstood] = useState(false);
   useEffect(() => {
-    if (change) { setNote(""); setUnderstood(false); }
+    if (change) {
+      setNote("");
+      setUnderstood(false);
+    }
   }, [change]);
   const ready = noteOK(note) && (!change?.understand || understood);
   const submit = () => {
@@ -32,14 +35,40 @@ export function ChangeNoteDialog({ change, onClose }: { change: PendingChange | 
     onClose();
   };
   return (
-    <ModalDialog isOpen={change !== null} onOpenChange={(o) => { if (!o) onClose(); }} title={change?.title ?? ""} description={change?.description}>
-      <form className="space-y-4 px-6 py-5" data-testid="change-note" onSubmit={(e) => { e.preventDefault(); submit(); }}>
-        {change?.warning && <p role="alert" className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">{change.warning}</p>}
+    <ModalDialog
+      isOpen={change !== null}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+      title={change?.title ?? ""}
+      description={change?.description}
+    >
+      <form
+        className="space-y-4 px-6 py-5"
+        data-testid="change-note"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
+        {change?.warning && (
+          <p role="alert" className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
+            {change.warning}
+          </p>
+        )}
         <TextField label={t("infra.note.label")} description={t("infra.note.help")} value={note} onChange={setNote} autoFocus />
-        {change?.understand && <Checkbox isSelected={understood} onChange={setUnderstood}>{change.understand}</Checkbox>}
+        {change?.understand && (
+          <Checkbox isSelected={understood} onChange={setUnderstood}>
+            {change.understand}
+          </Checkbox>
+        )}
         <div className="flex justify-end gap-2 border-t border-line pt-4">
-          <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={onClose}>{t("infra.dialog.cancel")}</Button>
-          <Button type="submit" variant="primary" isDisabled={!ready} tooltip={t("infra.note.tooltip")}>{change?.confirm}</Button>
+          <Button variant="ghost" tooltip={t("infra.dialog.cancelTooltip")} onPress={onClose}>
+            {t("infra.dialog.cancel")}
+          </Button>
+          <Button type="submit" variant="primary" isDisabled={!ready} tooltip={t("infra.note.tooltip")}>
+            {change?.confirm}
+          </Button>
         </div>
       </form>
     </ModalDialog>

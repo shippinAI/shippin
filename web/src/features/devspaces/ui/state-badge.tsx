@@ -4,9 +4,14 @@ import { StatusDot } from "../../../lib/design/components/status-dot/status-dot"
 import type { WorkspaceState } from "../../../lib/api/types";
 
 const words: Record<WorkspaceState, [string, BadgeTone]> = {
-  running: ["Running", "success"], stopped: ["Stopped", "neutral"], provisioning: ["Setting up", "info"],
-  starting: ["Starting", "info"], stopping: ["Stopping", "warning"], deleting: ["Deleting", "warning"],
-  failed: ["Needs attention", "danger"], unknown: ["Status unavailable", "warning"],
+  running: ["Running", "success"],
+  stopped: ["Stopped", "neutral"],
+  provisioning: ["Setting up", "info"],
+  starting: ["Starting", "info"],
+  stopping: ["Stopping", "warning"],
+  deleting: ["Deleting", "warning"],
+  failed: ["Needs attention", "danger"],
+  unknown: ["Status unavailable", "warning"],
 };
 
 export function StateBadge({ state }: { state: WorkspaceState }) {
@@ -14,7 +19,11 @@ export function StateBadge({ state }: { state: WorkspaceState }) {
   const busy = ["provisioning", "starting", "stopping", "deleting"].includes(state);
   return (
     <Badge tone={tone}>
-      {busy ? <Loader2 className="size-3 animate-spin" /> : <StatusDot health={state === "running" ? "up" : state === "failed" ? "down" : "unknown"} />}
+      {busy ? (
+        <Loader2 className="size-3 animate-spin" />
+      ) : (
+        <StatusDot health={state === "running" ? "up" : state === "failed" ? "down" : "unknown"} />
+      )}
       {label}
     </Badge>
   );

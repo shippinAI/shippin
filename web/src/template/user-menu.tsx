@@ -19,7 +19,10 @@ export function UserMenu({ area }: { area: "tenant" | "admin" }) {
     return ops ? window.location.assign(ops + path) : nav(path);
   };
   const trigger = (
-    <Button aria-label="Account menu" className="focus-ring flex w-full cursor-default items-center gap-2.5 rounded-lg p-1.5 text-left data-hovered:bg-raised">
+    <Button
+      aria-label="Account menu"
+      className="focus-ring flex w-full cursor-default items-center gap-2.5 rounded-lg p-1.5 text-left data-hovered:bg-raised"
+    >
       <span className="flex size-8 items-center justify-center rounded-full bg-overlay text-xs font-semibold text-fg ring-1 ring-line-strong">
         {initials(me?.display_name ?? "")}
       </span>

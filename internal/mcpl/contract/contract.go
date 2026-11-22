@@ -43,7 +43,9 @@ type node struct {
 	ref    string   // a named struct or enum, by its contract name
 	values []string // enum
 	elem   *node    // array and map
-	fields []field
+	// nullElem: the elements are pointers, so an element may be null ({"key": null} removes a key).
+	nullElem bool
+	fields   []field
 }
 
 type field struct {
@@ -139,9 +141,9 @@ func (m *model) of(t reflect.Type) *node {
 		if t.Elem().Kind() == reflect.Uint8 {
 			return &node{kind: "bytes"}
 		}
-		return &node{kind: "array", elem: m.of(t.Elem())}
+		return &node{kind: "array", elem: m.of(t.Elem()), nullElem: t.Elem().Kind() == reflect.Pointer}
 	case reflect.Map:
-		return &node{kind: "map", elem: m.of(t.Elem())}
+		return &node{kind: "map", elem: m.of(t.Elem()), nullElem: t.Elem().Kind() == reflect.Pointer}
 	case reflect.Struct:
 		if !named(t) {
 			return m.object(t)

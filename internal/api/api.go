@@ -16,23 +16,29 @@ import (
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/deployments"
-	"shippin.cloud/console/internal/gh"
+	"shippin.cloud/console/internal/devaccounts"
 	"shippin.cloud/console/internal/hostclient"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/proxmox"
 	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/identity/access_key"
+	"shippin.cloud/console/internal/infrastructure/metric"
 	"shippin.cloud/console/internal/jobs"
 	"shippin.cloud/console/internal/mail"
 	"shippin.cloud/console/internal/managed"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/platform/secret_store"
 	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/settings"
 	"shippin.cloud/console/internal/subs"
 	"shippin.cloud/console/internal/tenantdb"
 )
 
 type API struct {
-	cfg          *config.Config
+	cfg *config.Config
+	// settings are the sections edited in the panel; secrets is the Vaultix store their keys go to.
+	settings     *settings.Store
+	secrets      *secret_store.Vaultix
 	flow         *auth.Flow
 	db           *db.DB
 	host         *hostclient.Client
@@ -52,6 +58,8 @@ type API struct {
 	// ch is ClickHouse, the metrics and events store. Empty when the install has none. An owner can
 	// change it from the panel, so it is read fresh each time.
 	ch atomic.Pointer[clickhouse.Client]
+	// sampler writes hosts' and guests' metrics to ch (RunMetrics); nil until it starts.
+	sampler atomic.Pointer[metric.Sampler]
 	// Test-only overrides: recipient lookups and synchronous notices.
 	lookupManagers func(ctx context.Context, org string) ([]string, error)
 	orgOfUser      func(ctx context.Context, sub string) (string, error) // test seam for orgMember
@@ -65,12 +73,14 @@ type API struct {
 	staffCache staffCache
 	// authAt overrides the sign-in time lookup in tests only.
 	authAt func(*http.Request) time.Time
-	// jobs is the durable job store; runner is nil while config jobs.enabled is false.
+	// jobs is the durable job store. runner is the running job runner, nil while the job queue section
+	// is off (read it with jobRunner); queue is what follows that section.
 	jobs        *jobs.Store
-	runner      *jobs.Runner
+	runner      atomic.Pointer[jobs.Runner]
+	queue       jobQueue
 	drift       driftMemo
 	subs        *subs.Store // M2: per-user AI homes and subscription status (never credentials)
-	gh          *gh.App     // M3: the Shippin GitHub App; nil when github is disabled
+	ghApp       gitHubApp   // M3: the Shippin GitHub App, built from the github section (read it with github)
 	ghTick      ghTimers
 	runs        *agentruns.Store   // M4: build-agent runs (no tokens, prompt only until delivered)
 	svcs        *managed.Store     // managed service instances (rrflow/state first)
@@ -116,13 +126,14 @@ func (a *API) authTime(r *http.Request) time.Time {
 
 func New(cfg *config.Config, flow *auth.Flow, d *db.DB) *API {
 	a := &API{cfg: cfg, flow: flow, db: d, host: hostclient.New(cfg.Incus.HostdURL), started: time.Now(), probeGate: newProbeConcurrencyGate(cfg.ProbeConcurrency),
-		jobs: jobs.NewStore(d.Pool), subs: &subs.Store{Pool: d.Pool}, gh: newGitHub(cfg.GitHub),
+		jobs: jobs.NewStore(d.Pool), subs: &subs.Store{Pool: d.Pool},
 		runs: &agentruns.Store{Pool: d.Pool}, svcs: rrflowStore(d), n2: newN2(cfg, d)}
 	if flow != nil && flow.Keys == nil && d != nil {
 		flow.Keys = func(ctx context.Context, token string) (string, string, bool) {
 			return access_key.Resolve(ctx, d.Pool, token)
 		}
 	}
+	a.newSettings()
 	a.tenantDB = tenantdb.NewGate(tenantdb.DialerFrom(cfg.TenantDB.Host, cfg.TenantDB.PortOrDefault(), cfg.TenantDB.SSL(), cfg.TenantDB.Timeout(), cfg.TenantDBSecrets),
 		tenantdb.Guard{Timeout: cfg.TenantDB.Timeout(), MaxRows: cfg.TenantDB.Rows()})
 	importCtx, cancelImport := context.WithTimeout(context.Background(), 10*time.Second)
@@ -192,7 +203,7 @@ func (a *API) Register(mux Router) {
 	mux.HandleFunc("GET /v1/mcpl", a.mcplPublic)
 	a.mountActions(mux)
 	a.mcpRoutes(mux)
-	a.followSSHKeys()
+	a.mountReactions()
 	mux.HandleFunc("GET /auth/ws-check", a.wsCheck)
 	mux.HandleFunc("GET /auth/ws-login", a.wsLogin)
 	mux.HandleFunc("GET /_shippin/auth", a.wsCode)
@@ -264,7 +275,20 @@ func (a *API) publicSettings(w http.ResponseWriter, r *http.Request) {
 		"login_providers":      loginProviders(a.cfg.IDP.Providers),
 		"sign_in_providers":    signInProviders(a.cfg.Directory.Upstreams),
 		"email_sign_in":        a.cfg.Mail.Enabled || os.Getenv("SHIPPIN_MAIL_SINK") != "",
+		"dev_sign_in":          devSignIn(r.Host, !a.cfg.Directory.UpstreamRequired && a.directory != nil),
 	})
+}
+
+// devSignIn lists the one-click development accounts the sign-in page offers, as email and label.
+func devSignIn(host string, local bool) []map[string]string {
+	out := []map[string]string{}
+	if !local {
+		return out
+	}
+	for _, acct := range devaccounts.QuickSignIn(host) {
+		out = append(out, map[string]string{"email": acct.Email, "kind": acct.Kind, "label": acct.Label()})
+	}
+	return out
 }
 
 // signInProviders lists the OIDC providers people can sign in through. One with no issuer or client is

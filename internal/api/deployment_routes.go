@@ -20,7 +20,7 @@ func (a *API) deploymentStore() *deployments.Store {
 	if a.deployments != nil {
 		return a.deployments
 	}
-	return deployments.NewStore(a.db.Pool)
+	return deployments.NewStoreUnder(a.db.Pool, a.placement())
 }
 
 func (a *API) deploymentRoutes(mux Router) {

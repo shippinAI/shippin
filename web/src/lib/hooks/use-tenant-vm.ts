@@ -16,7 +16,12 @@ export function useTenantVM(id: string | undefined) {
   });
 }
 
-const verb: Record<VMAction | "enable", string> = { start: "Starting", stop: "Stopping", restart: "Restarting", enable: "Creating the tenant VM for" };
+const verb: Record<VMAction | "enable", string> = {
+  start: "Starting",
+  stop: "Stopping",
+  restart: "Restarting",
+  enable: "Creating the tenant VM for",
+};
 
 /** Enable (legacy → VM-backed) or start/stop/restart the tenant VM, with toasts. */
 export function useTenantVMAction() {

@@ -33,15 +33,23 @@ export function SettingsPage() {
         </Card>
         <CoverageCard tenantId={tenant.tenant_id} />
         <Card>
-          <CardHeader title="Identity & infrastructure" description="Your tenant is an org in the identity provider with its own isolated project." />
+          <CardHeader
+            title="Identity & infrastructure"
+            description="Your tenant is an org in the identity provider with its own isolated project."
+          />
           <CopyField label="OIDC issuer" value={s.idp_issuer} mono />
           <CopyField label="Organization ID" value={s.idp_org_id} mono hint={`The organization in ${idp} mapped to this tenant`} />
           <CopyField label="Incus project" value={s.incus_project} mono />
           <CopyField label="SSH address" value={s.ssh_ip} mono hint="Shared by your workspaces" />
         </Card>
         <Card>
-          <CardHeader title="AI apps" description="Copy a command into your own terminal. It installs the app and starts the vendor sign-in." />
-          <div className="px-5 py-4"><AppCards tenantId={tenant.tenant_id} /></div>
+          <CardHeader
+            title="AI apps"
+            description="Copy a command into your own terminal. It installs the app and starts the vendor sign-in."
+          />
+          <div className="px-5 py-4">
+            <AppCards tenantId={tenant.tenant_id} />
+          </div>
         </Card>
         <BundleCard tenantId={tenant.tenant_id} />
         <Card>
@@ -52,7 +60,9 @@ export function SettingsPage() {
                 <Globe className="size-4 text-hue-network" />
                 <span className="flex-1 font-mono text-sm">{d}</span>
                 {d === s.default_domain && <Badge tone="primary">Default</Badge>}
-                <Badge tone="success"><ShieldCheck className="size-3" /> Governed</Badge>
+                <Badge tone="success">
+                  <ShieldCheck className="size-3" /> Governed
+                </Badge>
               </li>
             ))}
           </ul>
