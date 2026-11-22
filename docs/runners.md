@@ -155,4 +155,7 @@ compatibility. Its hand-written MCP, file storage and shared-account policies ar
 platform runtime. A dependency test prevents the console from importing its stateful package.
 [The disposition](reference/shippin-run.md#platform-boundary) records retained behavior and gaps;
 source consolidation does not complete platform logs, workflow editing or VM execution.
-PR #20, which proposed a gateway proxy page, remains a separate review item.
+PR #20's gateway proxy proposal is reconciled in [its source disposition](runner-service.md).
+Its original commits remain in merged history; the current runner UI and runtime
+stay authoritative. Versioned external profiles and gateway-specific acceptance
+remain explicit gaps, not completed panel features.
