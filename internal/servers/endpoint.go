@@ -109,16 +109,18 @@ func (s *Store) Endpoint(ctx context.Context, id string) (Endpoint, error) {
 	return e, err
 }
 
-// VisibleEndpoint returns the hypervisor on a server this tenant owns or is assigned.
-// An estate row with no assignment is not visible. The token secret is not selected.
+// VisibleEndpoint returns the hypervisor on a server this tenant owns or the placement policy lets it
+// use. Any other estate row is not visible. The token secret is not selected.
 func (s *Store) VisibleEndpoint(ctx context.Context, tenant, id string) (Endpoint, error) {
 	if uuid.Validate(id) != nil || uuid.Validate(tenant) != nil {
 		return Endpoint{}, ErrNotFound
 	}
+	hosts, err := s.hosts(ctx, s.Pool, tenant)
+	if err != nil {
+		return Endpoint{}, err
+	}
 	e, err := scanEndpoint(s.Pool.QueryRow(ctx, `SELECT `+epCols+` FROM servers s
-		WHERE s.id=$1 AND s.hv_kind IS NOT NULL AND (
-			s.tenant_id=$2 OR EXISTS (SELECT 1 FROM server_assignments a WHERE a.server_id=s.id AND a.tenant_id=$2)
-		)`, id, tenant))
+		WHERE s.id=$1 AND s.hv_kind IS NOT NULL AND (s.tenant_id=$2 OR s.id = ANY($3::uuid[]))`, id, tenant, hosts))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Endpoint{}, ErrNotFound
 	}

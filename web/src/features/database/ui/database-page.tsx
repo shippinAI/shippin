@@ -42,7 +42,8 @@ export function DatabasePage() {
         {info.data ? (
           <span>
             Queries run as <span className="font-mono text-fg">{info.data.role}</span> on{" "}
-            <span className="font-mono text-fg">{info.data.database}</span> only, and stop after {Math.round(info.data.statement_timeout_ms / 1000)}s.
+            <span className="font-mono text-fg">{info.data.database}</span> only, and stop after{" "}
+            {Math.round(info.data.statement_timeout_ms / 1000)}s.
           </span>
         ) : (
           <span>Loading the database name…</span>
@@ -50,7 +51,8 @@ export function DatabasePage() {
       </div>
       {info.data && !info.data.login_ready && (
         <div role="status" className="mb-6 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-fg">
-          This console can name the database, but it isn't signed in as your database role yet. Connection details still copy. Running a query needs a pooler login for that role — the password stays in the platform, not in the browser.
+          This console can name the database, but it isn't signed in as your database role yet. Connection details still copy. Running a
+          query needs a pooler login for that role — the password stays in the platform, not in the browser.
         </div>
       )}
       <Tabs

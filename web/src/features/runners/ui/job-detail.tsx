@@ -29,30 +29,62 @@ export function JobDetail({ tenantId, jobId, workspaces, onClose }: Props) {
   const ws = workspaces.find((w) => w.id === j?.workspace_id)?.name;
   const project = projects.data?.find((p) => p.id === j?.project_id)?.name;
   return (
-    <Drawer isOpen={!!jobId} onOpenChange={(o) => { if (!o) onClose(); }} title={j?.name || "Runner job"} subtitle={j?.repository}>
+    <Drawer
+      isOpen={!!jobId}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+      title={j?.name || "Runner job"}
+      subtitle={j?.repository}
+    >
       <div className="space-y-5 px-6 py-5">
         {q.isPending && <Skeleton className="h-48" />}
-        {q.isError && <p role="alert" className="text-base text-danger">{problemText(q.error)}</p>}
-        {j && <>
-          <div className="flex items-center gap-3"><JobStatusBadge job={j} /><span className="text-sm text-fg-muted">{jobStatusView(j).hint}</span></div>
-          <Refusal job={j} />
-          <dl>
-            <Fact label="Repository"><span className="font-mono text-sm">{j.repository}</span></Fact>
-            <Fact label="Workspace">{j.workspace_id ? ws ?? "A removed workspace" : <span className="text-fg-subtle">Not assigned when the job came</span>}</Fact>
-            {j.project_id && <Fact label="Project">{project ?? "A removed project"}</Fact>}
-            <Fact label="Size">{j.size ? <span className="font-mono text-sm">{runsOn(j.size)}</span> : "—"}</Fact>
-            <Fact label="Labels"><span className="font-mono text-sm">{j.labels.join(", ") || "—"}</span></Fact>
-            <Fact label="Queued"><time dateTime={j.queued_at}>{when(j.queued_at)}</time> <span className="text-fg-subtle">({ago(j.queued_at, now)})</span></Fact>
-            <Fact label="Started">{when(j.started_at)}</Fact>
-            <Fact label="Finished">{when(j.completed_at)}</Fact>
-            <Fact label="Duration">{jobDuration(j, now)}</Fact>
-            {j.conclusion && <Fact label="GitHub's result">{j.conclusion.replace(/_/g, " ")}</Fact>}
-            {j.runner_name && <Fact label="Runner"><span className="font-mono text-sm">{j.runner_name}</span></Fact>}
-            <Fact label="GitHub run"><span className="font-mono text-sm">{j.run_id}</span></Fact>
-            <Fact label="GitHub job"><span className="font-mono text-sm">{j.github_job_id}</span></Fact>
-          </dl>
-          <p className="text-sm text-fg-subtle">Logs are not kept here yet; open the run on GitHub for its output.</p>
-        </>}
+        {q.isError && (
+          <p role="alert" className="text-base text-danger">
+            {problemText(q.error)}
+          </p>
+        )}
+        {j && (
+          <>
+            <div className="flex items-center gap-3">
+              <JobStatusBadge job={j} />
+              <span className="text-sm text-fg-muted">{jobStatusView(j).hint}</span>
+            </div>
+            <Refusal job={j} />
+            <dl>
+              <Fact label="Repository">
+                <span className="font-mono text-sm">{j.repository}</span>
+              </Fact>
+              <Fact label="Workspace">
+                {j.workspace_id ? (ws ?? "A removed workspace") : <span className="text-fg-subtle">Not assigned when the job came</span>}
+              </Fact>
+              {j.project_id && <Fact label="Project">{project ?? "A removed project"}</Fact>}
+              <Fact label="Size">{j.size ? <span className="font-mono text-sm">{runsOn(j.size)}</span> : "—"}</Fact>
+              <Fact label="Labels">
+                <span className="font-mono text-sm">{j.labels.join(", ") || "—"}</span>
+              </Fact>
+              <Fact label="Queued">
+                <time dateTime={j.queued_at}>{when(j.queued_at)}</time> <span className="text-fg-subtle">({ago(j.queued_at, now)})</span>
+              </Fact>
+              <Fact label="Started">{when(j.started_at)}</Fact>
+              <Fact label="Finished">{when(j.completed_at)}</Fact>
+              <Fact label="Duration">{jobDuration(j, now)}</Fact>
+              {j.conclusion && <Fact label="GitHub's result">{j.conclusion.replace(/_/g, " ")}</Fact>}
+              {j.runner_name && (
+                <Fact label="Runner">
+                  <span className="font-mono text-sm">{j.runner_name}</span>
+                </Fact>
+              )}
+              <Fact label="GitHub run">
+                <span className="font-mono text-sm">{j.run_id}</span>
+              </Fact>
+              <Fact label="GitHub job">
+                <span className="font-mono text-sm">{j.github_job_id}</span>
+              </Fact>
+            </dl>
+            <p className="text-sm text-fg-subtle">Logs are not kept here yet; open the run on GitHub for its output.</p>
+          </>
+        )}
       </div>
     </Drawer>
   );

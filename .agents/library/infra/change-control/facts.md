@@ -10,15 +10,15 @@ Each fact is a dated claim. Re-check it when `verified:` is more than 90 days ol
 
 ## Production hosts need explicit words
 
-- claim: A change on a production host waits for Jesse's explicit words for that change. A plan or a pull request is not that approval.
-- source: Owner instruction recorded with this skill on 2026-11-19.
-- verified: 2026-11-19
+- claim: A production host change requires the owner's authorization for that action. Existing authorization in the task remains valid; a plan or pull request alone does not authorize production changes. Authorized initial installation also has a narrow setup-code delivery rule.
+- source: Current owner task authorization and [AGENTS.md](../../../../AGENTS.md), read 2026-11-22. No production deployment is part of the PR consolidation task.
+- verified: 2026-11-22
 
 ## Main moves through the queue
 
-- claim: On this repository, `main` advances only when the Gate fast-forwards a green `queue/main` commit. The pre-push hook refuses a direct push to `main`. People without administrator rights open a pull request.
-- source: [CONTRIBUTING.md](../../../../CONTRIBUTING.md), section "Working with the public remote", read 2026-11-19.
-- verified: 2026-11-19
+- claim: Main must remain green. CONTRIBUTING describes queue promotion and checked PR merges; AGENTS gives the working rule and the owner's current task selects the route. This task explicitly requests sequential existing-PR merges. A prior authorization does not need to be requested again.
+- source: [CONTRIBUTING.md](../../../../CONTRIBUTING.md), section "Working with the public remote", [AGENTS.md](../../../../AGENTS.md), and the current owner request, reviewed 2026-11-22.
+- verified: 2026-11-22
 
 ## This repository does not hold installation values
 

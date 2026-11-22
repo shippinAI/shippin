@@ -14,7 +14,10 @@ export function TableToolbar({ label, value, onChange, count, actions }: Props) 
           placeholder={`Search ${label}…`}
           className="h-8 w-full rounded-lg border border-line-control bg-canvas/60 pr-8 pl-8 text-sm text-fg outline-none placeholder:text-fg-subtle data-focused:border-primary data-focused:ring-2 data-focused:ring-primary/25 [&::-webkit-search-cancel-button]:hidden"
         />
-        <RacButton aria-label="Clear search" className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-sm p-1 text-fg-subtle group-data-empty:hidden data-hovered:text-fg">
+        <RacButton
+          aria-label="Clear search"
+          className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-sm p-1 text-fg-subtle group-data-empty:hidden data-hovered:text-fg"
+        >
           <X className="size-3" />
         </RacButton>
       </SearchField>
@@ -26,4 +29,9 @@ export function TableToolbar({ label, value, onChange, count, actions }: Props) 
 
 /** Case-insensitive match of a query against any of the given fields. */
 export const matches = (q: string, ...fields: (string | number | undefined)[]) =>
-  !q || fields.some((f) => String(f ?? "").toLowerCase().includes(q.toLowerCase()));
+  !q ||
+  fields.some((f) =>
+    String(f ?? "")
+      .toLowerCase()
+      .includes(q.toLowerCase()),
+  );

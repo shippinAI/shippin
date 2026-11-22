@@ -22,18 +22,48 @@ export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Inst
   const k = kinds[probe.kind.toLowerCase()] ?? { icon: Server, hue: "var(--color-primary)" };
   const Icon = k.icon;
   return (
-    <div data-testid="service-card" className="group relative overflow-hidden rounded-xl border border-line bg-surface p-5 shadow-e1 transition-shadow hover:shadow-e2">
+    <div
+      data-testid="service-card"
+      className="group relative overflow-hidden rounded-xl border border-line bg-surface p-5 shadow-e1 transition-shadow hover:shadow-e2"
+    >
       <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${k.hue}, transparent)` }} />
       <div className="flex items-start justify-between">
-        <span className="flex size-10 items-center justify-center rounded-xl" style={{ background: `color-mix(in oklch, ${k.hue} 16%, transparent)` }}>
+        <span
+          className="flex size-10 items-center justify-center rounded-xl"
+          style={{ background: `color-mix(in oklch, ${k.hue} 16%, transparent)` }}
+        >
           <Icon className="size-5" style={{ color: k.hue }} strokeWidth={1.75} />
         </span>
         <Tooltip content={probe.latency_ms === undefined ? `Probe: ${probe.detail}` : `Probe: ${probe.detail} in ${probe.latency_ms} ms`}>
           <Focusable>
             <span tabIndex={0} className="outline-none">
-              <Badge tone={probe.state === "operational" || (!probe.state && probe.healthy) ? "success" : probe.state === "down" || (!probe.state && probe.configured !== false) ? "danger" : probe.state === "stale" ? "warning" : "neutral"}>
-                <StatusDot health={probe.state === "operational" || (!probe.state && probe.healthy) ? "up" : probe.state === "down" || (!probe.state && probe.configured !== false) ? "down" : "unknown"} />
-                {probe.state === "operational" || (!probe.state && probe.healthy) ? "Operational" : probe.state === "stale" ? "Stale" : probe.state === "down" || (!probe.state && probe.configured !== false) ? "Down" : "Unknown"}
+              <Badge
+                tone={
+                  probe.state === "operational" || (!probe.state && probe.healthy)
+                    ? "success"
+                    : probe.state === "down" || (!probe.state && probe.configured !== false)
+                      ? "danger"
+                      : probe.state === "stale"
+                        ? "warning"
+                        : "neutral"
+                }
+              >
+                <StatusDot
+                  health={
+                    probe.state === "operational" || (!probe.state && probe.healthy)
+                      ? "up"
+                      : probe.state === "down" || (!probe.state && probe.configured !== false)
+                        ? "down"
+                        : "unknown"
+                  }
+                />
+                {probe.state === "operational" || (!probe.state && probe.healthy)
+                  ? "Operational"
+                  : probe.state === "stale"
+                    ? "Stale"
+                    : probe.state === "down" || (!probe.state && probe.configured !== false)
+                      ? "Down"
+                      : "Unknown"}
               </Badge>
             </span>
           </Focusable>
@@ -56,16 +86,26 @@ export function ServiceCard({ probe, instance }: { probe: Probe; instance?: Inst
           {probe.resource.observed && probe.resource.metrics ? (
             <dl className="grid grid-cols-3 gap-3">
               <Stat label="CPU" value={`${(probe.resource.metrics.cpu_fraction * 100).toFixed(1)}%`} />
-              <Stat label="Memory" value={`${formatBytes(probe.resource.metrics.memory_used_bytes)} / ${formatBytes(probe.resource.metrics.memory_total_bytes)}`} />
-              <Stat label="Disk" value={`${formatBytes(probe.resource.metrics.disk_used_bytes)} / ${formatBytes(probe.resource.metrics.disk_total_bytes)}`} />
+              <Stat
+                label="Memory"
+                value={`${formatBytes(probe.resource.metrics.memory_used_bytes)} / ${formatBytes(probe.resource.metrics.memory_total_bytes)}`}
+              />
+              <Stat
+                label="Disk"
+                value={`${formatBytes(probe.resource.metrics.disk_used_bytes)} / ${formatBytes(probe.resource.metrics.disk_total_bytes)}`}
+              />
             </dl>
           ) : (
-            <p className="text-fg-subtle">{probe.resource.observed ? probe.resource.detail : `Resource state unavailable: ${probe.resource.detail}`}</p>
+            <p className="text-fg-subtle">
+              {probe.resource.observed ? probe.resource.detail : `Resource state unavailable: ${probe.resource.detail}`}
+            </p>
           )}
           {probe.resource.observed && (
             <div className="mt-2 text-fg-subtle">
               <span>Provider addresses: </span>
-              {probe.resource.addresses?.length ? probe.resource.addresses.map((address) => `${address.interface}: ${address.address}`).join(", ") : "unknown"}
+              {probe.resource.addresses?.length
+                ? probe.resource.addresses.map((address) => `${address.interface}: ${address.address}`).join(", ")
+                : "unknown"}
               <p className="mt-1">{probe.resource.network_detail || "Provider observation does not verify probe reachability."}</p>
             </div>
           )}

@@ -44,7 +44,7 @@ The Agent Skills spec says `name` must match the directory the assistant loads. 
 
 `description` is the trigger. It is one line, it starts with `Use when`, and it says when the skill applies, including the words a person would actually use. Write it in a form that can sit next to every other description in the system prompt ([authoring guidance](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices), [trigger testing](https://github.com/agentskills/agentskills/blob/main/docs/skill-creation/optimizing-descriptions.mdx)). The spec allows 1024 characters. This library allows 300, because every description is loaded for every conversation.
 
-Frontmatter is only `name` and `description`, one line each. A surrounding pair of double quotes is optional. Other spec fields (`license`, `compatibility`, `metadata`) are rejected here so the file stays what this consumer reads.
+Frontmatter is only `name` and `description`, one line each. Double-quoted values use JSON-compatible escapes; quote values containing YAML punctuation. Other spec fields (`license`, `compatibility`, `metadata`) are rejected here so the file stays what this consumer reads. Flat names must be unique across the whole library.
 
 ## Size
 
@@ -60,7 +60,7 @@ Frontmatter is only `name` and `description`, one line each. A surrounding pair 
 ## Anti-context-rot
 
 - **One job.** If a skill covers two decisions, split it.
-- **Link the live source.** Point at the repo path or URL that is true now. Do not paste a second copy of a page, a host list, or a status table into `SKILL.md`.
+- **Link the live source.** Published `SKILL.md` links use HTTPS URLs (or anchors within that file), because only that file is exported. Do not paste a second copy of a page, a host list, or a status table into `SKILL.md`. The linter checks inline Markdown links; reviewers must also inspect bare paths and reference-style links.
 - **Date the claims that rot.** Versions, "how main moves", and "what is not built yet" go in `facts.md` with `verified:` and a source. The checklist in `SKILL.md` is the standing procedure.
 - **No secrets, ever.** No tokens, keys, connection strings, or one-time setup codes. Give a file path or a setting name. This includes `_template/` and `tests.md`.
 - **No installation identities.** Addresses, domains, and tenant ids of one installation stay out, same as the rest of this repository.
@@ -69,7 +69,7 @@ Frontmatter is only `name` and `description`, one line each. A surrounding pair 
 
 ## Change control for this library
 
-Skills in this tree change through a pull request. The rest of the repository usually lands on `main` through `queue/main` ([CONTRIBUTING.md](../../CONTRIBUTING.md)). This library is stricter: the text is the behavior, and CI does not run an assistant. A person reads the description, the trigger prompts, and any new fact before merge.
+Follow the repository's current review process and the owner's task authorization ([AGENTS.md](../../AGENTS.md), [CONTRIBUTING.md](../../CONTRIBUTING.md)). The text is the behavior, and CI does not run an assistant: review the description, trigger prompts and new facts before merge. An explicit instruction to complete an existing PR authorizes that review and merge; it does not authorize installing the export into another assistant.
 
 Do not export into an assistant until that review has landed. The export script only writes files on disk.
 
@@ -83,7 +83,7 @@ node --test scripts/skills/skills.test.mjs
 node scripts/skills/export.mjs /path/to/empty-output-dir
 ```
 
-`scripts/check.sh` and the `skills` job in [Checks](../../.github/workflows/checks.yml) run the linter and the tests. The export writes one directory per flat name and copies `SKILL.md` unchanged. It skips `_template/`. It does not delete extra folders in the output, it does not copy `facts.md` or `tests.md`, and it does not talk to an assistant. It refuses to write inside this library, and it refuses to export a library the linter rejects.
+`scripts/check.sh` and the `skills` job in [Checks](../../.github/workflows/checks.yml) run the linter and the tests. The export writes one directory per flat name and copies `SKILL.md` unchanged. It skips `_template/`. It does not delete extra folders in the output, copy `facts.md` or `tests.md`, or talk to an assistant. It refuses to write inside the library, follow linked output paths, overwrite differing files, or export a library the linter rejects. Identical existing copies are left intact. Use an empty output directory for a changed export. Input files must be regular files without hard links; symlinks and junctions are rejected. Run this local authoring tool with exclusive access to its input/output paths; it is not a sandbox against concurrent filesystem writers.
 
 ## What is here
 

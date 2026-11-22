@@ -6,7 +6,11 @@ type Props = { onSignIn: () => void; checking: boolean };
 /** Shown instead of the IDE frame until the workspace host has a valid sign-in cookie. */
 export function DevspaceSignIn({ onSignIn, checking }: Props) {
   if (checking) {
-    return <div className="p-8"><EmptyState title="Connecting to your devspace" description="Checking your sign-in…" /></div>;
+    return (
+      <div className="p-8">
+        <EmptyState title="Connecting to your devspace" description="Checking your sign-in…" />
+      </div>
+    );
   }
   return (
     <div className="p-8">

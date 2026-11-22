@@ -85,6 +85,41 @@ test('the CLI fails loudly and names the rule', () => {
   assert.match(res.stderr, /fix the source, not the test/);
 });
 
+test('a reconciliation merge can explain a test removal hidden by simplified history', () => {
+  const r = repo();
+  r.write('x_test.go', goTest('\tt.Fatal("a")'));
+  r.commit('base');
+  r.git('checkout', '-q', '-b', 'side');
+  r.write('side.go', 'package x\n');
+  const side = r.commit('side');
+  r.git('checkout', '-q', 'main');
+  r.git('rm', 'x_test.go');
+  r.write('replacement.test.ts', 'assert.equal(actual(), expected());\n');
+  r.commit('replace test on main');
+  r.git('checkout', '-q', 'side');
+  r.git('merge', '-q', '--no-ff', 'main', '-m', 'reconcile');
+  assert.equal(check(side, 'HEAD', r.dir).length, 1, 'a merge without a reason still fails');
+  r.git('commit', '-q', '--amend', '-m', 'reconcile\n\nTest-Change: the obsolete Go fixture was replaced by replacement.test.ts on main');
+  assert.deepEqual(check(side, 'HEAD', r.dir), [], 'the merge itself changes the test relative to its first parent');
+});
+
+test('an unrelated merge trailer cannot excuse an earlier test removal', () => {
+  const r = repo();
+  r.write('x_test.go', goTest('\tt.Fatal("a")'));
+  const base = r.commit('base');
+  r.git('checkout', '-q', '-b', 'side');
+  r.write('side.go', 'package x\n');
+  r.commit('side');
+  r.git('checkout', '-q', 'main');
+  r.git('rm', 'x_test.go');
+  r.write('main.go', 'package x\n');
+  r.commit('drop test without explanation');
+  r.git('merge', '-q', '--no-ff', 'side', '-m', 'unrelated merge\n\nTest-Change: this message must not cover an unchanged test path');
+  const found = check(base, 'HEAD', r.dir);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].file, 'x_test.go');
+});
+
 test('the hooks read CI state and pushes correctly', () => {
   const runs = [
     { headBranch: 'main', status: 'completed', conclusion: 'success' },

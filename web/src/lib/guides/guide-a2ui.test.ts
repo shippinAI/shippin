@@ -26,7 +26,9 @@ test("each guide renders the active step card with run/next actions and no dangl
     const s = applyAll(guideMessages(g, 0, {}))[`node-${g.id}`];
     assert.ok(s.components.root, g.id);
     refsResolve(s.components);
-    const names = Object.values(s.components).flatMap((c) => (c.component === "Button" && "event" in c.action ? [c.action.event.name] : []));
+    const names = Object.values(s.components).flatMap((c) =>
+      c.component === "Button" && "event" in c.action ? [c.action.event.name] : [],
+    );
     if (g.steps[0].command) assert.ok(names.includes("run"), g.id);
     if (g.steps.length > 1) assert.ok(names.includes("next") && names.includes("goto"), g.id);
   }

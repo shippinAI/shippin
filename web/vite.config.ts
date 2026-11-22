@@ -12,5 +12,9 @@ const backend = { target: api, secure: false, changeOrigin: true, headers: { ori
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: { proxy: { "/v1": backend, "/auth": backend } },
-  build: { target: "es2022", sourcemap: false, rollupOptions: { input: { index: "index.html", ops: "ops.html", launcher: "launcher.html" } } },
+  build: {
+    target: "es2022",
+    sourcemap: false,
+    rollupOptions: { input: { index: "index.html", ops: "ops.html", launcher: "launcher.html" } },
+  },
 });

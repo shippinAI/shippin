@@ -5,7 +5,12 @@ import { meterLevel, usedFraction } from "./meter-model";
 export type MeterTone = "primary" | "success" | "data" | "workspaces";
 
 const fills: Record<MeterTone | "warning" | "danger", string> = {
-  primary: "bg-primary", success: "bg-success", data: "bg-hue-data", workspaces: "bg-hue-workspaces", warning: "bg-warning", danger: "bg-danger",
+  primary: "bg-primary",
+  success: "bg-success",
+  data: "bg-hue-data",
+  workspaces: "bg-hue-workspaces",
+  warning: "bg-warning",
+  danger: "bg-danger",
 };
 
 type Props = {
@@ -41,7 +46,11 @@ export function Meter({ label, used, total, text, tone = "primary", pressure = t
       <div className={className}>
         {header}
         <div className={track} aria-hidden />
-        {bare && <span className="sr-only">{label}: {text}</span>}
+        {bare && (
+          <span className="sr-only">
+            {label}: {text}
+          </span>
+        )}
       </div>
     );
   }

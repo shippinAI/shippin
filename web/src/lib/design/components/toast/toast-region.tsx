@@ -24,9 +24,13 @@ export function ToastRegionHost() {
           >
             <Icon className={`mt-0.5 size-4.5 shrink-0 ${tones[toast.content.tone]}`} strokeWidth={2} />
             <ToastContent className="min-w-0 flex-1">
-              <Text slot="title" className="block text-base font-medium text-fg">{toast.content.title}</Text>
+              <Text slot="title" className="block text-base font-medium text-fg">
+                {toast.content.title}
+              </Text>
               {toast.content.description && (
-                <Text slot="description" className="mt-0.5 block text-sm text-fg-muted">{toast.content.description}</Text>
+                <Text slot="description" className="mt-0.5 block text-sm text-fg-muted">
+                  {toast.content.description}
+                </Text>
               )}
             </ToastContent>
             <Button slot="close" aria-label="Dismiss" className="focus-ring rounded-sm p-0.5 text-fg-subtle data-hovered:text-fg">

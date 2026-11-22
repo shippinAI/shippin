@@ -1,8 +1,13 @@
 # Roadmap
 
-[What Shippin is](objective.md) defines the target, software for running a
-commercial cloud provider, and its requirement IDs. This page says what exists
-today, the order the rest gets built in, and what each stage must prove.
+[What Shippin is](objective.md) defines the target and its requirement IDs: a
+self-hosted panel in this repository, and an enterprise module for running a
+multi-tenant hosted cloud ([Editions and licensing](editions.md)). This page says
+what exists today, the order the rest gets built in, and what each stage must prove.
+
+Updated 2026-11-20: the immediate delivery priority is a reachable, claimable installation and a coherently grouped panel, followed by real Incus and Proxmox journeys. The [foundation delivery plan](foundation-delivery.md) defines P1–P7, ownership and observable acceptance gates. P1 and P2 use the existing owners and may precede the full enterprise extraction; broad context rewrites still follow the separation. A plan is not deployment evidence.
+
+The 2026-11-19 edition decision remains: the public repository is the self-hosted panel, in the spirit of Coolify. Multi-tenant and commercial capabilities move to the private enterprise repository `shippinAI/shippin-enterprise`. Workspaces in the panel run on the owner's own hosts through the hypervisor's API.
 
 Updated 2026-11-13: the hosted development space (SOLO-01 to COACH-01) comes first for solo developers, in the spirit of Lovable on their own subscriptions, and it teaches as it goes.
 
@@ -19,7 +24,7 @@ Updated 2026-11-19 (assistant skill library row) and 2026-11-15. Each request fr
 
 | Request | Requirement | Status |
 | --- | --- | --- |
-| A Lovable-like hosted space where a solo developer builds on their own AI subscriptions | SOLO-01, DEV-01, AI-01 | **Not started as a product.** Pieces exist: workspaces with Zellij, AI app cards, the AI-01 runner design. No workspace has run on the current build. |
+| A Lovable-like hosted space where a solo developer builds on their own AI subscriptions (enterprise) | SOLO-01, DEV-01, AI-01 | **Not started as a product.** Pieces exist: workspaces with Zellij, AI app cards, the AI-01 runner design. No workspace has run on the current build. |
 | The infrastructure under that space: where each space runs, its limits, its cost | VM-01, PLAN-01, INF-01 | **Not started.** Workspaces are Incus containers placed by hostd; nothing yet proves one runs here, sizes it from a plan, or stops it when idle. |
 | A free tier that is cheap: VM-like spaces without a VM's weight | VM-01, PLAN-01 | **Not started.** The approach: system containers, idle spaces stopped, copy-on-write images, shared databases, limits from the plan. |
 | One workspace screen: VS Code, the Zellij terminal, the person's AI apps | IDE-01 | **Not started.** Unverified: Claude desktop and ChatGPT desktop run on macOS and Windows, not in a Linux space; the command-line agents do. |
@@ -27,7 +32,8 @@ Updated 2026-11-19 (assistant skill library row) and 2026-11-15. Each request fr
 | Instructions, hooks and governance that onboard a developer after sign-in | GUIDE-01 | **Not started.** |
 | shippin.bot: knows the page and the person's permissions, runs known flows without the model, its own repo | GUIDE-01, COACH-01 | **Not started.** Waiting on the repo's name and visibility. |
 | shippin.hub: connects Shippin to Lovable and Replit with connectors kept in Vaultix | SYNC-01, EXT-01 | **Not started.** Device sign-in for `shippin-bridge` exists. |
-| A free self-hosted edition for one owner, separate from the multi-tenant cloud | OPEN-01, SOLO-01 | **Not started.** Decided: one codebase, the edition is configuration. |
+| A free self-hosted edition for one owner, separate from the multi-tenant cloud | OPEN-01, SOLO-01 | **Decided 2026-11-19:** this repository is the self-hosted panel; the multi-tenant cloud is the enterprise module in `shippinAI/shippin-enterprise` ([Editions and licensing](editions.md)). **Not built:** the multi-tenant code is still here; see [Separation, first](#separation-first). |
+| Workspaces on the owner's own hosts, created and opened through the hypervisor's API | WS-01, TERM-01 | **Not started.** Workspaces today run only through `hostd`'s per-customer isolation, which moves to the enterprise module. |
 | Vaultix, Wardenclyffe and Nomen offered as services | CAT-01 | **Not started.** Stage 7. |
 | Every setting edited in the panel, keys saved to the installation's Vaultix | CFG-01 | **Done** for build runners, the job queue and the GitHub App, on the review deploy and against a real Vaultix. The owner's Vaultix account is not connected yet. The other sections are next in stage 2. |
 | The control plane runs on the owner's own Incus or Proxmox: installed anywhere once, it deploys itself as a guest on an attached host and manages both kinds from there; nothing about one installation is in the code | INF-01, OPEN-01, CORE-01 | **Not started.** Installing anywhere and attaching both kinds work today. Self-deployment onto a host, moving between hosts, and running on several hosts are not built. |
@@ -40,7 +46,7 @@ Updated 2026-11-19 (assistant skill library row) and 2026-11-15. Each request fr
 | A shell on the server itself, in the control plane, as granted privileged access | INF-03, IAM-01 | **Designed:** [Host shell](host-shell.md), with the grant dialog and limited impersonation. Five decisions are the owner's. |
 | CI: main only moves on green, failures are loud and make the AI fix them, tests are not weakened to pass | ENG-01 | **Done.** Pushes go to `queue/main`; the Gate promoted the first one to main by itself. The failure alarm has not been triggered for real yet. |
 | A license that lets people self-host but not compete | OPEN-01 | **Done:** FSL-1.1-ALv2, licensor shippinAI. A contributor agreement is not set up. |
-| An enterprise edition, managed and unmanaged, in its own repository | OPEN-01 | **Designed:** [Editions and licensing](editions.md), a private module over this panel with a signed license key; not a fork. Extension points, the key check and the repository are not built; the repository's name is the owner's. |
+| An enterprise edition, managed and unmanaged, in its own repository | OPEN-01 | **Designed:** [Editions and licensing](editions.md), a private module over this panel with a signed license key; not a fork. The repository is `shippinAI/shippin-enterprise` (decided 2026-11-19). Extension points, the key check and the repository itself are not built. |
 | A personal lexicon and prompt recipes from the owner's own chats | (tooling, later COACH-01) | **Done** as tooling (`governance/lexicon.mjs`). 16 terms and 14 recipes wait for the owner to confirm them. |
 | A reviewed skill library assistants load by intent | GUIDE-01, COACH-01 | **Built** in [`.agents/library/`](../.agents/library/README.md): the tree, the linter, and the flat export. No assistant has loaded it, and shippin.bot is still not started. |
 
@@ -64,31 +70,64 @@ Updated 2026-11-19 (assistant skill library row) and 2026-11-15. Each request fr
 | Customer machines (VM-01) | A VM-per-organization design and a first implementation ([VM-first tenants](reference/vm-first-tenants.md)), from October 2026. | Not verified on the current build. A customer ordering a VM from their plan in the panel, by size, image and region, does not exist. |
 | One-click services (CAT-01) | Catalog, versioned deployment plans and an Incus OCI application executor (volume, container, start, host health probe) exist. A tenant's starter database runs on a shared PostgreSQL on the platform host. | No catalog entry for PostgreSQL, ClickHouse, Coolify or our products. Nothing deploys onto a customer's VM yet. The Incus executor has never run against a real host. It needs AgentHub with no alternative, does not re-run after a review passes, cannot act on an earlier generation's container, and ignores declared ports. Proxmox has no application path. |
 | Terminal (TERM-01) | A browser terminal opens the workspace's Zellij session, follows the pane's size, and reconnects to it by itself after a drop; open and close are audited with how long it ran and why it ended. Tested against a local PTY, not yet on a real workspace. It can hand off to WezTerm, has guides beside it, and has AI app cards with exact install commands. | The plain-language layer: asking in words, seeing the commands before they run, errors explained, and one-press common jobs. The same terminal on a customer's VM. |
-| Build runners (RUN-01) | Staff offer runner sizes; an organization assigns its GitHub repositories to workspaces and projects; GitHub's job events are recorded per organization, waiting or refused against the plan's sizes and minutes. A machine is started per job within the plan's jobs-at-once limit, fair between organizations, never twice, and removed when the job ends or after the time limit; staff list and remove runner machines. The organization's Build runners page and staff's Runner sizes page are in the panel. Tested against fakes, and on the local Incus rig with a container (it cannot run VMs). PRs #18 and #20 are being replaced, not merged. | A runner image and a real job end to end on a VM, which needs a GitHub App and the runner release; staff's runner machines page; cancelling jobs and keeping logs; Proxmox, clouds and customers' own servers; the catalog entry for a customer's own runner. |
+| Build runners (RUN-01) | Staff offer runner sizes; an organization assigns its GitHub repositories to workspaces and projects; GitHub's job events are recorded per organization, waiting or refused against the plan's sizes and minutes. A machine is started per job within the plan's jobs-at-once limit, fair between organizations, never twice, and removed when the job ends or after the time limit; staff list and remove runner machines. The organization's Build runners page and staff's Runner sizes page are in the panel. Tested against fakes, and on the local Incus rig with a container (it cannot run VMs). PR #18 preserves the earlier standalone fleet prototype with an enforced console dependency boundary; it does not replace this runtime. PR #20 retains its original history while keeping the current runtime; [source disposition](runner-service.md) records superseded wiring and open profile/gateway gaps. | A runner image and a real job end to end on a VM, which needs a GitHub App and the runner release; staff's runner machines page; cancelling jobs and keeping logs; Proxmox, clouds and customers' own servers; the catalog entry for a customer's own runner. |
 | DevPulse sync (SYNC-01) | Device-code sign-in and short-lived sessions for `shippin-bridge`. | A published client API for listing projects, syncing files both ways with conflicts shown, opening sessions and following runs; and a per-device list with revocation in the panel. |
+| Legacy fleet prototype (PR #18) | Standalone fleet-file compatibility tools and static demo are preserved, with tests for request deadlines, secret redaction, retention purge, redirects and workflow safety. See [disposition](reference/shippin-run.md#platform-boundary). | These tools are not integrated panel features and do not complete RUN-01 or CFG-01. Current platform capability is the Build runners row above. |
 
 ## Order of work
 
-Code is rewritten into its contexts as each stage reaches them, in the order in
-the [code map](architecture.md). The first milestone is the friends-and-family
+The [foundation packets](foundation-delivery.md#delivery-packets) govern immediate delivery:
+P1 reaches and claims an installation; P2 makes context and navigation coherent.
+The enterprise separation remains the prerequisite for broad context rewrites.
+Code is then rewritten into its contexts as each
+stage reaches them, in the order in the [code map](architecture.md). The first milestone is the friends-and-family
 launch: the [acceptance journey](objective.md#acceptance-journey-friends-and-family)
 on our own Incus and Proxmox hosts. Public clouds and billing come after it.
 
-### The hosted development space, first
+### Separation, first
 
-The 2026-11-13 direction puts the hosted space first. These steps come before the stages below, in this order, each closed only by its proof:
+The 2026-11-19 separation direction, qualified by the P1/P2 foundation priority above: enterprise code leaves before broad context rewrites. Each step is closed only by its proof, and every commit leaves both editions working. Enterprise code moves with its tests; it is not rewritten on the way.
 
 | Step | Result someone can see | Proof required |
 | --- | --- | --- |
-| D1. A workspace runs | A workspace is created, started and opened in the browser terminal on a real Incus host, here, from the current build. | Create, open the Zellij terminal, type, resize, reconnect, stop, remove; another person is refused. |
-| D2. Sign up as Shippin.AI | A solo developer signs up through Nomen and lands in their own space. | A new person, one sign-in, a space that is theirs; a second person cannot see it. |
+| S0. The split is the contract | [Editions and licensing](editions.md), [What Shippin is](objective.md) and the [code map](architecture.md) say what belongs to each edition. | Every requirement ID belongs to the panel, the module, or both, with each part stated. |
+| S1. Extension points | `app.Main`, the module registry in `internal/ext` (actions, settings sections, permissions, job kinds, migrations), the caller, organization lifecycle, limits and placement policies, and panel pages from folders, a module's included (F1 in the [panel framework](web-framework.md)). No behaviour changes. | A test module registers one of each, and the tests see it work end to end. The panel with no module behaves as before. |
+| S2. The enterprise repository | `shippinAI/shippin-enterprise` builds an enterprise image from the panel, pinned at a commit, plus its module. | The enterprise image runs the same panel; its CI passes. |
+| S3. The code moves | One area at a time, enterprise first, then removed here: sign-up and acquisition; plans, coverage and customers; access to customers; `hostd` and per-customer isolation, tenant databases and hosted Vaultix; then a new database baseline (PRE-01) in which the installation's own team is an ordinary organization. | After each area, both review deploys are seen in a browser: the panel without it, the enterprise build doing what it did before, as Admin, Staff and Customer. |
+| S4. It stays separate | A check in CI fails on enterprise packages, tables, routes or permissions in this repository. | The check fails on a planted example and passes on main. |
+
+The [panel framework](web-framework.md) track continues in this order: F5 rot checks, F4 lexicon, F2 tokens from one source, F3 components and their gallery. It does not block P1/P2 or reaching S2. Each step is checked and seen on the review deploy; the framework document distinguishes working machinery from planned tooling.
+
+The [builds and releases](release.md) track runs beside it, decided by the owner on 2026-11-20: a private edge build from every green `main`, and public tagged releases. The order: R1 build info and R2 Go checks first; R3 licenses before S2; then R4 edge and R5 releases; R6 updates after Phase 4.
+
+Gaps checked in the code on 2026-11-19, and where each is closed:
+
+| Gap | Found | Closed by |
+| --- | --- | --- |
+| Limits are read in two places | `hostd` keeps its own `plans.<name>` sizes (quota, CPU, memory, disks, VM) in its config file beside the catalog's plans, and reads them in eleven places. | Build-runner limits come through the limits policy (S1). hostd's sizes are the per-customer silo's, so they move with hostd in S3, where the enterprise module's limits policy supplies them and hostd's own plan list goes. |
+| No row-level security; four overlapping organization tables | `tenants`, `orgs`, `identity_orgs` and `tenant_teams`; no table has a row policy. | S3's new baseline: one organizations table, and a row policy on every table scoped to an organization, with a test that fails on one without. |
+| 315 routes outside the action schema | `internal/api/testdata/mcpl-undescribed.txt`, which may only shrink. | Each group as its work comes up; workspaces and guests with D1. |
+| Tenant database backups are a stub | A backup is recorded as `pending_backend`; restore always refuses. | Real dumps to storage the owner configures, then restore, after D1. |
+| One managed service kind | `internal/managed` provisions only `rrflow-state`. | Stage 7: PostgreSQL first, then S3, DNS and mail, through the same managed-service model. |
+| No metering, invoicing or payment | The billing permissions are reserved placeholders. | Stage 14, in the enterprise edition: the owner decided on 2026-11-20 that the hosting layer (customers, plans, billing, provisioning, sign-up) is licensed to hosting companies with a signed key, like WHMCS. |
+
+### The hosted development space
+
+The 2026-11-13 direction puts the development space first, after the separation. These steps come before the stages below, in this order, each closed only by its proof. Steps marked enterprise are built in the enterprise module.
+
+| Step | Result someone can see | Proof required |
+| --- | --- | --- |
+| D1. A workspace runs on your own host | A workspace is created as a container on an Incus host added in the panel, through the Incus API, and opened in the browser terminal (WS-01). | On the local Incus rig: create, open the Zellij terminal, type, resize, reconnect, stop, remove; another person is refused. |
+| D2. Sign up for a hosted space (enterprise) | A solo developer signs up through the installation's sign-in provider and lands in their own hosted space. | A new person, one sign-in, a space that is theirs; a second person cannot see it. |
 | D3. One screen | VS Code, the terminal and an AI panel in one focused screen (IDE-01). | Edit, run and see the change from the one screen. |
 | D4. Their own AI | Claude Code and Codex signed in with the person's own subscription in their runner (AI-01). | Their sign-in, never pooled; revoking it stops it. |
 | D5. Preview and publish | What they built is previewed, then published at an address (PUB-01). | A change reaches the live address; rollback works. |
-| D6. Cheap spaces | Spaces sized by plan, stopped when idle and woken on use; the cost of an idle free space is measured (VM-01, PLAN-01). | Density and idle cost measured on a real host. |
+| D6. Cheap spaces (enterprise) | Spaces sized by plan, stopped when idle and woken on use; the cost of an idle free space is measured (VM-01, PLAN-01). | Density and idle cost measured on a real host. |
 | D7. Guided | Explanations from events and shippin.bot on each page (GUIDE-01, COACH-01). | A first-time person completes the first build with its help. |
 
 ### Milestone 1: friends and family
+
+Stages 5 and 6 and the launch are enterprise work; the others are the panel.
 
 | Stage | Result someone can see | Proof required |
 | --- | --- | --- |
@@ -107,6 +146,8 @@ The 2026-11-13 direction puts the hosted space first. These steps come before th
 | Launch | Invite friends and family onto our own hosts. | The whole acceptance journey, run end to end on the review deploy and then on our hosts, with evidence. |
 
 ### Milestone 2: commercial cloud
+
+Stage 12's drivers are the panel's; customer cloud accounts and stages 13 and 14 are enterprise work.
 
 | Stage | Result someone can see | Proof required |
 | --- | --- | --- |

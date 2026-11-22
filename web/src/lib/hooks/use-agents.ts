@@ -15,8 +15,7 @@ export const useAgents = (tenantId?: string) =>
 export function useCreateAgent(tenantId?: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name: string; workspace_id?: string }) =>
-      apiSend<Agent>("POST", `/v1/tenants/${tenantId}/identity/agents`, body),
+    mutationFn: (body: { name: string; workspace_id?: string }) => apiSend<Agent>("POST", `/v1/tenants/${tenantId}/identity/agents`, body),
     onSuccess: (a) => {
       toast.success(`Agent "${a.name}" created`, "It has its own identity; it never uses your sign-in.");
       void qc.invalidateQueries({ queryKey: ["agents", tenantId] });

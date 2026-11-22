@@ -8,18 +8,25 @@ import (
 	"shippin.cloud/console/internal/db"
 )
 
-// addGrantedTenants appends the tenants the admin holds an active grant for (and isn't a
-// member of). The grant is re-read on every request, so revoke and expiry apply at once.
-func (a *API) addGrantedTenants(r *http.Request, c *caller) error {
-	gs, err := a.db.ActiveGrants(r.Context(), c.id.Sub)
-	if err != nil || len(gs) == 0 {
+// addAccess appends the organizations the caller policy says the caller reaches without being a member.
+// It is asked on every request, so revoke and expiry apply at once.
+func (a *API) addAccess(r *http.Request, c *caller) error {
+	may := func(perm string) bool { return a.decideQuiet(r, c, perm) }
+	access, err := a.callerPolicy().Access(r.Context(), a.runtime(), c.id.Sub, may)
+	if err != nil || len(access) == 0 {
 		return err
 	}
 	byTenant := map[string][]db.Grant{}
-	for _, g := range gs {
-		if !slices.ContainsFunc(c.tenants, func(t tenantView) bool { return t.ID == g.TenantID }) {
-			byTenant[g.TenantID] = append(byTenant[g.TenantID], g)
+	for org, as := range access {
+		if slices.ContainsFunc(c.tenants, func(t tenantView) bool { return t.ID == org }) {
+			continue
 		}
+		for _, x := range as {
+			byTenant[org] = append(byTenant[org], grantFromAccess(org, x))
+		}
+	}
+	if len(byTenant) == 0 {
+		return nil
 	}
 	ids := make([]string, 0, len(byTenant))
 	for id := range byTenant {

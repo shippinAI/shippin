@@ -17,7 +17,9 @@ export function SectionHistory({ view }: { view: SettingsView }) {
         {view.version === 0 ? (
           <p className="text-fg-muted">Not saved in the panel yet, so there is no history.</p>
         ) : q.isError ? (
-          <p role="alert" className="text-danger">Couldn't load the history. {problemOf(q.error).message}</p>
+          <p role="alert" className="text-danger">
+            Couldn't load the history. {problemOf(q.error).message}
+          </p>
         ) : q.isPending ? (
           <Skeleton className="h-16 w-full" />
         ) : entries.length === 0 ? (
@@ -34,7 +36,11 @@ export function SectionHistory({ view }: { view: SettingsView }) {
                 {e.reason && <p className="mt-1 text-fg-muted">Why: {e.reason}</p>}
                 {e.changes.length > 0 ? (
                   <ul className="mt-1 list-disc space-y-0.5 pl-5 text-fg-muted">
-                    {e.changes.map((c) => <li key={c} className="break-words">{c}</li>)}
+                    {e.changes.map((c) => (
+                      <li key={c} className="break-words">
+                        {c}
+                      </li>
+                    ))}
                   </ul>
                 ) : (
                   <p className="mt-1 text-xs text-fg-subtle">No value changed.</p>

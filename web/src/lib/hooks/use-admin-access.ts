@@ -80,8 +80,12 @@ export const useBreakGlassPending = (enabled: boolean) =>
 export function useDecideBreakGlass() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, decision }: { id: string; decision: "approve" | "deny" }) => apiSend<Grant>("POST", `/v1/operator/break-glass/${id}/${decision}`),
-    onSuccess: (_d, v) => (v.decision === "approve" ? toast.error("Break-glass approved", "It is active for the requester now.") : toast.success("Break-glass denied")),
+    mutationFn: ({ id, decision }: { id: string; decision: "approve" | "deny" }) =>
+      apiSend<Grant>("POST", `/v1/operator/break-glass/${id}/${decision}`),
+    onSuccess: (_d, v) =>
+      v.decision === "approve"
+        ? toast.error("Break-glass approved", "It is active for the requester now.")
+        : toast.success("Break-glass denied"),
     onError: (e) => {
       if (e instanceof ApiError && e.status === 428) {
         toast.info("Sign in again", e.message);

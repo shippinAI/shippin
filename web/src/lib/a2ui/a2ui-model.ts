@@ -6,7 +6,11 @@ export type Surfaces = Record<string, Surface>;
 const KNOWN = new Set(["Text", "Button", "Card", "Column", "Row", "List", "TextField", "CheckBox", "ChoicePicker", "Divider", "Code"]);
 const CATALOGS = new Set([SHIPPIN_CATALOG, "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"]);
 
-const segs = (p: string) => p.split("/").filter(Boolean).map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"));
+const segs = (p: string) =>
+  p
+    .split("/")
+    .filter(Boolean)
+    .map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"));
 
 /** JSON Pointer read (RFC 6901); A2UI relative paths resolve against `scope`. */
 export function getPath(data: unknown, path: string, scope = ""): unknown {
@@ -77,7 +81,11 @@ export function parseJSONL(text: string): A2UIMessage[] {
   const out: A2UIMessage[] = [];
   for (const line of text.split("\n")) {
     if (!line.trim()) continue;
-    try { out.push(JSON.parse(line) as A2UIMessage); } catch { /* skip */ }
+    try {
+      out.push(JSON.parse(line) as A2UIMessage);
+    } catch {
+      /* skip */
+    }
   }
   return out;
 }

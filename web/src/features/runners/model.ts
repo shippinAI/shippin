@@ -82,7 +82,11 @@ export const hasActiveJobs = (jobs: Pick<RunnerJob, "status">[] | undefined) =>
 /** "2 waiting, 1 running", for the polite live region above the list. */
 export function jobCounts(jobs: Pick<RunnerJob, "status">[]): string {
   const n = (s: RunnerJobStatus) => jobs.filter((j) => j.status === s).length;
-  const parts = [[n("queued"), "waiting"], [n("in_progress"), "running"], [n("refused"), "refused"]] as const;
+  const parts = [
+    [n("queued"), "waiting"],
+    [n("in_progress"), "running"],
+    [n("refused"), "refused"],
+  ] as const;
   const said = parts.filter(([c]) => c > 0).map(([c, w]) => `${c} ${w}`);
   return said.length ? said.join(", ") : "Nothing waiting or running.";
 }
@@ -98,19 +102,30 @@ export function repositoryState(r: Pick<GithubRepository, "workspace_id" | "runn
 export type Assignment = { workspaceId: string; projectId: string; runners: boolean };
 
 /** What is wrong with an assignment before it is sent, in the words the server would use; null when it may go. */
-export function assignmentProblem(a: Assignment, workspaces: { id: string }[], projects: { id: string; workspace_id: string }[]): string | null {
+export function assignmentProblem(
+  a: Assignment,
+  workspaces: { id: string }[],
+  projects: { id: string; workspace_id: string }[],
+): string | null {
   if (!a.workspaceId) return "Pick a workspace.";
   if (!workspaces.some((w) => w.id === a.workspaceId)) return "Pick one of this organization's workspaces.";
-  if (a.projectId && !projects.some((p) => p.id === a.projectId && p.workspace_id === a.workspaceId)) return "That project is not in the chosen workspace.";
+  if (a.projectId && !projects.some((p) => p.id === a.projectId && p.workspace_id === a.workspaceId))
+    return "That project is not in the chosen workspace.";
   return null;
 }
 
 /** The update action's body for an assignment. */
-export const assignmentBody = (a: Assignment): GithubRepositoryUpdateInput => ({ workspace_id: a.workspaceId, project_id: a.projectId || null, runners: a.runners });
+export const assignmentBody = (a: Assignment): GithubRepositoryUpdateInput => ({
+  workspace_id: a.workspaceId,
+  project_id: a.projectId || null,
+  runners: a.runners,
+});
 
 /** The form's starting values for a repository: where it is now, or nothing yet with runners allowed. */
 export const assignmentFor = (r: Pick<GithubRepository, "workspace_id" | "project_id" | "runners">, defaultWorkspace = ""): Assignment =>
-  r.workspace_id ? { workspaceId: r.workspace_id, projectId: r.project_id ?? "", runners: r.runners } : { workspaceId: defaultWorkspace, projectId: "", runners: true };
+  r.workspace_id
+    ? { workspaceId: r.workspace_id, projectId: r.project_id ?? "", runners: r.runners }
+    : { workspaceId: defaultWorkspace, projectId: "", runners: true };
 
 /** An error from a runner action, in plain words a member can act on. */
 export function problemText(e: unknown): string {

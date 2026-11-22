@@ -28,9 +28,21 @@ export function chatContextFor(pathname: string, variant: ChatVariant): ChatCont
   const [, tenantId, workspaceId, sub] = m;
   const at = { tenantId, workspaceId };
   if (sub === "terminal")
-    return { ...base, ...at, kind: "terminal", label: "Terminal", prompts: ["Explain the last command I ran", "How do I split panes in Zellij?", "Open this workspace in WezTerm"] };
+    return {
+      ...base,
+      ...at,
+      kind: "terminal",
+      label: "Terminal",
+      prompts: ["Explain the last command I ran", "How do I split panes in Zellij?", "Open this workspace in WezTerm"],
+    };
   if (sub === "connect")
-    return { ...base, ...at, kind: "connect", label: "Connect accounts", prompts: ["Which accounts should I connect?", "Browser sign-in or token?"] };
+    return {
+      ...base,
+      ...at,
+      kind: "connect",
+      label: "Connect accounts",
+      prompts: ["Which accounts should I connect?", "Browser sign-in or token?"],
+    };
   if (sub === "publish" || pathname.endsWith("/publish"))
     return { ...base, ...at, kind: "publish", label: "Publish", prompts: ["Is my app ready to publish?", "How do I roll back a release?"] };
   return { ...base, ...at, kind: "workspace", label: "Workspace", prompts: ["What's running in this workspace?"] };

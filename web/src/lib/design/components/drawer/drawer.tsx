@@ -3,7 +3,14 @@ import type { ReactNode } from "react";
 import { Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { IconButton } from "../button/icon-button";
 
-type Props = { isOpen: boolean; onOpenChange: (o: boolean) => void; title: ReactNode; subtitle?: ReactNode; children: ReactNode; footer?: ReactNode };
+type Props = {
+  isOpen: boolean;
+  onOpenChange: (o: boolean) => void;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
+};
 
 /** Right-side sheet (RAC Modal). Esc / outside click closes. */
 export function Drawer({ isOpen, onOpenChange, title, subtitle, children, footer }: Props) {
@@ -13,7 +20,9 @@ export function Drawer({ isOpen, onOpenChange, title, subtitle, children, footer
         <Dialog className="flex h-full flex-col outline-none">
           <div className="flex items-start justify-between gap-3 border-b border-line px-6 py-4">
             <div className="min-w-0">
-              <Heading slot="title" className="truncate text-lg font-semibold tracking-tight">{title}</Heading>
+              <Heading slot="title" className="truncate text-lg font-semibold tracking-tight">
+                {title}
+              </Heading>
               {subtitle && <div className="mt-0.5 text-sm text-fg-muted">{subtitle}</div>}
             </div>
             <IconButton icon={X} label="Close panel" onPress={() => onOpenChange(false)} />

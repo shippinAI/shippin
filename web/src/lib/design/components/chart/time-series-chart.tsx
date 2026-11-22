@@ -1,28 +1,64 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type RefObject } from "react";
 import { cn } from "../cn/cn";
 import {
-  areaPath, formatValue, linearScale, linePath, missingSpans, nearestIndex, segments, timeTickKind, timeTicks, unionTimes, valueDomain, valueTicks,
-  type ChartPoint, type ChartUnit,
+  areaPath,
+  formatValue,
+  linearScale,
+  linePath,
+  missingSpans,
+  nearestIndex,
+  segments,
+  timeTickKind,
+  timeTicks,
+  unionTimes,
+  valueDomain,
+  valueTicks,
+  type ChartPoint,
+  type ChartUnit,
 } from "./chart-model";
 
 /** Series colours are the module hues, in a fixed order, so the same position always has the same colour. */
 export type SeriesHue = "data" | "identity" | "network" | "secrets" | "edge" | "ai" | "billing" | "workspaces";
 const hueOrder: SeriesHue[] = ["data", "identity", "network", "secrets", "edge", "ai", "billing", "workspaces"];
 const strokes: Record<SeriesHue, string> = {
-  data: "stroke-hue-data", identity: "stroke-hue-identity", network: "stroke-hue-network", secrets: "stroke-hue-secrets",
-  edge: "stroke-hue-edge", ai: "stroke-hue-ai", billing: "stroke-hue-billing", workspaces: "stroke-hue-workspaces",
+  data: "stroke-hue-data",
+  identity: "stroke-hue-identity",
+  network: "stroke-hue-network",
+  secrets: "stroke-hue-secrets",
+  edge: "stroke-hue-edge",
+  ai: "stroke-hue-ai",
+  billing: "stroke-hue-billing",
+  workspaces: "stroke-hue-workspaces",
 };
 const dots: Record<SeriesHue, string> = {
-  data: "fill-hue-data", identity: "fill-hue-identity", network: "fill-hue-network", secrets: "fill-hue-secrets",
-  edge: "fill-hue-edge", ai: "fill-hue-ai", billing: "fill-hue-billing", workspaces: "fill-hue-workspaces",
+  data: "fill-hue-data",
+  identity: "fill-hue-identity",
+  network: "fill-hue-network",
+  secrets: "fill-hue-secrets",
+  edge: "fill-hue-edge",
+  ai: "fill-hue-ai",
+  billing: "fill-hue-billing",
+  workspaces: "fill-hue-workspaces",
 };
 const areas: Record<SeriesHue, string> = {
-  data: "fill-hue-data/15", identity: "fill-hue-identity/15", network: "fill-hue-network/15", secrets: "fill-hue-secrets/15",
-  edge: "fill-hue-edge/15", ai: "fill-hue-ai/15", billing: "fill-hue-billing/15", workspaces: "fill-hue-workspaces/15",
+  data: "fill-hue-data/15",
+  identity: "fill-hue-identity/15",
+  network: "fill-hue-network/15",
+  secrets: "fill-hue-secrets/15",
+  edge: "fill-hue-edge/15",
+  ai: "fill-hue-ai/15",
+  billing: "fill-hue-billing/15",
+  workspaces: "fill-hue-workspaces/15",
 };
 const swatches: Record<SeriesHue, string> = {
-  data: "bg-hue-data", identity: "bg-hue-identity", network: "bg-hue-network", secrets: "bg-hue-secrets",
-  edge: "bg-hue-edge", ai: "bg-hue-ai", billing: "bg-hue-billing", workspaces: "bg-hue-workspaces",
+  data: "bg-hue-data",
+  identity: "bg-hue-identity",
+  network: "bg-hue-network",
+  secrets: "bg-hue-secrets",
+  edge: "bg-hue-edge",
+  ai: "bg-hue-ai",
+  billing: "bg-hue-billing",
+  workspaces: "bg-hue-workspaces",
 };
 
 export type ChartSeries = { id: string; label: string; points: ChartPoint[]; hue?: SeriesHue };
@@ -83,17 +119,30 @@ export function TimeSeriesChart({ label, summary, unit, series, from, to, ceilin
   const model = useMemo(() => {
     const coloured = series.map((s, i) => ({ ...s, hue: s.hue ?? hueOrder[i % hueOrder.length]! }));
     const times = unionTimes(coloured);
-    const t0 = from ?? times[0] ?? 0, t1Raw = to ?? times[times.length - 1] ?? 0;
+    const t0 = from ?? times[0] ?? 0,
+      t1Raw = to ?? times[times.length - 1] ?? 0;
     const t1 = t1Raw > t0 ? t1Raw : t0 + 60_000;
     const values = coloured.flatMap((s) => s.points.map((p) => p.value));
     const [lo, hi] = valueDomain(values, unit, ceiling);
     const vt = valueTicks(lo, hi, unit, h < 160 ? 3 : 4);
     const runs = coloured.map((s) => segments(s.points));
     const byTime = coloured.map((s) => new Map(s.points.map((p) => [p.at, p.value])));
-    return { coloured, times, t0, t1, lo: Math.min(lo, vt.ticks[0] ?? lo), top: vt.top, vTicks: vt.ticks, runs, byTime, gaps: missingSpans(runs, t0, t1) };
+    return {
+      coloured,
+      times,
+      t0,
+      t1,
+      lo: Math.min(lo, vt.ticks[0] ?? lo),
+      top: vt.top,
+      vTicks: vt.ticks,
+      runs,
+      byTime,
+      gaps: missingSpans(runs, t0, t1),
+    };
   }, [series, from, to, ceiling, unit, h]);
 
-  const plotW = Math.max(1, w - margin.left - margin.right), plotH = Math.max(1, h - margin.top - margin.bottom);
+  const plotW = Math.max(1, w - margin.left - margin.right),
+    plotH = Math.max(1, h - margin.top - margin.bottom);
   const x = linearScale([model.t0, model.t1], [margin.left, margin.left + plotW]);
   const y = linearScale([model.lo, model.top], [margin.top + plotH, margin.top]);
   const offset = -new Date(model.t0).getTimezoneOffset() * 60_000;
@@ -148,7 +197,10 @@ export function TimeSeriesChart({ label, summary, unit, series, from, to, ceilin
         onPointerMove={onPointer}
         onPointerLeave={() => setCursor(null)}
         onFocus={() => setFocused(true)}
-        onBlur={() => { setFocused(false); setCursor(null); }}
+        onBlur={() => {
+          setFocused(false);
+          setCursor(null);
+        }}
         className={cn("focus-ring relative touch-pan-y rounded-md outline-none", className ?? "h-48")}
       >
         <svg width={w} height={h} className="block" aria-hidden>
@@ -158,20 +210,44 @@ export function TimeSeriesChart({ label, summary, unit, series, from, to, ceilin
           {model.vTicks.map((v) => (
             <g key={v}>
               <line x1={margin.left} x2={margin.left + plotW} y1={y(v)} y2={y(v)} className="stroke-line" />
-              <text x={margin.left - 8} y={y(v)} dy="0.32em" textAnchor="end" className="fill-fg-subtle text-2xs tabular-nums">{formatValue(v, unit)}</text>
+              <text x={margin.left - 8} y={y(v)} dy="0.32em" textAnchor="end" className="fill-fg-subtle text-2xs tabular-nums">
+                {formatValue(v, unit)}
+              </text>
             </g>
           ))}
           {tt.ticks.map((t) => (
             // A tick near either edge is anchored inward so its label is not cut off.
-            <text key={t} x={x(t)} y={h - 6} textAnchor={x(t) - margin.left < 28 ? "start" : margin.left + plotW - x(t) < 28 ? "end" : "middle"}
-              className="fill-fg-subtle text-2xs tabular-nums">{tickFmt.format(t)}</text>
+            <text
+              key={t}
+              x={x(t)}
+              y={h - 6}
+              textAnchor={x(t) - margin.left < 28 ? "start" : margin.left + plotW - x(t) < 28 ? "end" : "middle"}
+              className="fill-fg-subtle text-2xs tabular-nums"
+            >
+              {tickFmt.format(t)}
+            </text>
           ))}
           {model.coloured.map((s, i) => (
             <g key={s.id}>
-              {fillArea && model.runs[i]!.map((run) => <path key={`a${run[0]!.at}`} d={areaPath(run, x, y, margin.top + plotH)} className={areas[s.hue]} />)}
-              {model.runs[i]!.map((run) => run.length === 1
-                ? <circle key={run[0]!.at} cx={x(run[0]!.at)} cy={y(run[0]!.value!)} r={2} className={dots[s.hue]} />
-                : <path key={run[0]!.at} d={linePath(run, x, y)} fill="none" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" className={strokes[s.hue]} />)}
+              {fillArea &&
+                model.runs[i]!.map((run) => (
+                  <path key={`a${run[0]!.at}`} d={areaPath(run, x, y, margin.top + plotH)} className={areas[s.hue]} />
+                ))}
+              {model.runs[i]!.map((run) =>
+                run.length === 1 ? (
+                  <circle key={run[0]!.at} cx={x(run[0]!.at)} cy={y(run[0]!.value!)} r={2} className={dots[s.hue]} />
+                ) : (
+                  <path
+                    key={run[0]!.at}
+                    d={linePath(run, x, y)}
+                    fill="none"
+                    strokeWidth={1.5}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    className={strokes[s.hue]}
+                  />
+                ),
+              )}
             </g>
           ))}
           {at !== undefined && (
@@ -179,22 +255,41 @@ export function TimeSeriesChart({ label, summary, unit, series, from, to, ceilin
               <line x1={x(at)} x2={x(at)} y1={margin.top} y2={margin.top + plotH} className="stroke-line-strong" />
               {model.coloured.map((s, i) => {
                 const v = model.byTime[i]!.get(at);
-                return v === null || v === undefined ? null : <circle key={s.id} cx={x(at)} cy={y(v)} r={3} className={cn(dots[s.hue], "stroke-surface")} strokeWidth={1.5} />;
+                return v === null || v === undefined ? null : (
+                  <circle key={s.id} cx={x(at)} cy={y(v)} r={3} className={cn(dots[s.hue], "stroke-surface")} strokeWidth={1.5} />
+                );
               })}
             </g>
           )}
-          {empty && <text x={margin.left + plotW / 2} y={margin.top + plotH / 2} textAnchor="middle" className="fill-fg-subtle text-xs">{text.noData}</text>}
+          {empty && (
+            <text x={margin.left + plotW / 2} y={margin.top + plotH / 2} textAnchor="middle" className="fill-fg-subtle text-xs">
+              {text.noData}
+            </text>
+          )}
         </svg>
       </div>
-      <figcaption id={summaryId} className="sr-only">{summary}</figcaption>
+      <figcaption id={summaryId} className="sr-only">
+        {summary}
+      </figcaption>
       <table className="sr-only">
         <caption>{label}</caption>
-        <thead><tr><th scope="col">{text.time}</th>{model.coloured.map((s) => <th key={s.id} scope="col">{s.label}</th>)}</tr></thead>
+        <thead>
+          <tr>
+            <th scope="col">{text.time}</th>
+            {model.coloured.map((s) => (
+              <th key={s.id} scope="col">
+                {s.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
         <tbody>
           {model.times.map((t) => (
             <tr key={t}>
               <th scope="row">{fullFmt.format(t)}</th>
-              {model.coloured.map((s, i) => <td key={s.id}>{formatValue(model.byTime[i]!.get(t) ?? null, unit) ?? text.noData}</td>)}
+              {model.coloured.map((s, i) => (
+                <td key={s.id}>{formatValue(model.byTime[i]!.get(t) ?? null, unit) ?? text.noData}</td>
+              ))}
             </tr>
           ))}
         </tbody>

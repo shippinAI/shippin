@@ -35,7 +35,11 @@ type StaffSettings struct {
 var ErrNotFound = errors.New("not found")
 
 // SeedStaff inserts presets and default settings once, on a database without team settings.
-func (d *DB) SeedStaff(ctx context.Context) error {
+func (d *DB) SeedStaff(ctx context.Context) error { return d.SeedStaffWith(ctx, nil) }
+
+// SeedStaffWith is SeedStaff with further permissions for the preset roles, by role key: what a module
+// adds (internal/ext).
+func (d *DB) SeedStaffWith(ctx context.Context, extra map[string][]string) error {
 	tx, err := d.Pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -47,8 +51,9 @@ func (d *DB) SeedStaff(ctx context.Context) error {
 		return err
 	}
 	for _, r := range StaffPresets {
+		perms := append(append([]string{}, r.Permissions...), extra[r.Key]...)
 		if _, err := tx.Exec(ctx, `INSERT INTO staff_roles(key, name, description, permissions, preset)
-			VALUES($1, $2, $3, $4, true) ON CONFLICT DO NOTHING`, r.Key, r.Name, r.Description, r.Permissions); err != nil {
+			VALUES($1, $2, $3, $4, true) ON CONFLICT DO NOTHING`, r.Key, r.Name, r.Description, perms); err != nil {
 			return err
 		}
 	}

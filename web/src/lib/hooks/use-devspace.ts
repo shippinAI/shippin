@@ -20,7 +20,9 @@ export function useOpenDevspace(tenantId: string) {
       if (ws && ws.state === "stopped") await apiSend("POST", `/v1/tenants/${tenantId}/workspaces/${ws.id}/actions/start`);
       if (ws) return ws;
       return apiSend<Workspace>("POST", `/v1/tenants/${tenantId}/workspaces`, {
-        name: `${project.name}-${env.name}`.slice(0, 40), project_id: project.id, environment: env.name,
+        name: `${project.name}-${env.name}`.slice(0, 40),
+        project_id: project.id,
+        environment: env.name,
       });
     },
     onSettled: () => void qc.invalidateQueries({ queryKey: ["tenant", tenantId, "workspaces"] }),

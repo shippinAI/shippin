@@ -11,7 +11,15 @@ import { EmptyState } from "../../../lib/design/components/empty-state/empty-sta
 import { timeAgo } from "../../../lib/format";
 import { PageHeader } from "../../../template/page-header";
 
-type BridgeSession = { id: string; client_name: string; email: string; created_at: string; expires_at?: string; last_used_at?: string; status: string };
+type BridgeSession = {
+  id: string;
+  client_name: string;
+  email: string;
+  created_at: string;
+  expires_at?: string;
+  last_used_at?: string;
+  status: string;
+};
 
 /** Devices signed in with the Shippin bridge; revoking closes their open shells at once. */
 export function BridgeSessionsPage() {
@@ -24,20 +32,48 @@ export function BridgeSessionsPage() {
   const [target, setTarget] = useState<BridgeSession | null>(null);
   const live = (s: BridgeSession) => s.status === "issued" || s.status === "approved";
   const cols: ColumnDef<BridgeSession>[] = [
-    { id: "name", label: "Device", isRowHeader: true, render: (s) => <span className="flex items-center gap-2 font-medium text-fg"><Cable className="size-4 text-hue-secrets" />{s.client_name}</span> },
+    {
+      id: "name",
+      label: "Device",
+      isRowHeader: true,
+      render: (s) => (
+        <span className="flex items-center gap-2 font-medium text-fg">
+          <Cable className="size-4 text-hue-secrets" />
+          {s.client_name}
+        </span>
+      ),
+    },
     { id: "status", label: "Status", render: (s) => <Badge tone={live(s) ? "success" : "neutral"}>{live(s) ? "active" : s.status}</Badge> },
     { id: "used", label: "Last used", render: (s) => (s.last_used_at ? timeAgo(s.last_used_at) : "never") },
     { id: "signed", label: "Signed in", render: (s) => timeAgo(s.created_at) },
-    { id: "x", label: "", width: "60px", render: (s) => (live(s) ? <IconButton icon={Trash2} label={`Revoke ${s.client_name}`} onPress={() => setTarget(s)} /> : null) },
+    {
+      id: "x",
+      label: "",
+      width: "60px",
+      render: (s) => (live(s) ? <IconButton icon={Trash2} label={`Revoke ${s.client_name}`} onPress={() => setTarget(s)} /> : null),
+    },
   ];
   const items = q.data?.items ?? [];
   return (
     <>
-      <PageHeader eyebrow="Account" title="Bridge sessions" description="Devices and local AIs signed in with shippin-bridge. Revoking ends the session now and closes its open shells." />
+      <PageHeader
+        eyebrow="Account"
+        title="Bridge sessions"
+        description="Devices and local AIs signed in with shippin-bridge. Revoking ends the session now and closes its open shells."
+      />
       <Card elevation={2} className="overflow-hidden">
         <CardHeader title={`${items.filter(live).length} active`} />
-        <DataTable label="Bridge sessions" columns={cols} rows={items}
-          empty={<EmptyState title="No bridge sessions" description="Run shippin-bridge login on your machine to open devspaces from a terminal or a local AI." />} />
+        <DataTable
+          label="Bridge sessions"
+          columns={cols}
+          rows={items}
+          empty={
+            <EmptyState
+              title="No bridge sessions"
+              description="Run shippin-bridge login on your machine to open devspaces from a terminal or a local AI."
+            />
+          }
+        />
       </Card>
       <ConfirmDialog
         isOpen={!!target}

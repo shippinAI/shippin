@@ -42,7 +42,12 @@ export function parseFrontmatter(text) {
     if (!match) return { error: `frontmatter line is not a simple key: ${line}` };
     if (Object.hasOwn(fields, match[1])) return { error: `duplicate frontmatter key ${match[1]}` };
     let value = match[2].trim();
-    if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+    if (value.startsWith('"')) {
+      try { value = JSON.parse(value); }
+      catch { return { error: `frontmatter ${match[1]} must be a valid double-quoted string` }; }
+    } else if (/:(?:\s|$)|\s#|^[\[\]{}&*!|>'%@`]/.test(value)) {
+      return { error: `frontmatter ${match[1]} needs double quotes for YAML punctuation` };
+    }
     fields[match[1]] = value;
   }
   return { fields, body: normalized.slice(end + '\n---\n'.length) };
@@ -106,6 +111,11 @@ function lintFacts(file, text, now, errors, warnings) {
       if (match) dates.push(match[1]);
     }
     const label = `${file}: fact "${section.title}"`;
+    for (const field of ['claim', 'source']) {
+      if (!new RegExp(`^\\s*-\\s+${field}:\\s*\\S.*$`, 'm').test(section.body)) {
+        errors.push(`${label} has no ${field}: value`);
+      }
+    }
     if (dates.length === 0) errors.push(`${label} has no verified: date`);
     if (dates.length > 1) errors.push(`${label} has more than one verified: date`);
     for (const raw of dates) {
@@ -146,11 +156,19 @@ function lintSkill(root, skill, now, errors, warnings) {
       errors.push(`${skill.label}: ${entry.name} is a subdirectory; link extra material by repo path instead`);
       continue;
     }
-    if (!entry.isFile()) continue;
+    if (!entry.isFile() || fs.lstatSync(full).nlink !== 1) {
+      errors.push(`${skill.label}: ${entry.name} must be a regular unlinked file`);
+      continue;
+    }
     scanSecrets(display(root, full), fs.readFileSync(full, 'utf8'), errors);
   }
   const skillFile = path.join(skill.dir, 'SKILL.md');
   if (!fs.existsSync(skillFile)) return;
+  // Never follow a link for a required sibling, including after rejecting it above.
+  if (['SKILL.md', 'facts.md', 'tests.md'].some(name => {
+    const file = path.join(skill.dir, name);
+    return fs.existsSync(file) && (!fs.lstatSync(file).isFile() || fs.lstatSync(file).nlink !== 1);
+  })) return;
   const parsed = parseFrontmatter(fs.readFileSync(skillFile, 'utf8'));
   const shown = display(root, skillFile);
   if (parsed.error) {
@@ -182,6 +200,13 @@ function lintSkill(root, skill, now, errors, warnings) {
   if (parsed.body.trim() === '') errors.push(`${shown}: body is empty`);
   if (lines > LIMITS.bodyMaxLines) errors.push(`${shown}: body is ${lines} lines; maximum is ${LIMITS.bodyMaxLines}`);
   if (bytes > LIMITS.bodyMaxBytes) errors.push(`${shown}: body is ${bytes} bytes; maximum is ${LIMITS.bodyMaxBytes}`);
+  if (!skill.template) {
+    for (const match of parsed.body.matchAll(/!?\[[^\]]*\]\(([^)]+)\)/g)) {
+      if (!/^(?:https:\/\/|#)/.test(match[1])) {
+        errors.push(`${shown}: exported links must use HTTPS or a same-document anchor: ${match[1]}`);
+      }
+    }
+  }
   const factsFile = path.join(skill.dir, 'facts.md');
   if (fs.existsSync(factsFile)) lintFacts(display(root, factsFile), fs.readFileSync(factsFile, 'utf8'), now, errors, warnings);
   const testsFile = path.join(skill.dir, 'tests.md');
@@ -192,11 +217,11 @@ export function lintLibrary(libraryRoot, { now = new Date() } = {}) {
   const errors = [];
   const warnings = [];
   const skills = [];
-  if (!fs.existsSync(libraryRoot) || !fs.statSync(libraryRoot).isDirectory()) {
+  if (!fs.existsSync(libraryRoot) || !fs.lstatSync(libraryRoot).isDirectory()) {
     return { errors: [`${libraryRoot}: library root is missing`], warnings, skills };
   }
   const readme = path.join(libraryRoot, 'README.md');
-  if (!fs.existsSync(readme)) errors.push('README.md: the library README is required');
+  if (!fs.existsSync(readme) || !fs.lstatSync(readme).isFile() || fs.lstatSync(readme).nlink !== 1) errors.push('README.md: a regular unlinked library README is required');
   else scanSecrets('README.md', fs.readFileSync(readme, 'utf8'), errors);
 
   for (const entry of fs.readdirSync(libraryRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
@@ -236,7 +261,12 @@ export function lintLibrary(libraryRoot, { now = new Date() } = {}) {
       skills.push({ dir: path.join(full, child.name), label: `${entry.name}/${child.name}`, flatName, template: false });
     }
   }
-  for (const skill of skills) lintSkill(libraryRoot, skill, now, errors, warnings);
+  const names = new Set();
+  for (const skill of skills) {
+    if (skill.flatName && names.has(skill.flatName)) errors.push(`${skill.label}: duplicate flat export name ${skill.flatName}`);
+    if (skill.flatName) names.add(skill.flatName);
+    lintSkill(libraryRoot, skill, now, errors, warnings);
+  }
   return { errors, warnings, skills };
 }
 

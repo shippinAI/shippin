@@ -39,7 +39,14 @@ export function classifyClose(code: number, reason: string): CloseVerdict {
   return { retry: true }; // 1006 (dropped, or refused before the handshake), 1001, 1011, 1012...
 }
 
-export function socketURL(loc: { protocol: string; host: string }, tenantId: string, workspaceId: string, rows: number, cols: number, mux: Mux) {
+export function socketURL(
+  loc: { protocol: string; host: string },
+  tenantId: string,
+  workspaceId: string,
+  rows: number,
+  cols: number,
+  mux: Mux,
+) {
   const proto = loc.protocol === "https:" ? "wss:" : "ws:";
   return `${proto}//${loc.host}/v1/tenants/${tenantId}/workspaces/${workspaceId}/terminal?rows=${rows}&cols=${cols}&mux=${mux}`;
 }
@@ -92,7 +99,10 @@ export class TerminalConnection {
   private gone = false;
   private enc = new TextEncoder();
 
-  constructor(private deps: ConnDeps, private on: ConnEvents) {}
+  constructor(
+    private deps: ConnDeps,
+    private on: ConnEvents,
+  ) {}
 
   start(rows: number, cols: number) {
     this.size = { rows, cols };
@@ -155,7 +165,10 @@ export class TerminalConnection {
       if (++this.attempt > maxAttempts) return this.set({ phase: "closed", kind: "gaveUp", message: "" });
       const delayMs = retryDelay(this.attempt);
       this.set({ phase: "reconnecting", attempt: this.attempt, delayMs });
-      this.timer = this.deps.setTimer(() => { this.timer = null; this.connect(); }, delayMs);
+      this.timer = this.deps.setTimer(() => {
+        this.timer = null;
+        this.connect();
+      }, delayMs);
     };
   }
 

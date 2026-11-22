@@ -2,7 +2,6 @@ package runner_job
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -13,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"shippin.cloud/console/internal/catalog"
+	"shippin.cloud/console/internal/limits"
 	"shippin.cloud/console/internal/services/runner_size"
 )
 
@@ -49,8 +48,14 @@ type Outcome struct {
 // Receive records what GitHub says about a job that asked for a Shippin runner, for the organization
 // whose installation sent it. A queued job is checked against the repository's assignment, the size
 // and the organization's plan, and is recorded as waiting for a runner or refused with the reason.
-// Later deliveries move it on; they change only that organization's own job.
+// Later deliveries move it on; they change only that organization's own job. The limits are
+// limits.FromPlan; ReceiveUnder takes them from a policy.
 func Receive(ctx context.Context, pool *pgxpool.Pool, w Webhook) (Outcome, error) {
+	return ReceiveUnder(ctx, pool, limits.FromPlan{}, w)
+}
+
+// ReceiveUnder is Receive with the organization's limits taken from lim.
+func ReceiveUnder(ctx context.Context, pool *pgxpool.Pool, lim limits.Policy, w Webhook) (Outcome, error) {
 	var sizes []string
 	for _, l := range w.Labels {
 		if s, ok := strings.CutPrefix(strings.ToLower(l), runner_size.Prefix); ok {
@@ -76,7 +81,7 @@ func Receive(ctx context.Context, pool *pgxpool.Pool, w Webhook) (Outcome, error
 	out := Outcome{Ours: true}
 	switch w.Action {
 	case "queued":
-		out, err = intake(ctx, tx, tenant, w, sizes)
+		out, err = intake(ctx, tx, lim, tenant, w, sizes)
 	case "in_progress":
 		err = tx.QueryRow(ctx, `UPDATE shippin_runner_jobs SET status='in_progress', started_at=coalesce($3, now()), runner_name=left($4, 100), updated_at=now()
 		  WHERE github_job_id=$1 AND tenant_id=$2 AND status='queued' RETURNING id::text, status`, w.JobID, tenant, w.StartedAt, w.RunnerName).Scan(&out.JobID, &out.Status)
@@ -99,7 +104,7 @@ func Receive(ctx context.Context, pool *pgxpool.Pool, w Webhook) (Outcome, error
 }
 
 // intake records a queued job, waiting or refused.
-func intake(ctx context.Context, tx pgx.Tx, tenant string, w Webhook, sizes []string) (Outcome, error) {
+func intake(ctx context.Context, tx pgx.Tx, lim limits.Policy, tenant string, w Webhook, sizes []string) (Outcome, error) {
 	out := Outcome{Ours: true, Status: Queued}
 	var workspace, project *string
 	var allowed bool
@@ -118,7 +123,7 @@ func intake(ctx context.Context, tx pgx.Tx, tenant string, w Webhook, sizes []st
 	case !allowed:
 		refuse("This repository's jobs are not allowed on Shippin runners. Allow them under GitHub repositories.")
 	default:
-		reason, err := sizeAndPlan(ctx, tx, tenant, *workspace, size)
+		reason, err := sizeAndPlan(ctx, tx, lim, tenant, *workspace, size)
 		if err != nil {
 			return out, err
 		}
@@ -139,8 +144,8 @@ func intake(ctx context.Context, tx pgx.Tx, tenant string, w Webhook, sizes []st
 	return out, err
 }
 
-// sizeAndPlan is why the organization's plan or the size refuses the job, or "".
-func sizeAndPlan(ctx context.Context, tx pgx.Tx, tenant, workspace, size string) (string, error) {
+// sizeAndPlan is why the organization's limits or the size refuse the job, or "".
+func sizeAndPlan(ctx context.Context, tx pgx.Tx, lim limits.Policy, tenant, workspace, size string) (string, error) {
 	var active bool
 	var image string
 	err := tx.QueryRow(ctx, `SELECT active, image FROM shippin_runner_sizes WHERE id=$1`, size).Scan(&active, &image)
@@ -152,30 +157,18 @@ func sizeAndPlan(ctx context.Context, tx pgx.Tx, tenant, workspace, size string)
 	case image == "":
 		return "Runner size " + size + " is not ready yet: the provider has not set its image.", nil
 	}
-	eff, err := catalog.EffectiveFor(ctx, tx, tenant, workspace)
-	if errors.Is(err, catalog.ErrNotFound) {
-		return "This organization has no plan, so it has no build runners.", nil
-	}
+	r, err := lim.Runners(ctx, tx, tenant, workspace)
 	if err != nil {
 		return "", err
 	}
-	var enabled bool
-	var included []string
-	var minutes float64
-	for _, s := range eff.Services {
-		switch s.Key {
-		case "svc.runners.enabled":
-			_ = json.Unmarshal(s.Value, &enabled)
-		case "svc.runners.sizes":
-			_ = json.Unmarshal(s.Value, &included)
-		case "svc.runners.minutes":
-			_ = json.Unmarshal(s.Value, &minutes)
+	if !r.Enabled {
+		if r.Why == "" {
+			return "This organization may not use build runners.", nil
 		}
+		return r.Why, nil
 	}
-	if !enabled {
-		return "Your plan does not include build runners.", nil
-	}
-	if !slices.Contains(included, size) {
+	minutes := r.MonthlyMinutes
+	if !slices.Contains(r.Sizes, size) {
 		return "Your plan does not include runner size " + size + ".", nil
 	}
 	if minutes > 0 {

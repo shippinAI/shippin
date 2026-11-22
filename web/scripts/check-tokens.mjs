@@ -52,7 +52,8 @@ const lengthLiteral = /^-?\d+(\.\d+)?(px|rem|em)$/;
 
 /** Splits "md:data-[x=y]:p-4" into variants and the utility, respecting brackets. */
 function utilityOf(candidate) {
-  let depth = 0, cut = -1;
+  let depth = 0,
+    cut = -1;
   for (let i = 0; i < candidate.length; i++) {
     const ch = candidate[i];
     if (ch === "[" || ch === "(") depth++;
@@ -70,13 +71,22 @@ function checkClassList(text, report) {
   for (const p of parts) {
     if (markers.has(p) || /^(group|peer)\//.test(p)) continue;
     const util = utilityOf(p).replace(/^-/, "");
-    if (decorative.test(util)) { report(p, "decorative effect; the design is flat"); continue; }
+    if (decorative.test(util)) {
+      report(p, "decorative effect; the design is flat");
+      continue;
+    }
     const bracket = util.match(/^([a-z0-9-]+?)-\[(.+)\]$/) || util.match(/^\[(.+)\]$/);
     if (bracket) {
       const value = bracket.length === 3 ? bracket[2] : bracket[1];
-      if (!(structural.test(util) || viewport.test(value))) { report(p, "arbitrary value; use a token"); continue; }
+      if (!(structural.test(util) || viewport.test(value))) {
+        report(p, "arbitrary value; use a token");
+        continue;
+      }
     }
-    if (/\/\[/.test(util)) { report(p, "arbitrary opacity; use a whole-number modifier such as /10"); continue; }
+    if (/\/\[/.test(util)) {
+      report(p, "arbitrary opacity; use a whole-number modifier such as /10");
+      continue;
+    }
     if (resolves(strict, "s", p)) continue;
     report(p, resolves(loose, "l", p) ? "uses a value outside the tokens" : "draws nothing");
   }
@@ -100,36 +110,59 @@ for (const file of files) {
   if (file.endsWith(".css")) {
     if (rel === "src/styles/tokens.css") continue;
     lines.forEach((l, i) => {
-      if ((/#[0-9a-f]{3,8}\b/i.test(l) || /\b(oklch|oklab|rgba?|hsla?)\(/i.test(l)) && !allowed(i)) problems.push(`${rel}:${i + 1}  colour literal outside the token file`);
+      if ((/#[0-9a-f]{3,8}\b/i.test(l) || /\b(oklch|oklab|rgba?|hsla?)\(/i.test(l)) && !allowed(i))
+        problems.push(`${rel}:${i + 1}  colour literal outside the token file`);
     });
     continue;
   }
   const parsed = parseSync(file, src);
-  if (parsed.errors?.length) { problems.push(`${rel}  could not be parsed: ${parsed.errors[0].message}`); continue; }
+  if (parsed.errors?.length) {
+    problems.push(`${rel}  could not be parsed: ${parsed.errors[0].message}`);
+    continue;
+  }
   const starts = [0];
   for (let i = 0; i < src.length; i++) if (src[i] === "\n") starts.push(i + 1);
-  const lineOf = (offset) => { let lo = 0, hi = starts.length - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= offset) lo = mid; else hi = mid - 1; } return lo; };
+  const lineOf = (offset) => {
+    let lo = 0,
+      hi = starts.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (starts[mid] <= offset) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo;
+  };
   const keyName = (k) => k?.name ?? k?.value;
   const visit = (node) => {
     if (!node || typeof node !== "object") return;
-    if (Array.isArray(node)) { node.forEach(visit); return; }
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
     let text;
     if (node.type === "Literal" && typeof node.value === "string") text = node.value;
     else if (node.type === "TemplateElement") text = node.value?.cooked ?? node.value?.raw;
     if (text !== undefined) {
       const line = lineOf(node.start);
       const report = (c, why) => problems.push(`${rel}:${line + 1}  ${c}  ${why}`);
-      if ((hexOnly.test(text.trim()) || colourCall.test(text)) && !allowed(line)) report(JSON.stringify(text.slice(0, 40)), "colour literal; use a token");
+      if ((hexOnly.test(text.trim()) || colourCall.test(text)) && !allowed(line))
+        report(JSON.stringify(text.slice(0, 40)), "colour literal; use a token");
       else checkClassList(text, report);
     }
     if (node.type === "JSXAttribute" && keyName(node.name) === "style" && node.value?.expression?.type === "ObjectExpression") {
       for (const prop of node.value.expression.properties) {
         if (prop.type !== "Property") continue;
         const v = prop.value;
-        const literal = v.type !== "Literal" ? false
-          : typeof v.value === "number" ? v.value !== 0 && String(v.value)
-          : typeof v.value === "string" && (lengthLiteral.test(v.value) || hexOnly.test(v.value) || colourCall.test(v.value)) && v.value;
-        if (literal) problems.push(`${rel}:${lineOf(prop.start) + 1}  style ${keyName(prop.key)}: ${literal}  inline literal; use a token class`);
+        const literal =
+          v.type !== "Literal"
+            ? false
+            : typeof v.value === "number"
+              ? v.value !== 0 && String(v.value)
+              : typeof v.value === "string" &&
+                (lengthLiteral.test(v.value) || hexOnly.test(v.value) || colourCall.test(v.value)) &&
+                v.value;
+        if (literal)
+          problems.push(`${rel}:${lineOf(prop.start) + 1}  style ${keyName(prop.key)}: ${literal}  inline literal; use a token class`);
       }
     }
     for (const key in node) if (key !== "parent" && node[key] && typeof node[key] === "object") visit(node[key]);

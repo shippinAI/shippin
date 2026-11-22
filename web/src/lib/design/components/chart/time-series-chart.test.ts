@@ -9,7 +9,9 @@ import type { TextKey } from "../../../ui-config/text-keys";
 // The components are TSX; load them with JSX turned on, the way Vite builds them.
 const tsx = createJiti(import.meta.url, { jsx: { runtime: "automatic" } });
 const { TimeSeriesChart } = await tsx.import<typeof import("./time-series-chart")>("./time-series-chart.tsx");
-const { HistoryCharts, samplerText } = await tsx.import<typeof import("../../../../features/infrastructure/ui/metrics-history")>("../../../../features/infrastructure/ui/metrics-history.tsx");
+const { HistoryCharts, samplerText } = await tsx.import<typeof import("../../../../features/infrastructure/ui/metrics-history")>(
+  "../../../../features/infrastructure/ui/metrics-history.tsx",
+);
 
 // Fixture: ten minutes of one-minute samples with readings missing at minutes 3 and 4.
 const start = Date.UTC(2026, 10, 15, 12, 0);
@@ -18,10 +20,17 @@ const values = [0.12, 0.18, 0.22, null, null, 0.4, 0.35, 0.3, 0.28, 0.25];
 const points = values.map((value, i) => ({ at: start + i * MIN, value }));
 const text = { noData: "No data", time: "Time" };
 
-const html = renderToStaticMarkup(createElement(TimeSeriesChart, {
-  label: "CPU", summary: "CPU average: latest 25%, between 12% and 40%. 2 of 10 samples are missing.", unit: "fraction",
-  series: [{ id: "cpu", label: "Average", points }], from: start, to: start + 9 * MIN, text,
-}));
+const html = renderToStaticMarkup(
+  createElement(TimeSeriesChart, {
+    label: "CPU",
+    summary: "CPU average: latest 25%, between 12% and 40%. 2 of 10 samples are missing.",
+    unit: "fraction",
+    series: [{ id: "cpu", label: "Average", points }],
+    from: start,
+    to: start + 9 * MIN,
+    text,
+  }),
+);
 
 const lines = [...html.matchAll(/<path d="(M[^"]+)" fill="none"/g)].map((m) => m[1]!);
 assert.equal(lines.length, 2, "the gap splits the line in two");
@@ -40,18 +49,39 @@ assert.ok(!html.includes("<td>0%</td>"), "no missing reading became zero");
 for (const tick of ["0%", "25%", "50%"]) assert.ok(html.includes(`>${tick}</text>`), `value axis tick ${tick}`);
 assert.ok(!/#[0-9a-f]{3,8}\b|oklch\(|rgb\(/i.test(html), "colours come from token classes");
 
-const two = renderToStaticMarkup(createElement(TimeSeriesChart, {
-  label: "Network", summary: "s", unit: "bytes_per_second",
-  series: [
-    { id: "in", label: "In", points: [{ at: start, value: 1024 }, { at: start + MIN, value: 2048 }] },
-    { id: "out", label: "Out", points: [{ at: start, value: 512 }, { at: start + MIN, value: null }] },
-  ], text,
-}));
+const two = renderToStaticMarkup(
+  createElement(TimeSeriesChart, {
+    label: "Network",
+    summary: "s",
+    unit: "bytes_per_second",
+    series: [
+      {
+        id: "in",
+        label: "In",
+        points: [
+          { at: start, value: 1024 },
+          { at: start + MIN, value: 2048 },
+        ],
+      },
+      {
+        id: "out",
+        label: "Out",
+        points: [
+          { at: start, value: 512 },
+          { at: start + MIN, value: null },
+        ],
+      },
+    ],
+    text,
+  }),
+);
 assert.equal([...two.matchAll(/<path d="M[^"]+Z"/g)].length, 0, "several series are lines only");
 assert.ok(two.includes("stroke-hue-data") && two.includes("fill-hue-identity"), "each series gets its own hue; a lone reading is a dot");
 assert.ok(two.includes("KB/s"));
 
-const empty = renderToStaticMarkup(createElement(TimeSeriesChart, { label: "Disk", summary: "none", unit: "bytes", series: [{ id: "d", label: "Used", points: [] }], text }));
+const empty = renderToStaticMarkup(
+  createElement(TimeSeriesChart, { label: "Disk", summary: "none", unit: "bytes", series: [{ id: "d", label: "Used", points: [] }], text }),
+);
 assert.ok(empty.includes(">No data</text>"), "no readings says so");
 
 // The host history section, drawn from a fixture the metrics range action could return.
@@ -59,7 +89,12 @@ const t = (key: TextKey, vars?: Record<string, string | number>) => textFor(unde
 const iso = (i: number) => new Date(start + i * MIN).toISOString();
 const bucket = (v: number | null, k = 1) => (v === null ? null : { avg: v * k, max: v * k + 0.1, samples: 3 });
 const history: MetricRange = {
-  server_id: "s", guest_id: "", from: iso(0), to: iso(10), step_seconds: 60, times: values.map((_, i) => iso(i)),
+  server_id: "s",
+  guest_id: "",
+  from: iso(0),
+  to: iso(10),
+  step_seconds: 60,
+  times: values.map((_, i) => iso(i)),
   sampler: { state: "sampling", interval_seconds: 60, last_sampled_at: iso(9) },
   series: [
     { metric: "cpu", unit: "fraction", buckets: values.map((v) => bucket(v)) },
@@ -69,12 +104,19 @@ const history: MetricRange = {
   ],
 };
 const section = renderToStaticMarkup(createElement(HistoryCharts, { history, t }));
-assert.ok(section.includes('data-testid="history-cpu"') && section.includes('data-testid="history-memory"') && section.includes('data-testid="history-network"'));
+assert.ok(
+  section.includes('data-testid="history-cpu"') &&
+    section.includes('data-testid="history-memory"') &&
+    section.includes('data-testid="history-network"'),
+);
 assert.ok(!section.includes('data-testid="history-disk"'), "a metric with no steps has no chart");
 assert.ok(section.includes("2 of 10 samples are missing."), "the summary counts the gap");
 assert.ok(section.includes("Peak") && section.includes("Average"));
 
-assert.equal(samplerText(t, { state: "off", reason: "ClickHouse is not connected", interval_seconds: 60, last_sampled_at: null }), "The metrics sampler is off: ClickHouse is not connected");
+assert.equal(
+  samplerText(t, { state: "off", reason: "ClickHouse is not connected", interval_seconds: 60, last_sampled_at: null }),
+  "The metrics sampler is off: ClickHouse is not connected",
+);
 
 const q = rangeQuery({ serverId: "11111111-2222-3333-4444-555555555555" }, "24h", Date.UTC(2026, 10, 15, 12, 2, 30));
 assert.equal(q.get("guest_id"), "", "the host itself");

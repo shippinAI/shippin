@@ -5,9 +5,14 @@ import { streamMessage } from "./chat-stream";
 import type { ChatMessage, ChatProvider, ChatReady, ChatSession } from "./chat-types";
 
 export const useChatConfig = () =>
-  useQuery({ queryKey: ["chat", "config"], queryFn: () => apiGet<{ providers: ChatProvider[]; catalog: string[] }>("/v1/chat/config"), staleTime: 300_000 });
+  useQuery({
+    queryKey: ["chat", "config"],
+    queryFn: () => apiGet<{ providers: ChatProvider[]; catalog: string[] }>("/v1/chat/config"),
+    staleTime: 300_000,
+  });
 
-export const useChatSessions = () => useQuery({ queryKey: ["chat", "sessions"], queryFn: () => apiGet<{ items: ChatSession[] }>("/v1/chat/sessions") });
+export const useChatSessions = () =>
+  useQuery({ queryKey: ["chat", "sessions"], queryFn: () => apiGet<{ items: ChatSession[] }>("/v1/chat/sessions") });
 
 export const useChatSession = (id: string | null) =>
   useQuery({
@@ -17,7 +22,12 @@ export const useChatSession = (id: string | null) =>
   });
 
 export const useChatReady = (id: string | null) =>
-  useQuery({ queryKey: ["chat", "ready", id], queryFn: () => apiGet<ChatReady>(`/v1/chat/sessions/${id}/ready`), enabled: !!id, staleTime: 60_000 });
+  useQuery({
+    queryKey: ["chat", "ready", id],
+    queryFn: () => apiGet<ChatReady>(`/v1/chat/sessions/${id}/ready`),
+    enabled: !!id,
+    staleTime: 60_000,
+  });
 
 export function useCreateChat() {
   const qc = useQueryClient();

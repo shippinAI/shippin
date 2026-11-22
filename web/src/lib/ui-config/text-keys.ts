@@ -1,8 +1,17 @@
 // The panel strings an installation can reword, with their defaults. `ui.text` in the config file
 // or the Interface page overrides one by key. Add a string here rather than writing it inline.
 export const textDefaults = {
+  "infra.inventory.description":
+    "VMs and containers visible through this host connection, including those created elsewhere. The list refreshes automatically.",
+  "infra.inventory.checked": "Last successful refresh: {time}",
+  "infra.inventory.refresh": "Refresh inventory",
+  "infra.inventory.refreshing": "Refreshing inventory…",
+  "infra.inventory.refreshTooltip": "Read the current VMs and containers from this host",
+  "infra.inventory.stale": "Refresh failed. These are the last known machines; guest actions are unavailable until inventory recovers.",
+  "infra.inventory.failed": "Inventory could not be loaded.",
   "organization.create": "Create customer organization",
-  "organization.createDescription": "Create a local organization and its default workspace. Infrastructure is provisioned separately; projects wait until capacity is available.",
+  "organization.createDescription":
+    "Create a local organization and its default workspace. Infrastructure is provisioned separately; projects wait until capacity is available.",
   "organization.name": "Organization name",
   "organization.plan": "Resource plan",
   "organization.owner": "Organization owner",
@@ -18,8 +27,10 @@ export const textDefaults = {
   "coverage.none": "No coverage tier",
   "coverage.noneDescription": "This organization has no coverage tier yet. Ask the platform operator what support is available.",
   "signInRequired.title": "{name} needs a stronger sign-in",
-  "signInRequired.secondFactor": "This organization's coverage requires a second factor. Sign out, then sign in with a passkey or your identity provider.",
-  "signInRequired.identityProvider": "This organization's coverage requires signing in through your identity provider. Sign out, then sign in that way.",
+  "signInRequired.secondFactor":
+    "This organization's coverage requires a second factor. Sign out, then sign in with a passkey or your identity provider.",
+  "signInRequired.identityProvider":
+    "This organization's coverage requires signing in through your identity provider. Sign out, then sign in that way.",
   "signInRequired.signOut": "Sign out",
   "runners.title": "Build runners",
   "runners.description": "GitHub Actions jobs from your assigned repositories, each on a fresh machine of its own.",
@@ -27,7 +38,8 @@ export const textDefaults = {
   "runners.repositories": "GitHub repositories",
   "runners.how": "How it works",
   "spaces.title": "Workspaces",
-  "spaces.description": "Organize your projects within this organization. Start with the default workspace, and add more when you need them.",
+  "spaces.description":
+    "Organize your projects within this organization. Start with the default workspace, and add more when you need them.",
   "spaces.access": "Workspace access currently follows organization membership.",
   "spaces.create": "Create workspace",
   "spaces.default": "Default",
@@ -73,7 +85,8 @@ export const textDefaults = {
   "infra.provider.none": "No host attached yet.",
   "infra.provider.hosts": "{online} of {total} hosts online · {running} of {guests} guests running",
   "infra.nodes.title": "All hosts",
-  "infra.nodes.description": "Every host of every provider, side by side and read live. Sort by any column; open a host for its guests. A host that does not answer stays listed with the reason.",
+  "infra.nodes.description":
+    "Every host of every provider, side by side and read live. Sort by any column; open a host for its guests. A host that does not answer stays listed with the reason.",
   "infra.graph.memory.title": "Host memory pressure",
   "infra.graph.memory.description": "Live RAM use by host, sorted by most used first.",
   "infra.graph.memory.empty": "No host memory metrics are available yet.",
@@ -153,7 +166,8 @@ export const textDefaults = {
   "infra.dialog.secretKeep": "Leave blank to retain the existing credential source.",
   "infra.dialog.saveEdit": "Save connection",
   "infra.dialog.testRequired": "Test this configuration successfully before saving",
-  "infra.dialog.description": "Test the connection before saving. Secrets are stored encrypted and never shown again; on edits, leave credentials blank to retain the existing source.",
+  "infra.dialog.description":
+    "Test the connection before saving. Secrets are stored encrypted and never shown again; on edits, leave credentials blank to retain the existing source.",
   "infra.dialog.advanced": "Advanced",
   "infra.dialog.test": "Test connection",
   "infra.dialog.testing": "Testing…",
@@ -170,7 +184,8 @@ export const textDefaults = {
   "infra.dialog.site": "Site",
   "infra.dialog.site.help": "Where this host lives.",
   "infra.dialog.tenantSecrets.label": "Allow tenant deployment secrets on this target",
-  "infra.dialog.tenantSecrets.help": "Provider administrators can read workload environment values in instance configuration. Enable only when those administrators are trusted with tenant secrets. Secret delivery remains disabled until a deployment runtime is implemented.",
+  "infra.dialog.tenantSecrets.help":
+    "Provider administrators can read workload environment values in instance configuration. Enable only when those administrators are trusted with tenant secrets. Secret delivery remains disabled until a deployment runtime is implemented.",
   "infra.dialog.cancel": "Cancel",
   "infra.dialog.cancelTooltip": "Close without adding",
   "infra.dialog.submit": "Add host",
@@ -184,7 +199,8 @@ export const textDefaults = {
   "infra.toast.detachFailed": "Couldn't detach the host",
   "infra.provider.host": "Host",
   "infra.trust.title": "This server's certificate is not trusted yet",
-  "infra.trust.body": "Compare this fingerprint with the one the server shows. Trust it only if they match, because after this the panel accepts this exact certificate and no other.",
+  "infra.trust.body":
+    "Compare this fingerprint with the one the server shows. Trust it only if they match, because after this the panel accepts this exact certificate and no other.",
   "infra.trust.fingerprint": "SHA-256:",
   "infra.trust.names": "Names:",
   "infra.trust.expires": "Expires:",
@@ -207,7 +223,8 @@ export const textDefaults = {
   "infra.detect.unreachable.help": "Check the address, the port, and any firewall between this panel and the server.",
   "infra.detect.version": "Version {version}.",
   "infra.detect.certVerified": "Its certificate is already trusted by this panel.",
-  "infra.detect.certCompare": "Compare this fingerprint with the one the server shows. Confirming trusts this exact certificate when you test the connection.",
+  "infra.detect.certCompare":
+    "Compare this fingerprint with the one the server shows. Confirming trusts this exact certificate when you test the connection.",
   "infra.detect.evidence": "What the panel saw",
   "infra.detect.confirm": "Confirm",
   "infra.detect.confirmTooltip": "Use this kind, address and certificate, then enter credentials",
@@ -278,7 +295,8 @@ export const textDefaults = {
   "infra.self.confirm": "{verb} it anyway",
   "infra.self.confirmTooltip": "Go ahead, knowing the panel goes down with it",
   "infra.guest.self": "This panel",
-  "infra.fleets.explain": "A fleet groups hosts here so you can see them together. It changes nothing on the hosts: each keeps its own provider and its own cluster, and a failure on one stays on that one. Different providers cannot share a cluster or live-migrate between each other.",
+  "infra.fleets.explain":
+    "A fleet groups hosts here so you can see them together. It changes nothing on the hosts: each keeps its own provider and its own cluster, and a failure on one stays on that one. Different providers cannot share a cluster or live-migrate between each other.",
   "infra.fleets.empty.title": "No fleets yet",
   "infra.fleets.empty.body": "Create one below, then add hosts of any provider to it.",
   "infra.fleets.summary": "{online} of {nodes} hosts online · {running} of {guests} guests running",
@@ -305,7 +323,8 @@ export const textDefaults = {
   "infra.detach": "Detach",
   "infra.detach.tooltip": "Remove this API from the console. Guests are not touched.",
   "infra.detach.title": "Detach {label}?",
-  "infra.detach.body": "The panel stops reaching this host and forgets its saved secret. Guests keep running. The host still trusts this panel until you remove that on the host. To reconnect, add it again with a new token.",
+  "infra.detach.body":
+    "The panel stops reaching this host and forgets its saved secret. Guests keep running. The host still trusts this panel until you remove that on the host. To reconnect, add it again with a new token.",
   "infra.detach.confirm": "Detach",
   "infra.guest.name": "Name",
   "infra.guest.id": "ID",
@@ -341,7 +360,8 @@ export const textDefaults = {
   "infra.create.name": "Name",
   "infra.create.nameHelp": "Starts with a letter. Letters, digits and dashes.",
   "infra.create.image": "Image",
-  "infra.create.noImages": "This host has no images for this kind of guest yet. Download one to it first, or add some to this provider under Interface.",
+  "infra.create.noImages":
+    "This host has no images for this kind of guest yet. Download one to it first, or add some to this provider under Interface.",
   "infra.create.storage": "Storage",
   "infra.create.loadingStorage": "Loading storage options…",
   "infra.create.noStorage": "This host has no storage with {content} content enabled.",
@@ -411,10 +431,12 @@ export const textDefaults = {
   "infra.note.tooltip": "Explain the requested change",
   "infra.activity.why": "Why: {note}",
   "infra.controlPlane": "Runs this panel",
-  "infra.detach.controlPlane": "This host runs the panel itself. Detaching it does not stop anything, but the panel can no longer see or protect its own guest.",
+  "infra.detach.controlPlane":
+    "This host runs the panel itself. Detaching it does not stop anything, but the panel can no longer see or protect its own guest.",
   "infra.snapshot.rollbackWarning": "Everything on this guest since {name} is lost.",
   "system.badge": "System",
-  "system.body": "The platform's own tenant. It owns the hosts and services that run this installation. It is not a customer: it cannot be suspended or deleted, customers cannot see it, and belonging to it grants nothing. Access comes from staff roles, and every change says why.",
+  "system.body":
+    "The platform's own tenant. It owns the hosts and services that run this installation. It is not a customer: it cannot be suspended or deleted, customers cannot see it, and belonging to it grants nothing. Access comes from staff roles, and every change says why.",
   "system.hosts": "Hosts",
   "system.selfGuest": "Panel runs on",
   "system.selfGuest.unknown": "Not known yet",
@@ -422,11 +444,14 @@ export const textDefaults = {
   "system.audit.protected": "Protected, {rows} entries intact",
   "system.audit.broken": "Altered at entry {at}. Investigate before trusting it.",
   "system.audit.off": "Not protected: the panel's own database role can rewrite it. See the deploy guide.",
-  "signups.page.description": "Who can create an account, and the people waiting for an invitation. Every change needs a reason and is audited.",
-  "signups.page.acquisitionDescription": "Configure and review a separate early-access source without changing the verified account waitlist.",
+  "signups.page.description":
+    "Who can create an account, and the people waiting for an invitation. Every change needs a reason and is audited.",
+  "signups.page.acquisitionDescription":
+    "Configure and review a separate early-access source without changing the verified account waitlist.",
   "signups.modeNeedsRead": "Reading the current sign-up mode also requires platform.settings.read.",
   "signups.acquisition.title": "Imported early-access",
-  "signups.acquisition.description": "A separate, manually synchronized preview from a configured early-access source. It does not verify addresses, create accounts, invite people, or send messages.",
+  "signups.acquisition.description":
+    "A separate, manually synchronized preview from a configured early-access source. It does not verify addresses, create accounts, invite people, or send messages.",
   "signups.acquisition.tab.source": "Source",
   "signups.acquisition.tab.leads": "Leads",
   "signups.acquisition.sourceSelect": "Configured source",
@@ -435,18 +460,21 @@ export const textDefaults = {
   "signups.acquisition.editTitle": "Source configuration",
   "signups.acquisition.name": "Name",
   "signups.acquisition.origin": "HTTPS origin",
-  "signups.acquisition.originHelp": "Use an HTTPS origin only. If the origin includes a port, it must match the separate port below. The connection uses the pinned destination IP, not DNS or a proxy.",
+  "signups.acquisition.originHelp":
+    "Use an HTTPS origin only. If the origin includes a port, it must match the separate port below. The connection uses the pinned destination IP, not DNS or a proxy.",
   "signups.acquisition.destinationIP": "Destination IP",
   "signups.acquisition.port": "Port",
   "signups.acquisition.ca": "CA certificate (PEM)",
-  "signups.acquisition.caHelp": "Public trust material used to verify the pinned HTTPS endpoint. This does not prove the remote service's identity by itself.",
+  "signups.acquisition.caHelp":
+    "Public trust material used to verify the pinned HTTPS endpoint. This does not prove the remote service's identity by itself.",
   "signups.acquisition.tenant": "Source tenant",
   "signups.acquisition.project": "Source project",
   "signups.acquisition.issuer": "Issuer",
   "signups.acquisition.audience": "Audience",
   "signups.acquisition.signer": "Signing seed (base64)",
   "signups.acquisition.signerOptional": "Signing seed (base64, optional)",
-  "signups.acquisition.signerHelp": "A 32-byte Ed25519 seed is write-only. It is sealed by the platform and never shown again. Leave blank on update to keep the current seed.",
+  "signups.acquisition.signerHelp":
+    "A 32-byte Ed25519 seed is write-only. It is sealed by the platform and never shown again. Leave blank on update to keep the current seed.",
   "signups.acquisition.reason": "Audited reason",
   "signups.acquisition.create": "Create source",
   "signups.acquisition.save": "Save source",
@@ -477,16 +505,19 @@ export const textDefaults = {
   "signups.acquisition.caConfigured": "CA configured",
   "signups.acquisition.caMissing": "CA not configured",
   "signups.acquisition.immutable": "Tenant, project, issuer and audience are fixed when the source is created.",
-  "signups.acquisition.restoreWarning": "If you learn that the source database was restored, pause this source and reconcile it manually. Automatic restore detection and cursor reset are not available.",
+  "signups.acquisition.restoreWarning":
+    "If you learn that the source database was restored, pause this source and reconcile it manually. Automatic restore detection and cursor reset are not available.",
   "signups.acquisition.createSuccess": "Source created paused. Review it, then resume explicitly when ready.",
   "signups.acquisition.updateSuccess": "Source configuration saved.",
   "signups.acquisition.pauseSuccess": "Source paused. No new page will be imported until it is resumed.",
   "signups.acquisition.resumeSuccess": "Source resumed. No import runs automatically; use Pull one page when ready.",
   "signups.acquisition.syncSuccess": "Imported {count} new or updated leads. Cursor: {cursor}.",
   "signups.acquisition.more": "More source records are available. Pull one page again when you're ready.",
-  "signups.acquisition.stale": "This source changed since the form was opened. Reload its configuration before trying again; your changes were not saved.",
+  "signups.acquisition.stale":
+    "This source changed since the form was opened. Reload its configuration before trying again; your changes were not saved.",
   "signups.acquisition.createFailed": "Couldn't create the source. Check the configuration and try again.",
-  "signups.acquisition.updateFailed": "Couldn't save the source. Your signing seed was cleared; re-enter it only if you want to replace it.",
+  "signups.acquisition.updateFailed":
+    "Couldn't save the source. Your signing seed was cleared; re-enter it only if you want to replace it.",
   "signups.acquisition.syncFailed": "Couldn't import a page. No automatic retry was started.",
   "signups.acquisition.invalidOrigin": "Enter an HTTPS origin with no path, query, fragment, user name, or password.",
   "signups.acquisition.portMismatch": "The port in the HTTPS origin must match the separate port.",
@@ -499,7 +530,8 @@ export const textDefaults = {
   "signups.acquisition.leadsError": "Couldn't load imported leads. Check your access or try again.",
   "signups.acquisition.leadsDenied": "Viewing imported email addresses requires acquisition.read.",
   "signups.acquisition.previewComplete": "Showing {count} active imported leads.",
-  "signups.acquisition.previewLatest": "Showing the latest {count} of {total} active imported leads. Older records are not shown; this is not a complete list.",
+  "signups.acquisition.previewLatest":
+    "Showing the latest {count} of {total} active imported leads. Older records are not shown; this is not a complete list.",
   "signups.acquisition.previewPaused": "This source is paused. Stored leads remain available, but no new import can run.",
   "signups.acquisition.email": "Email",
   "signups.acquisition.emailState": "Address status",
@@ -511,11 +543,17 @@ export const textDefaults = {
   "signups.acquisition.received": "Received",
   "signups.acquisition.updated": "Updated",
   "signups.acquisition.expires": "Expires",
-  "signups.acquisition.addressWarning": "Imported addresses are unverified. This view does not create accounts, verify identities, invite people, or send email.",
+  "signups.acquisition.addressWarning":
+    "Imported addresses are unverified. This view does not create accounts, verify identities, invite people, or send email.",
   "infra.guest.busy": "A change to this guest is still running. Activity shows how it ends.",
   "home.instances.hint": "Platform host",
   "update.available": "Update available ({count})",
   "update.build": "Build {build}",
+  "update.version": "Version {version}",
+  "update.channel.local": "local development build",
+  "update.channel.edge": "edge build",
+  "update.channel.release": "release",
+  "update.commit": "Commit",
   "update.unstamped": "Unknown build",
   "update.title": "A new version is available",
   "update.currentTitle": "This panel",

@@ -73,15 +73,38 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
   return (
     <Card className="overflow-hidden">
       <CardHeader
-        title={<span className="font-mono">{table.schema}.{table.name}</span>}
-        description={page.data ? `${rowCountLabel({ row_count: total, estimate: table.estimate })}${page.data.platform ? " · created for platform services" : ""}` : "Loading rows"}
+        title={
+          <span className="font-mono">
+            {table.schema}.{table.name}
+          </span>
+        }
+        description={
+          page.data
+            ? `${rowCountLabel({ row_count: total, estimate: table.estimate })}${page.data.platform ? " · created for platform services" : ""}`
+            : "Loading rows"
+        }
         actions={
           <>
             {table.platform && <Badge tone="warning">Platform</Badge>}
-            <Button size="sm" variant="secondary" tooltip="Add a column with a type from the list" isDisabled={readOnly || table.schema !== "public"} onPress={() => setColOpen((v) => !v)}>
+            <Button
+              size="sm"
+              variant="secondary"
+              tooltip="Add a column with a type from the list"
+              isDisabled={readOnly || table.schema !== "public"}
+              onPress={() => setColOpen((v) => !v)}
+            >
               <Plus className="size-3.5" /> Column
             </Button>
-            <Button size="sm" variant="primary" tooltip={pkCols.length ? "Add a row" : "This table needs a primary key before rows can be edited"} isDisabled={readOnly || pkCols.length === 0} onPress={() => { setAdding(true); setDraft({}); }}>
+            <Button
+              size="sm"
+              variant="primary"
+              tooltip={pkCols.length ? "Add a row" : "This table needs a primary key before rows can be edited"}
+              isDisabled={readOnly || pkCols.length === 0}
+              onPress={() => {
+                setAdding(true);
+                setDraft({});
+              }}
+            >
               <Plus className="size-3.5" /> Row
             </Button>
           </>
@@ -89,12 +112,18 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
       />
       {table.platform && (
         <p className="border-b border-line px-5 py-2.5 text-sm text-fg-muted">
-          This table holds references for secrets, identity, or DNS. Values of secrets are not stored here. Deleting a row asks you to confirm.
+          This table holds references for secrets, identity, or DNS. Values of secrets are not stored here. Deleting a row asks you to
+          confirm.
         </p>
       )}
       <div className="flex flex-wrap items-end gap-2 border-b border-line px-4 py-3">
         <div className="w-40">
-          <Select label="Column" options={[{ id: "", label: "Any column" }, ...columns.map((c) => ({ id: c.name, label: c.name }))]} value={column} onChange={setColumn} />
+          <Select
+            label="Column"
+            options={[{ id: "", label: "Any column" }, ...columns.map((c) => ({ id: c.name, label: c.name }))]}
+            value={column}
+            onChange={setColumn}
+          />
         </div>
         <div className="w-36">
           <Select label="Match" options={ops} value={op} onChange={setOp} />
@@ -104,18 +133,23 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
             <TextField label="Value" value={value} onChange={setValue} placeholder="optional" />
           </div>
         )}
-        <Button size="sm" variant="secondary" tooltip="Show rows that match" onPress={() => {
-          if (!column) {
-            setApplied({});
+        <Button
+          size="sm"
+          variant="secondary"
+          tooltip="Show rows that match"
+          onPress={() => {
+            if (!column) {
+              setApplied({});
+              setOffset(0);
+              return;
+            }
+            if (op === "contains") {
+              const f = containsFilter(value);
+              setApplied({ column, op: f.op, value: f.value });
+            } else setApplied({ column, op, value });
             setOffset(0);
-            return;
-          }
-          if (op === "contains") {
-            const f = containsFilter(value);
-            setApplied({ column, op: f.op, value: f.value });
-          } else setApplied({ column, op, value });
-          setOffset(0);
-        }}>
+          }}
+        >
           Filter
         </Button>
       </div>
@@ -124,17 +158,28 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
           className="grid gap-3 border-b border-line px-4 py-3 sm:grid-cols-[1fr_180px_auto]"
           onSubmit={(e) => {
             e.preventDefault();
-            addCol.mutate(newCol, { onSuccess: () => { setColOpen(false); setNewCol({ name: "", type: "text", nullable: true, default: "" }); } });
+            addCol.mutate(newCol, {
+              onSuccess: () => {
+                setColOpen(false);
+                setNewCol({ name: "", type: "text", nullable: true, default: "" });
+              },
+            });
           }}
         >
           <TextField label="New column" value={newCol.name} onChange={(v) => setNewCol({ ...newCol, name: v })} />
           <Select label="Type" options={columnTypes} value={newCol.type} onChange={(v) => setNewCol({ ...newCol, type: v })} />
           <div className="flex items-end">
-            <Button type="submit" variant="primary" size="sm" tooltip="Add this column" isDisabled={readOnly || !newCol.name}>Add</Button>
+            <Button type="submit" variant="primary" size="sm" tooltip="Add this column" isDisabled={readOnly || !newCol.name}>
+              Add
+            </Button>
           </div>
         </form>
       )}
-      {page.isPending && <div className="p-4"><Skeleton className="h-40" /></div>}
+      {page.isPending && (
+        <div className="p-4">
+          <Skeleton className="h-40" />
+        </div>
+      )}
       {page.isError && <p className="px-5 py-4 text-sm text-fg-muted">{(page.error as Error).message}</p>}
       {page.data && (
         <div className="overflow-x-auto">
@@ -142,8 +187,15 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
             <thead>
               <tr>
                 {columns.map((c) => (
-                  <th key={c.name} className="border-b border-line bg-surface px-3 py-2 text-left text-xs font-medium tracking-wide text-fg-subtle uppercase">
-                    <button type="button" className="focus-ring inline-flex items-center gap-1 rounded-sm" onClick={() => toggleSort(c.name)}>
+                  <th
+                    key={c.name}
+                    className="border-b border-line bg-surface px-3 py-2 text-left text-xs font-medium tracking-wide text-fg-subtle uppercase"
+                  >
+                    <button
+                      type="button"
+                      className="focus-ring inline-flex items-center gap-1 rounded-sm"
+                      onClick={() => toggleSort(c.name)}
+                    >
                       {c.name}
                       {c.primary_key && <span className="text-primary normal-case">pk</span>}
                       {sort === c.name && <span aria-hidden>{dir === "asc" ? "↑" : "↓"}</span>}
@@ -156,7 +208,9 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-sm text-fg-muted">No rows on this page. Add one, or loosen the filter.</td>
+                  <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-sm text-fg-muted">
+                    No rows on this page. Add one, or loosen the filter.
+                  </td>
                 </tr>
               )}
               {rows.map((row, i) => {
@@ -194,7 +248,12 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
                       );
                     })}
                     <td className="border-b border-line px-1">
-                      <IconButton icon={Trash2} label="Delete row" isDisabled={readOnly || pkCols.length === 0} onPress={() => setPendingDelete(pkOf(row))} />
+                      <IconButton
+                        icon={Trash2}
+                        label="Delete row"
+                        isDisabled={readOnly || pkCols.length === 0}
+                        onPress={() => setPendingDelete(pkOf(row))}
+                      />
                     </td>
                   </tr>
                 );
@@ -213,26 +272,58 @@ export function TableEditor({ tenantId, table, readOnly }: { tenantId: string; t
               if (draft[c.name] == null || draft[c.name] === "") continue;
               values[c.name] = parseCell(c, draft[c.name]);
             }
-            save.mutate({ values, insert: true }, { onSuccess: () => { setAdding(false); setDraft({}); } });
+            save.mutate(
+              { values, insert: true },
+              {
+                onSuccess: () => {
+                  setAdding(false);
+                  setDraft({});
+                },
+              },
+            );
           }}
         >
           {columns.map((c) => (
-            <TextField key={c.name} label={c.name} description={c.primary_key ? "Primary key" : c.type} value={draft[c.name] ?? ""} onChange={(v) => setDraft({ ...draft, [c.name]: v })} />
+            <TextField
+              key={c.name}
+              label={c.name}
+              description={c.primary_key ? "Primary key" : c.type}
+              value={draft[c.name] ?? ""}
+              onChange={(v) => setDraft({ ...draft, [c.name]: v })}
+            />
           ))}
           <div className="flex items-end gap-2 sm:col-span-2">
-            <Button type="submit" variant="primary" size="sm" tooltip="Insert this row" isDisabled={readOnly}>Save row</Button>
-            <Button type="button" variant="ghost" size="sm" tooltip="Discard the new row" onPress={() => setAdding(false)}>Cancel</Button>
+            <Button type="submit" variant="primary" size="sm" tooltip="Insert this row" isDisabled={readOnly}>
+              Save row
+            </Button>
+            <Button type="button" variant="ghost" size="sm" tooltip="Discard the new row" onPress={() => setAdding(false)}>
+              Cancel
+            </Button>
           </div>
         </form>
       )}
       <div className="flex items-center justify-between px-4 py-3 text-sm text-fg-subtle">
         <span>{total === 0 ? "No rows" : `${offset + 1}–${Math.min(offset + limit, total)} of ${total.toLocaleString()}`}</span>
         <span className="flex gap-1">
-          <IconButton icon={ChevronLeft} label="Previous page" isDisabled={offset === 0} onPress={() => setOffset(Math.max(0, offset - limit))} />
-          <IconButton icon={ChevronRight} label="Next page" isDisabled={offset + limit >= total} onPress={() => setOffset(offset + limit)} />
+          <IconButton
+            icon={ChevronLeft}
+            label="Previous page"
+            isDisabled={offset === 0}
+            onPress={() => setOffset(Math.max(0, offset - limit))}
+          />
+          <IconButton
+            icon={ChevronRight}
+            label="Next page"
+            isDisabled={offset + limit >= total}
+            onPress={() => setOffset(offset + limit)}
+          />
         </span>
       </div>
-      {pkCols.length === 0 && <p className="border-t border-line px-5 py-3 text-sm text-fg-muted">This table has no primary key, so rows are read-only. Create tables with an id column when you want to edit them here.</p>}
+      {pkCols.length === 0 && (
+        <p className="border-t border-line px-5 py-3 text-sm text-fg-muted">
+          This table has no primary key, so rows are read-only. Create tables with an id column when you want to edit them here.
+        </p>
+      )}
       <ConfirmDialog
         isOpen={!!pendingDelete}
         onOpenChange={(o) => !o && setPendingDelete(null)}
@@ -256,7 +347,11 @@ function parseCell(col: DbColumn, raw: string): unknown {
     return Number.isFinite(n) ? n : raw;
   }
   if (col.type === "jsonb" || col.type === "json") {
-    try { return JSON.parse(raw); } catch { return raw; }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw;
+    }
   }
   return raw;
 }

@@ -25,7 +25,8 @@ export function PromptProjectForm({ tenantId, options, workspaceId }: { tenantId
   const [stack, setStack] = useState("auto");
   const [provider, setProvider] = useState(options.agents[0]?.id ?? "");
   const bytes = new TextEncoder().encode(prompt).length;
-  const connected = (id: string) => subs.data?.connections.some((c) => c.provider === id && c.tenant_id === tenantId && c.status === "connected");
+  const connected = (id: string) =>
+    subs.data?.connections.some((c) => c.provider === id && c.tenant_id === tenantId && c.status === "connected");
   const agents = options.agents.map((a) => ({ id: a.id, label: `${a.label}${connected(a.id) ? " · signed in" : ""}` }));
   const stacks = [{ template: "auto", label: "Pick for me" }, ...options.stacks];
   return (
@@ -44,23 +45,48 @@ export function PromptProjectForm({ tenantId, options, workspaceId }: { tenantId
         );
       }}
     >
-      <TextField label="What do you want to build?" multiline value={prompt} onChange={setPrompt} isRequired
+      <TextField
+        label="What do you want to build?"
+        multiline
+        value={prompt}
+        onChange={setPrompt}
+        isRequired
         placeholder="A habit tracker with a weekly streak chart and a dark mode toggle"
         description={`${bytes.toLocaleString()} / ${options.max_bytes.toLocaleString()} bytes. Shippin passes this to your agent and keeps only a short preview.`}
-        validate={() => (bytes > options.max_bytes ? "That's a bit long. Trim it a little." : null)} />
+        validate={() => (bytes > options.max_bytes ? "That's a bit long. Trim it a little." : null)}
+      />
       <div className="flex flex-col gap-1.5">
-        <Label id="stack-label" className="text-sm font-medium text-fg">Stack</Label>
-        <ToggleButtonGroup aria-labelledby="stack-label" selectionMode="single" disallowEmptySelection selectedKeys={[stack]}
-          onSelectionChange={(k: Set<Key>) => k.size && setStack(String([...k][0]))} className="flex flex-wrap gap-2">
-          {stacks.map((s) => <ToggleButton key={s.template} id={s.template} className={chip}>{s.label}</ToggleButton>)}
+        <Label id="stack-label" className="text-sm font-medium text-fg">
+          Stack
+        </Label>
+        <ToggleButtonGroup
+          aria-labelledby="stack-label"
+          selectionMode="single"
+          disallowEmptySelection
+          selectedKeys={[stack]}
+          onSelectionChange={(k: Set<Key>) => k.size && setStack(String([...k][0]))}
+          className="flex flex-wrap gap-2"
+        >
+          {stacks.map((s) => (
+            <ToggleButton key={s.template} id={s.template} className={chip}>
+              {s.label}
+            </ToggleButton>
+          ))}
         </ToggleButtonGroup>
       </div>
       {agents.length > 0 && <Select label="Built by" options={agents} value={provider} onChange={setProvider} />}
       {provider && !connected(provider) && (
-        <p className="text-xs text-fg-subtle">You're not signed in to this one yet. Start anyway: the build waits and you can sign in from the devspace.</p>
+        <p className="text-xs text-fg-subtle">
+          You're not signed in to this one yet. Start anyway: the build waits and you can sign in from the devspace.
+        </p>
       )}
-      <Button type="submit" variant="primary" size="sm" isDisabled={create.isPending || !provider || bytes === 0 || !workspaceId}
-        tooltip="Create the project and start building it in your devspace">
+      <Button
+        type="submit"
+        variant="primary"
+        size="sm"
+        isDisabled={create.isPending || !provider || bytes === 0 || !workspaceId}
+        tooltip="Create the project and start building it in your devspace"
+      >
         <Sparkles className="size-4" /> Build it
       </Button>
     </Form>

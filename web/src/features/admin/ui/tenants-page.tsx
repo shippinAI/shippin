@@ -24,15 +24,25 @@ export function TenantsPage() {
     <>
       <PageHeader eyebrow="Provider" title="Tenants" description="Every organization on the platform, its network silo and lifecycle." />
       <InternalOrganizationCard />
-      <div className="mb-5"><CreateOrganization /></div>
+      <div className="mb-5">
+        <CreateOrganization />
+      </div>
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatCard label="Tenants" value={q.data ? all.length : undefined} icon={Building2} hue="var(--color-primary)" hint="All statuses" />
         <StatCard label="Active" value={n("active")} icon={CircleCheck} hue="var(--color-success)" hint="Serving workspaces" />
         <StatCard label="Suspended" value={n("suspended")} icon={PauseCircle} hue="var(--color-warning)" hint="Workspaces stopped" />
         <StatCard label="Failed" value={n("failed")} icon={AlertTriangle} hue="var(--color-danger)" hint="Need a retry" />
-        <StatCard label="Workspaces" value={q.data ? all.reduce((s, t) => s + t.workspace_count, 0) : undefined} icon={Boxes} hue="var(--color-hue-workspaces)" hint="Across tenants" />
+        <StatCard
+          label="Workspaces"
+          value={q.data ? all.reduce((s, t) => s + t.workspace_count, 0) : undefined}
+          icon={Boxes}
+          hue="var(--color-hue-workspaces)"
+          hint="Across tenants"
+        />
       </div>
-      {q.data?.warning && <div className="mb-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2 text-sm text-warning">{q.data.warning}</div>}
+      {q.data?.warning && (
+        <div className="mb-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2 text-sm text-warning">{q.data.warning}</div>
+      )}
       <Card className="overflow-hidden">
         <TableToolbar label="tenants" value={search} onChange={setSearch} count={rows.length} />
         <QueryView isPending={q.isPending} error={q.error} onRetry={() => void q.refetch()}>
@@ -43,7 +53,12 @@ export function TenantsPage() {
               columns={tenantColumns}
               rows={rows}
               onRowAction={setOpen}
-              empty={<EmptyState title={search ? "No matching tenants" : "No tenants yet"} description={search ? "Try another name, id or owner." : "Tenants appear when a customer signs up or you create one."} />}
+              empty={
+                <EmptyState
+                  title={search ? "No matching tenants" : "No tenants yet"}
+                  description={search ? "Try another name, id or owner." : "Tenants appear when a customer signs up or you create one."}
+                />
+              }
             />
           )}
         </QueryView>

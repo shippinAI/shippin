@@ -26,7 +26,12 @@ export function fillGuide(g: Guide, vars: Record<string, string>): Guide {
   const fill = (s: string) => s.replace(/\{(\w+)\}/g, (m, k: string) => vars[k] ?? m);
   return {
     ...g,
-    steps: g.steps.map((s) => ({ ...s, body: fill(s.body), command: s.command && fill(s.command), explain: fill(s.explain),
-      link: s.link && { label: s.link.label, to: fill(s.link.to) } })),
+    steps: g.steps.map((s) => ({
+      ...s,
+      body: fill(s.body),
+      command: s.command && fill(s.command),
+      explain: fill(s.explain),
+      link: s.link && { label: s.link.label, to: fill(s.link.to) },
+    })),
   };
 }

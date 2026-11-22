@@ -17,18 +17,30 @@ export type CatalogDeploymentSource = Omit<GeneratedDeploymentSource, "kind"> & 
 
 export type CatalogRuntimePort = { name: string; protocol: "tcp" | "udp"; container_port: number };
 export type CatalogRuntimeContractV1 = {
-  version: 1; kind: "incus_oci_container"; providers: ["incus"];
+  version: 1;
+  kind: "incus_oci_container";
+  providers: ["incus"];
 };
 export type CatalogRuntimeContractV2 = {
-  version: 2; kind: "incus_oci_container"; providers: ["incus"];
+  version: 2;
+  kind: "incus_oci_container";
+  providers: ["incus"];
   resources: { cpu_cores: number; memory_mib: number };
   storage: { size_gib: number; mount_path: string };
   network: { exposure: "private" | "edge"; ports: CatalogRuntimePort[] };
-  health: { kind: "tcp" | "http"; port: number; path?: string; interval_seconds: number; timeout_seconds: number; failure_threshold: number };
+  health: {
+    kind: "tcp" | "http";
+    port: number;
+    path?: string;
+    interval_seconds: number;
+    timeout_seconds: number;
+    failure_threshold: number;
+  };
 };
 export type CatalogRuntimeEnvironmentBinding = { name: string; config_path: string };
 export type CatalogRuntimeContractV3 = Omit<CatalogRuntimeContractV2, "version"> & {
-  version: 3; environment: CatalogRuntimeEnvironmentBinding[];
+  version: 3;
+  environment: CatalogRuntimeEnvironmentBinding[];
 };
 export type CatalogRuntimeContract = CatalogRuntimeContractV1 | CatalogRuntimeContractV2 | CatalogRuntimeContractV3;
 

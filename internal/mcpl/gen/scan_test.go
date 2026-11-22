@@ -94,3 +94,39 @@ func TestScaffoldReactionRefuses(t *testing.T) {
 		t.Errorf("a refused reaction wrote files: %d before, %d after", len(before), len(after))
 	}
 }
+
+// A module outside this repository scans its own tree and gets its own registry: its package, its output
+// path, and imports under its module path, so it can hand the registry to internal/ext.
+func TestFilesForAModuleWritesItsOwnRegistry(t *testing.T) {
+	root := t.TempDir()
+	if _, err := Scaffold(root, New{Path: "identity/key/create", Spec: mcpl.Spec{Summary: "Add a key.", Access: mcpl.SignedIn}}); err != nil {
+		t.Fatal(err)
+	}
+	target := Target{Module: "shippin.cloud/console/enterprise", Package: "registry", Out: "internal/registry/registry_gen.go"}
+	files, err := FilesFor(root, target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	src, ok := files["internal/registry/registry_gen.go"]
+	if !ok || len(files) != 1 {
+		t.Fatalf("files: %v", files)
+	}
+	for _, want := range []string{"package registry\n", `identity_key "shippin.cloud/console/enterprise/internal/identity/key"`,
+		`mcpl.Register("shippin.identity.key.create", identity_key.Create)`} {
+		if !strings.Contains(string(src), want) {
+			t.Errorf("registry lacks %s:\n%s", want, src)
+		}
+	}
+	panel, err := Files(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p := string(panel[Panel.Out]); !strings.Contains(p, "package actions\n") || !strings.Contains(p, `"shippin.cloud/console/internal/identity/key"`) {
+		t.Errorf("the panel's own registry changed:\n%s", p)
+	}
+	for _, bad := range []Target{{Package: "registry", Out: "x.go"}, {Module: "m", Out: "x.go"}, {Module: "m", Package: "p"}} {
+		if _, err := FilesFor(root, bad); err == nil {
+			t.Errorf("an incomplete target was accepted: %+v", bad)
+		}
+	}
+}

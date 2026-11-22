@@ -47,12 +47,17 @@ export function Sidebar() {
               <span className={heading}>{devspace.label}</span>
               <HelpPopover title="Getting around" label="About the sidebar" placement="right">
                 <p>Everything for this devspace lives here: workspaces, projects and the terminal.</p>
-                <p>Hover any entry for a hint. Items marked <em>Soon</em> are not available yet.</p>
-                
+                <p>
+                  Hover any entry for a hint. Items marked <em>Soon</em> are not available yet.
+                </p>
               </HelpPopover>
             </div>
             {items(tenantNav).map((item) => (
-              <NavLink key={item.id} item={item} href={item.to !== undefined && base ? `${base}${item.to ? `/${item.to}` : ""}` : undefined} />
+              <NavLink
+                key={item.id}
+                item={item}
+                href={item.to !== undefined && base ? `${base}${item.to ? `/${item.to}` : ""}` : undefined}
+              />
             ))}
           </div>
         )}

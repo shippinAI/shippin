@@ -2,7 +2,14 @@ import type { ReactNode } from "react";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { Cell, Column, Row, Table, TableBody, TableHeader } from "react-aria-components";
 
-export type ColumnDef<T> = { id: string; label: string; render: (row: T) => ReactNode; width?: string; isRowHeader?: boolean; sortable?: boolean };
+export type ColumnDef<T> = {
+  id: string;
+  label: string;
+  render: (row: T) => ReactNode;
+  width?: string;
+  isRowHeader?: boolean;
+  sortable?: boolean;
+};
 export type TableSort = { column: string; direction: "ascending" | "descending" };
 
 type Props<T extends { id: string }> = {
@@ -21,7 +28,17 @@ type Props<T extends { id: string }> = {
 };
 
 /** Accessible data table (RAC) with keyboard row navigation and optional sortable columns. */
-export function DataTable<T extends { id: string }>({ label, columns, rows, empty, onRowAction, dense, dependencies, sort, onSortChange }: Props<T>) {
+export function DataTable<T extends { id: string }>({
+  label,
+  columns,
+  rows,
+  empty,
+  onRowAction,
+  dense,
+  dependencies,
+  sort,
+  onSortChange,
+}: Props<T>) {
   return (
     <Table
       aria-label={label}
@@ -42,9 +59,14 @@ export function DataTable<T extends { id: string }>({ label, columns, rows, empt
             {({ allowsSorting, sortDirection }) => (
               <span className="inline-flex items-center gap-1">
                 {c.label}
-                {allowsSorting && (sortDirection === "ascending" ? <ChevronUp className="size-3 text-fg" aria-hidden />
-                  : sortDirection === "descending" ? <ChevronDown className="size-3 text-fg" aria-hidden />
-                  : <ChevronsUpDown className="size-3" aria-hidden />)}
+                {allowsSorting &&
+                  (sortDirection === "ascending" ? (
+                    <ChevronUp className="size-3 text-fg" aria-hidden />
+                  ) : sortDirection === "descending" ? (
+                    <ChevronDown className="size-3 text-fg" aria-hidden />
+                  ) : (
+                    <ChevronsUpDown className="size-3" aria-hidden />
+                  ))}
               </span>
             )}
           </Column>
@@ -59,7 +81,9 @@ export function DataTable<T extends { id: string }>({ label, columns, rows, empt
             className="focus-ring group cursor-default outline-none data-[href]:cursor-pointer data-hovered:bg-raised/60 data-focus-visible:bg-raised"
           >
             {(c) => (
-              <Cell className={`border-b border-line text-fg-muted group-last:border-b-0 ${dense ? "px-4 py-2 text-sm" : "px-5 py-3"}`}>{c.render(row)}</Cell>
+              <Cell className={`border-b border-line text-fg-muted group-last:border-b-0 ${dense ? "px-4 py-2 text-sm" : "px-5 py-3"}`}>
+                {c.render(row)}
+              </Cell>
             )}
           </Row>
         )}

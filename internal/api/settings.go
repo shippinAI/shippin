@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"shippin.cloud/console/internal/actions"
+	"shippin.cloud/console/internal/ext"
 	"shippin.cloud/console/internal/platform/secret_store"
 	"shippin.cloud/console/internal/ports"
 	"shippin.cloud/console/internal/settings"
@@ -18,7 +18,7 @@ func (a *API) newSettings() {
 	if seal, err := a.sealer(); err == nil {
 		a.secrets.Sealer = seal
 	}
-	st, err := settings.New(pool, a.cfg, actions.Settings, a.secretStore)
+	st, err := settings.New(pool, a.cfg, ext.Settings(), a.secretStore)
 	if err != nil {
 		panic(err)
 	}

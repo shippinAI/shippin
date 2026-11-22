@@ -6,12 +6,20 @@ export const useHubMe = () => useQuery({ queryKey: ["hub", "me"], queryFn: () =>
 
 /** Pushed by useHubLive; the slow poll only covers a dropped stream. */
 export const useHubTasks = (live: boolean) =>
-  useQuery({ queryKey: ["hub", "tasks"], queryFn: () => apiGet<{ items: HubTask[] }>("/v1/hub/tasks"),
-    refetchInterval: live ? 60_000 : 5_000, retry: false });
+  useQuery({
+    queryKey: ["hub", "tasks"],
+    queryFn: () => apiGet<{ items: HubTask[] }>("/v1/hub/tasks"),
+    refetchInterval: live ? 60_000 : 5_000,
+    retry: false,
+  });
 
 export const useHubEvents = (id: string, enabled: boolean) =>
-  useQuery({ queryKey: ["hub", "events", id], enabled, retry: false,
-    queryFn: () => apiGet<{ items: HubEvent[] }>(`/v1/hub/tasks/${encodeURIComponent(id)}/events`) });
+  useQuery({
+    queryKey: ["hub", "events", id],
+    enabled,
+    retry: false,
+    queryFn: () => apiGet<{ items: HubEvent[] }>(`/v1/hub/tasks/${encodeURIComponent(id)}/events`),
+  });
 
 export function useCreateTask() {
   const qc = useQueryClient();

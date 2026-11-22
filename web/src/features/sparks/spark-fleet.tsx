@@ -3,7 +3,12 @@ import { SparkEndpoint } from "./spark-endpoint";
 
 export function SparkFleet({ tenantId }: { tenantId: string }) {
   const q = useSparks(tenantId);
-  if (q.isError) return <p role="alert" className="mt-6 text-base text-danger">Spark access could not be loaded: {q.error.message}</p>;
+  if (q.isError)
+    return (
+      <p role="alert" className="mt-6 text-base text-danger">
+        Spark access could not be loaded: {q.error.message}
+      </p>
+    );
   if (!q.data?.nodes.length) return null;
   return (
     <section className="mt-8" aria-label="Sparks">
@@ -17,8 +22,13 @@ export function SparkFleet({ tenantId }: { tenantId: string }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {q.data.nodes.map((node) => (
           <article key={node.id} className="space-y-4 rounded-xl border border-line bg-surface p-5">
-            <div><h3 className="font-semibold">{node.name}</h3><p className="mt-1 text-xs text-fg-subtle">{node.role}</p></div>
-            {node.management.map((endpoint) => <SparkEndpoint key={endpoint.name} endpoint={endpoint} />)}
+            <div>
+              <h3 className="font-semibold">{node.name}</h3>
+              <p className="mt-1 text-xs text-fg-subtle">{node.role}</p>
+            </div>
+            {node.management.map((endpoint) => (
+              <SparkEndpoint key={endpoint.name} endpoint={endpoint} />
+            ))}
           </article>
         ))}
       </div>

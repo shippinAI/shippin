@@ -2,7 +2,7 @@ import { A2UI_VERSION as v, SHIPPIN_CATALOG, type A2UIComponent, type A2UIMessag
 import type { ChatContext } from "./chat-context";
 
 const intro: Record<ChatContext["kind"], string> = {
-  terminal: "You're in the workspace terminal (Zellij session \"shippin\"). Ask about anything on screen.",
+  terminal: 'You\'re in the workspace terminal (Zellij session "shippin"). Ask about anything on screen.',
   connect: "Connect GitHub and your AI CLIs once; the workspace keeps them signed in.",
   publish: "Publishing snapshots this devspace and serves it at a public HTTPS address.",
   workspace: "Ask about this workspace: what's running, ports, previews.",
@@ -22,15 +22,31 @@ export function contextMessages(ctx: ChatContext, canPrompt: boolean): A2UIMessa
   const kids = ["head", "intro"];
   if (canPrompt && ctx.prompts.length) {
     kids.push("prompts");
-    comps.push({ id: "prompts", component: "Row", children: { path: "/prompts", componentId: "p" } },
+    comps.push(
+      { id: "prompts", component: "Row", children: { path: "/prompts", componentId: "p" } },
       { id: "p-label", component: "Text", text: { path: "text" } },
-      { id: "p", component: "Button", child: "p-label", tooltip: "Send this to the assistant", action: { event: { name: "prompt", context: { text: { path: "text" } } } } });
+      {
+        id: "p",
+        component: "Button",
+        child: "p-label",
+        tooltip: "Send this to the assistant",
+        action: { event: { name: "prompt", context: { text: { path: "text" } } } },
+      },
+    );
   }
   if (ctx.kind === "terminal" && ctx.tenantId) {
     kids.push("connect");
-    comps.push({ id: "connect-label", component: "Text", text: "Connect accounts" },
-      { id: "connect", component: "Button", child: "connect-label", variant: "borderless", tooltip: "Sign GitHub and the AI CLIs in",
-        action: { event: { name: "go", context: { to: `/t/${ctx.tenantId}/workspaces/${ctx.workspaceId}/connect` } } } });
+    comps.push(
+      { id: "connect-label", component: "Text", text: "Connect accounts" },
+      {
+        id: "connect",
+        component: "Button",
+        child: "connect-label",
+        variant: "borderless",
+        tooltip: "Sign GitHub and the AI CLIs in",
+        action: { event: { name: "go", context: { to: `/t/${ctx.tenantId}/workspaces/${ctx.workspaceId}/connect` } } },
+      },
+    );
   }
   comps.push({ id: "col", component: "Column", children: kids });
   return [

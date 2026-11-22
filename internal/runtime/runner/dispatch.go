@@ -17,8 +17,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"shippin.cloud/console/internal/catalog"
 	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/limits"
 	"shippin.cloud/console/internal/ports"
 	"shippin.cloud/console/internal/services/runner_size"
 )
@@ -39,6 +39,15 @@ type Deps struct {
 	JobLimit time.Duration
 	// Now is the clock; nil is time.Now. Only placement and logging read it; the database's now() decides ages.
 	Now func() time.Time
+	// Limits says how many machines an organization may have at once; nil is limits.FromPlan.
+	Limits limits.Policy
+}
+
+func (d Deps) limits() limits.Policy {
+	if d.Limits == nil {
+		return limits.FromPlan{}
+	}
+	return d.Limits
 }
 
 // Sweep is the periodic pass: it removes machines older than the job time limit, retries removals
@@ -72,7 +81,7 @@ func Sweep(ctx context.Context, d Deps, enqueue Enqueue) error {
 			errs = append(errs, err)
 		}
 	}
-	if err := StartWaiting(ctx, d.Pool, enqueue, ""); err != nil {
+	if err := StartWaitingUnder(ctx, d.Pool, d.limits(), enqueue, ""); err != nil {
 		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
@@ -81,8 +90,13 @@ func Sweep(ctx context.Context, d Deps, enqueue Enqueue) error {
 // StartWaiting queues a start for the waiting jobs each organization has room for, oldest first, taking
 // one job from each organization in turn so one organization's backlog never holds back another's. An
 // empty tenant means every organization. Provision checks the room again, so queuing too many only
-// costs a job that waits.
+// costs a job that waits. The limits are limits.FromPlan; StartWaitingUnder takes them from a policy.
 func StartWaiting(ctx context.Context, pool *pgxpool.Pool, enqueue Enqueue, tenant string) error {
+	return StartWaitingUnder(ctx, pool, limits.FromPlan{}, enqueue, tenant)
+}
+
+// StartWaitingUnder is StartWaiting with each organization's room taken from lim.
+func StartWaitingUnder(ctx context.Context, pool *pgxpool.Pool, lim limits.Policy, enqueue Enqueue, tenant string) error {
 	rows, err := pool.Query(ctx, `WITH waiting AS (
 	    SELECT j.id, j.tenant_id, j.queued_at, row_number() OVER (PARTITION BY j.tenant_id ORDER BY j.queued_at, j.id) AS rank
 	    FROM shippin_runner_jobs j
@@ -116,7 +130,7 @@ func StartWaiting(ctx context.Context, pool *pgxpool.Pool, enqueue Enqueue, tena
 	for _, c := range cs {
 		limit, ok := limits[c.tenant]
 		if !ok {
-			if limit, err = Limit(ctx, pool, c.tenant); err != nil {
+			if limit, err = Limit(ctx, lim, pool, c.tenant); err != nil {
 				errs = append(errs, err)
 				limit = 0
 			}
@@ -132,30 +146,17 @@ func StartWaiting(ctx context.Context, pool *pgxpool.Pool, enqueue Enqueue, tena
 	return errors.Join(errs...)
 }
 
-// Limit is how many machines the organization may have at once: its plan's svc.runners.concurrent,
-// or 0 when its plan does not include runners or it has no plan.
-func Limit(ctx context.Context, q catalog.Querier, tenant string) (int, error) {
-	eff, err := catalog.EffectiveFor(ctx, q, tenant, "")
-	if errors.Is(err, catalog.ErrNotFound) {
-		return 0, nil
-	}
+// Limit is how many machines the organization may have at once under lim, or 0 when it may not use
+// build runners.
+func Limit(ctx context.Context, lim limits.Policy, q limits.Querier, tenant string) (int, error) {
+	r, err := lim.Runners(ctx, q, tenant, "")
 	if err != nil {
 		return 0, err
 	}
-	var enabled bool
-	var concurrent float64
-	for _, s := range eff.Services {
-		switch s.Key {
-		case "svc.runners.enabled":
-			_ = json.Unmarshal(s.Value, &enabled)
-		case "svc.runners.concurrent":
-			_ = json.Unmarshal(s.Value, &concurrent)
-		}
-	}
-	if !enabled || concurrent < 1 {
+	if !r.Enabled || r.Concurrent < 1 {
 		return 0, nil
 	}
-	return int(concurrent), nil
+	return r.Concurrent, nil
 }
 
 // Outcome is what one Provision did, for the job's result. It never carries the runner configuration.
@@ -305,7 +306,7 @@ func reserve(ctx context.Context, d Deps, jobID string, hosts []string) (plan, O
 	case status != "queued" || size == nil:
 		return p, Outcome{Skipped: "the job is " + status}, nil
 	default:
-		out, err := room(ctx, tx, p.tenant, jobID, queuedAt)
+		out, err := room(ctx, tx, d.limits(), p.tenant, jobID, queuedAt)
 		if err != nil || out != (Outcome{}) {
 			return p, out, err
 		}
@@ -364,8 +365,8 @@ func reserve(ctx context.Context, d Deps, jobID string, hosts []string) (plan, O
 }
 
 // room says why the job waits, or nothing when it may start now.
-func room(ctx context.Context, tx pgx.Tx, tenant, jobID string, queuedAt time.Time) (Outcome, error) {
-	limit, err := Limit(ctx, tx, tenant)
+func room(ctx context.Context, tx pgx.Tx, lim limits.Policy, tenant, jobID string, queuedAt time.Time) (Outcome, error) {
+	limit, err := Limit(ctx, lim, tx, tenant)
 	if err != nil {
 		return Outcome{}, err
 	}

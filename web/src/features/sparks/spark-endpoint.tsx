@@ -26,11 +26,19 @@ export function SparkEndpoint({ endpoint, modelAPI = false }: { endpoint: Endpoi
           <code className="block break-all text-xs">{endpoint.url}</code>
           {modelAPI ? (
             <>
-              <Button size="sm" tooltip="Copy the HTTPS base URL for your API client" onPress={copy}>Copy API URL</Button>
+              <Button size="sm" tooltip="Copy the HTTPS base URL for your API client" onPress={copy}>
+                Copy API URL
+              </Button>
               <p className="text-xs text-fg-subtle">API clients also need their own authorized model-gateway token.</p>
-              <span role="status" className="text-xs text-fg-subtle">{copied}</span>
+              <span role="status" className="text-xs text-fg-subtle">
+                {copied}
+              </span>
             </>
-          ) : <LinkButton href={endpoint.url!} tooltip={`Open ${endpoint.name} using your Nomen sign-in`} size="sm">Open {endpoint.name}</LinkButton>}
+          ) : (
+            <LinkButton href={endpoint.url!} tooltip={`Open ${endpoint.name} using your Nomen sign-in`} size="sm">
+              Open {endpoint.name}
+            </LinkButton>
+          )}
         </div>
       )}
     </div>

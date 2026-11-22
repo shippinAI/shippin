@@ -1,0 +1,14 @@
+{
+  "listen": ":8080",
+  "state_dir": "/var/lib/shippin-run",
+  "free_minutes": 3000,
+  "free_size": "linux-x64-2",
+  "default_log_retention_days": 14,
+  "provisioner": "none",
+  "sizes": [
+    {"id": "linux-x64-2", "os": "linux", "arch": "x64", "vcpu": 2, "memory_mib": 8192, "usd_per_minute": "0.004", "note": "list price"},
+    {"id": "linux-arm-2", "os": "linux", "arch": "arm64", "vcpu": 2, "memory_mib": 8192, "usd_per_minute": "0.0025", "note": "list price"},
+    {"id": "windows-x64-2", "os": "windows", "arch": "x64", "vcpu": 2, "memory_mib": 8192, "usd_per_minute": "0.008", "note": "Windows guest images are not built in this version"},
+    {"id": "macos-m4", "os": "macos", "arch": "arm64", "vcpu": 6, "memory_mib": 24576, "usd_per_minute": "0.08", "note": "macOS guest images are not built in this version"}
+  ]
+}

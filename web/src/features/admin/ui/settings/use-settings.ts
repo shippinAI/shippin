@@ -20,7 +20,8 @@ export const useSecretStore = () =>
 export function useSaveSecretStore() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ form, reason }: { form: StoreForm; reason: string }) => callAction("shippin.platform.secret_store.update", {}, { ...storeBody(form), reason }),
+    mutationFn: ({ form, reason }: { form: StoreForm; reason: string }) =>
+      callAction("shippin.platform.secret_store.update", {}, { ...storeBody(form), reason }),
     onSuccess: (c) => {
       qc.setQueryData(storeKey, c);
       toast.success("Secret store saved", "The panel signed in to Vaultix and wrote, read back and deleted a check value.");

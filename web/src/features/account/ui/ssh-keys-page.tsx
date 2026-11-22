@@ -16,19 +16,48 @@ export function SSHKeysPage() {
   const del = useDeleteSSHKey();
   const [target, setTarget] = useState<SSHKey | null>(null);
   const cols: ColumnDef<SSHKey>[] = [
-    { id: "name", label: "Name", isRowHeader: true, render: (k) => <span className="flex items-center gap-2 font-medium text-fg"><KeyRound className="size-4 text-hue-secrets" />{k.name}</span> },
+    {
+      id: "name",
+      label: "Name",
+      isRowHeader: true,
+      render: (k) => (
+        <span className="flex items-center gap-2 font-medium text-fg">
+          <KeyRound className="size-4 text-hue-secrets" />
+          {k.name}
+        </span>
+      ),
+    },
     { id: "fp", label: "Fingerprint", render: (k) => <span className="font-mono text-sm">{k.fingerprint}</span> },
     { id: "added", label: "Added", render: (k) => timeAgo(k.created_at) },
-    { id: "x", label: "", width: "60px", render: (k) => <IconButton icon={Trash2} label={`Delete key ${k.name}`} onPress={() => setTarget(k)} /> },
+    {
+      id: "x",
+      label: "",
+      width: "60px",
+      render: (k) => <IconButton icon={Trash2} label={`Delete key ${k.name}`} onPress={() => setTarget(k)} />,
+    },
   ];
   const items = q.data?.items ?? [];
   return (
     <>
-      <PageHeader eyebrow="Account" title="SSH keys" description="Keys you add here are installed on every workspace you own, new and running. They're optional: the browser IDE needs no keys." />
+      <PageHeader
+        eyebrow="Account"
+        title="SSH keys"
+        description="Keys you add here are installed on every workspace you own, new and running. They're optional: the browser IDE needs no keys."
+      />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.5fr_1fr]">
         <Card elevation={2} className="overflow-hidden">
           <CardHeader title={`${items.length} key${items.length === 1 ? "" : "s"}`} />
-          <DataTable label="SSH keys" columns={cols} rows={items} empty={<EmptyState title="No SSH keys" description="Paste a public key or upload your id_ed25519.pub to use SSH or desktop VS Code." />} />
+          <DataTable
+            label="SSH keys"
+            columns={cols}
+            rows={items}
+            empty={
+              <EmptyState
+                title="No SSH keys"
+                description="Paste a public key or upload your id_ed25519.pub to use SSH or desktop VS Code."
+              />
+            }
+          />
         </Card>
         <AddKeyForm />
       </div>

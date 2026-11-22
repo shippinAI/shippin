@@ -10,7 +10,12 @@ const ago = (iso: string) => new Date(iso).toLocaleString();
 export function SecretsTable({ env, filter }: { env: string; filter: string }) {
   const list = useVaultixSecrets(env);
   if (list.isPending) return <Skeleton className="h-32" />;
-  if (list.isError) return <p role="alert" className="text-danger">Could not load secrets: {list.error.message}</p>;
+  if (list.isError)
+    return (
+      <p role="alert" className="text-danger">
+        Could not load secrets: {list.error.message}
+      </p>
+    );
   const f = filter.trim().toLowerCase();
   const rows = list.data.secrets.filter((s) => !f || s.key.toLowerCase().includes(f)).sort((a, b) => a.key.localeCompare(b.key));
   const columns: ColumnDef<VaultixSecret>[] = [
@@ -20,7 +25,16 @@ export function SecretsTable({ env, filter }: { env: string; filter: string }) {
     { id: "updated", label: "Updated", width: "12rem", render: (s) => <span className="text-fg-muted">{ago(s.updated_at)}</span> },
   ];
   return (
-    <DataTable label={`Secrets in ${env}`} columns={columns} rows={rows} dense
-      empty={<p className="py-8 text-center text-fg-subtle">No secrets in {env} yet. Add one, import from Infisical Cloud, or push from your keyring.</p>} />
+    <DataTable
+      label={`Secrets in ${env}`}
+      columns={columns}
+      rows={rows}
+      dense
+      empty={
+        <p className="py-8 text-center text-fg-subtle">
+          No secrets in {env} yet. Add one, import from Infisical Cloud, or push from your keyring.
+        </p>
+      }
+    />
   );
 }

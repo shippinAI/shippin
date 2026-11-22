@@ -32,14 +32,17 @@ func main() {
 	}
 	check := flag.Bool("check", false, "fail if the generated files are out of date, without writing")
 	root := flag.String("root", ".", "repository root")
+	module := flag.String("module", gen.Panel.Module, "Go module path of the tree at -root; a module outside this repository passes its own")
+	pkg := flag.String("pkg", gen.Panel.Package, "package name of the generated registry")
+	out := flag.String("out", gen.Panel.Out, "module-relative path of the generated registry")
 	flag.Parse()
-	if stale := generate(*root, *check); stale {
+	if stale := generate(*root, *check, gen.Target{Module: *module, Package: *pkg, Out: *out}); stale {
 		os.Exit(1)
 	}
 }
 
-func generate(root string, check bool) (stale bool) {
-	files, err := gen.Files(root)
+func generate(root string, check bool, target gen.Target) (stale bool) {
+	files, err := gen.FilesFor(root, target)
 	if err != nil {
 		fail(err)
 	}
@@ -130,13 +133,13 @@ func react(args []string) {
 	if err != nil {
 		fail(err)
 	}
-	generate(*root, false)
+	generate(*root, false, gen.Panel)
 	fmt.Println("\nNext: write the reaction and its test. See docs/mcpl.md.")
 }
 
 // regenerate writes the registry, then the typed map and OpenAPI from the compiled registry.
 func regenerate(root string) {
-	generate(root, false)
+	generate(root, false, gen.Panel)
 	spec := exec.Command("go", "run", "./cmd/mcplspec", "-root", ".")
 	spec.Dir, spec.Stdout, spec.Stderr = root, os.Stdout, os.Stderr
 	if err := spec.Run(); err != nil {

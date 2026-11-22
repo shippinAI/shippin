@@ -78,7 +78,7 @@ func (a *API) applyEvent(ctx context.Context, kind string, e *gh.Event) {
 		hook := runner_job.Webhook{Action: e.Action, InstallationID: inst,
 			RepositoryID: e.Repository.ID, Repository: e.Repository.FullName, JobID: j.ID, RunID: j.RunID, Name: j.Name,
 			Labels: j.Labels, RunnerName: j.RunnerName, Conclusion: j.Conclusion, StartedAt: j.StartedAt, CompletedAt: j.CompletedAt}
-		out, err = runner_job.Receive(ctx, a.db.Pool, hook)
+		out, err = runner_job.ReceiveUnder(ctx, a.db.Pool, a.limits(), hook)
 		if err == nil && out.Status == runner_job.Refused {
 			log.Printf("github webhook: runner job %s refused: %s", out.JobID, out.Reason)
 		}

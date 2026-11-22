@@ -9,7 +9,9 @@ import "./styles/app.css";
 // Entry of the in-devspace AI launcher (launcher.html), served by cmd/ai-launcher behind the
 // workspace's forward_auth; the console and operator apps have their own entries.
 // A refusal or a missing thing will not change on retry; only server and network failures are retried.
-const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, retry: (n, e) => n < 3 && !(e instanceof ApiError && e.status < 500) } } });
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { refetchOnWindowFocus: false, retry: (n, e) => n < 3 && !(e instanceof ApiError && e.status < 500) } },
+});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

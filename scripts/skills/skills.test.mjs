@@ -53,7 +53,7 @@ function validTree(t, overrides = {}) {
 }
 
 test('the canonical library is clean as of the fact dates', () => {
-  const result = lintLibrary(libraryRoot, { now: asOf });
+  const result = lintLibrary(libraryRoot, { now: new Date('2026-11-22T00:00:00Z') });
   assert.deepEqual(result.errors, [], result.errors.join('\n'));
   assert.deepEqual(result.warnings, []);
   assert.deepEqual(result.skills.filter(skill => skill.flatName).map(skill => skill.flatName), [
@@ -190,4 +190,69 @@ test('export CLI writes the flat tree and does not require a network', t => {
   assert.match(result.stdout, /2 skills exported/);
   const missing = spawnSync(process.execPath, [exportCli], { encoding: 'utf8' });
   assert.equal(missing.status, 2);
+});
+
+test('distinct nested paths may not collide after flattening', t => {
+  const root = fixture(t, Object.fromEntries(['a-b/c', 'a/b-c'].flatMap(dir => [
+    [`${dir}/SKILL.md`, skillMarkdown('shippin-a-b-c')],
+    [`${dir}/facts.md`, factsMarkdown()],
+    [`${dir}/tests.md`, testsMarkdown()],
+  ])));
+  assert.match(lintLibrary(root, { now: asOf }).errors.join('\n'), /duplicate flat export name/);
+  const out = fixture(t, {});
+  assert.throws(() => exportLibrary(root, out), /duplicate flat export name/);
+  assert.deepEqual(fs.readdirSync(out), ['README.md'], 'no partial export');
+});
+
+test('export refuses linked destinations, library aliases and differing files without clobbering', t => {
+  const root = validTree(t), out = fixture(t, {}), outside = fixture(t, { 'SKILL.md': 'keep me\n' });
+  const target = path.join(out, 'shippin-demo-sample');
+  fs.symlinkSync(outside, target, 'junction');
+  assert.throws(() => exportLibrary(root, out), /unlinked directory/);
+  assert.equal(fs.readFileSync(path.join(outside, 'SKILL.md'), 'utf8'), 'keep me\n');
+  const alias = path.join(out, 'library-alias');
+  fs.symlinkSync(root, alias, 'junction');
+  assert.throws(() => exportLibrary(root, path.join(alias, 'new-output')), /unlinked directory/);
+  assert.equal(fs.existsSync(path.join(root, 'new-output')), false);
+  const clobber = fixture(t, { 'shippin-demo-sample/SKILL.md': 'user work\n' });
+  assert.throws(() => exportLibrary(root, clobber), /refusing to overwrite/);
+  assert.equal(fs.readFileSync(path.join(clobber, 'shippin-demo-sample/SKILL.md'), 'utf8'), 'user work\n');
+});
+
+test('exact repeat exports work, but hard-linked files are refused', t => {
+  const root = validTree(t), out = fixture(t, {});
+  assert.deepEqual(exportLibrary(root, out).written, ['shippin-demo-sample']);
+  assert.deepEqual(exportLibrary(root, out).written, ['shippin-demo-sample']);
+  const target = path.join(out, 'shippin-demo-sample/SKILL.md');
+  fs.linkSync(target, path.join(out, 'alias.md'));
+  assert.throws(() => exportLibrary(root, out), /refusing to overwrite/);
+});
+
+test('input links cannot escape scanning or supply required siblings', t => {
+  const root = validTree(t), outside = fixture(t, { 'facts.md': factsMarkdown() });
+  fs.unlinkSync(path.join(root, 'demo/sample/facts.md'));
+  fs.linkSync(path.join(outside, 'facts.md'), path.join(root, 'demo/sample/facts.md'));
+  assert.match(lintLibrary(root, { now: asOf }).errors.join('\n'), /regular unlinked file/);
+  const aliasRoot = path.join(outside, 'alias');
+  fs.symlinkSync(root, aliasRoot, 'junction');
+  assert.ok(lintLibrary(aliasRoot, { now: asOf }).errors.length);
+  assert.throws(() => exportLibrary(aliasRoot, path.join(outside, 'out')), /unlinked directory/);
+});
+
+test('facts need claims and sources, and exported inline links must survive flattening', t => {
+  for (const field of ['claim', 'source']) {
+    const root = validTree(t, { facts: factsMarkdown().replace(new RegExp(`^- ${field}:.*\\n`, 'm'), '') });
+    assert.match(lintLibrary(root, { now: asOf }).errors.join('\n'), new RegExp(`has no ${field}: value`));
+  }
+  const root = validTree(t, { skill: skillMarkdown('shippin-demo-sample') + '\n[Missing sibling](facts.md)\n' });
+  assert.match(lintLibrary(root, { now: asOf }).errors.join('\n'), /exported links must use HTTPS/);
+});
+
+test('restricted frontmatter rejects invalid YAML and decodes quoted values', t => {
+  for (const description of ['Use when testing: malformed YAML', '"Use when missing quote', 'Use when testing # hidden comment', '"Use when bad\\q escape"']) {
+    const root = validTree(t, { skill: skillMarkdown('shippin-demo-sample', description) });
+    assert.ok(lintLibrary(root, { now: asOf }).errors.length, description);
+  }
+  const root = validTree(t, { skill: skillMarkdown('shippin-demo-sample', JSON.stringify('Use when testing: quoted "text".')) });
+  assert.deepEqual(lintLibrary(root, { now: asOf }).errors, []);
 });

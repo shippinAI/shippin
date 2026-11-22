@@ -10,7 +10,13 @@ import { EmptyState } from "../../../lib/design/components/empty-state/empty-sta
 import { TextField } from "../../../lib/design/components/field/text-field";
 import { Select } from "../../../lib/design/components/select/select";
 import { timeAgo } from "../../../lib/format";
-import { type AccessKey, type CreatedAccessKey, useAccessKeys, useCreateAccessKey, useRevokeAccessKey } from "../../../lib/hooks/use-access-keys";
+import {
+  type AccessKey,
+  type CreatedAccessKey,
+  useAccessKeys,
+  useCreateAccessKey,
+  useRevokeAccessKey,
+} from "../../../lib/hooks/use-access-keys";
 import { PageHeader } from "../../../template/page-header";
 
 const lasts = [
@@ -30,11 +36,26 @@ export function AccessKeysPage() {
   const [target, setTarget] = useState<AccessKey | null>(null);
   const items = q.data?.items ?? [];
   const cols: ColumnDef<AccessKey>[] = [
-    { id: "name", label: "Name", isRowHeader: true, render: (k) => <span className="flex items-center gap-2 font-medium text-fg"><Bot className="size-4 text-hue-ai" />{k.name}</span> },
+    {
+      id: "name",
+      label: "Name",
+      isRowHeader: true,
+      render: (k) => (
+        <span className="flex items-center gap-2 font-medium text-fg">
+          <Bot className="size-4 text-hue-ai" />
+          {k.name}
+        </span>
+      ),
+    },
     { id: "prefix", label: "Starts with", render: (k) => <span className="font-mono text-sm">{k.prefix}…</span> },
     { id: "used", label: "Last used", render: (k) => (k.last_used_at ? timeAgo(k.last_used_at) : "Never") },
     { id: "expires", label: "Expires", render: (k) => new Date(k.expires_at).toLocaleDateString() },
-    { id: "x", label: "", width: "60px", render: (k) => <IconButton icon={Trash2} label={`Revoke key ${k.name}`} onPress={() => setTarget(k)} /> },
+    {
+      id: "x",
+      label: "",
+      width: "60px",
+      render: (k) => <IconButton icon={Trash2} label={`Revoke key ${k.name}`} onPress={() => setTarget(k)} />,
+    },
   ];
   const mcp = `${window.location.origin}/v1/mcp`;
   return (
@@ -51,7 +72,9 @@ export function AccessKeysPage() {
             label="Access keys"
             columns={cols}
             rows={items}
-            empty={<EmptyState title="No access keys" description="Make one for each AI app or script, so you can revoke them one at a time." />}
+            empty={
+              <EmptyState title="No access keys" description="Make one for each AI app or script, so you can revoke them one at a time." />
+            }
           />
         </Card>
         <Card>
@@ -65,7 +88,17 @@ export function AccessKeysPage() {
                 size="sm"
                 isDisabled={!name.trim() || create.isPending}
                 tooltip={name.trim() ? "Make the key and show it once" : "Name the key first"}
-                onPress={() => create.mutate({ name: name.trim(), days: Number(days) }, { onSuccess: (k) => { setMade(k); setName(""); } })}
+                onPress={() =>
+                  create.mutate(
+                    { name: name.trim(), days: Number(days) },
+                    {
+                      onSuccess: (k) => {
+                        setMade(k);
+                        setName("");
+                      },
+                    },
+                  )
+                }
               >
                 <Plus className="size-4" /> Make key
               </Button>
@@ -81,10 +114,17 @@ export function AccessKeysPage() {
           />
           <div className="space-y-4 p-5">
             <CodeBlock label="Access key" code={made.token} />
-            <CodeBlock label="Add to Claude Code" code={`claude mcp add --transport http shippin ${mcp} --header "Authorization: Bearer ${made.token}"`} />
+            <CodeBlock
+              label="Add to Claude Code"
+              code={`claude mcp add --transport http shippin ${mcp} --header "Authorization: Bearer ${made.token}"`}
+            />
             <CodeBlock
               label="MCP client settings"
-              code={JSON.stringify({ mcpServers: { shippin: { type: "http", url: mcp, headers: { Authorization: `Bearer ${made.token}` } } } }, null, 2)}
+              code={JSON.stringify(
+                { mcpServers: { shippin: { type: "http", url: mcp, headers: { Authorization: `Bearer ${made.token}` } } } },
+                null,
+                2,
+              )}
             />
             <div className="flex justify-end">
               <Button variant="secondary" size="sm" tooltip="Hide the key; it can't be shown again" onPress={() => setMade(null)}>

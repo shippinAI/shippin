@@ -7,7 +7,10 @@ import { TerminalBus } from "../terminal/terminal-bus";
 import { fillGuide } from "./guide-types";
 
 test("every guide has unique step ids and an explanation per step", () => {
-  assert.deepEqual(terminalGuides.map((g) => g.id), ["connect-accounts", "clone-repo", "adopt-folder", "publish-project"]);
+  assert.deepEqual(
+    terminalGuides.map((g) => g.id),
+    ["connect-accounts", "clone-repo", "adopt-folder", "publish-project"],
+  );
   for (const g of terminalGuides) {
     const ids = g.steps.map((s) => s.id);
     assert.equal(new Set(ids).size, ids.length, g.id);
@@ -18,7 +21,10 @@ test("every guide has unique step ids and an explanation per step", () => {
 test("fillGuide resolves page links and leaves unknown tokens", () => {
   const g = fillGuide(terminalGuides[0], { connectUrl: "/t/a/workspaces/b/connect" });
   assert.equal(g.steps[0].link?.to, "/t/a/workspaces/b/connect");
-  assert.equal(fillGuide({ id: "x", title: "", summary: "", steps: [{ id: "s", title: "", body: "{nope}", explain: "" }] }, {}).steps[0].body, "{nope}");
+  assert.equal(
+    fillGuide({ id: "x", title: "", summary: "", steps: [{ id: "s", title: "", body: "{nope}", explain: "" }] }, {}).steps[0].body,
+    "{nope}",
+  );
 });
 
 test("terminal bus queues until attached and presses Enter unless editing", () => {

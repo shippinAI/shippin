@@ -14,7 +14,13 @@ export type ProviderConfig = {
   images?: ImageConfig[] | null;
   image_remotes?: ImageRemoteConfig[] | null;
 };
-export type DriverSpec = { kind: string; fields: { name: string; required: boolean }[]; capabilities: string[]; verbs: string[]; image_protocols?: string[] };
+export type DriverSpec = {
+  kind: string;
+  fields: { name: string; required: boolean }[];
+  capabilities: string[];
+  verbs: string[];
+  image_protocols?: string[];
+};
 
 /** GET /v1/settings/ui: the config file with the ops override merged over it. */
 export type UiConfig = {
@@ -51,7 +57,12 @@ export function textFor(ui: UiConfig | undefined, key: TextKey, vars?: Record<st
 export function compactUi(draft: UiConfig): UiConfig {
   const nav = (entries: NavEntryConfig[] = []) =>
     entries
-      .map((e) => ({ id: e.id, ...(e.label?.trim() ? { label: e.label.trim() } : {}), ...(e.hidden ? { hidden: true } : {}), ...(e.order ? { order: e.order } : {}) }))
+      .map((e) => ({
+        id: e.id,
+        ...(e.label?.trim() ? { label: e.label.trim() } : {}),
+        ...(e.hidden ? { hidden: true } : {}),
+        ...(e.order ? { order: e.order } : {}),
+      }))
       .filter((e) => Object.keys(e).length > 1);
   const providers = (draft.providers ?? [])
     .map((p) => ({
@@ -69,14 +80,26 @@ export function compactUi(draft: UiConfig): UiConfig {
         }))
         .filter((f) => Object.keys(f).length > 1),
       ...(p.images
-        ? { images: p.images.map((m) => ({ id: m.id.trim(), label: m.label.trim(), ...(m.kind ? { kind: m.kind } : {}) })).filter((m) => m.id || m.label) }
+        ? {
+            images: p.images
+              .map((m) => ({ id: m.id.trim(), label: m.label.trim(), ...(m.kind ? { kind: m.kind } : {}) }))
+              .filter((m) => m.id || m.label),
+          }
         : {}),
       ...(p.image_remotes
-        ? { image_remotes: p.image_remotes.map((r) => ({ name: r.name.trim(), server: r.server.trim(), protocol: r.protocol })).filter((r) => r.name || r.server) }
+        ? {
+            image_remotes: p.image_remotes
+              .map((r) => ({ name: r.name.trim(), server: r.server.trim(), protocol: r.protocol }))
+              .filter((r) => r.name || r.server),
+          }
         : {}),
     }))
     .filter((p) => Object.keys(p).length > 2 || p.fields.length > 0);
-  const text = Object.fromEntries(Object.entries(draft.text ?? {}).filter(([, v]) => v.trim()).map(([k, v]) => [k, v.trim()]));
+  const text = Object.fromEntries(
+    Object.entries(draft.text ?? {})
+      .filter(([, v]) => v.trim())
+      .map(([k, v]) => [k, v.trim()]),
+  );
   return {
     nav: { sections: nav(draft.nav?.sections), items: nav(draft.nav?.items) },
     text,

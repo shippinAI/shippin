@@ -11,7 +11,22 @@ function inside(parent, child) {
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
+// Refuse linked or non-directory ancestors before creating anything. This is a
+// local authoring tool: callers must also exclude concurrent filesystem writers.
+function checkDirectory(directory) {
+  const parent = path.dirname(directory);
+  if (parent !== directory) checkDirectory(parent);
+  let stat;
+  try { stat = fs.lstatSync(directory); }
+  catch (error) { if (error.code === 'ENOENT') return; throw error; }
+  if (!stat.isDirectory()) throw new Error(`export path must be an unlinked directory: ${directory}`);
+}
+
 export function exportLibrary(libraryRoot, outDir) {
+  if (!fs.lstatSync(libraryRoot).isDirectory()) throw new Error('library root must be an unlinked directory');
+  libraryRoot = fs.realpathSync(libraryRoot);
+  outDir = path.resolve(outDir);
+  checkDirectory(outDir);
   if (inside(libraryRoot, outDir)) {
     throw new Error('refusing to write the export inside the canonical library');
   }
@@ -21,13 +36,27 @@ export function exportLibrary(libraryRoot, outDir) {
     failure.errors = errors;
     throw failure;
   }
+  const published = skills.filter(skill => skill.flatName);
+  // Preflight every destination before writing the first skill. Existing exact
+  // copies are harmless; differing files or aliases must never be overwritten.
+  for (const skill of published) {
+    const destination = path.join(outDir, skill.flatName);
+    checkDirectory(destination);
+    const target = path.join(destination, 'SKILL.md');
+    let stat;
+    try { stat = fs.lstatSync(target); }
+    catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+    if (!stat.isFile() || stat.nlink !== 1 || !fs.readFileSync(target).equals(fs.readFileSync(path.join(skill.dir, 'SKILL.md')))) {
+      throw new Error(`refusing to overwrite existing export file: ${target}`);
+    }
+  }
   fs.mkdirSync(outDir, { recursive: true });
   const written = [];
-  for (const skill of skills) {
-    if (!skill.flatName) continue;
+  for (const skill of published) {
     const destination = path.join(outDir, skill.flatName);
     fs.mkdirSync(destination, { recursive: true });
-    fs.copyFileSync(path.join(skill.dir, 'SKILL.md'), path.join(destination, 'SKILL.md'));
+    const target = path.join(destination, 'SKILL.md');
+    if (!fs.existsSync(target)) fs.copyFileSync(path.join(skill.dir, 'SKILL.md'), target, fs.constants.COPYFILE_EXCL);
     written.push(skill.flatName);
   }
   return { written, warnings };

@@ -10,15 +10,20 @@ type Props = { title: string; children: ReactNode; label?: string; placement?: "
 export function HelpPopover({ title, children, label, placement = "bottom" }: Props) {
   const name = label ?? `About ${title}`;
   return (
-    <Popover title={title} placement={placement}
+    <Popover
+      title={title}
+      placement={placement}
       trigger={
         <Tooltip content={name}>
-          <Button aria-label={name}
-            className="focus-ring inline-flex size-6 items-center justify-center rounded-full text-fg-subtle outline-none data-hovered:bg-raised data-hovered:text-fg data-pressed:text-fg">
+          <Button
+            aria-label={name}
+            className="focus-ring inline-flex size-6 items-center justify-center rounded-full text-fg-subtle outline-none data-hovered:bg-raised data-hovered:text-fg data-pressed:text-fg"
+          >
             <CircleHelp className="size-4" aria-hidden />
           </Button>
         </Tooltip>
-      }>
+      }
+    >
       {children}
     </Popover>
   );

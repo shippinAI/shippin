@@ -6,19 +6,19 @@ import (
 	"fmt"
 	"log"
 
-	"shippin.cloud/console/internal/actions"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/ext"
 	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/ports"
 	"shippin.cloud/console/internal/settings"
 )
 
 // provideServices hands actions and reactions what they Need besides the database. Each entity
-// provides its own (actions.Providers, generated from `var Services = mcpl.Provider(...)` in its
+// provides its own (ext.Providers(), generated from `var Services = mcpl.Provider(...)` in its
 // folder); the panel adds only the host ports of internal/ports, which need its keys or its hosts.
 // Nothing here names an entity, so adding one never changes this file.
 func (a *API) provideServices(s mcpl.Services) {
-	for _, p := range actions.Providers {
+	for _, p := range ext.Providers() {
 		p(s)
 	}
 	mcpl.Provide[ports.Workspaces](s, workspacePort{a})
@@ -45,7 +45,7 @@ func (a *API) provideServices(s mcpl.Services) {
 // mountReactions runs every generated reaction on the events it follows, as the event's actor in the
 // event's organization, after the change is committed.
 func (a *API) mountReactions() {
-	for _, r := range actions.Reactions {
+	for _, r := range ext.Reactions() {
 		for _, on := range r.On {
 			a.events.On(on, func(ctx context.Context, e mcpl.Event) {
 				c := &mcpl.Call{Ctx: ctx, Actor: e.Actor, Via: "reaction", Tenant: e.Tenant, Services: a.actionServices(), Publish: a.events.Publish}
