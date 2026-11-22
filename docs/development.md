@@ -18,10 +18,10 @@ Open <http://localhost:5173/setup> and enter the code. The dev server proxies `/
 
 Chrome, Edge and Firefox keep the panel's `Secure` session cookie on `http://localhost`. Safari does not, so use one of those for this loop.
 
-## Shippin Run
+## Legacy runner prototype
 
-The runner control plane is a separate process from the console. From the
-repository root:
+PR #18's standalone fleet-file tools remain separate from the platform runtime;
+see [their boundary](reference/shippin-run.md#platform-boundary). From the repository root:
 
 ```sh
 go test ./internal/runfleet ./cmd/shippin-run

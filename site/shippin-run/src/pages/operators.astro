@@ -14,7 +14,7 @@ import Base from "../layouts/Base.astro";
   </section>
   <section>
     <h2>Recommended host layout</h2>
-    <p>Run the control plane in an Ubuntu 24.04 virtual machine. On a Windows 11 desktop, Hyper-V is the better place for that VM than WSL2. WSL2 can run the same process, and it sleeps, forwards ports, and keeps time in ways that make a webhook listener flaky. Keep CI guests out of WSL2 as well. Until Proxmox or Incus creation exists, register runner machines yourself and list them in <code>ci_runners.json</code>.</p>
+    <p>For evaluation, choose a Linux machine and separate prototype credentials and storage. The optional Hyper-V helper accepts your ISO and network switch. Existing runner machines can be recorded in <code>ci_runners.json</code>; this does not attach them to the Shippin panel.</p>
     <p>The repository script <code>install/shippin-run/windows/New-ShippinRunVM.ps1</code> creates the Hyper-V VM from an ISO you supply. Run it on the Windows host. The Linux script <code>install/shippin-run/deploy-control-plane.sh</code> installs systemd inside that VM.</p>
   </section>
   <section>

@@ -105,9 +105,13 @@ type disk struct {
 }
 
 func loadDisk(dir string) (*disk, error) {
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = root.Close() }()
 	d := &disk{}
-	runnersPath := filepath.Join(dir, "ci_runners.json")
-	if b, err := os.ReadFile(runnersPath); err == nil {
+	if b, err := root.ReadFile("ci_runners.json"); err == nil {
 		var file struct {
 			Runners []Runner `json:"runners"`
 		}
@@ -131,8 +135,7 @@ func loadDisk(dir string) (*disk, error) {
 	} else if !os.IsNotExist(err) {
 		return nil, err
 	}
-	statePath := filepath.Join(dir, "state.json")
-	if b, err := os.ReadFile(statePath); err == nil {
+	if b, err := root.ReadFile("state.json"); err == nil {
 		var rest struct {
 			Connections   []Connection   `json:"connections"`
 			Jobs          []Job          `json:"jobs"`

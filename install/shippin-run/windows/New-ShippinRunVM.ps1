@@ -1,12 +1,12 @@
 # Create a Hyper-V virtual machine for the Shippin Run control plane.
 # Requires an elevated PowerShell on the Windows host, an Ubuntu ISO, and a virtual switch.
 param(
-  [Parameter(Mandatory = $true)][string]$VMName,
+  [Parameter(Mandatory = $true)][ValidatePattern('^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$')][string]$VMName,
   [Parameter(Mandatory = $true)][string]$IsoPath,
   [Parameter(Mandatory = $true)][string]$SwitchName,
-  [int]$MemoryGB = 4,
-  [int]$VCPU = 2,
-  [int]$DiskGB = 40
+  [ValidateRange(1, 1024)][int]$MemoryGB = 4,
+  [ValidateRange(1, 256)][int]$VCPU = 2,
+  [ValidateRange(8, 65536)][int]$DiskGB = 40
 )
 
 $ErrorActionPreference = "Stop"

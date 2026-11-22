@@ -17,9 +17,10 @@ type Explanation struct {
 
 // ExplainLog classifies a job from its conclusion and log text.
 func ExplainLog(job Job, log string, stored, expired bool) Explanation {
+	log, additionalRedactions := Redact(log)
 	out := Explanation{
 		JobID: job.ID, Repo: job.Repo, Conclusion: job.Conclusion,
-		LogStored: stored, Redactions: job.Redactions, Expired: expired,
+		LogStored: stored, Redactions: job.Redactions + additionalRedactions, Expired: expired,
 		Signals: []string{},
 	}
 	low := strings.ToLower(log)
@@ -53,10 +54,14 @@ func ExplainLog(job Job, log string, stored, expired bool) Explanation {
 		out.Signals = append(out.Signals, "process_error")
 		out.Summary = "The job process exited with an error."
 		out.NextStep = "Read the first ##[error] line in the stored log."
-	case job.Conclusion == "success" || job.Conclusion == "":
+	case job.Conclusion == "success":
 		out.Signals = append(out.Signals, "succeeded")
 		out.Summary = "The job succeeded."
 		out.NextStep = "No failure to explain."
+	case job.Conclusion == "":
+		out.Signals = append(out.Signals, "pending_conclusion")
+		out.Summary = "The job has no reported conclusion yet."
+		out.NextStep = "Wait for GitHub to report the job's result."
 	default:
 		out.Signals = append(out.Signals, "unknown_failure")
 		out.Summary = "The job did not succeed, and the log did not match a known pattern."
@@ -72,8 +77,8 @@ func firstErrorLine(log string) string {
 	for _, line := range strings.Split(log, "\n") {
 		trim := strings.TrimSpace(line)
 		if strings.Contains(trim, "##[error]") || strings.HasPrefix(trim, "FAIL") || strings.Contains(trim, "--- FAIL") {
-			if len(trim) > 180 {
-				trim = trim[:180] + "…"
+			if chars := []rune(trim); len(chars) > 180 {
+				trim = string(chars[:180]) + "…"
 			}
 			return trim
 		}

@@ -23,9 +23,9 @@
     }
   ],
   "devDependencies": {
-    "@lhci/cli": "0.15.1",
+    "@lhci/cli": "0.16.1",
     "@size-limit/file": "11.2.0",
-    "astro": "5.15.9",
+    "astro": "7.4.13",
     "size-limit": "11.2.0"
   }
 }

@@ -1,4 +1,6 @@
-// Package runfleet is the GitHub Actions runner control plane.
+// Package runfleet is the legacy standalone fleet-file prototype from PR #18.
+// The platform's tenant-scoped runners are owned by internal/runtime/runner and
+// internal/runtime/runner_job. The console must not import this stateful package.
 //
 // It owns the fleet file (ci_runners.json), onboarding plans for GitHub user
 // accounts and organizations, log redaction, retention, and the usage meter.

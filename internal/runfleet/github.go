@@ -260,21 +260,18 @@ func (h *HTTPGitHub) do(ctx context.Context, method, path string, payload, dest 
 	if client == nil {
 		client = &http.Client{Timeout: 15 * time.Second}
 	}
-	resp, err := client.Do(req)
+	resp, err := noRedirectClient(client).Do(req)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }() // Read errors below determine the response result.
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
 	if err != nil {
 		return err
 	}
 	if resp.StatusCode >= 300 {
-		msg, _ := Redact(string(data))
-		if len(msg) > 180 {
-			msg = msg[:180]
-		}
-		return &apiError{Status: resp.StatusCode, Body: msg}
+		// Remote errors can echo credentials outside known redaction patterns.
+		return &apiError{Status: resp.StatusCode, Body: "request rejected"}
 	}
 	if dest == nil || len(data) == 0 {
 		return nil
@@ -307,15 +304,18 @@ func (h *HTTPGitHub) token(ctx context.Context) (string, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 15 * time.Second}
 	}
-	resp, err := client.Do(req)
+	resp, err := noRedirectClient(client).Do(req)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	var body struct {
 		Token string `json:"token"`
 	}
-	data, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return "", fmt.Errorf("read github installation token: %w", err)
+	}
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("github installation token HTTP %d", resp.StatusCode)
 	}
@@ -323,6 +323,14 @@ func (h *HTTPGitHub) token(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("github installation token response was empty")
 	}
 	return body.Token, nil
+}
+
+// Credential-bearing calls must not follow a redirect, even on the same host.
+// Copy the supplied client so callers and concurrent requests are unaffected.
+func noRedirectClient(client *http.Client) *http.Client {
+	copy := *client
+	copy.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	return &copy
 }
 
 // AppJWT signs a GitHub App assertion. The key never leaves this process.

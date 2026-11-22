@@ -165,11 +165,11 @@ func (p Proxmox) call(ctx context.Context, method, rawURL string, body io.Reader
 	if client == nil {
 		client = &http.Client{Timeout: 5 * time.Second}
 	}
-	resp, err := client.Do(req)
+	resp, err := noRedirectClient(client).Do(req)
 	if err != nil {
 		return nil, 0, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }() // The read result carries transport failures.
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	return data, resp.StatusCode, err
 }

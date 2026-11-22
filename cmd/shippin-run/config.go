@@ -53,7 +53,9 @@ type sizeFile struct {
 func openFromEnv() (*runfleet.Service, serverConfig, error) {
 	var file fileConfig
 	if path := strings.TrimSpace(os.Getenv("SHIPPIN_RUN_CONFIG")); path != "" {
-		b, err := os.ReadFile(path)
+		// The operator selects this local configuration file at process startup;
+		// no HTTP or MCP input can change its path.
+		b, err := os.ReadFile(path) // #nosec G304 G703 -- trusted startup configuration path, never request input
 		if err != nil {
 			return nil, serverConfig{}, err
 		}
@@ -139,7 +141,7 @@ func githubFromEnv() (runfleet.GitHub, error) {
 }
 
 func readPrivateKey(path string) (*rsa.PrivateKey, error) {
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) // #nosec G304 G703 -- operator-provided private key path from the startup environment
 	if err != nil {
 		return nil, err
 	}

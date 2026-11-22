@@ -2,7 +2,7 @@
 
 > GitHub Actions runners for personal accounts and organizations, with an MCP server, redacted logs, and customer-set retention.
 
-Shippin Run is the runner product in the Shippin repository. The marketing site is static. The control plane is `shippin-run`. Creating Proxmox or Incus guests is not implemented; the fleet file records the runner you asked for and says so.
+This is the preserved legacy runner prototype from PR #18, not the current tenant-scoped platform runtime. The marketing site is static. The control plane is `shippin-run`. Creating Proxmox or Incus guests is not implemented; the fleet file records the runner you asked for and says so.
 
 ## Pages
 

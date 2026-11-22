@@ -17,8 +17,8 @@ var redactPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`AKIA[0-9A-Z]{16}`),
 	regexp.MustCompile(`xox[baprs]-[A-Za-z0-9-]{10,}`),
 	regexp.MustCompile(`(?i)\bbearer\s+[A-Za-z0-9._\-]{8,}`),
-	regexp.MustCompile(`-----BEGIN [A-Z ]+PRIVATE KEY-----[\s\S]*?-----END [A-Z ]+PRIVATE KEY-----`),
-	regexp.MustCompile(`(?i)\b(aws_secret_access_key|password|passwd|secret|api[_-]?key|token)\b(\s*[:=]\s*)["']?[^\s"']+`),
+	regexp.MustCompile(`-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z]+ )*PRIVATE KEY-----`),
+	regexp.MustCompile(`(?i)\b(aws_secret_access_key|password|passwd|secret|api[_-]?key|token)\b(\s*[:=]\s*)(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s"']+)`),
 }
 
 // Redact replaces credential-shaped text. The count is how many replacements

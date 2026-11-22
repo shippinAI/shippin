@@ -81,6 +81,9 @@ func parseUSDPerMinute(s string) (int64, error) {
 	if !r.IsInt() {
 		return 0, fmt.Errorf("usd_per_minute %q has more than 6 decimal places", s)
 	}
+	if !r.Num().IsInt64() {
+		return 0, fmt.Errorf("usd_per_minute %q is too large", s)
+	}
 	return r.Num().Int64(), nil
 }
 

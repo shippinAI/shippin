@@ -1,6 +1,9 @@
 # shippin-run
 
-`shippin-run` is the runner control plane and its MCP server. The rules live in
+`shippin-run` is the legacy fleet-file prototype and its MCP server. The current
+platform runner implementation is documented in [Build runners](../../docs/runners.md).
+This process is not connected to panel identities, tenant data or settings.
+Its rules live in
 `internal/runfleet`. This process does not keep a second copy.
 
 ```sh

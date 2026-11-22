@@ -1,6 +1,7 @@
-# Shippin Run configuration
+# Legacy runner prototype configuration
 
-`internal/runfleet` and `cmd/shippin-run` own the runner control plane.
+`internal/runfleet` and `cmd/shippin-run` contain the earlier standalone prototype.
+For the current panel's tenant-scoped build runners, use [Build runners](../runners.md).
 `internal/jobs` is the console worker and is not a GitHub runner. The Warden
 reference files under `third_party/warden-ct102` are not served.
 [Health](../specs/runner-fleet-health-and-stats.md) describes the probes.
@@ -8,6 +9,31 @@ reference files under `third_party/warden-ct102` are not served.
 The MCP client notes are in [cmd/shippin-run/README.md](../../cmd/shippin-run/README.md).
 
 Nothing here is collected as a card charge. The meter reports a list-price amount.
+
+## Platform boundary
+
+PR #18 originated at `49aa8c3e70382698fa91aeaba080942247617e37`, before the
+platform's tenant-scoped runner implementation. Its code and tests are preserved
+here, with security and correctness repairs. This is source consolidation, not a
+claim that all prototype capabilities have been integrated into the panel.
+
+| Original capability | Current disposition |
+| --- | --- |
+| Fleet file and Warden-shaped inventory | Standalone compatibility tool only. Platform machine state belongs to `internal/runtime/runner` and PostgreSQL. |
+| Account onboarding, shared organization runners, automatic public-repo approval | Prototype behavior only. Platform repository assignments require tenant management permission and use one VM per job; no shared-runner policy is imported. |
+| GitHub credentials, webhook, HTTP and hand-written MCP | Isolated prototype process only. Platform uses `internal/gh`, its one webhook and generated MCPL actions. Never route panel clients through this process. |
+| Workflow previews and optional pull requests | Retained and tested in the prototype; not exposed by the panel. Review every proposed diff, including the placeholder build step in a new workflow. |
+| Redacted logs, retention and deterministic explanations | Retained and tested in the prototype. Platform job logs remain unfinished. Expired bodies are purged on access; zero retention purges immediately. No background timer or guaranteed recognition of every possible secret. |
+| Usage arithmetic and sample prices | Prototype comparison meter only; not billing authority. Platform job timing and plan limits retain their existing owners. |
+| Proxmox health composition | Prototype compatibility probe for existing fleet rows. Platform provider operations remain in `internal/hv`; prototype guest creation is unimplemented. |
+| Static site, local fonts and rack simulator | Preserved prototype demonstration, not a hosted-service offer or proof of a running runner. Font license remains with the assets. |
+| Linux/Hyper-V install helpers | Optional prototype evaluation only. They do not install or configure the platform panel. Live installation is unverified in this PR. |
+
+The bearer token grants control of the entire prototype state directory. There is
+no tenant isolation, panel identity, or shared secret store in this process. Use a
+separate directory and credentials for legacy evaluation. The console dependency
+test fails if this stateful package is pulled into the panel's executable. New
+platform work belongs in the owners listed in [source ownership](../source-of-truth.md).
 
 ## Environment
 

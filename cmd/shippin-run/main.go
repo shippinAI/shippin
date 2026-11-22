@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"shippin.cloud/console/internal/runfleet"
 )
@@ -67,12 +68,22 @@ func main() {
 		if cfg.Token == "" {
 			fail(fmt.Errorf("SHIPPIN_RUN_API_TOKEN is required"))
 		}
-		if err := http.ListenAndServe(cfg.Listen, newHandler(svc, cfg)); err != nil {
+		if err := newServer(svc, cfg).ListenAndServe(); err != nil {
 			fail(err)
 		}
 	default:
 		fmt.Fprint(os.Stderr, usageText)
 		os.Exit(2)
+	}
+}
+
+func newServer(svc *runfleet.Service, cfg serverConfig) *http.Server {
+	return &http.Server{
+		Addr: cfg.Listen, Handler: newHandler(svc, cfg),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      2 * time.Minute,
+		IdleTimeout:       60 * time.Second,
 	}
 }
 

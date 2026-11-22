@@ -15,6 +15,7 @@ install -d -m 0750 /etc/shippin-run /var/lib/shippin-run
 if ! id shippin-run >/dev/null 2>&1; then
   useradd --system --home-dir /var/lib/shippin-run --shell /usr/sbin/nologin shippin-run
 fi
+chown root:shippin-run /etc/shippin-run
 chown shippin-run:shippin-run /var/lib/shippin-run
 chmod 0700 /var/lib/shippin-run
 if [ ! -x /usr/local/bin/shippin-run ]; then
@@ -22,9 +23,10 @@ if [ ! -x /usr/local/bin/shippin-run ]; then
     echo "go is not installed and /usr/local/bin/shippin-run is absent" >&2
     exit 1
   fi
-  (cd "$root" && go build -o /tmp/shippin-run ./cmd/shippin-run)
-  install -m 0755 /tmp/shippin-run /usr/local/bin/shippin-run
-  rm -f /tmp/shippin-run
+  build_dir=$(mktemp -d)
+  trap 'rm -rf -- "$build_dir"' EXIT
+  (cd "$root" && go build -o "$build_dir/shippin-run" ./cmd/shippin-run)
+  install -m 0755 "$build_dir/shippin-run" /usr/local/bin/shippin-run
 fi
 if [ ! -f /etc/shippin-run/shippin-run.json ]; then
   install -m 0640 -o root -g shippin-run "$root/config/shippin-run.example.json" /etc/shippin-run/shippin-run.json

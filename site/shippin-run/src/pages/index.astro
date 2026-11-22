@@ -10,10 +10,10 @@ import Base from "../layouts/Base.astro";
       <p class="kicker">shippin.run</p>
       <h1>Runners for the account you already have.</h1>
       <p class="lede">
-        Install a GitHub App, point a job at <code>shippin-&lt;size&gt;</code>, and keep the logs on a retention you choose. Personal repositories are registered one by one. Organizations can share a runner.
+        Preview workflow changes and inspect manually recorded fleets and logs. This prototype plans runner registrations; it does not register a runner or start a job.
       </p>
       <div class="actions">
-        <a class="button" href="/operators/">Deploy the control plane</a>
+        <a class="button" href="/operators/">Evaluate the prototype</a>
         <a class="button ghost" href="/mcp/">MCP tools</a>
       </div>
     </div>
@@ -79,7 +79,7 @@ import Base from "../layouts/Base.astro";
     <div class="grid three">
       <article class="card">
         <h3>Accounts</h3>
-        <p>A user account gets one runner registration per repository. An organization can use one organization runner, or per-repository registration when you ask for it.</p>
+        <p>The prototype records desired per-repository or organization registrations. It does not issue registration credentials. These policies do not apply to platform tenant runners.</p>
       </article>
       <article class="card">
         <h3>Logs</h3>
@@ -104,7 +104,7 @@ import Base from "../layouts/Base.astro";
         <tbody>
           <tr>
             <th scope="row">Personal repositories</th>
-            <td>Each repository of a user account is registered on its own.</td>
+            <td>The prototype plans per-repository registration; registration itself is not implemented.</td>
             <td>The quickstart says Blacksmith is limited to GitHub organizations and is not available for personal repositories.</td>
           </tr>
           <tr>

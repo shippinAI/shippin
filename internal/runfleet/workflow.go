@@ -48,6 +48,10 @@ jobs:
 // Expressions such as ${{ matrix.os }} are left in place and reported.
 func PlanRunsOn(files []WorkflowFile, label string, lovable, missingWorkflow bool) WorkflowPlan {
 	plan := WorkflowPlan{DryRun: true}
+	if !validSlug(strings.TrimPrefix(label, "shippin-")) || !strings.HasPrefix(label, "shippin-") {
+		plan.Warnings = append(plan.Warnings, "runner label is invalid")
+		return plan
+	}
 	if missingWorkflow && lovable {
 		file := LovableWorkflow(label)
 		plan.Changes = append(plan.Changes, FileChange{Path: file.Path, Content: file.Content})
@@ -80,8 +84,25 @@ func patchRunsOn(content, label string) (string, int, []string) {
 	var warnings []string
 	n := 0
 	out := make([]string, 0, len(lines))
+	blockIndent := -1
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
+		if blockIndent >= 0 {
+			if strings.TrimSpace(line) == "" || indentOf(line) > blockIndent {
+				out = append(out, line)
+				continue
+			}
+			blockIndent = -1
+		}
+		// YAML literal/folded blocks are data (often shell scripts), not keys.
+		if _, value, found := strings.Cut(line, ":"); found {
+			value = strings.TrimSpace(strings.SplitN(value, "#", 2)[0])
+			if value != "" && (value[0] == '|' || value[0] == '>') {
+				blockIndent = indentOf(line)
+				out = append(out, line)
+				continue
+			}
+		}
 		space, value, ok := splitRunsOn(line)
 		if !ok {
 			out = append(out, line)
@@ -108,12 +129,18 @@ func patchRunsOn(content, label string) (string, int, []string) {
 				out = append(out, line)
 				continue
 			}
+			if strings.Contains(strings.Join(lines[i+1:j], "\n"), "${{") {
+				warnings = append(warnings, "left an expression runs-on unchanged")
+				out = append(out, lines[i:j]...)
+				i = j - 1
+				continue
+			}
 			out = append(out, space+"runs-on: "+label)
 			n++
 			i = j - 1
 			continue
 		}
-		if strings.Contains(value, "${{") {
+		if strings.Contains(value, "${{") || strings.HasPrefix(value, "{") || strings.HasPrefix(value, "*") || strings.HasPrefix(value, "&") {
 			warnings = append(warnings, "left an expression runs-on unchanged")
 			out = append(out, line)
 			continue

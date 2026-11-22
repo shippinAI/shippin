@@ -23,7 +23,7 @@ type Signal struct {
 
 // Compose applies the fleet pill rule.
 func Compose(github, substrate, hostLoad HealthState) HealthState {
-	if substrate == HealthCritical || github == HealthCritical {
+	if substrate == HealthCritical || github == HealthCritical || hostLoad == HealthCritical {
 		return HealthCritical
 	}
 	if github == HealthWarn || substrate == HealthWarn || hostLoad == HealthWarn {

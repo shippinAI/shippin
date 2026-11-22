@@ -1,4 +1,8 @@
-# Deploy Shippin Run
+# Evaluate the legacy runner prototype
+
+These instructions run the isolated PR #18 prototype, not the Shippin panel.
+Read [its boundary](shippin-run.md#platform-boundary) first; platform deployments
+use [Deploy](../deploy.md). These helpers have not been verified on a live host.
 
 Two pieces, deployed separately:
 
@@ -9,19 +13,15 @@ Guest creation is not part of either deploy. After the control plane is up, an
 operator who already has a runner machine adds it to `ci_runners.json`. Proxmox
 health probes run when that file has a `vmid` and the Proxmox variables are set.
 
-## Control plane: Linux VM on WIN11-PLATINUM
+## Prototype process: operator-selected Linux host
 
-WIN11-PLATINUM is the Windows 11 host for this installation. Put the control
-plane in an Ubuntu 24.04 Hyper-V virtual machine on that host.
-
-WSL2 can run the same binary, and it is the worse default. A WSL2 distro sleeps
-with the desktop session, its localhost forwarding is easy to mis-set, and a
-webhook listener disappears when the laptop sleeps. Use WSL2 only as a temporary
-way to read the binary. Do not register CI guests inside WSL2.
+Select a Linux host or VM and configure its hostname, storage and network.
+The optional Hyper-V helper creates an empty VM from an ISO you supply.
+No installation-specific hostname, address or hypervisor is assumed.
 
 ### Create the VM
 
-On WIN11-PLATINUM, in an elevated PowerShell, from a checkout of this repository:
+On your Windows Hyper-V host, in elevated PowerShell, from a checkout:
 
 ```powershell
 cd install\shippin-run\windows
@@ -73,8 +73,9 @@ process yourself. This unit listens in cleartext on the address in
 
 ## Site: Cloudflare Pages
 
-The zone for the site hostname already exists and has no records yet. The Pages
-project does not exist until you create it.
+Choose a zone and Pages project in your account. This repository does not establish
+that either exists or create DNS records. Set `SITE_URL` to the HTTPS origin you own
+when building; without it, the static preview omits canonical URLs.
 
 1. In the Cloudflare dashboard, open Workers & Pages and create a Pages project connected to this Git repository.
 2. Set the production branch to `main` after this work is merged. Until then, a preview deployment of the pull-request branch is enough to test.

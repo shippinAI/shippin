@@ -3,6 +3,7 @@ package runfleet
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -84,27 +85,50 @@ func Open(dir string, opt Options) (*Service, error) {
 
 func (s *Service) Sizes() []Size { return append([]Size(nil), s.sizes...) }
 
-func (s *Service) withDisk(write bool, fn func(*disk) error) error {
+func (s *Service) withDisk(write bool, fn func(*disk) error) (err error) {
 	f, err := os.OpenFile(filepath.Join(s.dir, ".lock"), os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { err = errors.Join(err, f.Close()) }()
 	if err := lockFile(f); err != nil {
 		return err
 	}
-	defer unlockFile(f)
+	defer func() { err = errors.Join(err, unlockFile(f)) }()
 	d, err := loadDisk(s.dir)
 	if err != nil {
 		return err
 	}
+	purged := s.purgeExpiredLogs(d)
 	if err := fn(d); err != nil {
 		return err
 	}
-	if write {
+	// Retention deletes the persisted body as well as hiding it in responses.
+	// This also applies immediately when SetRetention changes a repository.
+	purged = s.purgeExpiredLogs(d) || purged
+	if write || purged {
 		return saveDisk(s.dir, d)
 	}
 	return nil
+}
+
+func (s *Service) purgeExpiredLogs(d *disk) bool {
+	changed := false
+	for i := range d.Jobs {
+		job := &d.Jobs[i]
+		days := s.retentionFor(d, job.Repo)
+		when := job.FinishedAt
+		if when.IsZero() {
+			when = job.StartedAt
+		}
+		if days == 0 || (!when.IsZero() && !s.now().Before(when.AddDate(0, 0, days))) {
+			if job.Log != "" || job.LogStored {
+				job.Log, job.LogStored = "", false
+				changed = true
+			}
+		}
+	}
+	return changed
 }
 
 // ConnectInput asks the control plane to adopt repositories.
@@ -259,11 +283,6 @@ func (s *Service) Connect(ctx context.Context, in ConnectInput) (ConnectResult, 
 			for i := range result.Repos {
 				if result.Repos[i].Runner != nil && result.Repos[i].Runner.ID == orgRunner.ID {
 					result.Repos[i].Runner = orgRunner
-				}
-			}
-			for i := range conn.Repos {
-				if conn.Repos[i].RunnerID == orgRunner.ID {
-					// runner id already set
 				}
 			}
 			d.Runners = append(d.Runners, *orgRunner)
@@ -448,7 +467,6 @@ func (s *Service) RunnerHealth(ctx context.Context, id string) (HealthReport, er
 		states, err = s.gh.RunnerStates(ctx, repos)
 		if err != nil {
 			states = nil
-			configured = false
 		}
 	}
 	gh := githubSignal(runner, states, s.gh != nil && s.gh.Configured() && err == nil)
@@ -537,7 +555,7 @@ func (s *Service) JobLogs(id string) (LogResult, error) {
 	if when.IsZero() {
 		when = job.StartedAt
 	}
-	if days == 0 || (!when.IsZero() && s.now().After(when.Add(time.Duration(days)*24*time.Hour))) {
+	if days == 0 || (!when.IsZero() && !s.now().Before(when.AddDate(0, 0, days))) {
 		res.Expired = true
 		res.Message = "logs were discarded under this repository's retention"
 		return res, nil
