@@ -34,7 +34,7 @@ func (a *API) putPreviews(w http.ResponseWriter, r *http.Request) {
 	if in.Previews == nil {
 		in.Previews = []devspace.Preview{}
 	}
-	if msg := checkPreviews(in.Previews, a.cfg.Workspaces); msg != "" {
+	if msg := devspace.CheckPreviews(in.Previews, a.cfg.Workspaces); msg != "" {
 		auth.Problem(w, http.StatusBadRequest, msg)
 		return
 	}

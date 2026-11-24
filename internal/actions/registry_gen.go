@@ -15,8 +15,10 @@ import (
 	platform_secret_store "shippin.cloud/console/internal/platform/secret_store"
 	platform_setting "shippin.cloud/console/internal/platform/setting"
 	platform_setting_version "shippin.cloud/console/internal/platform/setting/version"
+	runtime_devspace_option "shippin.cloud/console/internal/runtime/devspace_option"
 	runtime_runner "shippin.cloud/console/internal/runtime/runner"
 	runtime_runner_job "shippin.cloud/console/internal/runtime/runner_job"
+	runtime_template "shippin.cloud/console/internal/runtime/template"
 	services_catalog_service "shippin.cloud/console/internal/services/catalog_service"
 	services_runner_size "shippin.cloud/console/internal/services/runner_size"
 	"shippin.cloud/console/internal/settings"
@@ -54,10 +56,16 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.platform.setting.list", platform_setting.List),
 	mcpl.Register("shippin.platform.setting.update", platform_setting.Update),
 	mcpl.Register("shippin.platform.setting.version.list", platform_setting_version.List),
+	mcpl.Register("shippin.runtime.devspace_option.get", runtime_devspace_option.Get),
 	mcpl.Register("shippin.runtime.runner.delete", runtime_runner.Delete),
 	mcpl.Register("shippin.runtime.runner.list", runtime_runner.List),
 	mcpl.Register("shippin.runtime.runner_job.get", runtime_runner_job.Get),
 	mcpl.Register("shippin.runtime.runner_job.list", runtime_runner_job.List),
+	mcpl.Register("shippin.runtime.template.create", runtime_template.Create),
+	mcpl.Register("shippin.runtime.template.delete", runtime_template.Delete),
+	mcpl.Register("shippin.runtime.template.get", runtime_template.Get),
+	mcpl.Register("shippin.runtime.template.list", runtime_template.List),
+	mcpl.Register("shippin.runtime.template.update", runtime_template.Update),
 	mcpl.Register("shippin.services.catalog_service.create", services_catalog_service.Create),
 	mcpl.Register("shippin.services.catalog_service.delete", services_catalog_service.Delete),
 	mcpl.Register("shippin.services.catalog_service.get", services_catalog_service.Get),

@@ -179,7 +179,6 @@ func (a *API) Register(mux Router) {
 	mux.HandleFunc("POST /v1/tenants/{tenantId}/access/{grantId}/{decision}", a.flow.Require(a.decideAccess))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/audit", a.flow.Require(a.tenantAudit))
 	mux.HandleFunc("GET /v1/jobs/{jobId}", a.flow.Require(a.getJob))
-	mux.HandleFunc("GET /v1/templates", a.flow.Require(a.listTemplates))
 	a.projectRoutes(mux)
 	a.subscriptionRoutes(mux)
 	a.connectRoutes(mux)

@@ -91,8 +91,6 @@ code /operator/team/requests/{}/{}
 code /operator/team/roles
 code /operator/team/roles/{}
 code /operator/team/settings
-code /operator/templates
-code /operator/templates/{}
 code /operator/tenants
 code /operator/tenants/{}
 code /operator/tenants/{}/apps
@@ -126,7 +124,6 @@ code /settings/ui
 code /setup/handover
 code /setup/handover/owner
 code /setup/handover/password
-code /templates
 code /tenants/{}/access
 code /tenants/{}/access/{}/{}
 code /tenants/{}/apps

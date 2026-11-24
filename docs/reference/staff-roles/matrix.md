@@ -34,7 +34,7 @@ break-glass, for every role including Owner (unchanged from the 50bcc84 design).
 | `workspaces.act` | POST /v1/operator/workspaces/{id}/{action} |
 | `projects.create` | POST /v1/operator/tenants/{id}/projects, GET .../tenants/{id}/workspaces/{id}/discover (owner only; Risk) |
 | `identity.read` | GET /v1/operator/identity |
-| `templates.read` / `templates.write` | GET / POST, PUT, DELETE /v1/operator/templates |
+| `templates.read` / `templates.write` | GET / POST, PUT, DELETE /v1/operator/runtime/templates |
 | `host.read` | GET /v1/operator/host |
 | `edge.read` | GET /v1/operator/edge |
 | `infra.read` | GET /v1/operator/infrastructure/metrics, and the read routes under /v1/infra |

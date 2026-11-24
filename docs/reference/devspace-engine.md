@@ -186,6 +186,23 @@ New tables, with the `shippin_` prefix: `shippin_devspaces`, `shippin_devspace_s
 `shippin_devspace_previews`, `shippin_templates`. Pre-release, so nothing is migrated from the old
 `workspaces` table; it is dropped in the last packet.
 
+## Where it stands, 2026-11-24
+
+Existing code is being moved into the folders above before the engine underneath it changes.
+
+| Moved | From | To | State |
+| --- | --- | --- | --- |
+| The devspace type and its storage | `internal/db/workspaces.go`, `ports.go`, `keys.go`, part of `operator.go` | `internal/runtime/devspace/devspace.go`, `ports.go` | Done. The table is still `workspaces`. |
+| Firewall, domain and preview rules | `internal/api/guards.go` | `internal/runtime/devspace/rules.go` | Done |
+| Templates: type, storage, rules, seed | `internal/db/templates.go`, `internal/api/template_check.go`, `templates.go` | `internal/runtime/template/` | Done |
+| Template routes | Four hand-written staff routes | `shippin.runtime.template.list`, `get`, `create`, `update`, `delete` | Done. The panel calls the generated actions. |
+| What a person may choose on create | `GET /v1/templates` | `shippin.runtime.devspace_option.get` | Done. The create page draws from it. |
+| Devspace list, get, create, start, stop, delete | `internal/api/workspace*.go`, `job_workspace*.go` | Action files in `internal/runtime/devspace/` | Next |
+| The terminal | `internal/api/terminal_*.go` | `internal/runtime/devspace/terminal/` | After that |
+| Previews and the published site | `internal/api/workspace_previews.go`, `workspace_site.go` | `internal/runtime/devspace/preview/` | After that |
+
+Still on the host agent until E1 to E3: making, starting, stopping and entering a devspace.
+
 ## Packets
 
 Each closes only when its proof has been seen. Incus first on the local rig, then the same proof on

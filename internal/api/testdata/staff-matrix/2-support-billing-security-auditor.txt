@@ -14,7 +14,8 @@ GET /v1/operator/tenants/{tenantId}/apps
 GET /v1/operator/boundaries
 GET /v1/operator/workspaces
 GET /v1/operator/identity
-GET /v1/operator/templates
+GET /v1/operator/runtime/templates
+GET /v1/operator/runtime/templates/{templateId}
 GET /v1/operator/access-requests
 POST /v1/operator/access-requests
 POST /v1/operator/access-requests/{grantId}/end
@@ -49,7 +50,8 @@ GET /v1/operator/boundaries
 GET /v1/operator/runtime/runners
 GET /v1/operator/workspaces
 GET /v1/operator/identity
-GET /v1/operator/templates
+GET /v1/operator/runtime/templates
+GET /v1/operator/runtime/templates/{templateId}
 GET /v1/operator/host
 GET /v1/operator/edge
 GET /v1/operator/infrastructure/metrics
@@ -74,7 +76,8 @@ GET /v1/operator/tenants/{tenantId}/apps
 GET /v1/operator/boundaries
 GET /v1/operator/runtime/runners
 GET /v1/operator/workspaces
-GET /v1/operator/templates
+GET /v1/operator/runtime/templates
+GET /v1/operator/runtime/templates/{templateId}
 GET /v1/operator/host
 GET /v1/operator/edge
 GET /v1/operator/infrastructure/metrics

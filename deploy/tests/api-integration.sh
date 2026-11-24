@@ -36,21 +36,21 @@ U=$USER_PAT_FILE; T=/v1/tenants/$TENANT_ID
 echo "== health and auth"
 expect 200 "health is public" "" GET /healthz
 expect 401 "API refuses anonymous callers" "" GET /v1/me
-expect 401 "templates need sign-in" "" GET /v1/templates
+expect 401 "templates need sign-in" "" GET /v1/me/runtime/devspace-option
 expect 401 "operator panel refuses anonymous callers" "" GET /v1/operator/tenants
 expect 200 "signed-in user sees /v1/me" "$U" GET /v1/me
 
 if [ -z "${ONLY_ADMIN:-}" ]; then # USER_PAT_FILE is a non-admin
 echo "== provider panel is platform-admin only"
-for p in "GET /v1/operator/tenants" "GET /v1/operator/workspaces" "GET /v1/operator/templates" "GET /v1/operator/host" \
-  "GET /v1/operator/edge" "GET /v1/operator/identity" "POST /v1/operator/templates" "DELETE /v1/operator/tenants/$NOID" \
+for p in "GET /v1/operator/tenants" "GET /v1/operator/workspaces" "GET /v1/operator/runtime/templates" "GET /v1/operator/host" \
+  "GET /v1/operator/edge" "GET /v1/operator/identity" "POST /v1/operator/runtime/templates" "DELETE /v1/operator/tenants/$NOID" \
   "POST /v1/operator/workspaces/$NOID/delete" "POST /v1/operator/tenants/$NOID/suspend"; do
   expect 403 "non-admin: $p" "$U" ${p% *} ${p#* } '{}'
 done
 
 fi
 echo "== customer reads"
-expect 200 "template gallery" "$U" GET /v1/templates
+expect 200 "template gallery" "$U" GET /v1/me/runtime/devspace-option
 grep -q '"repo_hosts"' /tmp/it.body && ok "gallery publishes repo rule" || bad "gallery publishes repo rule" "missing"
 grep -q '"startup":"[^"]' /tmp/it.body && bad "gallery hides startup scripts" "present" || ok "gallery hides startup scripts"
 expect 200 "workspace list" "$U" GET "$T/workspaces"
@@ -72,12 +72,12 @@ grep -q "ws-login" /tmp/it.body && ok "redirects to console sign-in" || bad "red
 if [ -n "${ADMIN_PAT_FILE:-}" ]; then
   A=$ADMIN_PAT_FILE
   echo "== provider panel (admin, read + refused writes only)"
-  for p in tenants workspaces templates host edge identity access; do expect 200 "admin GET /v1/operator/$p" "$A" GET "/v1/operator/$p"; done
-  expect 400 "template: foreign image refused" "$A" POST /v1/operator/templates '{"slug":"it-x","name":"x","image":"docker.io/x","cpu":2,"memory_gib":4,"disk_gib":20}'
-  expect 400 "template: bad repo refused" "$A" POST /v1/operator/templates '{"slug":"it-x","name":"x","image":"shippin/tpl-blank","cpu":2,"memory_gib":4,"disk_gib":20,"repo":"https://evil.example/a/b"}'
-  expect 400 "template: duplicate ports refused" "$A" POST /v1/operator/templates '{"slug":"it-x","name":"x","image":"shippin/tpl-blank","cpu":2,"memory_gib":4,"disk_gib":20,"ports":[5173,5173]}'
-  expect 404 "template: PUT to unknown id is not an upsert" "$A" PUT "/v1/operator/templates/$NOID" '{"slug":"it-x","name":"x","image":"shippin/tpl-blank","cpu":2,"memory_gib":4,"disk_gib":20}'
-  expect 404 "template: delete unknown" "$A" DELETE "/v1/operator/templates/$NOID"
+  for p in tenants workspaces runtime/templates host edge identity access; do expect 200 "admin GET /v1/operator/$p" "$A" GET "/v1/operator/$p"; done
+  expect 400 "template: foreign image refused" "$A" POST /v1/operator/runtime/templates '{"reason":"integration test","slug":"it-x","name":"x","image":"docker.io/x","cpu":2,"memory_gib":4,"disk_gib":20}'
+  expect 400 "template: bad repo refused" "$A" POST /v1/operator/runtime/templates '{"reason":"integration test","slug":"it-x","name":"x","image":"shippin/tpl-blank","cpu":2,"memory_gib":4,"disk_gib":20,"repo":"https://evil.example/a/b"}'
+  expect 400 "template: duplicate ports refused" "$A" POST /v1/operator/runtime/templates '{"reason":"integration test","slug":"it-x","name":"x","image":"shippin/tpl-blank","cpu":2,"memory_gib":4,"disk_gib":20,"ports":[5173,5173]}'
+  expect 404 "template: PUT to unknown id is not an upsert" "$A" PUT "/v1/operator/runtime/templates/$NOID" '{"reason":"integration test","slug":"it-x","name":"x","image":"shippin/tpl-blank","cpu":2,"memory_gib":4,"disk_gib":20}'
+  expect 404 "template: delete unknown" "$A" DELETE "/v1/operator/runtime/templates/$NOID" '{"reason":"integration test"}'
   expect 400 "workspace action: unknown action" "$A" POST "/v1/operator/workspaces/$NOID/rebuild"
   expect 404 "workspace delete: unknown id" "$A" POST "/v1/operator/workspaces/$NOID/delete" '{"confirm":"x"}'
   expect 404 "tenant delete: unknown id" "$A" DELETE "/v1/operator/tenants/$NOID" '{"confirm":"x"}'

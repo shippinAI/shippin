@@ -1,17 +1,16 @@
-package api
+package devspace
 
 import (
-	"shippin.cloud/console/internal/runtime/devspace"
 	"testing"
 )
 
 func TestCheckRules(t *testing.T) {
-	c := testWS()
-	ok := []devspace.Rule{{Protocol: "tcp", Port: 8080}, {Protocol: "udp", Port: 8080, Source: "203.0.113.0/24"}, {Protocol: "tcp", Port: 5432, Source: "198.51.100.7"}}
-	if msg := checkRules(ok, c); msg != "" {
+	c := testRules()
+	ok := []Rule{{Protocol: "tcp", Port: 8080}, {Protocol: "udp", Port: 8080, Source: "203.0.113.0/24"}, {Protocol: "tcp", Port: 5432, Source: "198.51.100.7"}}
+	if msg := CheckRules(ok, c); msg != "" {
 		t.Fatalf("valid rules rejected: %s", msg)
 	}
-	bad := map[string][]devspace.Rule{
+	bad := map[string][]Rule{
 		"edge https":   {{Protocol: "tcp", Port: 443}},
 		"edge http":    {{Protocol: "tcp", Port: 80}},
 		"ssh":          {{Protocol: "tcp", Port: 22}},
@@ -25,23 +24,23 @@ func TestCheckRules(t *testing.T) {
 		"duplicate":    {{Protocol: "tcp", Port: 8080}, {Protocol: "tcp", Port: 8080}},
 	}
 	for name, rs := range bad {
-		if checkRules(rs, c) == "" {
+		if CheckRules(rs, c) == "" {
 			t.Errorf("%s: accepted", name)
 		}
 	}
-	many := make([]devspace.Rule, 21)
+	many := make([]Rule, 21)
 	for i := range many {
-		many[i] = devspace.Rule{Protocol: "tcp", Port: 9000 + i}
+		many[i] = Rule{Protocol: "tcp", Port: 9000 + i}
 	}
-	if checkRules(many, c) == "" {
+	if CheckRules(many, c) == "" {
 		t.Error("21 rules accepted")
 	}
 }
 
 func TestCheckDomains(t *testing.T) {
-	c := testWS()
+	c := testRules()
 	ds := []string{" App.Customer.COM "}
-	if msg := checkDomains(ds, c); msg != "" || ds[0] != "app.customer.com" {
+	if msg := CheckDomains(ds, c); msg != "" || ds[0] != "app.customer.com" {
 		t.Fatalf("valid domain: %q %q", msg, ds[0])
 	}
 	for _, d := range []string{"example.test", "console.example.test", "x.ws.example.test", "a..b", "-x.com", "x", "https://x.com", "dup.com,dup.com"} {
@@ -49,21 +48,21 @@ func TestCheckDomains(t *testing.T) {
 		if d == "dup.com,dup.com" {
 			in = []string{"dup.com", "dup.com"}
 		}
-		if checkDomains(in, c) == "" {
+		if CheckDomains(in, c) == "" {
 			t.Errorf("%q accepted", d)
 		}
 	}
 }
 
 func TestCheckPreviews(t *testing.T) {
-	c := testWS()
-	if checkPreviews([]devspace.Preview{{Port: 5173}, {Port: 8000, Public: true}}, c) != "" {
+	c := testRules()
+	if CheckPreviews([]Preview{{Port: 5173}, {Port: 8000, Public: true}}, c) != "" {
 		t.Fatal("valid previews rejected")
 	}
-	for name, ps := range map[string][]devspace.Preview{
+	for name, ps := range map[string][]Preview{
 		"privileged": {{Port: 80}}, "ide": {{Port: 3000}}, "dup": {{Port: 5173}, {Port: 5173}}, "range": {{Port: 70000}},
 	} {
-		if checkPreviews(ps, c) == "" {
+		if CheckPreviews(ps, c) == "" {
 			t.Errorf("%s accepted", name)
 		}
 	}

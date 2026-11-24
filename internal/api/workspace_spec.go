@@ -20,7 +20,7 @@ type wsSpec struct {
 func (a *API) workspaceSpec(ctx context.Context, tplID, repo, size string) (wsSpec, string) {
 	sp := wsSpec{Repo: repo, Previews: []devspace.Preview{}}
 	if repo != "" && hostd.ValidRepo(repo, a.cfg.Workspaces.RepoHosts) != nil {
-		return sp, repoMsg(a.cfg.Workspaces)
+		return sp, template.RepoMessage(a.cfg.Workspaces)
 	}
 	if tplID == "" {
 		if repo != "" {
@@ -28,7 +28,7 @@ func (a *API) workspaceSpec(ctx context.Context, tplID, repo, size string) (wsSp
 		}
 		return sp, ""
 	}
-	tpl, err := template.On(a.db.Pool).Get(ctx, tplID)
+	tpl, err := template.Find(ctx, a.db.Pool, tplID)
 	if err != nil || tpl == nil || !tpl.Enabled {
 		return sp, "That template isn't available."
 	}

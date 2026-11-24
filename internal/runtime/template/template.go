@@ -6,43 +6,49 @@ import (
 	"context"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"shippin.cloud/console/internal/mcpl"
 )
 
-// Store reads and writes templates.
-type Store struct{ Pool *pgxpool.Pool }
-
-// On is the store on one database.
-func On(p *pgxpool.Pool) Store { return Store{Pool: p} }
-
-// Template is a workspace blueprint: image + toolchain + default size + optional repo/startup/ports.
+// Template is what a development space starts from.
 type Template struct {
-	ID          string    `json:"id"`
-	Slug        string    `json:"slug"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Icon        string    `json:"icon"`
-	Image       string    `json:"image"`
-	Toolchain   []string  `json:"toolchain"`
-	CPU         int       `json:"cpu"`
-	MemoryGiB   int       `json:"memory_gib"`
-	DiskGiB     int       `json:"disk_gib"`
-	Repo        string    `json:"repo"`
-	Startup     string    `json:"startup"`
-	Ports       []int     `json:"ports"`
-	Enabled     bool      `json:"enabled"`
-	Sort        int       `json:"sort"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID string `json:"id"`
+	Fields
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// Fields are what staff write: the image, the tools it lists, its default size, and optionally a
+// repository to clone, a start command and the ports it serves.
+type Fields struct {
+	Slug        string   `json:"slug"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Icon        string   `json:"icon"`
+	Image       string   `json:"image"`
+	Toolchain   []string `json:"toolchain"`
+	CPU         int      `json:"cpu"`
+	MemoryGiB   int      `json:"memory_gib"`
+	DiskGiB     int      `json:"disk_gib"`
+	Repo        string   `json:"repo"`
+	Startup     string   `json:"startup"`
+	Ports       []int    `json:"ports"`
+	Enabled     bool     `json:"enabled"`
+	Sort        int      `json:"sort"`
+}
+
+// ByID names one template from the route.
+type ByID struct {
+	ID string `path:"templateId" json:"-"`
 }
 
 const tplCols = `id::text, slug, name, description, icon, image, toolchain, cpu, memory_gib, disk_gib, repo, startup, ports, enabled, sort, created_at`
 
-func (d Store) List(ctx context.Context, enabledOnly bool) ([]Template, error) {
+// all lists the templates in the order the create page shows them.
+func all(ctx context.Context, q mcpl.DB, enabledOnly bool) ([]Template, error) {
 	where := ""
 	if enabledOnly {
 		where = "WHERE enabled"
 	}
-	rows, err := d.Pool.Query(ctx, `SELECT `+tplCols+` FROM templates `+where+` ORDER BY sort, name`)
+	rows, err := q.Query(ctx, `SELECT `+tplCols+` FROM templates `+where+` ORDER BY sort, name`)
 	if err != nil {
 		return nil, err
 	}
@@ -56,38 +62,49 @@ func (d Store) List(ctx context.Context, enabledOnly bool) ([]Template, error) {
 		}
 		out = append(out, t)
 	}
-	return out, nil
+	return out, rows.Err()
 }
 
-func (d Store) Get(ctx context.Context, id string) (*Template, error) {
-	ts, err := d.List(ctx, false)
+// Enabled are the templates a person may pick, in the order the create page shows them.
+func Enabled(ctx context.Context, q mcpl.DB) ([]Template, error) { return all(ctx, q, true) }
+
+// Find is the template with this id or slug, or nil.
+func Find(ctx context.Context, q mcpl.DB, idOrSlug string) (*Template, error) {
+	ts, err := all(ctx, q, false)
 	if err != nil {
 		return nil, err
 	}
 	for i := range ts {
-		if ts[i].ID == id || ts[i].Slug == id {
+		if ts[i].ID == idOrSlug || ts[i].Slug == idOrSlug {
 			return &ts[i], nil
 		}
 	}
 	return nil, nil
 }
 
-// Save inserts or updates by id; insertOnly skips existing slugs (seeding).
-func (d Store) Save(ctx context.Context, t Template, insertOnly bool) error {
-	conflict := `ON CONFLICT (id) DO UPDATE SET slug=$2, name=$3, description=$4, icon=$5, image=$6, toolchain=$7, cpu=$8,
-		memory_gib=$9, disk_gib=$10, repo=$11, startup=$12, ports=$13, enabled=$14, sort=$15, updated_at=now()`
-	if insertOnly {
-		conflict = `ON CONFLICT (slug) DO NOTHING`
+// one is the template with this id, or a 404.
+func one(c *mcpl.Call, id string) (Template, error) {
+	ts, err := all(c.Ctx, c.DB, false)
+	if err != nil {
+		return Template{}, err
 	}
-	_, err := d.Pool.Exec(ctx, `INSERT INTO templates(`+
-		`id, slug, name, description, icon, image, toolchain, cpu, memory_gib, disk_gib, repo, startup, ports, enabled, sort)
-		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) `+conflict,
-		t.ID, t.Slug, t.Name, t.Description, t.Icon, t.Image, t.Toolchain, t.CPU, t.MemoryGiB, t.DiskGiB,
-		t.Repo, t.Startup, t.Ports, t.Enabled, t.Sort)
-	return err
+	for _, t := range ts {
+		if t.ID == id {
+			return t, nil
+		}
+	}
+	return Template{}, mcpl.NotFound("No template " + id + ".")
 }
 
-func (d Store) Delete(ctx context.Context, id string) error {
-	_, err := d.Pool.Exec(ctx, `DELETE FROM templates WHERE id::text=$1`, id)
+const insertSQL = `INSERT INTO templates(id, slug, name, description, icon, image, toolchain, cpu, memory_gib, disk_gib, repo, startup, ports, enabled, sort)
+  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`
+
+func insert(ctx context.Context, q mcpl.DB, t Template, onConflict ...string) error {
+	sql := insertSQL
+	for _, c := range onConflict {
+		sql += " " + c
+	}
+	_, err := q.Exec(ctx, sql, t.ID, t.Slug, t.Name, t.Description, t.Icon, t.Image, t.Toolchain, t.CPU, t.MemoryGiB, t.DiskGiB,
+		t.Repo, t.Startup, t.Ports, t.Enabled, t.Sort)
 	return err
 }

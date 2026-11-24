@@ -18,6 +18,7 @@
     "tailwindcss-react-aria-components"
   ],
   "ignore": [
-    "src/app/*.gen.ts"
+    "src/app/*.gen.ts",
+    "src/lib/api/actions.gen.ts"
   ]
 }

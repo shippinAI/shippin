@@ -232,6 +232,23 @@ export type CatalogStep = {
   reason?: string;
 };
 
+export type ConfigSize = {
+  id: string;
+  label: string;
+  cpu: number;
+  memory_gib: number;
+  disk_gib: number;
+};
+
+export type ConfigTemplateLimits = {
+  max_cpu: number;
+  max_memory_gib: number;
+  min_disk_gib: number;
+  max_disk_gib: number;
+  max_ports: number;
+  max_startup_bytes: number;
+};
+
 export type CoverageOwn = {
   coverage: CoverageTierCustomerView | null;
 };
@@ -391,6 +408,20 @@ export type CustomerUpdateInput = {
   contacts?: CustomerContact[];
   endpoints?: CustomerEndpoint[];
   notes?: string;
+};
+
+export type DevspaceOptionOptions = {
+  templates: Template[];
+  sizes: ConfigSize[];
+  rules: DevspaceOptionRules;
+};
+
+export type DevspaceOptionRules = {
+  repo_hosts: string[];
+  image_prefix: string;
+  preview_min: number;
+  preview_max: number;
+  template: ConfigTemplateLimits;
 };
 
 export type GithubInstallation = {
@@ -724,6 +755,59 @@ export type SshKeyCreateInput = {
   public_key: string;
 };
 
+export type Template = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  image: string;
+  toolchain: string[];
+  cpu: number;
+  memory_gib: number;
+  disk_gib: number;
+  repo: string;
+  startup: string;
+  ports: number[];
+  enabled: boolean;
+  sort: number;
+  created_at: string;
+};
+
+export type TemplateFields = {
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  image: string;
+  toolchain: string[];
+  cpu: number;
+  memory_gib: number;
+  disk_gib: number;
+  repo: string;
+  startup: string;
+  ports: number[];
+  enabled: boolean;
+  sort: number;
+};
+
+export type TemplateUpdateInput = {
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  image: string;
+  toolchain: string[];
+  cpu: number;
+  memory_gib: number;
+  disk_gib: number;
+  repo: string;
+  startup: string;
+  ports: number[];
+  enabled: boolean;
+  sort: number;
+};
+
 export type Version = {
   version: number;
   values: unknown;
@@ -755,10 +839,16 @@ export const routes = {
   "shippin.platform.setting.list": "GET /v1/operator/platform/settings",
   "shippin.platform.setting.update": "PUT /v1/operator/platform/settings/{settingId}",
   "shippin.platform.setting.version.list": "GET /v1/operator/platform/settings/{settingId}/versions",
+  "shippin.runtime.devspace_option.get": "GET /v1/me/runtime/devspace-option",
   "shippin.runtime.runner.delete": "DELETE /v1/operator/runtime/runners/{runnerId}",
   "shippin.runtime.runner.list": "GET /v1/operator/runtime/runners",
   "shippin.runtime.runner_job.get": "GET /v1/tenants/{tenantId}/runtime/runner-jobs/{runnerJobId}",
   "shippin.runtime.runner_job.list": "GET /v1/tenants/{tenantId}/runtime/runner-jobs",
+  "shippin.runtime.template.create": "POST /v1/operator/runtime/templates",
+  "shippin.runtime.template.delete": "DELETE /v1/operator/runtime/templates/{templateId}",
+  "shippin.runtime.template.get": "GET /v1/operator/runtime/templates/{templateId}",
+  "shippin.runtime.template.list": "GET /v1/operator/runtime/templates",
+  "shippin.runtime.template.update": "PUT /v1/operator/runtime/templates/{templateId}",
   "shippin.services.catalog_service.create": "POST /v1/operator/services/catalog-services",
   "shippin.services.catalog_service.delete": "DELETE /v1/operator/services/catalog-services/{catalogServiceId}",
   "shippin.services.catalog_service.get": "GET /v1/operator/services/catalog-services/{catalogServiceId}",
@@ -826,10 +916,16 @@ export type ActionTypes = {
   "shippin.platform.setting.list": { args: [params?: Record<string, never>]; output: { items: SettingsView[] }; risk: "read"; event: never };
   "shippin.platform.setting.update": { args: [params: { settingId: string }, body: SettingUpdateInput & { reason: string }]; output: SettingsView; risk: "write"; event: "shippin.platform.setting.updated" };
   "shippin.platform.setting.version.list": { args: [params: { settingId: string }]; output: { items: Version[] }; risk: "read"; event: never };
+  "shippin.runtime.devspace_option.get": { args: [params?: Record<string, never>]; output: DevspaceOptionOptions; risk: "read"; event: never };
   "shippin.runtime.runner.delete": { args: [params: { runnerId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.runtime.runner.deleted" };
   "shippin.runtime.runner.list": { args: [params?: { state?: string }]; output: { items: Runner[] }; risk: "read"; event: never };
   "shippin.runtime.runner_job.get": { args: [params: { tenantId: string; runnerJobId: string }]; output: RunnerJob; risk: "read"; event: never };
   "shippin.runtime.runner_job.list": { args: [params: { tenantId: string; workspace?: string }]; output: { items: RunnerJob[] }; risk: "read"; event: never };
+  "shippin.runtime.template.create": { args: [params: Record<string, never>, body: TemplateFields & { reason: string }]; output: Template; risk: "write"; event: "shippin.runtime.template.created" };
+  "shippin.runtime.template.delete": { args: [params: { templateId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.runtime.template.deleted" };
+  "shippin.runtime.template.get": { args: [params: { templateId: string }]; output: Template; risk: "read"; event: never };
+  "shippin.runtime.template.list": { args: [params?: Record<string, never>]; output: { items: Template[] }; risk: "read"; event: never };
+  "shippin.runtime.template.update": { args: [params: { templateId: string }, body: TemplateUpdateInput & { reason: string }]; output: Template; risk: "write"; event: "shippin.runtime.template.updated" };
   "shippin.services.catalog_service.create": { args: [params: Record<string, never>, body: CatalogServiceCreateInput & { reason: string }]; output: CatalogService; risk: "write"; event: "shippin.services.catalog_service.created" };
   "shippin.services.catalog_service.delete": { args: [params: { catalogServiceId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.services.catalog_service.deleted" };
   "shippin.services.catalog_service.get": { args: [params: { catalogServiceId: string }]; output: CatalogService; risk: "read"; event: never };

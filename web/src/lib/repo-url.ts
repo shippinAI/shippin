@@ -1,4 +1,4 @@
-// Mirrors the server's repository rule (hostd.ValidRepo); hosts come from GET /v1/templates.
+// Mirrors the server's repository rule (hostd.ValidRepo); hosts come from the devspace options.
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export function repoPattern(hosts: string[]): RegExp {

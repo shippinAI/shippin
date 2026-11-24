@@ -5,7 +5,7 @@ import { Button } from "../../../../../lib/design/components/button/button";
 import { LinkButton } from "../../../../../lib/design/components/button/link-button";
 import { Card } from "../../../../../lib/design/components/card/card";
 import { Skeleton } from "../../../../../lib/design/components/skeleton/skeleton";
-import { useTemplates } from "../../../../../lib/hooks/use-templates";
+import { useDevspaceOptions } from "../../../../../lib/hooks/use-templates";
 import { useTenant } from "../../../../../lib/hooks/use-tenant";
 import { useCreateWorkspace } from "../../../../../lib/hooks/use-workspaces";
 import { PageHeader } from "../../../../../template/page-header";
@@ -21,16 +21,16 @@ const steps = ["Template", "Details", "Size"];
 export function CreateWorkspacePage() {
   const { tenant } = useTenant();
   const tid = tenant?.tenant_id ?? "";
-  const q = useTemplates();
+  const q = useDevspaceOptions();
   const create = useCreateWorkspace(tid);
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [tplId, setTpl] = useState<string>();
   const [name, setName] = useState("");
   const [repo, setRepo] = useState("");
-  const tpl = q.data?.items.find((t) => t.id === tplId);
+  const tpl = q.data?.templates.find((t) => t.id === tplId);
   const sizes = q.data?.sizes ?? [];
-  const hosts = q.data?.limits.repo_hosts ?? [];
+  const hosts = q.data?.rules.repo_hosts ?? [];
   const def = sizes.find((z) => tpl && z.cpu === tpl.cpu && z.memory_gib === tpl.memory_gib)?.id ?? sizes[0]?.id ?? "";
   const [size, setSize] = useState("");
   const ok = [!!tpl, nameRe.test(name) && (!repo || repoPattern(hosts).test(repo.trim())), true][step];
@@ -59,11 +59,11 @@ export function CreateWorkspacePage() {
         {q.error && <p className="text-base text-danger">Templates couldn't load: {q.error.message}</p>}
         {q.data && step === 0 && (
           <TemplateGallery
-            templates={q.data.items}
+            templates={q.data.templates}
             value={tplId}
             onChange={(id) => {
               setTpl(id);
-              if (!name) setName(q.data.items.find((t) => t.id === id)?.slug.split("-")[0] ?? "dev");
+              if (!name) setName(q.data.templates.find((t) => t.id === id)?.slug.split("-")[0] ?? "dev");
             }}
           />
         )}

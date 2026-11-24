@@ -4,11 +4,11 @@ import { Drawer } from "../../../../../lib/design/components/drawer/drawer";
 import { TextField } from "../../../../../lib/design/components/field/text-field";
 import { Select } from "../../../../../lib/design/components/select/select";
 import { Switch } from "../../../../../lib/design/components/switch/switch";
-import type { Template } from "../../../../../lib/api/types";
+import type { Template, TemplateFields } from "../../../../../lib/api/actions.gen";
 import { useSaveTemplate } from "../../../../../lib/hooks/use-templates";
 import { iconKeys } from "../../../../runtime/devspaces/ui/create/template-icon";
 
-const blank: Partial<Template> = {
+const blank: TemplateFields = {
   slug: "",
   name: "",
   description: "",
@@ -31,25 +31,30 @@ const list = (s: string) =>
     .filter(Boolean);
 
 /** Create/edit a template in a side sheet. The API validates everything again. */
-export function TemplateForm({ initial, onClose, prefix }: { initial?: Partial<Template>; onClose: () => void; prefix: string }) {
-  const [t, setT] = useState<Partial<Template>>(initial ?? { ...blank, image: prefix });
+export function TemplateForm({ initial, onClose, prefix }: { initial?: Template; onClose: () => void; prefix: string }) {
+  // The action takes exactly its fields: the id is in the path and the creation time is never sent.
+  const { id, created_at: _read, ...start } = initial ?? { id: undefined, created_at: undefined, ...blank, image: prefix };
+  const [t, setT] = useState<TemplateFields>(start);
+  const [reason, setReason] = useState("");
   const [tool, setTool] = useState((initial?.toolchain ?? []).join(", "));
   const [ports, setPorts] = useState((initial?.ports ?? []).join(", "));
   const save = useSaveTemplate();
   const f =
-    <K extends keyof Template>(k: K) =>
-    (v: Template[K]) =>
+    <K extends keyof TemplateFields>(k: K) =>
+    (v: TemplateFields[K]) =>
       setT({ ...t, [k]: v });
   const n = (k: "cpu" | "memory_gib" | "disk_gib" | "sort") => ({
     value: String(t[k] ?? ""),
     onChange: (v: string) => f(k)(Number(v) || 0),
   });
-  const submit = () => save.mutate({ ...t, toolchain: list(tool), ports: list(ports).map(Number) }, { onSuccess: onClose });
+  const submit = () =>
+    save.mutate({ id, fields: { ...t, toolchain: list(tool), ports: list(ports).map(Number) }, reason }, { onSuccess: onClose });
+  const reasonOK = reason.trim().length >= 5;
   return (
     <Drawer
       isOpen
       onOpenChange={(o) => !o && onClose()}
-      title={t.id ? `Edit ${t.name}` : "New template"}
+      title={id ? `Edit ${t.name}` : "New template"}
       subtitle={`Image must be a ${prefix} alias published on the host.`}
       footer={
         <>
@@ -60,7 +65,12 @@ export function TemplateForm({ initial, onClose, prefix }: { initial?: Partial<T
           <Button variant="ghost" tooltip="Discard changes" onPress={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" isDisabled={save.isPending} tooltip="Validate and save" onPress={submit}>
+          <Button
+            variant="primary"
+            isDisabled={save.isPending || !reasonOK}
+            tooltip={reasonOK ? "Validate and save" : "Give a reason first"}
+            onPress={submit}
+          >
             {save.isPending ? "Saving…" : "Save template"}
           </Button>
         </>
@@ -107,6 +117,9 @@ export function TemplateForm({ initial, onClose, prefix }: { initial?: Partial<T
             multiline
             mono
           />
+        </div>
+        <div className="col-span-2">
+          <TextField label="Reason for this change" value={reason} onChange={setReason} isRequired description="Kept in the audit log." />
         </div>
       </div>
     </Drawer>

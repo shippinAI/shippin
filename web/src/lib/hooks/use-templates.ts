@@ -1,39 +1,44 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiSend } from "../api/client";
-import type { Template, TemplateList } from "../api/types";
+import { callAction } from "../api/actions";
+import type { Template, TemplateFields } from "../api/actions.gen";
 import { toast } from "../design/components/toast/toast-queue";
 
-/** Enabled templates + size presets for the create flow. */
-export const useTemplates = () =>
-  useQuery({ queryKey: ["templates"], queryFn: () => apiGet<TemplateList>("/v1/templates"), staleTime: 60_000 });
+/** What a development space can start from: the templates turned on, the sizes and what the server accepts. */
+export const useDevspaceOptions = () =>
+  useQuery({ queryKey: ["devspace-options"], queryFn: () => callAction("shippin.runtime.devspace_option.get"), staleTime: 60_000 });
 
-/** Provider view: all templates (incl. disabled and startup scripts). */
+/** Staff: every template, the ones turned off too, with their start commands. */
 export const useAdminTemplates = () =>
-  useQuery({ queryKey: ["admin", "templates"], queryFn: () => apiGet<TemplateList>("/v1/operator/templates"), retry: false });
+  useQuery({ queryKey: ["admin", "templates"], queryFn: () => callAction("shippin.runtime.template.list"), retry: false });
+
+function useRefresh() {
+  const qc = useQueryClient();
+  return () => {
+    void qc.invalidateQueries({ queryKey: ["admin", "templates"] });
+    void qc.invalidateQueries({ queryKey: ["devspace-options"] });
+  };
+}
 
 export function useSaveTemplate() {
-  const qc = useQueryClient();
+  const onSettled = useRefresh();
   return useMutation({
-    mutationFn: (t: Partial<Template>) =>
-      t.id ? apiSend<Template>("PUT", `/v1/operator/templates/${t.id}`, t) : apiSend<Template>("POST", "/v1/operator/templates", t),
+    mutationFn: ({ id, fields, reason }: { id?: string; fields: TemplateFields; reason: string }) =>
+      id
+        ? callAction("shippin.runtime.template.update", { templateId: id }, { ...fields, reason })
+        : callAction("shippin.runtime.template.create", {}, { ...fields, reason }),
     onSuccess: (t, input) => toast.success(input.id ? `${t.name} updated` : `${t.name} created`),
     onError: (e) => toast.error("Template not saved", e.message),
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: ["admin", "templates"] });
-      void qc.invalidateQueries({ queryKey: ["templates"] });
-    },
+    onSettled,
   });
 }
 
 export function useDeleteTemplate() {
-  const qc = useQueryClient();
+  const onSettled = useRefresh();
   return useMutation({
-    mutationFn: (t: Template) => apiSend("DELETE", `/v1/operator/templates/${t.id}`),
-    onSuccess: (_d, t) => toast.success(`${t.name} deleted`, "Existing workspaces keep running."),
+    mutationFn: ({ template, reason }: { template: Template; reason: string }) =>
+      callAction("shippin.runtime.template.delete", { templateId: template.id }, { reason }),
+    onSuccess: (_d, { template }) => toast.success(`${template.name} deleted`, "Development spaces made from it keep running."),
     onError: (e) => toast.error("Template not deleted", e.message),
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: ["admin", "templates"] });
-      void qc.invalidateQueries({ queryKey: ["templates"] });
-    },
+    onSettled,
   });
 }

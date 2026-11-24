@@ -32,10 +32,11 @@ POST /v1/operator/tenants/{tenantId}/desktop/prepare
 GET /v1/operator/workspaces
 POST /v1/operator/workspaces/{workspaceId}/{action}
 GET /v1/operator/identity
-GET /v1/operator/templates
-POST /v1/operator/templates
-PUT /v1/operator/templates/{templateId}
-DELETE /v1/operator/templates/{templateId}
+GET /v1/operator/runtime/templates
+GET /v1/operator/runtime/templates/{templateId}
+POST /v1/operator/runtime/templates
+PUT /v1/operator/runtime/templates/{templateId}
+DELETE /v1/operator/runtime/templates/{templateId}
 GET /v1/operator/host
 GET /v1/operator/edge
 GET /v1/operator/access-requests
@@ -70,7 +71,8 @@ POST /v1/operator/tenants/{tenantId}/desktop/prepare
 GET /v1/operator/workspaces
 POST /v1/operator/workspaces/{workspaceId}/{action}
 GET /v1/operator/identity
-GET /v1/operator/templates
+GET /v1/operator/runtime/templates
+GET /v1/operator/runtime/templates/{templateId}
 GET /v1/operator/host
 GET /v1/operator/edge
 GET /v1/operator/infrastructure/metrics

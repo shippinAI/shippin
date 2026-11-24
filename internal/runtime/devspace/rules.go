@@ -1,26 +1,23 @@
-package api
+package devspace
 
 import (
 	"net/netip"
-	"shippin.cloud/console/internal/runtime/devspace"
+	"shippin.cloud/console/internal/runtime/template"
 	"slices"
+	"strconv"
 	"strings"
 
 	"shippin.cloud/console/internal/infrastructure/hostd"
 	"shippin.cloud/console/internal/platform/config"
 )
 
-func repoMsg(c config.Workspaces) string {
-	return "Repository must be a public https URL on " + strings.Join(c.RepoHosts, ", ") + "."
-}
-
 // reservedPort: SSH, the SSH allocation range and the edge's own ports.
 func reservedPort(p int, c config.Workspaces) bool {
 	return p == 22 || (p >= c.PortMin && p <= c.PortMax) || slices.Contains(c.ReservedPorts, p)
 }
 
-// checkRules validates firewall rules (published on the shared endpoint). "" = ok.
-func checkRules(rules []devspace.Rule, c config.Workspaces) string {
+// CheckRules validates firewall rules (published on the shared endpoint). "" = ok.
+func CheckRules(rules []Rule, c config.Workspaces) string {
 	if len(rules) > 20 {
 		return "At most 20 rules per workspace."
 	}
@@ -35,7 +32,7 @@ func checkRules(rules []devspace.Rule, c config.Workspaces) string {
 		if r.Source != "" && !ipv4OrCIDR(r.Source) {
 			return "Source must be an IPv4 address or CIDR."
 		}
-		key := r.Protocol + "/" + itoa(r.Port)
+		key := r.Protocol + "/" + strconv.Itoa(r.Port)
 		if seen[key] {
 			return "Each port can only have one rule."
 		}
@@ -52,8 +49,8 @@ func ipv4OrCIDR(s string) bool {
 	return err == nil && a.Is4()
 }
 
-// checkDomains lower-cases and validates custom domains in place; platform names are refused.
-func checkDomains(ds []string, c config.Workspaces) string {
+// CheckDomains lower-cases and validates custom domains in place; platform names are refused.
+func CheckDomains(ds []string, c config.Workspaces) string {
 	if len(ds) > 10 {
 		return "At most 10 custom domains per workspace."
 	}
@@ -75,17 +72,14 @@ func checkDomains(ds []string, c config.Workspaces) string {
 	return ""
 }
 
-// checkPreviews: at most 20, unique, inside the preview range, not the IDE port.
-func checkPreviews(ps []devspace.Preview, c config.Workspaces) string {
+// CheckPreviews: at most 20, unique, inside the preview range, not the IDE port.
+func CheckPreviews(ps []Preview, c config.Workspaces) string {
 	if len(ps) > 20 {
 		return "At most 20 previews per workspace."
 	}
-	seen := map[int]bool{}
+	ports := make([]int, 0, len(ps))
 	for _, p := range ps {
-		if p.Port < c.PreviewMin || p.Port > c.PreviewMax || p.Port == c.IDEPort || seen[p.Port] {
-			return "Preview ports must be unique and between " + itoa(c.PreviewMin) + " and " + itoa(c.PreviewMax) + "."
-		}
-		seen[p.Port] = true
+		ports = append(ports, p.Port)
 	}
-	return ""
+	return template.CheckPorts(ports, c)
 }

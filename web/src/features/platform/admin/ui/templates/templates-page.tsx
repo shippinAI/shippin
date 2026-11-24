@@ -7,8 +7,8 @@ import { Card } from "../../../../../lib/design/components/card/card";
 import { DataTable, type ColumnDef } from "../../../../../lib/design/components/data-table/data-table";
 import { ConfirmDialog } from "../../../../../lib/design/components/dialog/confirm-dialog";
 import { EmptyState } from "../../../../../lib/design/components/empty-state/empty-state";
-import type { Template } from "../../../../../lib/api/types";
-import { useAdminTemplates, useDeleteTemplate } from "../../../../../lib/hooks/use-templates";
+import type { Template } from "../../../../../lib/api/actions.gen";
+import { useAdminTemplates, useDeleteTemplate, useDevspaceOptions } from "../../../../../lib/hooks/use-templates";
 import { PageHeader } from "../../../../../template/page-header";
 import { TemplateIcon } from "../../../../runtime/devspaces/ui/create/template-icon";
 import { QueryView } from "../query-view";
@@ -16,8 +16,9 @@ import { TemplateForm } from "./template-form";
 
 export function TemplatesPage() {
   const q = useAdminTemplates();
+  const options = useDevspaceOptions();
   const del = useDeleteTemplate();
-  const [edit, setEdit] = useState<Partial<Template> | null>(null);
+  const [edit, setEdit] = useState<Template | "new" | null>(null);
   const [gone, setGone] = useState<Template>();
   const cols: ColumnDef<Template>[] = [
     {
@@ -63,7 +64,7 @@ export function TemplatesPage() {
         title="Templates"
         description="Blueprints customers pick when creating a workspace: image, toolchain, size, repo, startup script and preview ports."
         actions={
-          <Button variant="primary" size="sm" tooltip="Add a template to the gallery" onPress={() => setEdit({})}>
+          <Button variant="primary" size="sm" tooltip="Add a template to the gallery" onPress={() => setEdit("new")}>
             <Plus className="size-4" /> New template
           </Button>
         }
@@ -83,7 +84,11 @@ export function TemplatesPage() {
         </QueryView>
       </Card>
       {edit && (
-        <TemplateForm initial={edit.id ? edit : undefined} onClose={() => setEdit(null)} prefix={q.data?.limits.image_prefix ?? ""} />
+        <TemplateForm
+          initial={edit === "new" ? undefined : edit}
+          onClose={() => setEdit(null)}
+          prefix={options.data?.rules.image_prefix ?? ""}
+        />
       )}
       <ConfirmDialog
         isOpen={!!gone}
@@ -92,7 +97,7 @@ export function TemplatesPage() {
         body="It disappears from the gallery. Workspaces created from it keep running (their template link is cleared)."
         confirmLabel="Delete template"
         typeToConfirm={gone?.slug}
-        onConfirm={() => gone && del.mutate(gone)}
+        onConfirm={() => gone && del.mutate({ template: gone, reason: `Deleted ${gone.slug} from the templates page` })}
       />
     </>
   );

@@ -1,4 +1,4 @@
-# served /v1 routes that are not yet generated actions. This list may only shrink: move an entity to internal/<domain>/<entity>/<verb>.go, then UPDATE_MCPL=1 go test -run TestMCPLConformance ./internal/api
+# served /v1 routes that are not yet generated actions. This list may only shrink: move an entity to internal/<domain>/<entity>/<verb>.go, then UPDATE_MCPL=1 go test ./internal/api
 DELETE /v1/infra/fleets/{fleet}
 DELETE /v1/infra/networks/{id}
 DELETE /v1/infra/networks/{id}/resources/{resource}/attachment
@@ -10,7 +10,6 @@ DELETE /v1/operator/catalog/defaults/{layer}/{key}
 DELETE /v1/operator/platform-services/{serviceId}
 DELETE /v1/operator/team/permission-grants/{userId}/{permKey}
 DELETE /v1/operator/team/roles/{roleKey}
-DELETE /v1/operator/templates/{templateId}
 DELETE /v1/operator/tenants/{tenantId}
 DELETE /v1/session/passkeys/{id}
 DELETE /v1/tenants/{tenantId}/ai-terminal
@@ -85,7 +84,6 @@ GET /v1/operator/staff-mode
 GET /v1/operator/system
 GET /v1/operator/team
 GET /v1/operator/team/permission-grants
-GET /v1/operator/templates
 GET /v1/operator/tenants
 GET /v1/operator/tenants/{tenantId}
 GET /v1/operator/tenants/{tenantId}/apps
@@ -102,7 +100,6 @@ GET /v1/session/passkeys
 GET /v1/settings/public
 GET /v1/settings/ui
 GET /v1/setup/handover
-GET /v1/templates
 GET /v1/tenants
 GET /v1/tenants/{tenantId}
 GET /v1/tenants/{tenantId}/access
@@ -214,7 +211,6 @@ POST /v1/operator/team/members/{userId}/{state}
 POST /v1/operator/team/permission-grants
 POST /v1/operator/team/requests/{requestId}/{decision}
 POST /v1/operator/team/roles
-POST /v1/operator/templates
 POST /v1/operator/tenants/{tenantId}/desktop/prepare
 POST /v1/operator/tenants/{tenantId}/projects
 POST /v1/operator/tenants/{tenantId}/provision
@@ -307,7 +303,6 @@ PUT /v1/operator/setup-steps/{step}
 PUT /v1/operator/team/members/{userId}/roles
 PUT /v1/operator/team/roles/{roleKey}
 PUT /v1/operator/team/settings
-PUT /v1/operator/templates/{templateId}
 PUT /v1/tenants/{tenantId}/db/tables/{table}/rows
 PUT /v1/tenants/{tenantId}/teams/{teamId}/members/{userId}
 PUT /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/token

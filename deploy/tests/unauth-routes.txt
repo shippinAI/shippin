@@ -11,11 +11,11 @@ DELETE /v1/operator/catalog/defaults/{layer}/{key}
 DELETE /v1/operator/platform-services/{serviceId}
 DELETE /v1/operator/platform/secret-store
 DELETE /v1/operator/runtime/runners/{runnerId}
+DELETE /v1/operator/runtime/templates/{templateId}
 DELETE /v1/operator/services/catalog-services/{catalogServiceId}
 DELETE /v1/operator/services/runner-sizes/{runnerSizeId}
 DELETE /v1/operator/team/permission-grants/{userId}/{permKey}
 DELETE /v1/operator/team/roles/{roleKey}
-DELETE /v1/operator/templates/{templateId}
 DELETE /v1/operator/tenancy/coverage-tiers/{coverageTierId}
 DELETE /v1/operator/tenancy/customers/{customerId}
 DELETE /v1/operator/tenancy/customers/{customerId}/services/{serviceId}
@@ -68,6 +68,7 @@ GET /v1/me/bridge-sessions
 GET /v1/me/identity/access-keys
 GET /v1/me/identity/ssh-keys
 GET /v1/me/mcpl/events
+GET /v1/me/runtime/devspace-option
 GET /v1/me/subscriptions
 GET /v1/operator/access
 GET /v1/operator/access-requests
@@ -94,6 +95,8 @@ GET /v1/operator/platform/settings
 GET /v1/operator/platform/settings/{settingId}
 GET /v1/operator/platform/settings/{settingId}/versions
 GET /v1/operator/runtime/runners
+GET /v1/operator/runtime/templates
+GET /v1/operator/runtime/templates/{templateId}
 GET /v1/operator/services/catalog-services
 GET /v1/operator/services/catalog-services/{catalogServiceId}
 GET /v1/operator/services/runner-sizes
@@ -103,7 +106,6 @@ GET /v1/operator/staff-mode
 GET /v1/operator/system
 GET /v1/operator/team
 GET /v1/operator/team/permission-grants
-GET /v1/operator/templates
 GET /v1/operator/tenancy/acquisition-sources
 GET /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}
 GET /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}/leads
@@ -129,7 +131,6 @@ GET /v1/ops/support-grants
 GET /v1/orgs
 GET /v1/platform/services
 GET /v1/settings/ui
-GET /v1/templates
 GET /v1/tenants
 GET /v1/tenants/{tenantId}
 GET /v1/tenants/{tenantId}/access
@@ -234,6 +235,7 @@ POST /v1/operator/platform-services
 POST /v1/operator/platform-services/{serviceId}/check
 POST /v1/operator/platform/secret-store/test
 POST /v1/operator/recovery-key
+POST /v1/operator/runtime/templates
 POST /v1/operator/services/catalog-services
 POST /v1/operator/services/runner-sizes
 POST /v1/operator/staff-mode
@@ -244,7 +246,6 @@ POST /v1/operator/team/members/{userId}/{state}
 POST /v1/operator/team/permission-grants
 POST /v1/operator/team/requests/{requestId}/{decision}
 POST /v1/operator/team/roles
-POST /v1/operator/templates
 POST /v1/operator/tenancy/acquisition-sources
 POST /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}/sync
 POST /v1/operator/tenancy/coverage-tiers
@@ -324,13 +325,13 @@ PUT /v1/operator/platform-services/{serviceId}
 PUT /v1/operator/platform-settings/{key}
 PUT /v1/operator/platform/secret-store
 PUT /v1/operator/platform/settings/{settingId}
+PUT /v1/operator/runtime/templates/{templateId}
 PUT /v1/operator/services/catalog-services/{catalogServiceId}
 PUT /v1/operator/services/runner-sizes/{runnerSizeId}
 PUT /v1/operator/setup-steps/{step}
 PUT /v1/operator/team/members/{userId}/roles
 PUT /v1/operator/team/roles/{roleKey}
 PUT /v1/operator/team/settings
-PUT /v1/operator/templates/{templateId}
 PUT /v1/operator/tenancy/acquisition-sources/{acquisitionSourceId}
 PUT /v1/operator/tenancy/coverage-tiers/{coverageTierId}
 PUT /v1/operator/tenancy/customers/{customerId}

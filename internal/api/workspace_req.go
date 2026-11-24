@@ -36,7 +36,7 @@ func (a *API) hostReq(t *tenantView, w devspace.Devspace) hostclient.WorkspaceRe
 		Host: w.Host, Domains: w.Domains, Rules: rules, Size: w.Size, Repo: w.Repo, Previews: prev,
 		Project: w.ProjectID, Environment: w.EnvironmentID, Boundary: w.BoundaryID}
 	if w.Template != "" {
-		if tpl, err := template.On(a.db.Pool).Get(context.Background(), w.Template); err == nil && tpl != nil {
+		if tpl, err := template.Find(context.Background(), a.db.Pool, w.Template); err == nil && tpl != nil {
 			req.Image, req.Startup = tpl.Image, tpl.Startup
 		}
 	}

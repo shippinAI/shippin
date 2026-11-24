@@ -1,9 +1,8 @@
-package api
+package template
 
 import (
 	"regexp"
-	"shippin.cloud/console/internal/runtime/devspace"
-	"shippin.cloud/console/internal/runtime/template"
+	"strconv"
 	"strings"
 
 	"shippin.cloud/console/internal/infrastructure/hostd"
@@ -16,8 +15,8 @@ var (
 	templateIconRe  = regexp.MustCompile(`^[a-z0-9-]{1,20}$`)
 )
 
-// checkTemplate validates and normalises an operator-edited template. "" = ok.
-func checkTemplate(t *template.Template, c config.Workspaces) string {
+// Check validates and tidies a template staff wrote. "" = ok.
+func Check(t *Template, c config.Workspaces) string {
 	t.Slug, t.Name, t.Image = strings.TrimSpace(t.Slug), strings.TrimSpace(t.Name), strings.TrimSpace(t.Image)
 	l := c.TemplateLimits
 	if t.Icon == "" {
@@ -33,9 +32,9 @@ func checkTemplate(t *template.Template, c config.Workspaces) string {
 	case !templateIconRe.MatchString(t.Icon):
 		return "Icon must be a short icon key."
 	case t.CPU < 1 || t.CPU > l.MaxCPU || t.MemoryGiB < 1 || t.MemoryGiB > l.MaxMemoryGiB || t.DiskGiB < l.MinDiskGiB || t.DiskGiB > l.MaxDiskGiB:
-		return "Size out of range (CPU 1–" + itoa(l.MaxCPU) + ", RAM 1–" + itoa(l.MaxMemoryGiB) + " GiB, disk " + itoa(l.MinDiskGiB) + "–" + itoa(l.MaxDiskGiB) + " GiB)."
+		return "Size out of range (CPU 1–" + strconv.Itoa(l.MaxCPU) + ", RAM 1–" + strconv.Itoa(l.MaxMemoryGiB) + " GiB, disk " + strconv.Itoa(l.MinDiskGiB) + "–" + strconv.Itoa(l.MaxDiskGiB) + " GiB)."
 	case t.Repo != "" && hostd.ValidRepo(t.Repo, c.RepoHosts) != nil:
-		return repoMsg(c)
+		return RepoMessage(c)
 	case len(t.Startup) > l.MaxStartup || len(t.Description) > 400:
 		return "Startup script or description too long."
 	case len(t.Ports) > l.MaxPorts || len(t.Toolchain) > 12:
@@ -46,11 +45,7 @@ func checkTemplate(t *template.Template, c config.Workspaces) string {
 			return "Toolchain entries must be 1–30 characters."
 		}
 	}
-	ps := make([]devspace.Preview, 0, len(t.Ports))
-	for _, p := range t.Ports {
-		ps = append(ps, devspace.Preview{Port: p})
-	}
-	if msg := checkPreviews(ps, c); msg != "" {
+	if msg := CheckPorts(t.Ports, c); msg != "" {
 		return "Exposed ports: " + msg
 	}
 	if t.Toolchain == nil {
@@ -58,6 +53,23 @@ func checkTemplate(t *template.Template, c config.Workspaces) string {
 	}
 	if t.Ports == nil {
 		t.Ports = []int{}
+	}
+	return ""
+}
+
+// RepoMessage says which repositories are accepted.
+func RepoMessage(c config.Workspaces) string {
+	return "Repository must be a public https URL on " + strings.Join(c.RepoHosts, ", ") + "."
+}
+
+// CheckPorts: each port once, inside the preview range, not the editor's port. "" = ok.
+func CheckPorts(ports []int, c config.Workspaces) string {
+	seen := map[int]bool{}
+	for _, p := range ports {
+		if p < c.PreviewMin || p > c.PreviewMax || p == c.IDEPort || seen[p] {
+			return "Preview ports must be unique and between " + strconv.Itoa(c.PreviewMin) + " and " + strconv.Itoa(c.PreviewMax) + "."
+		}
+		seen[p] = true
 	}
 	return ""
 }

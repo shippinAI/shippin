@@ -35,13 +35,13 @@ func (a *API) putAccess(field string) http.HandlerFunc {
 		}
 		next := ws.Devspace
 		if field == "firewall" {
-			if msg := checkRules(in.Rules, a.cfg.Workspaces); msg != "" {
+			if msg := devspace.CheckRules(in.Rules, a.cfg.Workspaces); msg != "" {
 				auth.Problem(w, http.StatusBadRequest, msg)
 				return
 			}
 			next.Firewall = in.Rules
 		} else {
-			if msg := checkDomains(in.Domains, a.cfg.Workspaces); msg != "" {
+			if msg := devspace.CheckDomains(in.Domains, a.cfg.Workspaces); msg != "" {
 				auth.Problem(w, http.StatusBadRequest, msg)
 				return
 			}

@@ -1000,6 +1000,66 @@
         ],
         "type": "object"
       },
+      "ConfigSize": {
+        "additionalProperties": false,
+        "properties": {
+          "cpu": {
+            "type": "integer"
+          },
+          "disk_gib": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "memory_gib": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "cpu",
+          "memory_gib",
+          "disk_gib"
+        ],
+        "type": "object"
+      },
+      "ConfigTemplateLimits": {
+        "additionalProperties": false,
+        "properties": {
+          "max_cpu": {
+            "type": "integer"
+          },
+          "max_disk_gib": {
+            "type": "integer"
+          },
+          "max_memory_gib": {
+            "type": "integer"
+          },
+          "max_ports": {
+            "type": "integer"
+          },
+          "max_startup_bytes": {
+            "type": "integer"
+          },
+          "min_disk_gib": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "max_cpu",
+          "max_memory_gib",
+          "min_disk_gib",
+          "max_disk_gib",
+          "max_ports",
+          "max_startup_bytes"
+        ],
+        "type": "object"
+      },
       "CoverageOwn": {
         "additionalProperties": false,
         "properties": {
@@ -1861,6 +1921,63 @@
         "required": [
           "name",
           "plan_id"
+        ],
+        "type": "object"
+      },
+      "DevspaceOptionOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "rules": {
+            "$ref": "#/components/schemas/DevspaceOptionRules"
+          },
+          "sizes": {
+            "items": {
+              "$ref": "#/components/schemas/ConfigSize"
+            },
+            "type": "array"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/Template"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "templates",
+          "sizes",
+          "rules"
+        ],
+        "type": "object"
+      },
+      "DevspaceOptionRules": {
+        "additionalProperties": false,
+        "properties": {
+          "image_prefix": {
+            "type": "string"
+          },
+          "preview_max": {
+            "type": "integer"
+          },
+          "preview_min": {
+            "type": "integer"
+          },
+          "repo_hosts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "template": {
+            "$ref": "#/components/schemas/ConfigTemplateLimits"
+          }
+        },
+        "required": [
+          "repo_hosts",
+          "image_prefix",
+          "preview_min",
+          "preview_max",
+          "template"
         ],
         "type": "object"
       },
@@ -3341,6 +3458,225 @@
         ],
         "type": "object"
       },
+      "Template": {
+        "additionalProperties": false,
+        "properties": {
+          "cpu": {
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "disk_gib": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "memory_gib": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ports": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "startup": {
+            "type": "string"
+          },
+          "toolchain": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "description",
+          "icon",
+          "image",
+          "toolchain",
+          "cpu",
+          "memory_gib",
+          "disk_gib",
+          "repo",
+          "startup",
+          "ports",
+          "enabled",
+          "sort",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "TemplateFields": {
+        "additionalProperties": false,
+        "properties": {
+          "cpu": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "disk_gib": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "memory_gib": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ports": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "startup": {
+            "type": "string"
+          },
+          "toolchain": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "description",
+          "icon",
+          "image",
+          "toolchain",
+          "cpu",
+          "memory_gib",
+          "disk_gib",
+          "repo",
+          "startup",
+          "ports",
+          "enabled",
+          "sort"
+        ],
+        "type": "object"
+      },
+      "TemplateUpdateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "cpu": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "disk_gib": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "memory_gib": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ports": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "startup": {
+            "type": "string"
+          },
+          "toolchain": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "description",
+          "icon",
+          "image",
+          "toolchain",
+          "cpu",
+          "memory_gib",
+          "disk_gib",
+          "repo",
+          "startup",
+          "ports",
+          "enabled",
+          "sort"
+        ],
+        "type": "object"
+      },
       "Version": {
         "additionalProperties": false,
         "properties": {
@@ -3730,6 +4066,44 @@
           "id": "shippin.identity.ssh_key.delete",
           "reason": false,
           "risk": "destructive"
+        }
+      }
+    },
+    "/me/runtime/devspace-option": {
+      "get": {
+        "operationId": "shippin.runtime.devspace_option.get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevspaceOptionOptions"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read what a development space can start from: the templates, the sizes and what the server accepts.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "signed-in",
+          "id": "shippin.runtime.devspace_option.get",
+          "reason": false,
+          "risk": "read"
         }
       }
     },
@@ -4430,6 +4804,304 @@
           "perm": "infra.guests.manage",
           "reason": true,
           "risk": "destructive"
+        }
+      }
+    },
+    "/operator/runtime/templates": {
+      "get": {
+        "operationId": "shippin.runtime.template.list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/Template"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List every template a development space can start from, including the ones turned off.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.runtime.template.list",
+          "perm": "templates.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "post": {
+        "operationId": "shippin.runtime.template.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/TemplateFields"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Add a template: an image, a default size, and optionally a repository, a start command and ports.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.runtime.template.created",
+          "id": "shippin.runtime.template.create",
+          "perm": "templates.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/runtime/templates/{templateId}": {
+      "delete": {
+        "operationId": "shippin.runtime.template.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Remove a template. Development spaces made from it keep running.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.runtime.template.deleted",
+          "id": "shippin.runtime.template.delete",
+          "perm": "templates.write",
+          "reason": true,
+          "risk": "destructive"
+        }
+      },
+      "get": {
+        "operationId": "shippin.runtime.template.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read one template with its image, size, repository, start command and ports.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.runtime.template.get",
+          "perm": "templates.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "put": {
+        "operationId": "shippin.runtime.template.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/TemplateUpdateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Change a template. Development spaces already made from it are not changed.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.runtime.template.updated",
+          "id": "shippin.runtime.template.update",
+          "perm": "templates.write",
+          "reason": true,
+          "risk": "write"
         }
       }
     },

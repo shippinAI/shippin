@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 228,
+  "operationCount": 234,
   "tags": [
     "agents-runtime",
     "audit",
@@ -1492,6 +1492,17 @@
     },
     {
       "method": "GET",
+      "path": "/me/runtime/devspace-option",
+      "operationId": "shippin.runtime.devspace_option.get",
+      "summary": "Read what a development space can start from: the templates, the sizes and what the server accepts.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.devspace_option.get"
+    },
+    {
+      "method": "GET",
       "path": "/operator/runtime/runners",
       "operationId": "shippin.runtime.runner.list",
       "summary": "List every runner machine, with its organization, job, host, state and age.",
@@ -1511,6 +1522,61 @@
       ],
       "implementationStatus": "registered",
       "action": "shippin.runtime.runner.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/runtime/templates",
+      "operationId": "shippin.runtime.template.list",
+      "summary": "List every template a development space can start from, including the ones turned off.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.template.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/runtime/templates",
+      "operationId": "shippin.runtime.template.create",
+      "summary": "Add a template: an image, a default size, and optionally a repository, a start command and ports.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.template.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/runtime/templates/{templateId}",
+      "operationId": "shippin.runtime.template.delete",
+      "summary": "Remove a template. Development spaces made from it keep running.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.template.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/runtime/templates/{templateId}",
+      "operationId": "shippin.runtime.template.get",
+      "summary": "Read one template with its image, size, repository, start command and ports.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.template.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/runtime/templates/{templateId}",
+      "operationId": "shippin.runtime.template.update",
+      "summary": "Change a template. Development spaces already made from it are not changed.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.template.update"
     },
     {
       "method": "GET",

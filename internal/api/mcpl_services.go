@@ -10,6 +10,7 @@ import (
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/ext"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/platform/config"
 	"shippin.cloud/console/internal/ports"
 	"shippin.cloud/console/internal/settings"
 )
@@ -24,6 +25,8 @@ func (a *API) provideServices(s mcpl.Services) {
 	}
 	mcpl.Provide[ports.Workspaces](s, workspacePort{a})
 	mcpl.Provide[ports.Machines](s, machinePort{a})
+	// What templates and development spaces are checked against, from the workspaces section.
+	mcpl.Provide[config.Workspaces](s, a.cfg.Workspaces)
 	// The GitHub App can be turned on and off in the panel, so the port is always there and finds the
 	// App on each call; while it is off, Need answers as if it weren't provided.
 	mcpl.Provide[ports.GitHub](s, githubPort{a})

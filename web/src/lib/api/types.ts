@@ -180,30 +180,11 @@ export type Workspace = {
 };
 
 export type WorkspaceSize = { cpu: number; memory_gib: number; disk_gib: number };
-export type SizePreset = WorkspaceSize & { id: string; label: string };
 export type Preview = { port: number; public: boolean };
 export type PreviewURL = Preview & { url: string };
 
-export type Template = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  icon: string;
-  image: string;
-  toolchain: string[];
-  cpu: number;
-  memory_gib: number;
-  disk_gib: number;
-  repo: string;
-  startup: string;
-  ports: number[];
-  enabled: boolean;
-  sort: number;
-  created_at: string;
-};
-export type TemplateRules = { repo_hosts: string[]; image_prefix: string; preview_min: number; preview_max: number };
-export type TemplateList = { items: Template[]; sizes: SizePreset[]; limits: TemplateRules };
+// Templates, sizes and their rules are generated from the server's types (actions.gen.ts).
+export type { Template, ConfigSize as SizePreset } from "./actions.gen";
 
 export type PlanLimits = { workspace_cpu: number; workspace_memory: string; home_gib: number; root_gib: number };
 

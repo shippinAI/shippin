@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"shippin.cloud/console/internal/runtime/template"
 	"syscall"
 	"time"
 
@@ -77,7 +78,7 @@ func Main() {
 	consoleAPI.LoadPlatformServices(ctx)
 	consoleAPI.SetDirectory(directory)
 	consoleAPI.StartJobs(ctx)
-	consoleAPI.SeedTemplates(ctx)
+	template.Seed(ctx, database.Pool, cfg.Workspaces)
 	consoleAPI.SyncStaff(ctx)
 	ensureDevAccounts(ctx, database) // after the role catalog is loaded
 	consoleAPI.Register(mux)
