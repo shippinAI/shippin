@@ -2,6 +2,7 @@ package hostd
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -18,7 +19,35 @@ func siteFake(t *testing.T) *fakeRunner {
 		fakeReply{match: "/state", out: `{"network":{"eth0":{"addresses":[{"family":"inet","address":"10.128.4.9","scope":"global"}]}}}`},
 		fakeReply{match: "query /1.0/instances/s-", out: `{"devices":{"ssh":{"type":"proxy"},"root":{"type":"disk"}}}`},
 		fakeReply{match: "user.shippin.site_release", out: "pub-200\n"},
+		fakeReply{match: "/routes", out: `[{"@id":"ws-x","match":[{"host":["x.ws.example.test"]}]},
+			{"@id":"site-other","match":[{"host":["taken--site.ws.example.test"]}]},
+			{"@id":"site-` + wid + `","match":[{"host":["mine--site.ws.example.test"]}]}]`},
 	)
+}
+
+func TestPublishRefusesAnotherWorkspacesSiteName(t *testing.T) {
+	f := siteFake(t)
+	s := testServer()
+	_, err := s.Publish(context.Background(), place{t: tid}, wid, "taken--site.ws.example.test", 5173, time.Unix(300, 0))
+	if !errors.Is(err, errSiteTaken) {
+		t.Fatalf("a name another workspace serves was accepted: %v", err)
+	}
+	if f.find("PUT", "routes/0") != nil || f.find("copy w-"+wid) != nil || f.find("DELETE", "/id/") != nil {
+		t.Fatal("a refused publish still changed the edge or the site instance")
+	}
+	if _, err := s.Publish(context.Background(), place{t: tid}, wid, "Mine--site.ws.example.test", 5173, time.Unix(301, 0)); err != nil {
+		t.Fatalf("republishing its own name: %v", err)
+	}
+}
+
+func TestPublishNeedsTheRouteInventory(t *testing.T) {
+	f := useFake(t, fakeReply{match: "/routes", out: "broken"})
+	if _, err := testServer().Publish(context.Background(), place{t: tid}, wid, "a--site.ws.example.test", 5173, time.Unix(300, 0)); err == nil {
+		t.Fatal("published without knowing who serves the name")
+	}
+	if f.find("PUT", "routes/0") != nil {
+		t.Fatal("route written")
+	}
 }
 
 func TestSiteHost(t *testing.T) {

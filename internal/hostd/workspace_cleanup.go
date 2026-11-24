@@ -22,13 +22,44 @@ func (s *Server) removeWorkspaceRoutes(ctx context.Context, w string) error {
 	}
 	for _, route := range routes {
 		id, _ := route["@id"].(string)
-		if id == "ws-"+w || strings.HasPrefix(id, "pv-"+w+"-") {
+		if id == "ws-"+w || id == siteRouteID(w) || strings.HasPrefix(id, "pv-"+w+"-") {
 			if _, err := s.caddy(ctx, "DELETE", "/id/"+id, nil); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
+}
+
+// hostOwner is the @id of the edge route that already answers for host, or "" when none does. Like
+// cleanup, it needs the whole inventory: an unreadable one is not proof that the name is free.
+func (s *Server) hostOwner(ctx context.Context, host string) (string, error) {
+	raw, err := s.caddy(ctx, "GET", fmt.Sprintf("/config/apps/http/servers/%s/routes", s.cfg.Edge.Server), nil)
+	if err != nil {
+		return "", err
+	}
+	var routes []struct {
+		ID    string `json:"@id"`
+		Match []struct {
+			Host []string `json:"host"`
+		} `json:"match"`
+	}
+	if err := json.Unmarshal([]byte(raw), &routes); err != nil {
+		return "", fmt.Errorf("route inventory unavailable: %w", err)
+	}
+	if routes == nil {
+		return "", fmt.Errorf("route inventory unavailable: expected an array")
+	}
+	for _, route := range routes {
+		for _, m := range route.Match {
+			for _, h := range m.Host {
+				if strings.EqualFold(h, host) {
+					return route.ID, nil
+				}
+			}
+		}
+	}
+	return "", nil
 }
 
 // Cleanup needs positive absence evidence; a failed existence probe is not absence.

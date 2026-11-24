@@ -13,7 +13,7 @@ func TestWorkspaceRouteCleanup(t *testing.T) {
 		fail      bool
 	}{
 		{"absent", "[]", nil, false}, {"unavailable", "", errors.New("offline"), true}, {"malformed", "broken", nil, true},
-		{"owned only", `[{"@id":"ws-one"},{"@id":"pv-one-3000"},{"@id":"ws-other"}]`, nil, false},
+		{"owned only", `[{"@id":"ws-one"},{"@id":"pv-one-3000"},{"@id":"site-one"},{"@id":"ws-other"},{"@id":"site-other"}]`, nil, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := useFake(t, fakeReply{match: "-X GET", out: tc.raw, err: tc.err})
@@ -21,10 +21,10 @@ func TestWorkspaceRouteCleanup(t *testing.T) {
 			if (err != nil) != tc.fail {
 				t.Fatalf("error=%v", err)
 			}
-			if f.find("DELETE", "/id/ws-other") != nil {
+			if f.find("DELETE", "/id/ws-other") != nil || f.find("DELETE", "/id/site-other") != nil {
 				t.Fatal("removed foreign route")
 			}
-			if tc.name == "owned only" && (f.find("DELETE", "/id/ws-one") == nil || f.find("DELETE", "/id/pv-one-3000") == nil) {
+			if tc.name == "owned only" && (f.find("DELETE", "/id/ws-one") == nil || f.find("DELETE", "/id/pv-one-3000") == nil || f.find("DELETE", "/id/site-one") == nil) {
 				t.Fatal("owned routes not removed")
 			}
 		})

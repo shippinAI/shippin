@@ -2,6 +2,7 @@ package hostd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -106,7 +107,20 @@ func (s *Server) Rollback(ctx context.Context, p place, w, host, rel, current st
 	return rel, s.serve(ctx, p, w, host, rel, port)
 }
 
+// errSiteTaken is what a publish answers when another workspace already serves the name.
+var errSiteTaken = errors.New("that site name is taken; pick another")
+
+// serve points host at release rel of w. A site name belongs to the first workspace that published
+// it (PUB-01): the new route is inserted first, so without this check a second workspace asking for
+// the same name would answer in place of the first.
 func (s *Server) serve(ctx context.Context, p place, w, host, rel string, port int) error {
+	owner, err := s.hostOwner(ctx, host)
+	if err != nil {
+		return err
+	}
+	if owner != "" && owner != siteRouteID(w) {
+		return errSiteTaken
+	}
 	ip, err := p.deploySite(ctx, w, rel)
 	if err != nil {
 		return err

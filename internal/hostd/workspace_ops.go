@@ -96,7 +96,8 @@ func (s *Server) rebuild(ctx context.Context, at place, w string, r WorkspaceReq
 	return err
 }
 
-// remove unpublishes the route, drops the SSH port, deletes the instance and its home volume.
+// remove unpublishes the routes, drops the SSH port, deletes the instance, its published site and
+// its home volume.
 func (s *Server) remove(ctx context.Context, at place, w string) error {
 	if err := s.removeWorkspaceRoutes(ctx, w); err != nil {
 		return err
@@ -113,6 +114,16 @@ func (s *Server) remove(ctx context.Context, at place, w string) error {
 	}
 	if present {
 		if _, err := at.do(ctx, "delete", Instance(w), "--force"); err != nil {
+			return err
+		}
+	}
+	// The published site is a copy of the workspace and goes with it; its route went with the others.
+	present, err = at.cleanupContains(ctx, "/1.0/instances?recursion=1", SiteInstance(w))
+	if err != nil {
+		return err
+	}
+	if present {
+		if _, err := at.do(ctx, "delete", SiteInstance(w), "--force"); err != nil {
 			return err
 		}
 	}
