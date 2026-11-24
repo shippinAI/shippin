@@ -18,6 +18,8 @@ Updated 2026-11-11 from the owner's direction:
 - They get a terminal anyone can use, and DevPulse syncs with their cloud workspace.
 - Friends and family are the first customers.
 
+Added 2026-11-24: the [hosting coverage plan](hosting-coverage.md) maps what WHMCS and cPanel cover to the requirements here, with the development space's modes, and places the gaps in this order of work. It proposes; this page and the contract decide.
+
 ## Every request, in one place
 
 Updated 2026-11-19 (assistant skill library row) and 2026-11-15. Each request from the owner, the requirement it falls under in [What Shippin is](objective.md), and where it really stands. **Done** means seen working on the review deploy or a real system; **built** means tests pass but it has not been seen working for real; **designed** means a written design only.

@@ -7,6 +7,7 @@ running.
 
 - [What Shippin is](objective.md): the self-hosted panel and the enterprise module; the contract every change follows, with requirement IDs.
 - [Roadmap](roadmap.md): what exists today, and the order of the rest, starting with separating the enterprise code.
+- [Hosting coverage plan](hosting-coverage.md): what WHMCS and cPanel cover, Shippin's equivalent of each, where it stands, the development space's modes and the order.
 - [Design system](design-system.md): tokens, accessibility and speed rules for the panel.
 - [Panel framework](web-framework.md): routes and navigation from folders, the lexicon, rot checks, tokens and components.
 - [Builds and releases](release.md): the local, edge and release channels, versions, what a release carries and the checks before anything is published.
