@@ -186,6 +186,46 @@ New tables, with the `shippin_` prefix: `shippin_devspaces`, `shippin_devspace_s
 `shippin_devspace_previews`, `shippin_templates`. Pre-release, so nothing is migrated from the old
 `workspaces` table; it is dropped in the last packet.
 
+## Proposed: one boundary per organization, containers inside
+
+Raised by the owner on 2026-11-24: design for many organizations from the start, with the smallest
+set of things a describe-build-preview-publish experience needs, extended by the editor and chat.
+Proposed, not decided, and not checked on a rig.
+
+**The boundary is the organization, not the devspace.** An organization gets one boundary on a
+host, and its devspaces are containers inside it:
+
+| Host | The organization's boundary | A devspace |
+| --- | --- | --- |
+| Incus | A restricted project with its own network and a storage quota | A container in that project |
+| Proxmox | A virtual machine that runs Incus inside, with its own bridge | A container in that machine |
+
+So a devspace is always an Incus container, reached through one implementation of `Executor` and
+`Terminal`. Proxmox is used for what it does well, virtual machines, through the driver that makes
+runner machines today. The question of a terminal on a Proxmox container goes away. The free tier
+can share one pooled boundary machine on Proxmox, one project per organization inside it, so a free
+organization does not cost a whole machine.
+
+This adds one driver contract, `Boundary`: make, size and remove an organization's boundary, and
+give the address guests inside it are reached on. `ports.Guests` then takes the organization.
+
+**What a devspace needs for the default experience, and nothing more:**
+
+| Surface | In the guest | Reached by |
+| --- | --- | --- |
+| Chat | The person's own AI command-line client, signed in by them | `Executor`, streamed |
+| Preview | The template's run command on its port | The panel's proxy |
+| Editor | A browser editor on one fixed port | The same proxy |
+| Terminal | A Zellij session | `Terminal` |
+| Publish | The template's build command | `Executor`, then the release is served |
+
+Every surface is one of two driver contracts or the proxy, so the engine does not grow with the
+number of surfaces. The image carries the user, Zellij and the editor; AI clients are installed from
+configuration.
+
+To check before it is decided: Incus nested in a Proxmox virtual machine on the local rig, and what
+one idle boundary machine costs in memory.
+
 ## Where it stands, 2026-11-24
 
 Existing code is being moved into the folders above before the engine underneath it changes.
