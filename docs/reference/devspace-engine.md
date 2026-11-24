@@ -1,0 +1,230 @@
+# The development space engine
+
+A plan, not built. It re-authors how a development space is made, opened and removed so that there
+is one engine for guests on a host, behind the hypervisor drivers, and the panel only shows what
+that engine says. It serves WS-01, TERM-01, IDE-01, INF-03, MCPL-01 and ENG-01 in
+[What Shippin is](../objective.md), and steps 1 and 2 of the current target in
+[the hosting coverage plan](../hosting-coverage.md).
+
+Read in the code on 2026-11-24. Two things below are assumed and must be checked on the rigs
+before the packet that needs them: that Incus's instance exec endpoint gives an interactive
+terminal over a WebSocket with resize, and what Proxmox offers for the same on a container.
+
+## What is wrong today
+
+Four separate paths make a guest on a host, and none shares code with another:
+
+| Path | Used for | Goes through |
+| --- | --- | --- |
+| Admin guests | Staff creating and powering machines | `internal/api/infra*.go` to `internal/hv` |
+| Runner machines | One VM per build job | `ports.Machines`, provided by `internal/api/runners.go`, to `internal/hv` |
+| Catalog deployments | An application container | `internal/services/deployments` to Incus-only calls in `internal/hv/incus/oci_application*.go` |
+| Development spaces | Everything a person builds in | `internal/infrastructure/hostclient` to one `hostd` address, which runs the `incus` command line |
+
+The fourth is the one a customer lives in, and it is the one that skips the drivers. It knows one
+host, only Incus, takes its sizes from a file of its own, keeps provisioning progress in memory,
+and will not open a terminal unless two unrelated sections (AI and Connect) are configured, because
+the user it runs as is stored in the AI section.
+
+## The decision
+
+**One guest engine.** Every guest on every host is made, observed, entered and removed through one
+port, `ports.Guests`, backed by `internal/hv`. Runner machines move onto it first because they
+already use the drivers; development spaces are written on it; admin guests and deployments follow.
+`hostd` is no longer in the development space's path. What it does for per-customer isolation is
+enterprise code and leaves with it.
+
+**The name is devspace.** The contract says "development workspace", and the panel already has
+"workspaces" meaning a group of projects. Two things called workspace with two kinds of ID is the
+confusion in today's routes. The runtime entity is `devspace` everywhere: folder, action IDs,
+routes, tables, panel feature.
+
+**The panel decides nothing.** Every read returns the state, the steps so far and the actions that
+are possible now, each with a reason when it is not. The panel draws that and calls the generated
+action. No page holds a rule about what is allowed.
+
+## Where the code lives
+
+Each folder is one entity. One file is one action, with its test beside it. The panel folder has
+the same name as the entity it shows.
+
+```text
+internal/hv/
+  driver.go                     adds the optional contracts below
+  incus/exec.go                 Executor for Incus
+  incus/terminal.go             Terminal for Incus
+  proxmox/exec.go, terminal.go  the same contracts for Proxmox containers
+
+internal/ports/guests.go        the one port every guest goes through
+
+internal/runtime/
+  devspace/
+    devspace.go                 the type, its states, storage, lookups, what is allowed now
+    create.go  get.go  list.go  start.go  stop.go  delete.go
+    provision.go                the job: its steps, each safe to run again
+    settings.go                 base domain, idle stop, the default template
+    services.go                 what the entity needs: ports.Guests, the limits policy
+    give_keys.go                reaction: a person's SSH keys reach their devspaces
+    terminal/
+      terminal.go               who may open one, and the session record
+      open.go                   the WebSocket: authorize, attach, audit open and close
+    preview/
+      preview.go                a port a devspace serves, and its address
+      list.go  create.go  delete.go
+      serve.go                  the proxy from the address to the guest
+  template/
+    template.go                 a stack: image, size, detect, build, run, port, health, cache
+    list.go  get.go  create.go  update.go  delete.go
+
+web/src/features/runtime/devspaces/
+  index.ts                      what other features may use
+  use-devspaces.ts              the generated calls and the event subscription
+  ui/                           list, one devspace, create, terminal, previews
+```
+
+Nothing for this is added to `internal/api` or `internal/db`. The handlers and storage there for
+today's workspaces are deleted in the last packet.
+
+## The driver contracts
+
+Added to `internal/hv` as optional interfaces, found the way `GuestManager` is today, so a driver
+that cannot do one says so and the panel does not offer it.
+
+| Contract | What it does | Needed by |
+| --- | --- | --- |
+| `GuestManager` (exists) | Images, create, delete | Everything |
+| `GuestNetworkObserver` (exists) | The guest's addresses | Previews |
+| `Executor` (new) | Run one command in a guest as a user, with input, bounded output and an exit code | Provisioning, AI client sign-in, chat turns, builds |
+| `Terminal` (new) | Attach an interactive terminal as a user, with resize, until either side closes | The browser terminal |
+
+`ports.Guests` is the panel-side port: the hosts a guest may be placed on, then create, start,
+stop, delete, addresses, exec and attach on one of them. It replaces `ports.Machines`. It names no
+provider.
+
+## The devspace
+
+**States.** `requested`, `provisioning`, `running`, `stopped`, `failed`, `removing`. A devspace is
+a row first; the guest is made by a job. `failed` keeps the step that failed and its reason, and
+offers retry and delete.
+
+**Steps.** Provisioning is a job in the existing queue, so it survives a restart and runs once
+across panel processes. Its steps are stored, not kept in memory, so any page can show them:
+
+1. Check the organization's limits and reserve the size, in the transaction that saves the row.
+2. Choose a host among those the organization may use (the placement policy).
+3. Create the guest from the template's image and size.
+4. Wait for an address.
+5. Seed it: the person's SSH keys, the project folder, the template's files.
+6. Start the template's run command.
+7. Mark it running.
+
+Each step first checks whether its result already exists, so a retried job continues where it
+stopped.
+
+**Limits.** `limits.Policy` gains what a devspace may use: how many, cores, memory and disk in
+total. Create refuses over the limit before anything is made. The panel's default takes these from
+settings; the enterprise module answers from the customer's plan. The host agent's own plan file
+is not consulted.
+
+**The user inside.** The template says which user a devspace runs as. The terminal, exec and
+seeding read it from the template, so a terminal needs nothing else configured.
+
+## Actions and routes
+
+All generated from the files above. Members of the organization call them; managers change them.
+
+| Action | Route |
+| --- | --- |
+| `shippin.runtime.devspace.list`, `create` | `GET`, `POST /v1/tenants/{tenantId}/runtime/devspaces` |
+| `shippin.runtime.devspace.get`, `delete` | `GET`, `DELETE .../devspaces/{devspaceId}` |
+| `shippin.runtime.devspace.start`, `stop` | `POST .../devspaces/{devspaceId}/start`, `/stop` |
+| `shippin.runtime.devspace.preview.list`, `create`, `delete` | `.../devspaces/{devspaceId}/previews` |
+| `shippin.runtime.template.list`, `get` | `GET /v1/tenants/{tenantId}/runtime/templates` |
+| `shippin.runtime.template.create`, `update`, `delete` | `/v1/operator/runtime/templates` |
+
+Two routes are transports, not actions, and are declared as such: the terminal WebSocket at
+`.../devspaces/{devspaceId}/terminal`, and the preview proxy.
+
+**Transports move into entity folders.** Today a transport is mounted by hand in `internal/api`.
+For this engine to add nothing there, the generator learns a third kind of file beside actions and
+reactions: a transport declared in its entity's folder, with what it carries, mounted from the
+registry. This is a change to MCPL and is the first packet.
+
+## What every read returns
+
+```json
+{
+  "id": "…", "name": "shop", "state": "provisioning",
+  "template": "react", "host": "…",
+  "steps": [
+    { "id": "guest", "label": "Creating the machine", "state": "done" },
+    { "id": "address", "label": "Waiting for its address", "state": "running" }
+  ],
+  "actions": [
+    { "id": "shippin.runtime.devspace.stop", "enabled": false, "why": "It is still being created." },
+    { "id": "shippin.runtime.devspace.delete", "enabled": true }
+  ],
+  "terminal": { "available": false, "why": "It is still being created." }
+}
+```
+
+The panel lists `actions` as buttons, disables one with its `why`, shows `steps` as they are, and
+refetches when the event stream reports a change to this devspace. Labels are the server's. An AI
+acting for the person reads the same answer and calls the same actions (MCPL-01).
+
+## Previews
+
+A preview is a port the devspace serves, given an address under a base domain set in the panel
+(PUB-01). The panel itself proxies that address to the guest's address and port, after checking the
+session, so a preview needs no separate edge proxy on the host and no host-side route state. The
+installation supplies the wildcard name and certificate. The panel must be able to reach the
+guests' network; where it cannot, the preview says so instead of failing silently.
+
+## Storage
+
+New tables, with the `shippin_` prefix: `shippin_devspaces`, `shippin_devspace_steps`,
+`shippin_devspace_previews`, `shippin_templates`. Pre-release, so nothing is migrated from the old
+`workspaces` table; it is dropped in the last packet.
+
+## Packets
+
+Each closes only when its proof has been seen. Incus first on the local rig, then the same proof on
+the Proxmox rig. A packet that would leave two ways to do one thing removes the old one in the same
+change.
+
+| Packet | Result | Proof |
+| --- | --- | --- |
+| E0. Transports in entity folders | A transport file in an entity folder is mounted from the registry | The events stream moves to its entity with no route changed; the conformance test passes |
+| E1. Exec and terminal in the drivers | `Executor` and `Terminal` for Incus | On the rig: run a command as a user and read its exit code; attach, type, resize, close |
+| E2. One guest port | `ports.Guests` replaces `ports.Machines`; runner machines use it | The runner tests pass unchanged; a runner machine is made and removed on the rig |
+| E3. The devspace entity | Create, get, list, start, stop, delete, with stored steps and the limits check | On the rig through the API: create to running, stop, start, delete; a second person is refused; over the limit is refused before a guest exists; a panel restart mid-provision continues |
+| E4. The terminal | The browser terminal on a devspace | In a browser on the review deploy: type, resize, drop the connection and return to the same session; another person is refused |
+| E5. The panel | The devspaces feature drawn from `steps` and `actions` only | As Customer in a browser: create, watch the steps, open the terminal, stop, delete, with no rule in the page |
+| E6. Templates and previews | React, Svelte, Go and Rust as stack data; a preview address | Each of the four starts from its template, builds, runs and shows at its preview address |
+| E7. The old path goes | Today's workspace handlers, storage and the host agent client leave the panel | The build has no import of `hostclient` or `hostd`; every route they served is gone or re-authored |
+| E8. Proxmox | The same contracts for Proxmox containers | E3, E4 and E6 repeated on the Proxmox rig |
+
+E1 to E5 are step 1 of the current target. E6 is step 2.
+
+## What E7 takes with it
+
+These features reach a devspace through the host agent today. Each is re-authored on `Executor`
+when its own step comes, and is absent from the panel between E7 and then:
+
+| Feature | Re-authored as | When |
+| --- | --- | --- |
+| AI client sign-in, status and sign-out | Exec in the person's devspace | Their own AI (step 6 of the coverage plan) |
+| Chat turns | Exec in the devspace | The same |
+| One-click site publish | A release built per stack and served at an address | Publish (step 5) |
+| Git import and push | Exec in the devspace | Templates (E6) |
+| SSH relay for the bridge | `Terminal` and a forwarded port | Remote mode (step 11) |
+| Per-customer storage, network and VM boundary | Enterprise module | With the separation |
+
+## Decisions needed from the owner
+
+- **E7's gap.** Whether the features in the table above may be absent from the panel between E7 and
+  their own step, or whether E7 waits until each is re-authored. This plan assumes they may be
+  absent, because keeping the old path alive beside the new one is two engines.
+- **Proxmox containers or VMs.** A Proxmox devspace as a container matches Incus and the free
+  tier's cost. If Proxmox's API cannot give an interactive terminal on a container, the choice is a
+  VM with a guest agent, or a small agent in the image.

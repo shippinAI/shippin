@@ -134,7 +134,7 @@ seen working on the review deploy, on both hypervisors where it touches one.
 
 | Step | Result someone can see | Covers |
 | --- | --- | --- |
-| 1 | A development space is created on a host added in the panel, through `internal/hv`, with its terminal | WS-01, TERM-01; ends the separate host-agent path for spaces |
+| 1 | A development space is created on a host added in the panel, through `internal/hv`, with its terminal ([the engine plan](reference/devspace-engine.md)) | WS-01, TERM-01; ends the separate host-agent path for spaces |
 | 2 | Stacks as data. A React, Svelte, Go or Rust project starts from a template, builds, runs and previews | DEP-02 |
 | 3 | Sign-up lands a person in their own space on a plan | LAUNCH-01, DEV-01 |
 | 4 | The project's secrets are injected when it runs | DEP-01 |
