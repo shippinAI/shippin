@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // sparks never exposes the fleet to another tenant or to a caller without the

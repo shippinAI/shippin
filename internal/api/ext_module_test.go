@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"shippin.cloud/console/internal/ext"
-	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/services/jobs"
 )
 
 // A module's permissions join the catalog that roles and routes use, and reach the preset roles they

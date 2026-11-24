@@ -9,7 +9,7 @@ The public tree is the squashed, cleaned snapshot. A full history import was not
 | Console path | In this repository | Which side wins |
 | --- | --- | --- |
 | `cmd/console`, `internal/` | same paths | Console implementation. `api/openapi/` remains the published contract. |
-| `cmd/shippin-hostd`, `internal/hostd` | same paths | Console host agent. `agent/` stays the local Incus diagnostic. |
+| `cmd/shippin-hostd`, `internal/infrastructure/hostd` | same paths | Console host agent. `agent/` stays the local Incus diagnostic. |
 | `cmd/shippin-bridge`, `cmd/shippin-credwriter`, `cmd/ai-launcher`, `cmd/rrflow-state`, `cmd/catalog-demo`, `cmd/hub-demo`, `cmd/chat-probe`, `cmd/vaultix-demo` | same paths | Console. |
 | `web/` | `web/` | Console UI. This is the panel. The separate `panel/` workbench has since moved into it; see [panel variants](../panel-variants.md). |
 | `deploy/` | `deploy/` | Kept after site addresses and site paths were removed. The supported install path is `install/panel/install.sh`. |
@@ -18,7 +18,7 @@ The public tree is the squashed, cleaned snapshot. A full history import was not
 | `third_party/warden-ct102` | same path | Kept. Defaults no longer name a site, a guest, or a token. TLS verification defaults on. |
 | Historical signing paths present in the source snapshot | removed from current `main` by commits `30470eb` and `b40911d` | The imported snapshot once contained a site-specific signing workflow. It is not part of the Shippin product and is not an AgentHub review implementation. Historical signed records are not reinterpreted as new decisions. |
 | `internal/hv/proxmox`, `internal/hv/incus` | same paths | Console drivers. Proxmox verifies TLS and has no skip flag. |
-| `internal/approval` | `internal/approval` | Shippin-local permission policy remains for local task-board access. The provider mutation adapter to local/HTTP boards has been removed; provider routes fail closed until AgentHub action-bound review is implemented. See `docs/approval.md`. |
+| `internal/runtime/approval` | `internal/runtime/approval` | Shippin-local permission policy remains for local task-board access. The provider mutation adapter to local/HTTP boards has been removed; provider routes fail closed until AgentHub action-bound review is implemented. See `docs/approval.md`. |
 
 ## Dropped
 

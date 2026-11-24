@@ -1,4 +1,4 @@
-// Mirrors internal/projects (M1). Boundaries are never exposed to tenants; only `placed`.
+// Mirrors internal/tenancy/projects (M1). Boundaries are never exposed to tenants; only `placed`.
 export type Environment = { id: string; name: string };
 
 export type Project = {

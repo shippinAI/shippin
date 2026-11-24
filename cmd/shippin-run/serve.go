@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"shippin.cloud/console/internal/runfleet"
+	"shippin.cloud/console/internal/runtime/runfleet"
 )
 
 func newHandler(svc *runfleet.Service, cfg serverConfig) http.Handler {

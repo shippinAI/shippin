@@ -11,7 +11,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
 )
 
 var serverSlug = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)

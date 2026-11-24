@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/subs"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/runtime/subs"
 )
 
 // disconnectSubscription runs the vendor's own sign-out in the caller's terminal container (the

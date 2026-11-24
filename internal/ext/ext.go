@@ -25,10 +25,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"shippin.cloud/console/internal/actions"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/limits"
+	"shippin.cloud/console/internal/ext/limits"
+	"shippin.cloud/console/internal/ext/placement"
 	"shippin.cloud/console/internal/mcpl"
-	"shippin.cloud/console/internal/placement"
+	"shippin.cloud/console/internal/services/jobs"
 	"shippin.cloud/console/internal/settings"
 )
 
@@ -50,9 +50,9 @@ type Module struct {
 	Caller CallerPolicy
 	// Lifecycle is the module's organization lifecycle (policy.go). At most one module sets it.
 	Lifecycle OrgLifecycle
-	// Limits is the module's limits policy (internal/limits). At most one module sets it.
+	// Limits is the module's limits policy (internal/ext/limits). At most one module sets it.
 	Limits limits.Policy
-	// Placement is the module's placement policy (internal/placement). At most one module sets it.
+	// Placement is the module's placement policy (internal/ext/placement). At most one module sets it.
 	Placement placement.Policy
 	// Migrations are the module's own *.sql files, at the root of this file system (an embed.FS
 	// sub-directory, for instance). They run after the panel's, in name order, in the same lock and

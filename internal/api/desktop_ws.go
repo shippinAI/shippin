@@ -11,7 +11,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostd"
+	"shippin.cloud/console/internal/infrastructure/hostd"
 )
 
 // desktopSocket is the browser's pipe to xrdp on the tenant VM loopback. Closing the tab closes

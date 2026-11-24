@@ -8,7 +8,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/services/jobs"
 )
 
 var actionState = map[string][2]string{

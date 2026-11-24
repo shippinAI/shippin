@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/deployments"
-	"shippin.cloud/console/internal/vaultix"
+	"shippin.cloud/console/internal/integrations/vaultix"
+	"shippin.cloud/console/internal/services/deployments"
 )
 
 func TestRevealTenantDeploymentSecretDerivesTenantProjectAndAuditsBeforeReveal(t *testing.T) {

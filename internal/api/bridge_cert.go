@@ -6,7 +6,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/sshca"
+	"shippin.cloud/console/internal/runtime/sshca"
 )
 
 // bridgeCert signs the bridge's ephemeral public key for one workspace: principal

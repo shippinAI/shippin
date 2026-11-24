@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/services/jobs"
 )
 
 // acceptedWorkspace is the 202 body: the workspace plus the job provisioning it.

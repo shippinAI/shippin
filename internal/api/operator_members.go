@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // Tenant detail for the provider panel: the tenant's Nomen (Zitadel) org members with their org

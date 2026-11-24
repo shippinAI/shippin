@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/agenthub"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/catalog"
-	"shippin.cloud/console/internal/deployments"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
+	"shippin.cloud/console/internal/integrations/agenthub"
+	"shippin.cloud/console/internal/services/catalog"
+	"shippin.cloud/console/internal/services/deployments"
 )
 
 type deploymentReviewInput struct {

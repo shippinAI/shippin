@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"shippin.cloud/console/internal/apps"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/runtime/apps"
 )
 
 func (a *API) opTenantApps(w http.ResponseWriter, r *http.Request, _ *caller) {

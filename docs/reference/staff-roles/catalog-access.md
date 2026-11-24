@@ -22,7 +22,7 @@ Anyone else needs a direct grant: one permission, for one person, audited, revoc
 `billing.read` and `billing.write` are reserved again (they gate nothing).
 
 ## Enforcement (the API, not only the UI)
-- Every catalog route declares one of these permissions (`internal/catalog/http.go`); the operator gate
+- Every catalog route declares one of these permissions (`internal/services/catalog/http.go`); the operator gate
   answers 401 without a session and 403 without the permission, before handler code runs.
 - Field-level: without `catalog.prices.read` / `customers.contacts.read` / `customers.notes.read` the
   server leaves the field out of the JSON. A write without the read permission keeps the stored value
@@ -44,6 +44,6 @@ Anyone else needs a direct grant: one permission, for one person, audited, revoc
   a catalog route; `TestStaffMatrixDenyByDefault` checks every role x route.
 - `staff_grants_test.go`: only Owner holds the 11 permissions; a grant opens exactly its routes; the
   grant API is Owner-only, audited, refuses self-grants and non-grantable keys; roles can't hold them.
-- `internal/catalog/http_fields_db_test.go` (needs SHIPPIN_TEST_DATABASE_URL): prices, contacts and
+- `internal/services/catalog/http_fields_db_test.go` (needs SHIPPIN_TEST_DATABASE_URL): prices, contacts and
   notes are left out and kept on update. `internal/db/perm_grants_db_test.go`: migration 012 on an
   existing database changes only `staff.owner`.

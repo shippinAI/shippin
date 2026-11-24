@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"shippin.cloud/console/internal/deployments"
+	"shippin.cloud/console/internal/services/deployments"
 )
 
 func TestDeploymentReviewEvidenceRedactsSecretReferences(t *testing.T) {

@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"shippin.cloud/console/internal/clickhouse"
+	"shippin.cloud/console/internal/infrastructure/servers"
 	"shippin.cloud/console/internal/platform"
-	"shippin.cloud/console/internal/servers"
 )
 
 const clickHouseSealAAD = "platform-clickhouse"

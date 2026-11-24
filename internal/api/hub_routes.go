@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"shippin.cloud/console/internal/approval"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/hub"
+	"shippin.cloud/console/internal/runtime/approval"
+	"shippin.cloud/console/internal/runtime/hub"
 )
 
 // RegisterHub mounts the agent task board (/v1/hub). Decisions require an explicit configured

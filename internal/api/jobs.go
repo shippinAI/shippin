@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/services/jobs"
 )
 
 // jobOut is the OpenAPI Job shape.

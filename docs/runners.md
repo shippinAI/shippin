@@ -19,9 +19,9 @@ Nothing here is a second process or a second GitHub integration.
 
 | Need | Existing piece |
 | --- | --- |
-| GitHub sign-in, tokens, webhooks | `internal/gh`: the GitHub App, narrowed installation tokens cached per installation, signature checks. `github_installations` maps each installation to one organization; `github_deliveries` drops repeated deliveries. `POST /v1/github/webhook` is the one route GitHub calls. |
+| GitHub sign-in, tokens, webhooks | `internal/integrations/gh`: the GitHub App, narrowed installation tokens cached per installation, signature checks. `github_installations` maps each installation to one organization; `github_deliveries` drops repeated deliveries. `POST /v1/github/webhook` is the one route GitHub calls. |
 | Runner machines | `internal/hv`: `GuestManager.CreateGuest` and `DeleteGuest` on Incus and Proxmox now, public clouds (HYB-01) and customers' own servers (BYO-01) later. Placement follows [VM-first tenants](reference/vm-first-tenants.md). |
-| Doing the work reliably | `internal/jobs`: the durable queue, claimed under a lease, so a runner is started and removed once, across restarts. |
+| Doing the work reliably | `internal/services/jobs`: the durable queue, claimed under a lease, so a runner is started and removed once, across restarts. |
 | Plan limits | The plan matrix: a `runners` catalog service, whose cell on each plan holds its limits (`sizes`, `concurrent`, `minutes`). `concurrent` 0 runs nothing; `minutes` 0 sets no monthly cap. |
 | Actions, events, audit | MCPL: every operation is an action file; events drive reactions; staff changes need a reason. |
 

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/mail"
+	"shippin.cloud/console/internal/platform/mail"
 )
 
 func grantVars(g db.Grant, actor string) map[string]string {

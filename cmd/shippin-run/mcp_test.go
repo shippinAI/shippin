@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"shippin.cloud/console/internal/runfleet"
+	"shippin.cloud/console/internal/runtime/runfleet"
 )
 
 func TestMCPConnectAndDryRun(t *testing.T) {

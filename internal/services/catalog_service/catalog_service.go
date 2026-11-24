@@ -1,7 +1,7 @@
 // Package catalog_service is the service catalog of the services domain: what Shippin can turn on for an
 // organization, with the config schema and defaults its settings start from and, for a deployable
 // service, its pinned source and runtime contract. Staff with catalog.plans.write change it; plans,
-// effective config and deployments read it through internal/catalog, which owns the shared types and
+// effective config and deployments read it through internal/services/catalog, which owns the shared types and
 // the merge and validation rules. Each action is its own file (list.go, get.go, create.go, update.go,
 // delete.go), found by cmd/mcplgen.
 package catalog_service
@@ -15,8 +15,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"shippin.cloud/console/internal/catalog"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/services/catalog"
 )
 
 // Object is a JSON object whose values are open-ended: a config schema is a JSON Schema document and

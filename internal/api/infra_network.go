@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/networking"
+	"shippin.cloud/console/internal/infrastructure/networking"
 )
 
 type networkConnectionBody struct {

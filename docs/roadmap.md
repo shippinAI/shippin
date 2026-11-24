@@ -110,7 +110,7 @@ Gaps checked in the code on 2026-11-19, and where each is closed:
 | No row-level security; four overlapping organization tables | `tenants`, `orgs`, `identity_orgs` and `tenant_teams`; no table has a row policy. | S3's new baseline: one organizations table, and a row policy on every table scoped to an organization, with a test that fails on one without. |
 | 315 routes outside the action schema | `internal/api/testdata/mcpl-undescribed.txt`, which may only shrink. | Each group as its work comes up; workspaces and guests with D1. |
 | Tenant database backups are a stub | A backup is recorded as `pending_backend`; restore always refuses. | Real dumps to storage the owner configures, then restore, after D1. |
-| One managed service kind | `internal/managed` provisions only `rrflow-state`. | Stage 7: PostgreSQL first, then S3, DNS and mail, through the same managed-service model. |
+| One managed service kind | `internal/services/managed` provisions only `rrflow-state`. | Stage 7: PostgreSQL first, then S3, DNS and mail, through the same managed-service model. |
 | No metering, invoicing or payment | The billing permissions are reserved placeholders. | Stage 14, in the enterprise edition: the owner decided on 2026-11-20 that the hosting layer (customers, plans, billing, provisioning, sign-up) is licensed to hosting companies with a signed key, like WHMCS. |
 
 ### The hosted development space

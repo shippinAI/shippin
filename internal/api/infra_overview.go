@@ -18,10 +18,10 @@ import (
 	"github.com/google/uuid"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/hv"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // probeTimeout bounds one hypervisor's share of the overview, so a dead host cannot hold the page.

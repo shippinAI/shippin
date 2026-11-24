@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // replayedHeaders are the response headers stored with an Idempotency-Key and replayed with it.

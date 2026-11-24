@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"shippin.cloud/console/internal/gh"
+	"shippin.cloud/console/internal/integrations/gh"
 	"shippin.cloud/console/internal/runtime/runner_job"
 )
 

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"shippin.cloud/console/internal/jobs"
 	"shippin.cloud/console/internal/runtime/runner"
+	"shippin.cloud/console/internal/services/jobs"
 )
 
 // Waiting jobs start in arrival order, only while the organization is under its plan's limit, one

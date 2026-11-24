@@ -4,7 +4,7 @@ This describes the legacy prototype's probes, not the current panel runner API.
 See [the platform boundary](../reference/shippin-run.md#platform-boundary).
 
 The reference probe lives in `third_party/warden-ct102/ci_runners.go`. That
-package is not served, and its HTML template is not mounted. `internal/runfleet`
+package is not served, and its HTML template is not mounted. `internal/runtime/runfleet`
 re-authors the pill rule and is what `cmd/shippin-run` calls.
 
 ## Signals

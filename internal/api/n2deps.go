@@ -2,12 +2,12 @@ package api
 
 import (
 	"log"
-	"shippin.cloud/console/internal/chat"
+	"shippin.cloud/console/internal/runtime/chat"
 	"time"
 
-	"shippin.cloud/console/internal/authz"
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/access/authz"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // n2Deps holds the N2 integrations: the OpenFGA shadow and the Vaultix (Infisical) client.

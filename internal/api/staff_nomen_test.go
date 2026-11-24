@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // A fake Nomen: grants from the operator org, another org, another project and an inactive

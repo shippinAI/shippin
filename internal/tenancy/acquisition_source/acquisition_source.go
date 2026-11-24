@@ -7,8 +7,8 @@ import (
 	"errors"
 	"net/http"
 
-	"shippin.cloud/console/internal/acquisition"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/tenancy/acquisition"
 )
 
 const (

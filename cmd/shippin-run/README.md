@@ -4,7 +4,7 @@
 platform runner implementation is documented in [Build runners](../../docs/runners.md).
 This process is not connected to panel identities, tenant data or settings.
 Its rules live in
-`internal/runfleet`. This process does not keep a second copy.
+`internal/runtime/runfleet`. This process does not keep a second copy.
 
 ```sh
 shippin-run mcp      # stdio MCP

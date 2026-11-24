@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 func TestLocalRolesFollowConfig(t *testing.T) {

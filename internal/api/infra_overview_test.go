@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"shippin.cloud/console/internal/approval"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/infrastructure/servers"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/runtime/approval"
 )
 
 func fakeIncus(t *testing.T, statuses ...string) (*httptest.Server, string) {

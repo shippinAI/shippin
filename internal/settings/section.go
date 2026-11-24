@@ -13,7 +13,7 @@ import (
 	"strings"
 	"unicode"
 
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // Kind is what a field holds, and so how the panel shows it.

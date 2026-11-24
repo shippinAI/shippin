@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // Public settings expose only id and label; the IdP's internal ids stay server-side.

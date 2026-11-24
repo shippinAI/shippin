@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/version"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/platform/version"
 )
 
 func compareServer(t *testing.T, status int, body string, saw *string) *httptest.Server {

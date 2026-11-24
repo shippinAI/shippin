@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"shippin.cloud/console/internal/agenthub"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/integrations/agenthub"
 )
 
 const agentHubCredentialAAD = "shippin-agenthub-service-credential"

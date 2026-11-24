@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 
-	"shippin.cloud/console/internal/managed"
+	"shippin.cloud/console/internal/services/managed"
 )
 
 // vmRRFlowCheck: the tenant VM's one shared rrflow/state instance (Notion D36).

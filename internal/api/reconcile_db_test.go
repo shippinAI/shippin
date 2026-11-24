@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/services/jobs"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 func reconcileAPI(t *testing.T) (*API, *db.DB, db.Tenant) {

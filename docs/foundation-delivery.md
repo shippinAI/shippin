@@ -83,14 +83,14 @@ instead of an endlessly nested sidebar.
 
 | Concern | Current owner to extend | Target context and UI ownership |
 | --- | --- | --- |
-| Process and bootstrap | `internal/app`, `internal/config`, `install/`, root deployment files | Composition and bootstrap stay here; installation behavior belongs to Platform. |
+| Process and bootstrap | `internal/app`, `internal/platform/config`, `install/`, root deployment files | Composition and bootstrap stay here; installation behavior belongs to Platform. |
 | Claim and account security | `internal/identity`, `internal/api/setup_account.go`, auth/setup features | Identity owns code redemption and accounts; Platform owns setup progress. Access owns caller and authorization. |
-| Internal organization links | `internal/orgs` | Preserve explicit registry links while moving toward Organizations; never infer staff access from tenant membership. |
-| Workspace grouping and projects | `internal/projects`, `features/workspaces` | Organizations (`internal/tenancy` target); membership and ancestry stay authoritative here. |
+| Internal organization links | `internal/tenancy/orgs` | Preserve explicit registry links while moving toward Organizations; never infer staff access from tenant membership. |
+| Workspace grouping and projects | `internal/tenancy/projects`, `features/workspaces` | Organizations (`internal/tenancy` target); membership and ancestry stay authoritative here. |
 | Hosts, guests and provider IO | `internal/hv`, infrastructure API handlers, `features/infrastructure` | Infrastructure owns orchestration/inventory; `hv/incus` and `hv/proxmox` own protocol details. |
-| Catalog and deployment state | `internal/catalog`, `internal/deployments`, `internal/jobs` | Services target context; deployments owns desired/observed state and outbox, jobs owns leases/retries only. |
+| Catalog and deployment state | `internal/services/catalog`, `internal/services/deployments`, `internal/services/jobs` | Services target context; deployments owns desired/observed state and outbox, jobs owns leases/retries only. |
 | Compute workspaces and terminal | Existing runtime handlers, `features/devspaces`, `features/terminal` | Runtime target context; consult organization ancestry and Infrastructure through explicit boundaries. |
-| Settings and integrations | `internal/platform`, `internal/settings`, `internal/networking`, existing integration packages | Owner declares its settings; Platform aggregates them. Inventory of a connection is not provisioning. |
+| Settings and integrations | `internal/platform`, `internal/settings`, `internal/infrastructure/networking`, existing integration packages | Owner declares its settings; Platform aggregates them. Inventory of a connection is not provisioning. |
 | Enterprise behavior | Existing mixed packages, `internal/ext`, `web/src/modules` | Move through S1–S4 into the existing private-module design; core never imports the enterprise module. |
 
 Target ownership does not mean creating empty folders now. Keep one implementation
@@ -220,7 +220,7 @@ statuses reported separately. Blocked provider proof stays open.
 
 Read and hash the complete current versions of `compose.yaml`, `Dockerfile`,
 `install/docker/{configure.py,entrypoint.sh}`, `install/panel/{install.sh,render-config.py}`,
-`config/site.env.example`, `internal/config` hostname/origin loading and tests,
+`config/site.env.example`, `internal/platform/config` hostname/origin loading and tests,
 `internal/app/app.go`, identity setup/account handlers and their API callers,
 auth origin/cookie middleware, setup/takeover pages, `docs/deploy.md` and
 `deploy/tests/panel-foundation.py`. Follow their imports before editing. Investigate

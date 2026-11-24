@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostd"
+	"shippin.cloud/console/internal/infrastructure/hostd"
 )
 
 type wsSpec struct {

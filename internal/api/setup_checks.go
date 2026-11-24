@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/managed"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/services/managed"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // Setup checklist per tenant: real state read from the DB and config, never assumed. Each check

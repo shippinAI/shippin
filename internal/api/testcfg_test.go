@@ -1,6 +1,6 @@
 package api
 
-import "shippin.cloud/console/internal/config"
+import "shippin.cloud/console/internal/platform/config"
 
 // testWS is a representative workspaces config (same shape as config/shippin.example.json).
 func testWS() config.Workspaces {

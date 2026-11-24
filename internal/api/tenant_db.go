@@ -11,7 +11,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/tenantdb"
+	"shippin.cloud/console/internal/services/tenantdb"
 )
 
 // sqlLogger records SQL before it runs. A failed Begin must stop the statement.

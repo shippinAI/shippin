@@ -8,7 +8,7 @@ merging current public branches does not adopt that private history.
 
 `api/openapi/` owns the draft API contract. `cmd/console` and `internal/` own the
 control plane imported from shippin-console `e35ab817bbfedc626f35aa2f42760df49d4684c2`.
-`web/` owns the panel, and there is only one. See [panel variants](panel-variants.md). `cmd/shippin-hostd` and `internal/hostd` own the host agent.
+`web/` owns the panel, and there is only one. See [panel variants](panel-variants.md). `cmd/shippin-hostd` and `internal/infrastructure/hostd` own the host agent.
 `internal/hv/` owns the hypervisor drivers. `agent/` owns a host-side diagnostic, not assistant skills. `.agents/library/` owns the canonical skill library that external assistants load after a flat export. `.agents/skills/` owns the flat workflow skills for agents editing this repository. `third_party/warden-ct102` is a
 reference import that is not served, kept until its remaining features are ported. `install/panel/`, `install/docker/`,
 `Dockerfile` and `compose.yaml` own deployment.
@@ -34,14 +34,14 @@ provider view until recovery. Discovery does not assign tenant ownership or gran
 staff permissions. Host attachment, live deployment verification, and guest shell
 or console support remain separate capabilities.
 
-`internal/orgs/` owns the explicit registry links between the internal Operations
+`internal/tenancy/orgs/` owns the explicit registry links between the internal Operations
 organization, its local identity organization and the system tenant, and between
 customer organizations and their tenants. Staff invitations and assignments use
 the internal identity link; they never infer customer membership from the owner's
 first organization. Existing customer memberships survive migration. The separate
 legacy staff assignment models still need reconciliation into scoped grants.
 
-`internal/projects/` owns organization workspace groups (`shippin_workspaces`) and
+`internal/tenancy/projects/` owns organization workspace groups (`shippin_workspaces`) and
 the workspace-to-project relationship. `web/src/features/workspaces/` owns that
 grouping UI; `web/src/features/devspaces/` owns compute-instance UI. These are
 modules of the single panel. Existing compute `workspaces` table IDs and API/detail
@@ -57,13 +57,13 @@ See [the console import](absorption/merge-from-shippin-console.md). No candidate
 accepted merely by being present in another repository; review source provenance,
 ownership, dependencies and tests before adopting it.
 
-`internal/networking/` owns installation-scoped Cloudflare Tunnel, Tailscale, and
+`internal/infrastructure/networking/` owns installation-scoped Cloudflare Tunnel, Tailscale, and
 custom inventory connections. It persists configuration and observed resource rows
 under `shippin_` table names, seals credentials through the configured installation
 key, and treats remote inventory as observation rather than a deployed change.
 
-`internal/catalog/` owns reusable service definitions, customer plan/configuration
-and pinned source provenance. `internal/deployments/` owns tenant-scoped deployment
+`internal/services/catalog/` owns reusable service definitions, customer plan/configuration
+and pinned source provenance. `internal/services/deployments/` owns tenant-scoped deployment
 generations, the transactional `shippin_` outbox, provider targets, desired/observed
 state, reconciliation and deployment events. The transactional outbox producer,
 leader relay and generation-keyed job worker are implemented. For an approved
@@ -83,13 +83,13 @@ Upgrades, backup/restore, complete service lifecycle and Proxmox application
 execution are not implemented, so this partial runtime is not yet a turnkey
 deployable service.
 `internal/runtime/runner` and `internal/runtime/runner_job` own platform build
-runners. `internal/gh` owns their GitHub integration, `internal/services/runner_size`
+runners. `internal/integrations/gh` owns their GitHub integration, `internal/services/runner_size`
 their sizes, and `internal/integrations/github_repository` their tenant-scoped
 repository assignments. Their actions use MCPL and the single `web/` panel; see
-[build runners](runners.md). `internal/jobs/` remains the durable worker lease/retry
+[build runners](runners.md). `internal/services/jobs/` remains the durable worker lease/retry
 mechanism, not deployment truth.
 
-PR #18's earlier file-based prototype is retained in `internal/runfleet` and
+PR #18's earlier file-based prototype is retained in `internal/runtime/runfleet` and
 `cmd/shippin-run` for standalone legacy fleet-file compatibility and evaluation.
 It does not own platform runners, share panel credentials or databases, or grant
 tenant access. The console must not depend on this package; a dependency-boundary
@@ -100,7 +100,7 @@ distinguishes preservation from platform feature completion. The Warden HTML sta
 unmounted.
 
 `internal/hv/incus/` and `internal/hv/proxmox/` retain provider-specific
-guest behavior; `internal/hostd/` owns only the bounded in-guest bootstrap and
+guest behavior; `internal/infrastructure/hostd/` owns only the bounded in-guest bootstrap and
 workload operations exposed through its authenticated contract. No provider or
 builder implementation may be hidden in the
 catalog handlers or the React panel.

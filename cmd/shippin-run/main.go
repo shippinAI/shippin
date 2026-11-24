@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"shippin.cloud/console/internal/runfleet"
+	"shippin.cloud/console/internal/runtime/runfleet"
 )
 
 const usageText = `usage: shippin-run <command>

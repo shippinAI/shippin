@@ -7,7 +7,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // discoverProjects lists devspace folders that look like projects (git repo or package manifest),

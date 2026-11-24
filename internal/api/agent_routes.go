@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"shippin.cloud/console/internal/agentruns"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/runtime/agentruns"
 )
 
 // promptRoutes: M4 prompt → project and the build agent's progress (Shippin's own view of it).

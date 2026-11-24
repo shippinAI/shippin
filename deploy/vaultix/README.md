@@ -2,7 +2,7 @@
 
 Vaultix = stock Infisical (pinned by digest in `env.example`) behind the Shippin console. People sign in to the
 console with Nomen (OIDC); the console provisions one Vaultix organization + workspace per person
-(`internal/vaultixhost`) and is the only UI. The keyring CLI (`vaultix`) gets its own per-person machine identity.
+(`internal/integrations/vaultixhost`) and is the only UI. The keyring CLI (`vaultix`) gets its own per-person machine identity.
 
 | File | What |
 |---|---|

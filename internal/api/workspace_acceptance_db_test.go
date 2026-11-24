@@ -2,7 +2,7 @@ package api
 
 import (
 	"net/http/httptest"
-	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/services/jobs"
 	"testing"
 )
 

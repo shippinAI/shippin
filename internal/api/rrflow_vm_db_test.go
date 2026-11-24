@@ -8,11 +8,11 @@ import (
 	"sync"
 	"testing"
 
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/managed"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/services/jobs"
+	"shippin.cloud/console/internal/services/managed"
 )
 
 // TestRRFlowPerVM (D36): two pre-D36 instances on one VM move (MigrateTenant) into one shared instance with

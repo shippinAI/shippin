@@ -3,9 +3,9 @@ package api
 import (
 	"time"
 
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/vaultix"
+	"shippin.cloud/console/internal/integrations/vaultix"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // vaultixDeps is the console's Vaultix (Infisical) client; nil while vaultix.enabled is false.

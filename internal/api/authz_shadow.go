@@ -4,8 +4,8 @@ import (
 	"context"
 	"slices"
 
-	"shippin.cloud/console/internal/authz"
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/access/authz"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // shadowCtx sends each role decision to OpenFGA as well (N2, mode "shadow"). The caller's

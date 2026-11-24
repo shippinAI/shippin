@@ -5,7 +5,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // projectRoutes mounts the M1 projects API on tenant membership: any member reads, only an org

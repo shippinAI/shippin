@@ -14,7 +14,7 @@ import (
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/ext"
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
 )
 
 type fakeLifecycle struct {

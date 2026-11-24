@@ -11,7 +11,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/vaultix"
+	"shippin.cloud/console/internal/integrations/vaultix"
 )
 
 // connectScope is the tenant's Vaultix folder for one workspace's provider tokens.

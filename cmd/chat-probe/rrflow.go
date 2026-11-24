@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/managed"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/services/managed"
 )
 
 // attachRRFlow mirrors the console's service.provision job for one workspace: ensure the tenant

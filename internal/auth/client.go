@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // HTTPClient reaches the IdP via the internal edge, trusting the edge CA.

@@ -24,8 +24,8 @@ import (
 	"strings"
 	"time"
 
-	"shippin.cloud/console/internal/rrflow/state"
-	"shippin.cloud/console/internal/rrflow/stateapi"
+	"shippin.cloud/console/internal/integrations/rrflow/state"
+	"shippin.cloud/console/internal/integrations/rrflow/stateapi"
 )
 
 func main() {

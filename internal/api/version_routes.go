@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/version"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/platform/version"
 )
 
 // updateStatus is what the last check found. Checked stays false until one has finished, so the

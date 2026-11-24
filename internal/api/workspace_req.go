@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
 )
 
 var slugRe = regexp.MustCompile(`[^a-z0-9-]+`)

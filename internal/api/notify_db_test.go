@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/mail"
+	"shippin.cloud/console/internal/platform/mail"
 )
 
 // notifyAPI is an API on a disposable Postgres (SHIPPIN_TEST_DATABASE_URL) with fixed

@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/actions"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/limits"
+	"shippin.cloud/console/internal/ext/limits"
+	"shippin.cloud/console/internal/ext/placement"
 	"shippin.cloud/console/internal/mcpl"
-	"shippin.cloud/console/internal/placement"
+	"shippin.cloud/console/internal/services/jobs"
 	"shippin.cloud/console/internal/settings"
 )
 

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/managed"
+	"shippin.cloud/console/internal/services/managed"
 )
 
 // Chat state per 02c-rrflow.md: the project's rrflow/state instance (on the tenant boundary VM)

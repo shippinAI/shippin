@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/vaultix"
-	"shippin.cloud/console/internal/vaultixhost"
+	"shippin.cloud/console/internal/integrations/vaultix"
+	"shippin.cloud/console/internal/integrations/vaultixhost"
 )
 
 // RegisterVaultixHosted mounts /v1/vaultix: every signed-in person gets their own Vaultix

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"shippin.cloud/console/internal/runfleet"
+	"shippin.cloud/console/internal/runtime/runfleet"
 )
 
 // serveMCP speaks JSON-RPC 2.0 on stdio. Tool results are JSON text plus structuredContent.

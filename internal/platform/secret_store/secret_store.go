@@ -18,9 +18,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"shippin.cloud/console/internal/integrations/vaultix"
 	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/ports"
-	"shippin.cloud/console/internal/vaultix"
 )
 
 // aad binds the sealed client secret to this purpose, so it can't be opened as another sealed value.

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"shippin.cloud/console/internal/apps"
+	"shippin.cloud/console/internal/runtime/apps"
 )
 
 func TestAppsPrintIsOfficial(t *testing.T) {

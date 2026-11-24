@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"shippin.cloud/console/internal/acquisition"
+	"shippin.cloud/console/internal/tenancy/acquisition"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/hostd"
+	"shippin.cloud/console/internal/infrastructure/hostd"
 	"shippin.cloud/console/internal/mcpl"
 )
 

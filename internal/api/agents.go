@@ -10,9 +10,9 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/agents"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/identity/agents"
 )
 
 // agentDeps: the store and the IdP call that creates the service user (test seams; nil = real).

@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 func TestPlatformHealthServiceLifecycleAndReadOnlyList(t *testing.T) {

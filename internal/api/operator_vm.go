@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // opTenantVM: the tenant VM (size, usage, nested containers) or mode "legacy".

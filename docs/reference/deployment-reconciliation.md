@@ -4,7 +4,7 @@
 
 **Scope:** Stage E of [the platform absorption plan](../archive/platform-absorption-plan.md)
 
-**Owners:** `internal/deployments` owns desired/observed deployment truth; `internal/jobs` owns worker leases; `internal/hv/{incus,proxmox}` owns provider-specific guest operations; `web/` remains the only panel.
+**Owners:** `internal/services/deployments` owns desired/observed deployment truth; `internal/services/jobs` owns worker leases; `internal/hv/{incus,proxmox}` owns provider-specific guest operations; `web/` remains the only panel.
 
 ## Context and observed current behavior (2026-11-06)
 
@@ -114,7 +114,7 @@ provider environment configuration only when the selected endpoint has the
 explicit tenant-secret trust acknowledgement. Values remain visible to Incus
 administrators, so this is not a secret-isolation boundary.
 
-`internal/deployments` owns the typed reconcile request, operation identity, desired/observed transition, event persistence and authorization orchestration. Provider adapters own Incus versus Proxmox API requests, task polling, guest identity tags and provider read-back. A dedicated runtime adapter inside the provider guest owns application installation/configuration. Incus and Proxmox retain separate lifecycle code; common service semantics do not erase provider-specific failure handling.
+`internal/services/deployments` owns the typed reconcile request, operation identity, desired/observed transition, event persistence and authorization orchestration. Provider adapters own Incus versus Proxmox API requests, task polling, guest identity tags and provider read-back. A dedicated runtime adapter inside the provider guest owns application installation/configuration. Incus and Proxmox retain separate lifecycle code; common service semantics do not erase provider-specific failure handling.
 
 Initial execution should be limited to an explicitly documented runtime/provider pair whose image, resource, storage, network, credential, upgrade and recovery behavior is implemented and tested end to end. A catalog entry that lacks that executor is not deployable and must not be presented with an enabled action. PostgreSQL, Dragonfly, Redis and ClickHouse each require an engine-specific supported recipe and persistent-volume/recovery contract; a generic image pull is not turnkey deployment.
 
@@ -299,7 +299,7 @@ listed behavior and failure evidence. Each implementation stays in the canonical
 owner in `platform-consolidation-plan.md`, is committed directly to `main` after
 local checks, and must pass CI before starting its dependent packet.
 
-1. **Health-probe security boundary** (`internal/healthprobe`, `internal/servers`, `internal/api`, `internal/hostd`):
+1. **Health-probe security boundary** (`internal/infrastructure/healthprobe`, `internal/infrastructure/servers`, `internal/api`, `internal/infrastructure/hostd`):
    configured console probes are bounded, do not follow redirects, keep endpoint
    health separate from provider state, and cover cancellation, unreachable
    targets and redaction. The authenticated per-server protocol now binds
@@ -307,8 +307,8 @@ local checks, and must pass CI before starting its dependent packet.
    Remaining work is disposable-host validation of real routing, restart, and
    pass/fail behavior. Do not infer a route from provider-reported guest
    addresses.
-2. **Finish deployment runtime** (`internal/deployments`, `internal/jobs`,
-   `internal/hv`, `internal/hostd`, existing deployment UI): finish the
+2. **Finish deployment runtime** (`internal/services/deployments`, `internal/services/jobs`,
+   `internal/hv`, `internal/infrastructure/hostd`, existing deployment UI): finish the
    live-test the generation-bound health contract, safe update and rollback, delete with
    provider read-back, restart recovery and unsupported-state reporting. The
    desired-absent Incus OCI path is being implemented as an independent typed
@@ -318,7 +318,7 @@ local checks, and must pass CI before starting its dependent packet.
    one complete Incus service path on a disposable host before widening the
    catalog; implement and prove a separate Proxmox bootstrap/runtime before
    advertising Proxmox application deployment.
-3. **Make catalog sources executable** (`internal/catalog`, isolated builder,
+3. **Make catalog sources executable** (`internal/services/catalog`, isolated builder,
    existing catalog UI): review source-family rights and dependencies first;
    support pinned Git/custom source, bounded isolated fetch/build, digest and
    provenance, secret mounts, cancellation, cleanup and failure recovery. Adding
@@ -329,7 +329,7 @@ local checks, and must pass CI before starting its dependent packet.
    a validated configuration form, resource/storage/network limits, secret
    rotation, health, upgrade policy, backup and restore proof, removal and
    restart recovery. Document capabilities and unsupported HA modes per engine.
-5. **Complete connectivity** (`internal/networking`, existing Infrastructure
+5. **Complete connectivity** (`internal/infrastructure/networking`, existing Infrastructure
    UI): add/edit/test/refresh/remove Cloudflare Tunnel, Tailscale and custom
    connections with scoped sealed credentials, safe provider-write review,
    observed inventory, explicit stable-system association and audit. Define

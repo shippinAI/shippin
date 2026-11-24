@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
+	"shippin.cloud/console/internal/services/jobs"
 )
 
 var serverCommandFailure = regexp.MustCompile(`^[a-z][a-z0-9_.-]{0,79}$`)

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"log"
 
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/managed"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/services/jobs"
+	"shippin.cloud/console/internal/services/managed"
 )
 
 // runServiceJob (service.provision): ensure the tenant VM's shared rrflow/state instance (Notion

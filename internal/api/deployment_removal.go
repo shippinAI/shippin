@@ -8,10 +8,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/deployments"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/incus"
-	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/services/deployments"
+	"shippin.cloud/console/internal/services/jobs"
 )
 
 type incusOCIRemovalProvider interface {

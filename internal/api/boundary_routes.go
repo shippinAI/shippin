@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // boundaryRoutes is the operator-only, read-only view of boundary VMs (users never see them).

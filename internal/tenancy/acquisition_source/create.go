@@ -1,8 +1,8 @@
 package acquisition_source
 
 import (
-	"shippin.cloud/console/internal/acquisition"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/tenancy/acquisition"
 )
 
 type CreateInput struct {

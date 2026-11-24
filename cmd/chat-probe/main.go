@@ -13,10 +13,10 @@ import (
 	"os"
 	"time"
 
-	"shippin.cloud/console/internal/chat"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/runtime/chat"
 )
 
 func main() {

@@ -7,7 +7,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/tenantdb"
+	"shippin.cloud/console/internal/services/tenantdb"
 )
 
 func (a *API) dbTables(w http.ResponseWriter, r *http.Request) {

@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/ext"
-	"shippin.cloud/console/internal/jobs"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/services/jobs"
 	"shippin.cloud/console/internal/settings"
 )
 

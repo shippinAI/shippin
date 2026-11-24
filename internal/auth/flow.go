@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 const (

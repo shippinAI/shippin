@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // teamSaveSettings replaces the team settings (audited with the write). Switching to enforce

@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"shippin.cloud/console/internal/subs"
+	"shippin.cloud/console/internal/runtime/subs"
 )
 
 func TestSubscriptionPolicy(t *testing.T) {

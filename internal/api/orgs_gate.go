@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/orgs"
+	"shippin.cloud/console/internal/tenancy/orgs"
 )
 
 func (a *API) orgStore() *orgs.Store { return &orgs.Store{Pool: a.db.Pool} }

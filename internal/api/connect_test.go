@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 func TestWSFrameRoundTrip(t *testing.T) {

@@ -2,7 +2,7 @@ package api
 
 import (
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
 	"testing"
 )
 

@@ -15,10 +15,10 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hub"
-	"shippin.cloud/console/internal/spa"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/platform/spa"
+	"shippin.cloud/console/internal/runtime/hub"
 )
 
 func loopback(addr string) bool {

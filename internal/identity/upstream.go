@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // Discovery is the subset of an OpenID provider configuration this directory uses.

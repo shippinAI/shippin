@@ -10,12 +10,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/agentruns"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/subs"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/runtime/agentruns"
+	"shippin.cloud/console/internal/runtime/subs"
+	"shippin.cloud/console/internal/services/jobs"
 )
 
 // TestPromptProjectFlow: M4 (implementation-plan-3) — prompt cap, idempotent-safe create, waiting_ai

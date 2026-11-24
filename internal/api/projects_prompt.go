@@ -9,11 +9,11 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"shippin.cloud/console/internal/agentruns"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/runtime/agentruns"
+	"shippin.cloud/console/internal/services/jobs"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 type promptIn struct {

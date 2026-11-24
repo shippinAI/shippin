@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"shippin.cloud/console/internal/apps"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/runtime/apps"
 )
 
 func (a *API) appsRoutes(mux Router) {

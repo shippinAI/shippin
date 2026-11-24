@@ -18,8 +18,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/orgs"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/tenancy/orgs"
 )
 
 var (

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
 )
 
 type instanceView struct {

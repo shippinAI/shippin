@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 func testService(t *testing.T) (*Service, *capture) {

@@ -14,7 +14,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"shippin.cloud/console/internal/hostd"
+	"shippin.cloud/console/internal/infrastructure/hostd"
 )
 
 // wsClientFrame is one masked client frame, as a browser sends it.
@@ -72,7 +72,7 @@ func wsCloseOf(p []byte) (int, string) {
 
 func TestParseTermControl(t *testing.T) {
 	for raw, want := range map[string]bool{
-		`{"type":"resize","rows":40,"cols":120}`:  true,
+		`{"type":"resize","rows":40,"cols":120}`:   true,
 		`{"type":"resize","rows":500,"cols":1000}`: true,
 		`{"type":"resize","rows":0,"cols":120}`:    false,
 		`{"type":"resize","rows":40,"cols":1001}`:  false,

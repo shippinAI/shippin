@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strings"
 
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // The IdP issuer is ops-editable like the other platform settings, but the OIDC client is built

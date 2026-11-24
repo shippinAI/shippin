@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
 )
 
 func importCall(a *API, c *caller, tenant, body string) *httptest.ResponseRecorder {

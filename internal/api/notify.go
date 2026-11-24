@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/mail"
+	"shippin.cloud/console/internal/platform/mail"
 )
 
 // SetNotifier enables e-mail notices (nil keeps them off).

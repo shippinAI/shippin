@@ -3,8 +3,8 @@ package acquisition_source
 import (
 	"time"
 
-	"shippin.cloud/console/internal/acquisition"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/tenancy/acquisition"
 )
 
 var Sync = mcpl.Def[ByID, SyncResult]{

@@ -2,7 +2,7 @@ package api
 
 import (
 	"shippin.cloud/console/internal/ext"
-	"shippin.cloud/console/internal/limits"
+	"shippin.cloud/console/internal/ext/limits"
 )
 
 // limits is the limits policy the panel uses: the registered module's, or today's plan limits.

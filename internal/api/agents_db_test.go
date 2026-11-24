@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/agents"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/identity/agents"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // TestAgentIdentities: the agent is an IdP service user in the tenant's own org, delegated by the

@@ -7,7 +7,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // nomenSubRe: Nomen user ids are numeric (also keeps the IdP path clean).

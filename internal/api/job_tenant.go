@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/services/jobs"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // reconcilerActor is created_by / audit actor for work the console starts by itself.

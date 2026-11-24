@@ -11,9 +11,9 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/catalog"
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/deployments"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/services/catalog"
+	"shippin.cloud/console/internal/services/deployments"
 )
 
 func (a *API) deploymentStore() *deployments.Store {

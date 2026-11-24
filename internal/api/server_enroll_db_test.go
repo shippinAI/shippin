@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"shippin.cloud/console/internal/enroll"
+	"shippin.cloud/console/internal/infrastructure/enroll"
 )
 
-// TestEnrollEndToEnd: the real hostd agent (internal/enroll) against the real console handlers and
+// TestEnrollEndToEnd: the real hostd agent (internal/infrastructure/enroll) against the real console handlers and
 // database: token → enroll → active → beats stop → stale → beats resume → active → revoke → the
 // agent is rejected and drops its credential. The token works exactly once.
 func TestEnrollEndToEnd(t *testing.T) {

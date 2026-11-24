@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"time"
 
-	"shippin.cloud/console/internal/hostd"
+	"shippin.cloud/console/internal/infrastructure/hostd"
 )
 
 // storageCmd talks to the running hostd over its unix socket.

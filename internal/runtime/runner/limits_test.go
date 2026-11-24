@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"shippin.cloud/console/internal/limits"
+	"shippin.cloud/console/internal/ext/limits"
 )
 
 type fixedLimits limits.Runners

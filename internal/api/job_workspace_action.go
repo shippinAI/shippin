@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/services/jobs"
 	"strings"
 	"time"
 )

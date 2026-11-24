@@ -11,7 +11,7 @@ Shippin must not seed a person, role, host or default action policy.
 
 ## Current Shippin behavior and gap
 
-`internal/approval.Policy` remains a Shippin-local permission policy for the
+`internal/runtime/approval.Policy` remains a Shippin-local permission policy for the
 optional agent task board. It is not an AgentHub adapter and it cannot authorize
 hypervisor changes. Compiled fallback approvers and example role rules have been
 removed. The `HUB_OWNER_SUB` / `HUB_OWNER_EMAIL` direct-owner bypass was also
@@ -19,7 +19,7 @@ removed.
 
 The former provider board drivers were not AgentHub:
 
-- `hub` wrote cards into this Shippin installation's `internal/hub` store.
+- `hub` wrote cards into this Shippin installation's `internal/runtime/hub` store.
 - `http` spoke this console's `/v1/hub/approvals` contract.
 - `off` disabled that board; it was not a human-review policy source.
 

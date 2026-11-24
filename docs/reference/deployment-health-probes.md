@@ -13,14 +13,14 @@ catalog service is turnkey or production ready.
 - The server enrollment protocol owns delivery to the selected target. The host
   credential authenticates one server; it cannot poll another server's command
   or submit that command's result.
-- `internal/hostd` owns Incus-local identity and network read-back. It derives
+- `internal/infrastructure/hostd` owns Incus-local identity and network read-back. It derives
   the instance name from the deployment UUID and verifies the deployment ID,
   generation, image reference hash, running state, NIC and managed network in
   the configured Incus project.
-- `internal/healthprobe` owns the bounded TCP/HTTP behavior. It receives only an
+- `internal/infrastructure/healthprobe` owns the bounded TCP/HTTP behavior. It receives only an
   IP derived from verified Incus state and never accepts a host, URL, proxy or
   executable from the deployment request.
-- `internal/deployments` owns the plan, step intent, result reconciliation,
+- `internal/services/deployments` owns the plan, step intent, result reconciliation,
   generation fence, health history and observed deployment state. AgentHub
   remains the only policy authority for provider writes; this probe is read only.
 

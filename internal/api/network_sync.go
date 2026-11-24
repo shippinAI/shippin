@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"shippin.cloud/console/internal/networking"
+	"shippin.cloud/console/internal/infrastructure/networking"
 )
 
 // RunNetworkInventory refreshes only integrations whose configured observation interval elapsed.

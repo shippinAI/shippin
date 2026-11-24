@@ -115,7 +115,7 @@ Choice: **`incus exec tvm-<t> -- incus …` through the Incus VM agent (virtio-v
   tenant, plus trust the VM's server cert. More moving parts, more secrets, bigger attack surface.
 - The vsock channel is host → guest; hostd authenticates the guest implicitly (Incus picks the VM by
   name), and the guest gains nothing on the host. hostd keeps its rules: argv only, no shell, a closed
-  allowlist of commands. The wrapper (`internal/hostd/inner.go`) takes the same argv hostd uses on the
+  allowlist of commands. The wrapper (`internal/infrastructure/hostd/inner.go`) takes the same argv hostd uses on the
   host and prefixes `exec tvm-<t> --project=t-<t> --`.
 - **Output from the guest is untrusted** (a tenant who escaped into its VM controls it): hostd only
   parses it as JSON into typed structs, size-bounded, and IPs returned are checked to be inside the

@@ -11,7 +11,7 @@ import (
 
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/incus"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
 )
 
 // Existing provider resources need no Shippin creation or import record. Exercise the real

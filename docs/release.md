@@ -23,7 +23,7 @@ Versions are Semantic Versioning, `0.MINOR.PATCH` until the first stable release
 - an edge build is `<next version>-edge.<UTC date>.<short commit>`;
 - a local build is `0.0.0-dev`.
 
-Every binary carries its version, channel, commit and build time (`internal/version`, set with `-ldflags`; the Dockerfile takes `VERSION` and `CHANNEL` build arguments). The console logs them when it starts, `/v1/version` returns them to operators, and the panel's top bar shows them, so a person can always say exactly what they run. `/healthz` does not, because it needs no sign-in.
+Every binary carries its version, channel, commit and build time (`internal/platform/version`, set with `-ldflags`; the Dockerfile takes `VERSION` and `CHANNEL` build arguments). The console logs them when it starts, `/v1/version` returns them to operators, and the panel's top bar shows them, so a person can always say exactly what they run. `/healthz` does not, because it needs no sign-in.
 
 ## What each release carries
 

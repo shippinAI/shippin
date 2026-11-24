@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"shippin.cloud/console/internal/approval"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/proxmox"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
+	"shippin.cloud/console/internal/runtime/approval"
 )
 
 func TestInfraRoutesNeedTheInfraRole(t *testing.T) {

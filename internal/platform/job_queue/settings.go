@@ -1,11 +1,11 @@
-// Package job_queue is the settings of the durable job queue (internal/jobs): whether it runs and its
+// Package job_queue is the settings of the durable job queue (internal/services/jobs): whether it runs and its
 // timings. Starting and removing machines, provisioning and deployments use it.
 package job_queue
 
 import (
 	"errors"
 
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 	"shippin.cloud/console/internal/settings"
 )
 

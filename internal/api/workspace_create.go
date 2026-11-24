@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostd"
+	"shippin.cloud/console/internal/infrastructure/hostd"
 )
 
 // createWorkspace inserts the row, returns 202 and provisions in the background.

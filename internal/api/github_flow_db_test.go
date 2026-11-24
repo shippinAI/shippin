@@ -18,9 +18,9 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/gh"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/integrations/gh"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // fakeGitHub answers token, repo-list and org-repo-create calls; fakeHost records hostd git ops.

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/bridge"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/runtime/bridge"
 )
 
 // Device sign-in for the bridge (RFC 8628 shape). The CLI starts it unauthenticated, a signed-in

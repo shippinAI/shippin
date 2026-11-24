@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/identity/devaccounts"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 func (a *API) registerDirectory(mux Router) {

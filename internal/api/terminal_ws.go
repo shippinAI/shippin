@@ -18,7 +18,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostd"
+	"shippin.cloud/console/internal/infrastructure/hostd"
 )
 
 // terminalSocket is the standalone Terminal view: a same-origin WebSocket bridged to hostd's
@@ -112,7 +112,7 @@ func (a *API) pipeTerminal(r *http.Request, conn net.Conn, br *bufio.Reader, up 
 		}
 	}()
 	idleAt := time.Now().Add(lim.idle) // only keystrokes count as activity, not resizes
-	for {                                  // browser -> workspace
+	for {                              // browser -> workspace
 		_ = conn.SetReadDeadline(idleAt)
 		op, p, err := wsReadOp(br, lockedWriter{conn, &mu})
 		if err != nil {
@@ -216,9 +216,12 @@ type problemCapture struct {
 	body   []byte
 }
 
-func (p *problemCapture) Header() http.Header         { return http.Header{} }
-func (p *problemCapture) Write(b []byte) (int, error) { p.body = append(p.body, b...); return len(b), nil }
-func (p *problemCapture) WriteHeader(s int)           { p.status = s }
+func (p *problemCapture) Header() http.Header { return http.Header{} }
+func (p *problemCapture) Write(b []byte) (int, error) {
+	p.body = append(p.body, b...)
+	return len(b), nil
+}
+func (p *problemCapture) WriteHeader(s int) { p.status = s }
 
 func (p *problemCapture) message() string {
 	var m struct{ Message string }

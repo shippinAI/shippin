@@ -7,7 +7,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
 )
 
 // serverProblem maps registry errors to problems (no secret or hash is ever in the message).

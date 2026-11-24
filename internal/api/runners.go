@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/hv"
-	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/infrastructure/servers"
 	"shippin.cloud/console/internal/ports"
 	"shippin.cloud/console/internal/runtime/runner"
 	"shippin.cloud/console/internal/runtime/runner_job"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/services/jobs"
 )
 
 // runnerActor is who the infrastructure history names for machines build runners start and remove.

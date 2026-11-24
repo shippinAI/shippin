@@ -13,9 +13,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/services/jobs"
 )
 
 // The webhook route queues a start for a waiting job and a removal for the machine of one that ended;

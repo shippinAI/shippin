@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/subs"
+	"shippin.cloud/console/internal/runtime/subs"
 )
 
 func TestSubscriptionReportAtomicAndRevocationSticky(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/orgs"
+	"shippin.cloud/console/internal/tenancy/orgs"
 )
 
 // orgRoutes (CP-P0b): the org switcher list, the staff-only Operations views and support grants.

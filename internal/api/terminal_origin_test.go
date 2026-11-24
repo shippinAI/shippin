@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // F-1 / B4-3: the terminal refuses a foreign, null or missing Origin before anything else runs

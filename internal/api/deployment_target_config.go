@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"shippin.cloud/console/internal/deployments"
+	"shippin.cloud/console/internal/services/deployments"
 )
 
 var errDeploymentStoragePoolUnavailable = errors.New("deployment storage pool is not in the assigned target inventory")

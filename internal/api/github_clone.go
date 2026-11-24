@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/gh"
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/integrations/gh"
 )
 
 // runningDevspace is the caller's own first running devspace ("" if none); imports never land in

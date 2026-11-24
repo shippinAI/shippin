@@ -16,8 +16,8 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/hostd"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostd"
 )
 
 // fakeHostd answers the inventory and the terminal upgrade the way hostd does. The terminal

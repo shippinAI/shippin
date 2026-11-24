@@ -29,7 +29,7 @@ FROM source AS server
 # which is how the panel knows when it is behind; a source archive has no .git and builds unstamped.
 ARG VERSION=0.0.0-dev
 ARG CHANNEL=local
-RUN LDFLAGS="-X shippin.cloud/console/internal/version.version=${VERSION} -X shippin.cloud/console/internal/version.channel=${CHANNEL}" \
+RUN LDFLAGS="-X shippin.cloud/console/internal/platform/version.version=${VERSION} -X shippin.cloud/console/internal/platform/version.channel=${CHANNEL}" \
   && { CGO_ENABLED=0 go build -trimpath -ldflags "$LDFLAGS" -o /out/shippin-console ./cmd/console \
   || CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags "$LDFLAGS" -o /out/shippin-console ./cmd/console; }
 

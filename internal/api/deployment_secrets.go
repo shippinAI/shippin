@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/catalog"
-	"shippin.cloud/console/internal/deployments"
-	"shippin.cloud/console/internal/vaultix"
+	"shippin.cloud/console/internal/integrations/vaultix"
+	"shippin.cloud/console/internal/services/catalog"
+	"shippin.cloud/console/internal/services/deployments"
 )
 
 var errDeploymentSecretUnavailable = errors.New("deployment secret resolver is unavailable")

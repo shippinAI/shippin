@@ -185,7 +185,7 @@ Per-org shape, on top of that binary:
   starter cluster. That cluster stays the Vaultix free/starter exception only.
 - A devspace is a hub **project** row inside the org's database. Workspaces in the org point
   their CLIs at that one `HUB/mcp`, with a per-agent token file on the org's `~/.ai` (mode `0600`),
-  not the user's Nomen access token. `internal/config/agents.go` still stands for the console's
+  not the user's Nomen access token. `internal/platform/config/agents.go` still stands for the console's
   own agent identity (IdP service user now, Nomen token exchange with `act` later). The hub token
   is the hub's token, minted by `hub-server admin token create`, stored on the org dataset.
 - Human UI auth is `HUB_HUMAN_AUTH=proxy-header` behind the edge the console already has. No new

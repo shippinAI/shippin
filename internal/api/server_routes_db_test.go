@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
 )
 
 // TestServerAdminAuthz: only org owners/admins reach the server API; members get 403 everywhere.

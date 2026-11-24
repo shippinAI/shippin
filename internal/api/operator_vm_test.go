@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
 )
 
 func TestNestedStates(t *testing.T) {

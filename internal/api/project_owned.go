@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"shippin.cloud/console/internal/authz"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/access/authz"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // ownedReq is one project create, shared by tenant Adopt and the operator route.

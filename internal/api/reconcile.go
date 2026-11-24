@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/services/jobs"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // reconcileLock is the advisory lock that elects one reconciling console ("SHIPREC").

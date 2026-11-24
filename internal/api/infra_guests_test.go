@@ -9,9 +9,9 @@ import (
 	"sync"
 	"testing"
 
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/hv/proxmox"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 const guestServerID = "019a0000-0000-7000-8000-0000000000aa"

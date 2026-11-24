@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/chat"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/runtime/chat"
 )
 
 // chatSession loads the caller's session and re-checks they may still use its workspace.

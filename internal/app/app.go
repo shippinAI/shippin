@@ -18,15 +18,15 @@ import (
 	"shippin.cloud/console/internal/api"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/clickhouse"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/ext"
 	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/identity/devaccounts"
-	"shippin.cloud/console/internal/mail"
-	"shippin.cloud/console/internal/spa"
-	"shippin.cloud/console/internal/tlsfile"
-	"shippin.cloud/console/internal/version"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/platform/mail"
+	"shippin.cloud/console/internal/platform/spa"
+	"shippin.cloud/console/internal/platform/tlsfile"
+	"shippin.cloud/console/internal/platform/version"
 )
 
 // Main runs the console until it is told to stop. `console setup` prints a one-time setup code instead.

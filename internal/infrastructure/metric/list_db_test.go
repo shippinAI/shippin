@@ -13,10 +13,10 @@ import (
 	"shippin.cloud/console/internal/actions"
 	"shippin.cloud/console/internal/clickhouse"
 	"shippin.cloud/console/internal/infrastructure/metric"
+	"shippin.cloud/console/internal/infrastructure/servers"
 	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/mcpl/mcpltest"
 	"shippin.cloud/console/internal/ports"
-	"shippin.cloud/console/internal/servers"
 )
 
 type history struct{ ch *clickhouse.Client }

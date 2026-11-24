@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
 )
 
 // staffCaller holds exactly these permissions through a staff role, and nothing else.

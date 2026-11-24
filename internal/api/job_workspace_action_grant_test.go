@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/services/jobs"
 	"testing"
 )
 

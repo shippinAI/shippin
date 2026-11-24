@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/chat"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/runtime/chat"
 )
 
 // Console chat: server-backed sessions (the overlay and /chat read the same rows), answered by

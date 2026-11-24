@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 
 	"golang.org/x/crypto/argon2"
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 var usernamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{2,31}$`)

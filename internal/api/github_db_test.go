@@ -19,8 +19,8 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // fakeGitHub answers the App endpoints Shippin uses; the signing-in user can see installation 7.

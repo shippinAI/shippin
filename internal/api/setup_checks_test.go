@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"shippin.cloud/console/internal/managed"
+	"shippin.cloud/console/internal/services/managed"
 )
 
 func TestRRFlowCheck(t *testing.T) {

@@ -9,11 +9,11 @@ import (
 	"testing"
 
 	"shippin.cloud/console/internal/actions"
+	"shippin.cloud/console/internal/infrastructure/servers"
 	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/mcpl/mcpltest"
 	"shippin.cloud/console/internal/platform/secret_store"
 	"shippin.cloud/console/internal/ports"
-	"shippin.cloud/console/internal/servers"
 )
 
 // fakeVaultix answers the Vaultix calls the store makes, for one identity, one project and one

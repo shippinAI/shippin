@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 func providerCfg() *config.Config {

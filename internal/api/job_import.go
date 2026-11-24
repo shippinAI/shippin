@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/services/jobs"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // runImportJob (project.import) waits for the project to be placeable, then creates its first

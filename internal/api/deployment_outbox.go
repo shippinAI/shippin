@@ -7,8 +7,8 @@ import (
 	"log"
 	"strconv"
 
-	"shippin.cloud/console/internal/deployments"
-	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/services/deployments"
+	"shippin.cloud/console/internal/services/jobs"
 )
 
 type deploymentWakeup struct {

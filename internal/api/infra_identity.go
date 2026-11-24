@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/agenthub"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
+	"shippin.cloud/console/internal/integrations/agenthub"
 )
 
 func (a *API) infraSystemIdentity(w http.ResponseWriter, r *http.Request, _ *caller) {

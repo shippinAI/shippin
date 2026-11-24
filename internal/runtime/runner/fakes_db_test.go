@@ -11,11 +11,11 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"shippin.cloud/console/internal/infrastructure/servers"
 	"shippin.cloud/console/internal/mcpl/mcpltest"
 	"shippin.cloud/console/internal/ports"
 	"shippin.cloud/console/internal/runtime/runner"
 	"shippin.cloud/console/internal/runtime/runner_job"
-	"shippin.cloud/console/internal/servers"
 )
 
 const (

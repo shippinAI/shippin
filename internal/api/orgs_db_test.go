@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/orgs"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/tenancy/orgs"
 )
 
 // orgTestAPI: real DB, orgs on, the caller swappable per request (who).

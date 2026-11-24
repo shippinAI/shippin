@@ -12,10 +12,10 @@ import (
 	"os/exec"
 	"time"
 
-	"shippin.cloud/console/internal/catalog"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostd"
-	"shippin.cloud/console/internal/spa"
+	"shippin.cloud/console/internal/infrastructure/hostd"
+	"shippin.cloud/console/internal/platform/spa"
+	"shippin.cloud/console/internal/services/catalog"
 )
 
 func env(k, def string) string {

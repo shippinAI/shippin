@@ -1,8 +1,8 @@
 package lead
 
 import (
-	"shippin.cloud/console/internal/acquisition"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/tenancy/acquisition"
 	"shippin.cloud/console/internal/tenancy/acquisition_source"
 )
 

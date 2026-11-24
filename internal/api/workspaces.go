@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
 )
 
 // tenantCtx resolves caller + tenant from the path, or writes a problem.

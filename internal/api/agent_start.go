@@ -6,9 +6,9 @@ import (
 	"errors"
 	"log"
 
-	"shippin.cloud/console/internal/agentruns"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/subs"
+	"shippin.cloud/console/internal/runtime/agentruns"
+	"shippin.cloud/console/internal/runtime/subs"
+	"shippin.cloud/console/internal/services/jobs"
 )
 
 // deliverAndStart is the agent step: the run's owner must be signed in to the provider with their

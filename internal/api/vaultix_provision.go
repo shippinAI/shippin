@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"shippin.cloud/console/internal/vaultix"
+	"shippin.cloud/console/internal/integrations/vaultix"
 )
 
 // ensureVaultixProject makes the tenant's Vaultix project (<prefix><tenant uuid>, the console

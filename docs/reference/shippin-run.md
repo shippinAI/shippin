@@ -1,8 +1,8 @@
 # Legacy runner prototype configuration
 
-`internal/runfleet` and `cmd/shippin-run` contain the earlier standalone prototype.
+`internal/runtime/runfleet` and `cmd/shippin-run` contain the earlier standalone prototype.
 For the current panel's tenant-scoped build runners, use [Build runners](../runners.md).
-`internal/jobs` is the console worker and is not a GitHub runner. The Warden
+`internal/services/jobs` is the console worker and is not a GitHub runner. The Warden
 reference files under `third_party/warden-ct102` are not served.
 [Health](../specs/runner-fleet-health-and-stats.md) describes the probes.
 [Deploy](shippin-run-deploy.md) is the host and DNS procedure.
@@ -21,7 +21,7 @@ claim that all prototype capabilities have been integrated into the panel.
 | --- | --- |
 | Fleet file and Warden-shaped inventory | Standalone compatibility tool only. Platform machine state belongs to `internal/runtime/runner` and PostgreSQL. |
 | Account onboarding, shared organization runners, automatic public-repo approval | Prototype behavior only. Platform repository assignments require tenant management permission and use one VM per job; no shared-runner policy is imported. |
-| GitHub credentials, webhook, HTTP and hand-written MCP | Isolated prototype process only. Platform uses `internal/gh`, its one webhook and generated MCPL actions. Never route panel clients through this process. |
+| GitHub credentials, webhook, HTTP and hand-written MCP | Isolated prototype process only. Platform uses `internal/integrations/gh`, its one webhook and generated MCPL actions. Never route panel clients through this process. |
 | Workflow previews and optional pull requests | Retained and tested in the prototype; not exposed by the panel. Review every proposed diff, including the placeholder build step in a new workflow. |
 | Redacted logs, retention and deterministic explanations | Retained and tested in the prototype. Platform job logs remain unfinished. Expired bodies are purged on access; zero retention purges immediately. No background timer or guaranteed recognition of every possible secret. |
 | Usage arithmetic and sample prices | Prototype comparison meter only; not billing authority. Platform job timing and plan limits retain their existing owners. |

@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"shippin.cloud/console/internal/tenantdb"
+	"shippin.cloud/console/internal/services/tenantdb"
 )
 
 // SQLAudit is one console SQL attempt. Status starts as "started" and becomes

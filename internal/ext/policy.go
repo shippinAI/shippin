@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"shippin.cloud/console/internal/limits"
-	"shippin.cloud/console/internal/placement"
+	"shippin.cloud/console/internal/ext/limits"
+	"shippin.cloud/console/internal/ext/placement"
 )
 
 // Policies are the places where the panel needs a business rule (docs/editions.md). The panel asks the
@@ -95,7 +95,7 @@ func Lifecycle() OrgLifecycle {
 }
 
 // Limits is the registered module's limits policy, or nil when no module sets one. The policy's types
-// are in internal/limits, so the work it limits can use them without importing this package.
+// are in internal/ext/limits, so the work it limits can use them without importing this package.
 func Limits() limits.Policy {
 	for _, m := range Modules() {
 		if m.Limits != nil {
@@ -106,7 +106,7 @@ func Limits() limits.Policy {
 }
 
 // Placement is the registered module's placement policy, or nil when no module sets one. Its types are
-// in internal/placement, for the same reason as the limits policy's.
+// in internal/ext/placement, for the same reason as the limits policy's.
 func Placement() placement.Policy {
 	for _, m := range Modules() {
 		if m.Placement != nil {

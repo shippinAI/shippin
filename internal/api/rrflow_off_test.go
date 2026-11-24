@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/managed"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/services/jobs"
+	"shippin.cloud/console/internal/services/managed"
 )
 
 // A queued service.provision job (from migration 026 or a newer release) never runs on a release

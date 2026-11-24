@@ -7,7 +7,7 @@ import (
 	"regexp"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/orgs"
+	"shippin.cloud/console/internal/tenancy/orgs"
 )
 
 var orgIDRe = regexp.MustCompile(`^[0-9]{6,32}$`)

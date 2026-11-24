@@ -15,11 +15,11 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/spa"
-	"shippin.cloud/console/internal/vaultix"
-	"shippin.cloud/console/internal/vaultixhost"
+	"shippin.cloud/console/internal/integrations/vaultix"
+	"shippin.cloud/console/internal/integrations/vaultixhost"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/platform/spa"
 )
 
 func env(k string) string {

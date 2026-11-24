@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/hv"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 type probeResult struct {

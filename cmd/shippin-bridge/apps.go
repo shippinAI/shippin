@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"shippin.cloud/console/internal/apps"
+	"shippin.cloud/console/internal/runtime/apps"
 )
 
 func appsCmd(args []string) error {

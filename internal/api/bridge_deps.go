@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"shippin.cloud/console/internal/bridge"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/sshca"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/runtime/bridge"
+	"shippin.cloud/console/internal/runtime/sshca"
 )
 
 // bridgeDeps backs devspace access through the Shippin MCP bridge; nil while bridge.enabled is

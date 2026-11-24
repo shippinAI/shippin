@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/gh"
+	"shippin.cloud/console/internal/integrations/gh"
 	"shippin.cloud/console/internal/integrations/github_app"
+	"shippin.cloud/console/internal/platform/config"
 	"shippin.cloud/console/internal/platform/job_queue"
 	"shippin.cloud/console/internal/runtime/runner"
 	"shippin.cloud/console/internal/settings"

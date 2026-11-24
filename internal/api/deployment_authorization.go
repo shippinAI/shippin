@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/agenthub"
-	"shippin.cloud/console/internal/deployments"
+	"shippin.cloud/console/internal/integrations/agenthub"
+	"shippin.cloud/console/internal/services/deployments"
 )
 
 type deploymentAuthorizationResult struct {

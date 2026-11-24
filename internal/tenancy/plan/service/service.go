@@ -7,7 +7,7 @@ package service
 import (
 	"encoding/json"
 
-	"shippin.cloud/console/internal/catalog"
+	"shippin.cloud/console/internal/services/catalog"
 )
 
 // Parent names the plan from the route.

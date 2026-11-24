@@ -3,7 +3,7 @@ package runner
 import (
 	"errors"
 
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 	"shippin.cloud/console/internal/settings"
 )
 

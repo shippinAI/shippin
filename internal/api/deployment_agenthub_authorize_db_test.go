@@ -13,8 +13,8 @@ import (
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/deployments"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
+	"shippin.cloud/console/internal/services/deployments"
 )
 
 func TestAuthorizeDeploymentReviewRecordsAllowAndNoMatchDenial(t *testing.T) {

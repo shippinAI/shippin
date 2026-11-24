@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"shippin.cloud/console/internal/actions"
-	"shippin.cloud/console/internal/limits"
+	"shippin.cloud/console/internal/ext/limits"
 	"shippin.cloud/console/internal/mcpl/mcpltest"
 	"shippin.cloud/console/internal/runtime/runner_job"
 )

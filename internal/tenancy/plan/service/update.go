@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"shippin.cloud/console/internal/catalog"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/services/catalog"
 	"shippin.cloud/console/internal/tenancy/plan"
 )
 

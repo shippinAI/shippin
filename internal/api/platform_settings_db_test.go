@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"shippin.cloud/console/internal/approval"
 	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/runtime/approval"
 )
 
 // Ops overrides of config keys: validated, audited with the write, cleared back to the config value.

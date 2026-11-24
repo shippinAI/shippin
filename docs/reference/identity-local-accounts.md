@@ -62,7 +62,7 @@ through the unprivileged idmap. It is not root on the VM and not root on the ref
 6. **Vaultix holds secrets. A PIN unlocks the human keyring. An AI identity fetches secrets
    without a person present.** See section 8. Nomen's own AI-identity write-up was not readable
    from this environment (`gh` returns 403 for the org). The in-repo sketch is
-   `internal/config/agents.go`: IdP service users now, Nomen token exchange with `act` later,
+   `internal/platform/config/agents.go`: IdP service users now, Nomen token exchange with `act` later,
    never a user's raw token. `internal/db/migrations/021_agents.sql` already stores
    `agent_identities` that way.
 7. **Paid offboarding keeps an archive for 6 months, on that org's dataset, then deletes it.**
@@ -88,11 +88,11 @@ table in section 11 is wrong and needs his correction.
 
 The MCP bridge already has an SSH user CA.
 
-- `internal/sshca` signs one principal, the workspace id.
-- `internal/config/bridge.go` caps that certificate at 60–3600 seconds and the device session at
+- `internal/runtime/sshca` signs one principal, the workspace id.
+- `internal/platform/config/bridge.go` caps that certificate at 60–3600 seconds and the device session at
   1–24 hours.
 - `internal/api/bridge_cert.go` puts the account id, the **email**, and the session id in the key id.
-- `internal/hostd/bridge_ca.go` installs `TrustedUserCAKeys` and an `AuthorizedPrincipalsFile`
+- `internal/infrastructure/hostd/bridge_ca.go` installs `TrustedUserCAKeys` and an `AuthorizedPrincipalsFile`
   for the single workspace user (`dev`, uid 1000 in the agent and git paths).
 
 That CA stays the bridge CA. It is not the platform CA and not the tenant CA. Its TTL cap stays
@@ -102,7 +102,7 @@ account certificates omit the email. Changing the bridge key id is a later code 
 out so it is not forgotten.
 
 Break-glass today is a console grant, not a root shell. `POST /v1/operator/break-glass` requires
-`access.breakglass`, a category, a fresh IdP login, and a justification (`internal/config/access.go`,
+`access.breakglass`, a category, a fresh IdP login, and a justification (`internal/platform/config/access.go`,
 `internal/api/access_operator.go`). The configured duration is 1 hour. The code rejects any access
 duration above 7 days (`maxGrant`). Customer notice is mandatory; only `legal_hold` may delay it.
 Approval, when the team settings require it, is `access.approve_breakglass`. Section 10 adds a VM
@@ -113,7 +113,7 @@ There is no guest agent daemon in the tree. hostd already writes files with `inc
 until a probe says a bind mount is enough.
 
 Workspace and tenant projects already set `security.idmap.isolated=true`
-(`internal/hostd/inner_project.go`, `internal/hostd/tenant.go`). Containers stay unprivileged.
+(`internal/infrastructure/hostd/inner_project.go`, `internal/infrastructure/hostd/tenant.go`). Containers stay unprivileged.
 `ai.volume_shifted` stays false.
 
 ## 4. Login, principals, and the two contexts

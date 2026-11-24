@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // Sign-in asks Nomen for the org and Nomen's own APIs in Nomen's spelling.

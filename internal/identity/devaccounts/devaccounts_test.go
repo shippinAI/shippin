@@ -8,7 +8,7 @@ import (
 
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/identity"
-	"shippin.cloud/console/internal/orgs"
+	"shippin.cloud/console/internal/tenancy/orgs"
 )
 
 func TestParseAcceptsOnlyEmailAndAKnownKind(t *testing.T) {

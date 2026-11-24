@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/managed"
-	"shippin.cloud/console/internal/rrflow/state"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/integrations/rrflow/state"
+	"shippin.cloud/console/internal/services/managed"
 )
 
 // rrflowState reads sessions, memory or the decision log of the project's rrflow instance from the

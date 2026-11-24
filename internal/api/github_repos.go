@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/gh"
+	"shippin.cloud/console/internal/integrations/gh"
 )
 
 type installationRepos struct {

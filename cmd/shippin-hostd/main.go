@@ -13,9 +13,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"shippin.cloud/console/internal/enroll"
-	"shippin.cloud/console/internal/healthprobe"
-	"shippin.cloud/console/internal/hostd"
+	"shippin.cloud/console/internal/infrastructure/enroll"
+	"shippin.cloud/console/internal/infrastructure/healthprobe"
+	"shippin.cloud/console/internal/infrastructure/hostd"
 )
 
 // version is set at build time (-ldflags "-X main.version=<release>").

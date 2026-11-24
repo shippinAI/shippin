@@ -12,8 +12,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"shippin.cloud/console/internal/catalog"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/services/catalog"
 	"shippin.cloud/console/internal/tenancy/coverage_tier"
 )
 

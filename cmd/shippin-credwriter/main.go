@@ -17,8 +17,8 @@ import (
 	"syscall"
 	"time"
 
-	"shippin.cloud/console/internal/credwriter"
-	"shippin.cloud/console/internal/hostd"
+	"shippin.cloud/console/internal/infrastructure/hostd"
+	"shippin.cloud/console/internal/runtime/credwriter"
 )
 
 func main() {

@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 	"net/http/httptest"
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
 	"strings"
 	"testing"
 )

@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/hv"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/infrastructure/servers"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 func TestProbeDoesNotClaimMissingTargetIsHealthy(t *testing.T) {

@@ -19,7 +19,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"shippin.cloud/console/internal/orgs"
+	"shippin.cloud/console/internal/tenancy/orgs"
 )
 
 // Kinds of development account.

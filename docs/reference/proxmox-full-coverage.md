@@ -128,7 +128,7 @@ The Instances page remains the hostd read of Incus. Hosts is the phase 1 guest p
 |---|---|
 | Client, UPID wait, qemu and lxc mutations | `internal/hv/proxmox/phase1.go`, `driver.go` |
 | Recorded-shape tests | `internal/hv/proxmox/phase1_test.go` |
-| Server columns | `internal/db/migrations/036_server_hypervisor.sql`, `internal/servers/endpoint.go` |
+| Server columns | `internal/db/migrations/036_server_hypervisor.sql`, `internal/infrastructure/servers/endpoint.go` |
 | HTTP | `internal/api/infra.go` |
 | Page | `web/src/features/hosts/ui/hosts-page.tsx`, route `/operator/hosts` |
 | Role | `roles.infra` in `config/shippin.json` |

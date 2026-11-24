@@ -7,7 +7,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
 )
 
 // One-click Publish: the workspace app goes public at https://<slug>--site.<ws base> from a frozen

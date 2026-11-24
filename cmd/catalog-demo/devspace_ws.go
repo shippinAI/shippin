@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // demoWS answers the workspace routes the devspace UI uses, from real rows in the demo database,

@@ -17,9 +17,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/limits"
+	"shippin.cloud/console/internal/ext/limits"
 	"shippin.cloud/console/internal/ports"
+	"shippin.cloud/console/internal/services/jobs"
 	"shippin.cloud/console/internal/services/runner_size"
 )
 

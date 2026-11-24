@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"shippin.cloud/console/internal/ailaunch"
+	"shippin.cloud/console/internal/runtime/ailaunch"
 )
 
 func main() {

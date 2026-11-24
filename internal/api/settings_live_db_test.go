@@ -22,12 +22,12 @@ import (
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/actions"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/jobs"
+	"shippin.cloud/console/internal/infrastructure/servers"
 	"shippin.cloud/console/internal/mcpl"
+	"shippin.cloud/console/internal/platform/config"
 	"shippin.cloud/console/internal/ports"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/services/jobs"
 	"shippin.cloud/console/internal/settings"
 )
 

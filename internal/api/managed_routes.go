@@ -9,8 +9,8 @@ import (
 	"shippin.cloud/console/internal/db"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/jobs"
-	"shippin.cloud/console/internal/managed"
+	"shippin.cloud/console/internal/services/jobs"
+	"shippin.cloud/console/internal/services/managed"
 )
 
 // serviceRoutes: managed services attachable to a project's devspace (07-multi-tenancy), rrflow first.

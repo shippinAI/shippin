@@ -10,8 +10,8 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hostd"
-	"shippin.cloud/console/internal/projects"
+	"shippin.cloud/console/internal/infrastructure/hostd"
+	"shippin.cloud/console/internal/tenancy/projects"
 )
 
 // mountDevspace serves the M1 projects API and a loopback stand-in for hostd workspaces for the

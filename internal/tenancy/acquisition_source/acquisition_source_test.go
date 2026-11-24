@@ -5,9 +5,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"shippin.cloud/console/internal/acquisition"
+	"shippin.cloud/console/internal/infrastructure/servers"
 	"shippin.cloud/console/internal/mcpl"
-	"shippin.cloud/console/internal/servers"
+	"shippin.cloud/console/internal/tenancy/acquisition"
 	"strings"
 	"testing"
 )

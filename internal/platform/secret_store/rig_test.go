@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"shippin.cloud/console/internal/integrations/vaultix"
 	"shippin.cloud/console/internal/platform/secret_store"
-	"shippin.cloud/console/internal/vaultix"
 )
 
 // rig is a real Vaultix stood up by deploy/vaultix/proof-secret-store.mjs: a project with a prod

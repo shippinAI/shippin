@@ -55,7 +55,7 @@ cd web && npm ci && npm run dev  # the panel, with hot reload, at http://localho
 | `web/` | **The panel.** React, served by the console. Operator pages, tenant pages and the provider panel are one app. |
 | `cmd/console`, `internal/` | The control plane: the API the panel talks to. |
 | `internal/hv/` | Hypervisor drivers: Proxmox and Incus. |
-| `cmd/shippin-hostd`, `internal/hostd/` | The host agent. |
+| `cmd/shippin-hostd`, `internal/infrastructure/hostd/` | The host agent. |
 | `agent/` | A small host-side diagnostic for Incus and Proxmox. |
 | `.agents/library/` | Canonical assistant skills. Nested in git, exported flat for an assistant. |
 | `.agents/skills/` | Workflow skills for agents editing this repository. |

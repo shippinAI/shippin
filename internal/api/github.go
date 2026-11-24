@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/gh"
+	"shippin.cloud/console/internal/integrations/gh"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // githubRoutes (M3): install the Shippin GitHub App on a tenant, list its repos, import one.

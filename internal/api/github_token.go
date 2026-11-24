@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/gh"
-	"shippin.cloud/console/internal/hostclient"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/integrations/gh"
 )
 
 // ghTimers spaces the GitHub reconciler work (token refresh, installation poll) on the leader.

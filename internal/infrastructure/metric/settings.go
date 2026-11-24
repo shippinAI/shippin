@@ -1,7 +1,7 @@
 package metric
 
 import (
-	"shippin.cloud/console/internal/config"
+	"shippin.cloud/console/internal/platform/config"
 	"shippin.cloud/console/internal/settings"
 )
 

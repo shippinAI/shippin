@@ -24,7 +24,7 @@ PR #18's standalone fleet-file tools remain separate from the platform runtime;
 see [their boundary](reference/shippin-run.md#platform-boundary). From the repository root:
 
 ```sh
-go test ./internal/runfleet ./cmd/shippin-run
+go test ./internal/runtime/runfleet ./cmd/shippin-run
 ```
 
 The marketing site is `site/shippin-run`. `npm ci && npm run build && npm run budget`

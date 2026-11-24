@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/bridge"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/runtime/bridge"
 )
 
 // bridgeCaller authenticates a bridge bearer token: a live, unrevoked session resolved into the

@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/managed"
+	"shippin.cloud/console/internal/platform/config"
+	"shippin.cloud/console/internal/services/managed"
 )
 
 // TestRRFlowLegacyUntilMoved (audit pa2 decision 4): 026 is schema only. A tenant's pre-D36

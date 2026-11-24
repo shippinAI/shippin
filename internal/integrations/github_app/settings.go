@@ -4,8 +4,8 @@
 package github_app
 
 import (
-	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/gh"
+	"shippin.cloud/console/internal/integrations/gh"
+	"shippin.cloud/console/internal/platform/config"
 	"shippin.cloud/console/internal/settings"
 )
 
@@ -51,7 +51,9 @@ var Settings = settings.Section{
 		{Name: "token_permissions", Label: "Workspace token permissions", Kind: settings.Map,
 			Help: "What each workspace's one-repository token may do, such as contents: write."},
 	},
-	Seed: func(c *config.Config) any { return App{GitHub: c.GitHub, AppID: c.GitHub.AppID, ClientID: c.GitHub.ClientID} },
+	Seed: func(c *config.Config) any {
+		return App{GitHub: c.GitHub, AppID: c.GitHub.AppID, ClientID: c.GitHub.ClientID}
+	},
 	SeedKeys: func(c *config.Config) map[string]string {
 		return map[string]string{"client_secret": c.GitHub.ClientSecret, "private_key": c.GitHub.PrivateKey, "webhook_secret": c.GitHub.WebhookSecret}
 	},

@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/hostclient"
-	"shippin.cloud/console/internal/subs"
+	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/runtime/subs"
 )
 
 func TestSubscriptionReportInvalidatesMissingProviders(t *testing.T) {

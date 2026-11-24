@@ -16,7 +16,7 @@ func TestConsoleDoesNotDependOnLegacyFleetStore(t *testing.T) {
 		t.Fatalf("console dependency inspection: %v\n%s", err, output)
 	}
 	for _, dependency := range strings.Fields(string(output)) {
-		if dependency == "shippin.cloud/console/internal/runfleet" {
+		if dependency == "shippin.cloud/console/internal/runtime/runfleet" {
 			t.Fatal("console depends on the unscoped legacy fleet store; use the canonical runtime runner owners")
 		}
 	}

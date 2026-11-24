@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"shippin.cloud/console/internal/runfleet"
+	"shippin.cloud/console/internal/runtime/runfleet"
 )
 
 var appSlug = regexp.MustCompile(`^[A-Za-z0-9-]+$`)

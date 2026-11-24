@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/platform/config"
 )
 
 // serverTestAPI: a real DB, servers enabled from config values, and a mux serving the CP-P1

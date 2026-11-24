@@ -31,7 +31,7 @@ POST /v1/operator/access-requests
 POST /v1/operator/access-requests/{grantId}/end
 GET /v1/operator/audit
 GET /v1/operator/team
-# customer catalog (internal/catalog)
+# customer catalog (internal/services/catalog)
 GET /v1/operator/catalog/plans
 GET /v1/operator/catalog/plans/{id}
 GET /v1/operator/catalog/services
@@ -71,7 +71,7 @@ GET /v1/operator/access-requests
 POST /v1/operator/access-requests
 POST /v1/operator/access-requests/{grantId}/end
 POST /v1/operator/break-glass
-# customer catalog (internal/catalog)
+# customer catalog (internal/services/catalog)
 GET /v1/operator/catalog/plans
 GET /v1/operator/catalog/plans/{id}
 GET /v1/operator/catalog/services
@@ -101,7 +101,7 @@ GET /v1/operator/templates
 GET /v1/operator/access-requests
 POST /v1/operator/access-requests
 POST /v1/operator/access-requests/{grantId}/end
-# customer catalog (internal/catalog)
+# customer catalog (internal/services/catalog)
 GET /v1/operator/catalog/plans
 GET /v1/operator/catalog/plans/{id}
 GET /v1/operator/catalog/services
@@ -119,7 +119,7 @@ GET /v1/operator/access
 GET /v1/operator/mcpl
 GET /v1/operator/tenants
 GET /v1/operator/tenants/{tenantId}/vm
-# customer catalog (internal/catalog)
+# customer catalog (internal/services/catalog)
 GET /v1/operator/catalog/plans
 POST /v1/operator/catalog/plans
 GET /v1/operator/catalog/plans/{id}
@@ -156,7 +156,7 @@ GET /v1/operator/break-glass/pending
 POST /v1/operator/break-glass/{grantId}/{decision}
 GET /v1/operator/audit
 GET /v1/operator/team
-# customer catalog (internal/catalog)
+# customer catalog (internal/services/catalog)
 GET /v1/operator/catalog/plans
 GET /v1/operator/catalog/plans/{id}
 GET /v1/operator/catalog/services
@@ -180,7 +180,7 @@ GET /v1/operator/host
 GET /v1/operator/edge
 GET /v1/operator/audit
 GET /v1/operator/team
-# customer catalog (internal/catalog)
+# customer catalog (internal/services/catalog)
 GET /v1/operator/catalog/plans
 GET /v1/operator/catalog/plans/{id}
 GET /v1/operator/catalog/services

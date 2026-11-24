@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"shippin.cloud/console/internal/catalog"
+	"shippin.cloud/console/internal/services/catalog"
 )
 
 // catalogRoutes adapts the customer catalog API (plans, services, customers, effective config,

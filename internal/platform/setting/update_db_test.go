@@ -14,10 +14,10 @@ import (
 	"testing"
 
 	"shippin.cloud/console/internal/actions"
-	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/integrations/github_app"
 	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/mcpl/mcpltest"
+	"shippin.cloud/console/internal/platform/config"
 	"shippin.cloud/console/internal/ports"
 	"shippin.cloud/console/internal/settings"
 )
@@ -146,7 +146,7 @@ func TestSaveValidatesAuditsAndRefusesStaleVersions(t *testing.T) {
 	h.Call("PUT", base+"/jobs", body(map[string]any{"version": 0, "values": map[string]any{"workers": 0}}), 400)
 	h.Call("PUT", base+"/jobs", body(map[string]any{"version": 0, "values": map[string]any{"nope": 1}}), 400)
 	h.Call("PUT", base+"/jobs", body(map[string]any{"version": 0, "values": map[string]any{"enabled": true, "heartbeat_seconds": 40}}), 400) // over half the lease
-	h.Call("PUT", base+"/jobs", `{"version":0,"values":{"enabled":true}}`, 400)                                           // no reason
+	h.Call("PUT", base+"/jobs", `{"version":0,"values":{"enabled":true}}`, 400)                                                              // no reason
 	h.Call("PUT", base+"/runners", body(map[string]any{"version": 0, "values": map[string]any{"enabled": true, "fleet": "01a14149-0000-7000-8000-00000000000a", "job_limit_minutes": 60}}), 400)
 
 	saved := h.Call("PUT", base+"/jobs", body(map[string]any{"version": 0, "values": map[string]any{"enabled": true, "workers": 4}}), 200)
