@@ -1,6 +1,5 @@
 -- Tenant database console: SQL audit, saved snippets, and one-click backup requests.
 -- Backup rows record intent only. Dumps are a hostd job that is not wired yet.
--- Rollback: internal/db/rollback/033_tenant_db.down.sql
 -- Same schema as cursor/tenant-database-ui-aba9's 028_tenant_db.sql. Renumbered to 033
 -- because 028_hub.sql and 029_hub_live.sql already occupied 028/029 on wi-integration.
 -- Do not re-add 028_tenant_db.sql.

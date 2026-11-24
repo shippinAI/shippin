@@ -2,7 +2,6 @@
 -- placement/limits/cost_center so container <-> dedicated-VM is a data change plus a migration job.
 -- Existing rows: org_id is filled from tenants.idp_org_id and slug from name; public_id stays NULL
 -- until the next write (the API backfills; NULLs don't collide in the unique index).
--- Rollback (not embedded, run by hand): internal/db/rollback/027_project_org.down.sql
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS public_id   text;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS org_id      text;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS slug        text;

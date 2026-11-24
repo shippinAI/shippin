@@ -2,7 +2,6 @@
 -- plane: servers, tenants, staff) and customer orgs (one per Nomen org; the operator's Builder org is an
 -- ordinary customer). Staff roles live only on the Operations org and never imply tenant data access;
 -- support access to a customer org is an explicit, time-limited, audited grant.
--- Rollback (not embedded, run by hand): internal/db/rollback/029_orgs.down.sql
 CREATE TABLE IF NOT EXISTS orgs (
   id           text PRIMARY KEY CHECK (id ~ '^org_[0-9A-HJKMNP-TV-Z]{26}$'),
   slug         text NOT NULL UNIQUE CHECK (slug ~ '^[a-z0-9][a-z0-9-]{0,39}$'),
