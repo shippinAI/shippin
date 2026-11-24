@@ -2,14 +2,14 @@ import { useMe } from "../lib/hooks/use-api";
 import { useText } from "../lib/ui-config/use-ui-config";
 import { lazy, Suspense } from "react";
 import { Outlet, useLocation } from "../lib/router/router";
-import { AccessBanner } from "../features/access/ui/access-banner";
-import { SignInRequired } from "../features/access/ui/sign-in-required";
-import { HandoverBanner } from "../features/setup/ui/handover-banner";
+import { AccessBanner } from "../features/identity/access/ui/access-banner";
+import { SignInRequired } from "../features/identity/access/ui/sign-in-required";
+import { HandoverBanner } from "../features/platform/setup/ui/handover-banner";
 import { useTenant } from "../lib/hooks/use-tenant";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 
-const ChatLauncher = lazy(() => import("../features/chat/ui/chat-launcher").then((m) => ({ default: m.ChatLauncher })));
+const ChatLauncher = lazy(() => import("../features/runtime/chat/ui/chat-launcher").then((m) => ({ default: m.ChatLauncher })));
 
 const crumbs: [RegExp, string][] = [
   [/^\/chat(\/[^/]+)?$/, "Automaton chat"],

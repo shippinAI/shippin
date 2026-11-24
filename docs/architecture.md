@@ -27,7 +27,7 @@ Every package was moved into its context on 2026-11-24, unchanged, so the folder
 
 These are plumbing, shared by every context and owned by none: `internal/app` (start-up), `internal/mcpl` and `internal/actions` (the action runner and its generated registry), `internal/ext` (the extension seam), `internal/ports` (host ports), `internal/settings` (the settings sections each package declares; the Platform context's `setting` entity edits them), `internal/clickhouse` and the database connection.
 
-Nothing else is added beside them. New code is an entity folder inside its context, and a child of an existing entity is a folder inside that entity. `TestInternalPackagesAreContextsOrListed` in `internal/mcpl` fails on a new top-level package; `internal/mcpl/testdata/unplaced-packages.txt` names what is still outside a context, which is `internal/api` alone, and only shrinks. The panel has the same rule for `web/src/features/` in `web/scripts/features-baseline.txt` ([panel framework](web-framework.md)).
+Nothing else is added beside them. New code is an entity folder inside its context, and a child of an existing entity is a folder inside that entity. `TestInternalPackagesAreContextsOrListed` in `internal/mcpl` fails on a new top-level package; `internal/mcpl/testdata/unplaced-packages.txt` names what is still outside a context, which is `internal/api` alone, and only shrinks. The panel has the same shape: `web/src/features/` holds one folder per context, a feature is a folder inside one, and its boundary check refuses anything else ([panel framework](web-framework.md)).
 
 ## Editions
 
@@ -58,7 +58,7 @@ This is the target pattern. Existing MCPL entities such as
 - `internal/tenancy/coverage_tier` is the first entity in this shape; the rest of `internal/services/catalog` follows it.
 - It takes what it needs through a small `Deps` struct, and never reaches into another context's tables.
 - It calls another context only through that context's exported functions.
-- Its panel code is one folder in `web/src/features/`, and its API is its own file under `api/openapi/`.
+- Its panel code is its context's folder in `web/src/features/`, one folder per feature inside it, and its API is its own file under `api/openapi/`.
 
 ## Where it stands
 
@@ -78,7 +78,7 @@ file name, which is a first pass:
 | HTTP shell | 9 | 662 | 40 | 26 | 17 |
 
 `internal/db` is a second shared layer: 33 files of storage for every context.
-`web/src/features/admin` holds 74 files and 4,068 lines that belong to other
+`web/src/features/platform/admin` holds 74 files and 4,068 lines that belong to other
 contexts. `deploy/` still holds scripts from when one site was run by hand.
 
 `internal/platform` is the first package written to the target shape: built-in services, setup steps and disaster recovery.

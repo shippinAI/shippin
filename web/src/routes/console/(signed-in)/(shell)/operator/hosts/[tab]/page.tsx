@@ -1,1 +1,1 @@
-export { InfrastructurePage as default } from "../../../../../../../features/infrastructure/ui/infrastructure-page";
+export { InfrastructurePage as default } from "../../../../../../../features/infrastructure/infrastructure/ui/infrastructure-page";

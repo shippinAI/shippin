@@ -1,1 +1,1 @@
-export { SSHKeysPage as default } from "../../../../../../features/account/ui/ssh-keys-page";
+export { SSHKeysPage as default } from "../../../../../../features/identity/account/ui/ssh-keys-page";

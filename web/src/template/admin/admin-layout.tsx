@@ -3,11 +3,11 @@ import { Outlet } from "../../lib/router/router";
 import { ApiError } from "../../lib/api/client";
 import { useAdminAccess } from "../../lib/hooks/use-admin";
 import { BrandMark } from "../brand-mark";
-import { AccessDenied } from "../../features/admin/ui/access-denied";
-import { BreakGlassBanner } from "../../features/admin/ui/access/break-glass-banner";
-import { StaffModeBanner } from "../../features/admin/ui/staff-mode/staff-mode-banner";
-import { StaffBanner } from "../../features/admin/ui/staff-banner";
-import { HandoverBanner } from "../../features/setup/ui/handover-banner";
+import { AccessDenied } from "../../features/platform/admin/ui/access-denied";
+import { BreakGlassBanner } from "../../features/platform/admin/ui/access/break-glass-banner";
+import { StaffModeBanner } from "../../features/platform/admin/ui/staff-mode/staff-mode-banner";
+import { StaffBanner } from "../../features/platform/admin/ui/staff-banner";
+import { HandoverBanner } from "../../features/platform/setup/ui/handover-banner";
 import { AdminMobileNav } from "./admin-mobile-nav";
 import { AdminSidebar } from "./admin-sidebar";
 

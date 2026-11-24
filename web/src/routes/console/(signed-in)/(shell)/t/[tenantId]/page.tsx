@@ -1,1 +1,1 @@
-export { OverviewPage as default } from "../../../../../../features/overview/ui/overview-page";
+export { OverviewPage as default } from "../../../../../../features/platform/overview/ui/overview-page";

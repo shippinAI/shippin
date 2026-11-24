@@ -1,1 +1,1 @@
-export { DevspacesPage as default } from "../../../../../../../features/devspaces/ui/devspaces-page";
+export { DevspacesPage as default } from "../../../../../../../features/runtime/devspaces/ui/devspaces-page";

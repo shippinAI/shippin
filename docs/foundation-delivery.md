@@ -22,7 +22,7 @@ and their acceptance gates. It does not create another product definition.
 | `internal/hv/{driver,catalog}.go` | Drivers expose typed operations, capabilities, create fields, observations and explicit unsupported errors. | Improve capability and operation truth in these contracts; avoid provider conditionals in every page. |
 | `web/src/lib/router/{meta,nav}.ts`, generated route files and `web/scripts/routes.mjs` | Folder-derived routes/navigation, stable entry IDs, lazy pages and module routes already exist. | Extend that generator and its tests. No new routing library or hand-maintained route registry. |
 | `web/src/app/require-auth.tsx` | Every `useMe` error redirects to login; landing chooses the first tenant before operator destinations. | Distinguish authentication from outages, and make context selection explicit without inferring staff authority from first membership. |
-| `web/src/features/infrastructure/model.ts` | Provider tabs, fleet rows, metrics transforms and forms already have pure model functions. | Retain and split by coherent concern when touched; do not recode those rules in components. |
+| `web/src/features/infrastructure/infrastructure/model.ts` | Provider tabs, fleet rows, metrics transforms and forms already have pure model functions. | Retain and split by coherent concern when touched; do not recode those rules in components. |
 | `docs/web-framework.md`, `web/package.json`, tracked tree | F1 routes and F5 boundary checks exist. The documented product lexicon and `web/tokens/` generation source are absent. | Treat F4 and F2 generation as planned. Existing CSS tokens and token checks remain useful and mandatory. |
 
 Earlier session probes found an already-claimed local panel with healthy core

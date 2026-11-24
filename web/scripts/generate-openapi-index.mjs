@@ -11,7 +11,7 @@ import { load as parseYaml } from "js-yaml";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE = path.resolve(here, "../../api/openapi/openapi.yaml");
 const ACTIONS = path.resolve(here, "../../api/openapi/actions.gen.json");
-const OUTPUT = path.resolve(here, "../src/features/api-explorer/openapi-index.json");
+const OUTPUT = path.resolve(here, "../src/features/platform/api-explorer/openapi-index.json");
 const METHODS = new Set(["get", "post", "put", "patch", "delete", "head", "options"]);
 
 const load = async (file) => parseYaml(await fs.readFile(file, "utf8"));

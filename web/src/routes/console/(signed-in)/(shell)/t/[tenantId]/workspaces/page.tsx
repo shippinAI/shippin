@@ -1,1 +1,1 @@
-export { OrganizationWorkspacesPage as default } from "../../../../../../../features/workspaces/ui/workspaces-page";
+export { OrganizationWorkspacesPage as default } from "../../../../../../../features/organizations/workspaces/ui/workspaces-page";

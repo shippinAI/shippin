@@ -1,1 +1,1 @@
-export { InvitePage as default } from "../../../features/auth/ui/invite-page";
+export { InvitePage as default } from "../../../features/identity/auth/ui/invite-page";

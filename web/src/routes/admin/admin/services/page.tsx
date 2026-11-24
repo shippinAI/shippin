@@ -1,1 +1,1 @@
-export { ServicesPage as default } from "../../../../features/admin/ui/catalog/services-page";
+export { ServicesPage as default } from "../../../../features/platform/admin/ui/catalog/services-page";

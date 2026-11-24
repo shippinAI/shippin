@@ -16,7 +16,7 @@ to `operator.role`. All or nothing; no team page, no per-duty permissions.
 4. **Per-route gates** - replace the single `platformAdmin` wrap with `requirePerm(p, h)` per route.
    Touches: `operator.go`, `authz_test.go`.
 5. **Team API + UI** - `/v1/operator/team/*` (invite, assign, revoke, deactivate) calling Nomen
-   management API with a scoped service user. Touches: new `operator_team*.go`, `web/src/features/team/`.
+   management API with a scoped service user. Touches: new `operator_team*.go`, `web/src/features/identity/team/`.
 6. **Approvals (optional)** - `staff_role_requests` table for two-person changes. Touches: migrations.
 7. **Migration + cutover** - shadow mode, then enforce; IAM_OWNER becomes break-glass super-owner.
    Touches: config, `deploy/tests/`.

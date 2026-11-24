@@ -29,41 +29,49 @@ function run(web, env = {}) {
 }
 
 const base = {
-  "src/features/a/index.ts": 'export { A } from "./ui/a";\n',
-  "src/features/a/ui/a.tsx": "export const A = 1;\n",
+  "src/features/runtime/a/index.ts": 'export { A } from "./ui/a";\n',
+  "src/features/runtime/a/ui/a.tsx": "export const A = 1;\n",
   "src/lib/x.ts": "export const X = 1;\n",
 };
 
 test("a feature reaches another through its index.ts", () => {
-  assert.ok(check({ ...base, "src/features/b/ui/b.tsx": 'import { A } from "../../a";\n' }).ok);
-  const r = check({ ...base, "src/features/b/ui/b.tsx": 'import { A } from "../../a/ui/a";\n' });
+  assert.ok(check({ ...base, "src/features/runtime/b/ui/b.tsx": 'import { A } from "../../a";\n' }).ok);
+  const r = check({ ...base, "src/features/runtime/b/ui/b.tsx": 'import { A } from "../../a/ui/a";\n' });
   assert.ok(!r.ok);
-  assert.match(r.out, /features\/b\/ui\/b\.tsx -> features\/a\/ui\/a\.tsx: reaches into another feature/);
+  assert.match(r.out, /features\/runtime\/b\/ui\/b\.tsx -> features\/runtime\/a\/ui\/a\.tsx: reaches into another feature/);
 });
 
 test("the baseline lists older crossings and may only shrink", () => {
-  const crossing = { ...base, "src/features/b/ui/b.tsx": 'import { A } from "../../a/ui/a";\n' };
-  assert.ok(check({ ...crossing, "scripts/boundaries-baseline.txt": "features/b/ui/b.tsx -> features/a/ui/a.tsx\n" }).ok);
-  const stale = check({ ...base, "scripts/boundaries-baseline.txt": "features/b/ui/b.tsx -> features/a/ui/a.tsx\n" });
+  const crossing = { ...base, "src/features/runtime/b/ui/b.tsx": 'import { A } from "../../a/ui/a";\n' };
+  assert.ok(check({ ...crossing, "scripts/boundaries-baseline.txt": "features/runtime/b/ui/b.tsx -> features/runtime/a/ui/a.tsx\n" }).ok);
+  const stale = check({ ...base, "scripts/boundaries-baseline.txt": "features/runtime/b/ui/b.tsx -> features/runtime/a/ui/a.tsx\n" });
   assert.ok(!stale.ok);
   assert.match(stale.out, /which is gone; remove the line/);
 });
 
-test("a new feature folder fails where the features are listed, and a listed one that is gone does too", () => {
-  assert.ok(check({ ...base, "scripts/features-baseline.txt": "# today's features\na\n" }).ok);
-  const added = check({ ...base, "src/features/b/ui/b.tsx": "export const B = 1;\n", "scripts/features-baseline.txt": "a\n" });
-  assert.ok(!added.ok);
-  assert.match(added.out, /src\/features\/b: a new feature folder/);
-  const stale = check({ ...base, "scripts/features-baseline.txt": "a\nold\n" });
-  assert.ok(!stale.ok);
-  assert.match(stale.out, /features-baseline\.txt lists "old", which is gone/);
-  assert.ok(check({ ...base, "src/features/b/ui/b.tsx": "export const B = 1;\n" }).ok, "a tree without the list is not judged by it");
+test("src/features holds contexts, and a feature is a folder inside one", () => {
+  assert.ok(check({ ...base, "src/features/platform/new/ui/n.tsx": "export const N = 1;\n" }).ok, "a feature inside a context");
+  const flat = check({ ...base, "src/features/new/ui/n.tsx": "export const N = 1;\n" });
+  assert.ok(!flat.ok);
+  assert.match(flat.out, /src\/features\/new: not a context/);
+});
+
+test("moving a feature between contexts is not a new crossing", () => {
+  const r = repoWithBaseline();
+  mkdirSync(join(r.web, "src/features/platform"), { recursive: true });
+  r.git("mv", "src/features/runtime/b", "src/features/platform/b");
+  writeFileSync(join(r.web, "src/features/platform/b/ui/b.tsx"), 'import { A } from "../../../runtime/a/ui/a";\n');
+  writeFileSync(join(r.web, "scripts/boundaries-baseline.txt"), "features/platform/b/ui/b.tsx -> features/runtime/a/ui/a.tsx\n");
+  r.git("add", "-A");
+  r.git("commit", "-q", "-m", "move b");
+  const moved = run(r.web);
+  assert.ok(moved.ok, moved.out);
 });
 
 test("lib depends on no feature, and only generated files name a module", () => {
-  const lib = check({ ...base, "src/lib/y.ts": 'import { A } from "../features/a";\n' });
-  assert.match(lib.out, /src\/lib imports features\/a\/index\.ts/);
-  assert.ok(check({ ...base, "src/lib/y.test.ts": 'import { A } from "../features/a";\n' }).ok, "a lib test may use a feature");
+  const lib = check({ ...base, "src/lib/y.ts": 'import { A } from "../features/runtime/a";\n' });
+  assert.match(lib.out, /src\/lib imports features\/runtime\/a\/index\.ts/);
+  assert.ok(check({ ...base, "src/lib/y.test.ts": 'import { A } from "../features/runtime/a";\n' }).ok, "a lib test may use a feature");
   const mod = check({
     ...base,
     "src/modules/m/x.ts": "export const M = 1;\n",
@@ -83,8 +91,8 @@ test("a bucket folder is refused", () => {
   assert.match(check({ ...base, "src/lib/utils/u.ts": "export const U = 1;\n" }).out, /src\/lib\/utils: a bucket folder/);
 });
 
-const lineA = "features/b/ui/b.tsx -> features/a/ui/a.tsx";
-const lineB = "features/c/ui/c.tsx -> features/a/ui/a.tsx";
+const lineA = "features/runtime/b/ui/b.tsx -> features/runtime/a/ui/a.tsx";
+const lineB = "features/runtime/c/ui/c.tsx -> features/runtime/a/ui/a.tsx";
 
 // A git checkout of a web/ tree, with one committed crossing and main at that commit.
 function repoWithBaseline() {
@@ -94,7 +102,7 @@ function repoWithBaseline() {
   git("init", "-q", "-b", "main");
   const files = {
     ...base,
-    "src/features/b/ui/b.tsx": 'import { A } from "../../a/ui/a";\n',
+    "src/features/runtime/b/ui/b.tsx": 'import { A } from "../../a/ui/a";\n',
     "scripts/boundaries-baseline.txt": `${lineA}\n`,
   };
   for (const [p, text] of Object.entries(files)) {
@@ -110,8 +118,8 @@ function repoWithBaseline() {
 
 test("a line added to the baseline since the base branch fails", () => {
   const r = repoWithBaseline();
-  mkdirSync(join(r.web, "src/features/c/ui"), { recursive: true });
-  writeFileSync(join(r.web, "src/features/c/ui/c.tsx"), 'import { A } from "../../a/ui/a";\n');
+  mkdirSync(join(r.web, "src/features/runtime/c/ui"), { recursive: true });
+  writeFileSync(join(r.web, "src/features/runtime/c/ui/c.tsx"), 'import { A } from "../../a/ui/a";\n');
   writeFileSync(join(r.web, "scripts/boundaries-baseline.txt"), `${lineA}\n${lineB}\n`);
   r.git("add", "-A");
   r.git("commit", "-q", "-m", "grow the baseline");
@@ -126,7 +134,7 @@ test("a line added to the baseline since the base branch fails", () => {
   assert.ok(!queued.ok, queued.out);
   assert.match(queued.out, /may only shrink/);
 
-  writeFileSync(join(r.web, "src/features/c/ui/c.tsx"), 'import { A } from "../../a";\n');
+  writeFileSync(join(r.web, "src/features/runtime/c/ui/c.tsx"), 'import { A } from "../../a";\n');
   writeFileSync(join(r.web, "scripts/boundaries-baseline.txt"), `${lineA}\n`);
   const shrunk = run(r.web);
   assert.ok(shrunk.ok, shrunk.out);

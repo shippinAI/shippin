@@ -1,1 +1,1 @@
-export { SignInPage as default } from "../../../features/auth/ui/sign-in-page";
+export { SignInPage as default } from "../../../features/identity/auth/ui/sign-in-page";

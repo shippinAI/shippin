@@ -1,1 +1,1 @@
-export { InterfacePage as default } from "../../../../features/admin/ui/interface/interface-page";
+export { InterfacePage as default } from "../../../../features/platform/admin/ui/interface/interface-page";

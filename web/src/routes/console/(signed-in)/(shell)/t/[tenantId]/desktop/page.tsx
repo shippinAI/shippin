@@ -1,1 +1,1 @@
-export { DesktopPage as default } from "../../../../../../../features/apps/ui/desktop-page";
+export { DesktopPage as default } from "../../../../../../../features/runtime/apps/ui/desktop-page";

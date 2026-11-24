@@ -7,10 +7,10 @@ import { lazy, Suspense } from "react";
 import { AdminPanelLink } from "./admin-panel-link";
 import { MobileNav } from "./mobile-nav";
 import { useMe as useCurrentUser } from "../lib/hooks/use-api";
-import { UpdateStatus } from "../features/updates/update-status";
+import { UpdateStatus } from "../features/platform/updates/update-status";
 
 // Loaded after first paint so the header stays inside the initial JS budget.
-const OrgSwitcher = lazy(() => import("../features/orgs/ui/org-switcher").then((m) => ({ default: m.OrgSwitcher })));
+const OrgSwitcher = lazy(() => import("../features/organizations/orgs/ui/org-switcher").then((m) => ({ default: m.OrgSwitcher })));
 
 /** Top bar: an opaque surface that stays put while the page scrolls. */
 export function Topbar({ crumb }: { crumb: string }) {

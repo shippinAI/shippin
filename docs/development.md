@@ -82,7 +82,7 @@ docker compose up -d --build
 
 - **Nothing about one installation goes in code.** Addresses, domains, names and tokens come from configuration. `install/check-public-tree.sh` and `web/scripts/check-hardcoding.mjs` fail CI when they find some.
 - **Panel names and labels are configuration too.** Navigation is `ui.nav`, wording is `ui.text` (register a key in `web/src/lib/ui-config/text-keys.ts`), and providers are `ui.providers`. Owners can change them under **Provider panel > Interface**.
-- **A provider's name does not appear in `web/src/features/infrastructure/`.** The panel learns providers, fields and actions from `GET /v1/infra/overview`. Add a driver by adding it to `internal/hv/catalog.go`.
+- **A provider's name does not appear in `web/src/features/infrastructure/infrastructure/`.** The panel learns providers, fields and actions from `GET /v1/infra/overview`. Add a driver by adding it to `internal/hv/catalog.go`.
 - **File names stay unique ignoring case.** A pair differing only by case is one file on Windows and macOS.
 
 ## Add a hypervisor driver

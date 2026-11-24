@@ -14,7 +14,7 @@ const providerFree = [
   /^features\/infrastructure\//,
   /^lib\/ui-config\//,
   /^lib\/hooks\/use-infra\.ts$/,
-  /^features\/admin\/ui\/interface\//,
+  /^features\/platform\/admin\/ui\/interface\//,
 ];
 
 function walk(dir, out = []) {

@@ -1,1 +1,1 @@
-export { OpsServersPage as default } from "../../../../../../features/orgs/ui/ops-servers-page";
+export { OpsServersPage as default } from "../../../../../../features/organizations/orgs/ui/ops-servers-page";

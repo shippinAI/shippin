@@ -1,1 +1,1 @@
-export { IdentityPage as default } from "../../../../../../../features/identity/ui/identity-page";
+export { IdentityPage as default } from "../../../../../../../features/identity/identity/ui/identity-page";

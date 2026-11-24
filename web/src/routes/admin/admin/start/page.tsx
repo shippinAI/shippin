@@ -1,1 +1,1 @@
-export { GetStartedPage as default } from "../../../../features/platform/ui/get-started-page";
+export { GetStartedPage as default } from "../../../../features/platform/platform/ui/get-started-page";

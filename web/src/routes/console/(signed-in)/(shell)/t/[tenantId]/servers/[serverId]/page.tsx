@@ -1,1 +1,1 @@
-export { ServerGuestsPage as default } from "../../../../../../../../features/servers/ui/server-guests-page";
+export { ServerGuestsPage as default } from "../../../../../../../../features/infrastructure/servers/ui/server-guests-page";

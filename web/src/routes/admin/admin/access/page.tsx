@@ -1,1 +1,1 @@
-export { AccessPage as default } from "../../../../features/admin/ui/access/access-page";
+export { AccessPage as default } from "../../../../features/platform/admin/ui/access/access-page";

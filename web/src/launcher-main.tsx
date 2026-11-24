@@ -3,7 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ApiError } from "./lib/api/client";
 import { ToastRegionHost } from "./lib/design/components/toast/toast-region";
-import { LauncherPage } from "./features/ai-launcher/ui/launcher-page";
+import { LauncherPage } from "./features/runtime/ai-launcher/ui/launcher-page";
 import "./styles/app.css";
 
 // Entry of the in-devspace AI launcher (launcher.html), served by cmd/ai-launcher behind the

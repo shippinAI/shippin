@@ -6,9 +6,9 @@ if (!input || !output || !allowedOrigins.length) {
   throw new Error("Usage: node scripts/render-inline-discussion.mjs snapshot.json output.html https://trusted-origin");
 }
 const jiti = createJiti(import.meta.url);
-const { parseDiscussion } = await jiti.import("../src/features/discussions/discussion.ts");
+const { parseDiscussion } = await jiti.import("../src/features/runtime/discussions/discussion.ts");
 const discussion = parseDiscussion(JSON.parse(await readFile(input, "utf8")), allowedOrigins);
-const template = await readFile(new URL("../src/features/discussions/inline-fragment.html", import.meta.url), "utf8");
+const template = await readFile(new URL("../src/features/runtime/discussions/inline-fragment.html", import.meta.url), "utf8");
 // A message must never terminate the JSON script element or become executable markup.
 const json = JSON.stringify(discussion).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e").replaceAll("&", "\\u0026");
 const fragment = template.replace("__DISCUSSION_DATA__", () => json);

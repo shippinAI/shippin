@@ -1,1 +1,1 @@
-export { TeamPage as default } from "../../../../../../../features/team/ui/team-page";
+export { TeamPage as default } from "../../../../../../../features/identity/team/ui/team-page";

@@ -42,8 +42,8 @@ first organization. Existing customer memberships survive migration. The separat
 legacy staff assignment models still need reconciliation into scoped grants.
 
 `internal/tenancy/projects/` owns organization workspace groups (`shippin_workspaces`) and
-the workspace-to-project relationship. `web/src/features/workspaces/` owns that
-grouping UI; `web/src/features/devspaces/` owns compute-instance UI. These are
+the workspace-to-project relationship. `web/src/features/organizations/workspaces/` owns that
+grouping UI; `web/src/features/runtime/devspaces/` owns compute-instance UI. These are
 modules of the single panel. Existing compute `workspaces` table IDs and API/detail
 URLs remain compatible; they do not become grouping workspace IDs. Migration 066
 adds a default workspace to every tenant, preserves project/environment IDs, and

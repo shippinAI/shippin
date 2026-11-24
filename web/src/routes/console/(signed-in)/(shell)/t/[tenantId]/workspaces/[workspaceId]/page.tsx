@@ -1,1 +1,1 @@
-export { WorkspaceDetailPage as default } from "../../../../../../../../features/devspaces/ui/workspace-detail-page";
+export { WorkspaceDetailPage as default } from "../../../../../../../../features/runtime/devspaces/ui/workspace-detail-page";

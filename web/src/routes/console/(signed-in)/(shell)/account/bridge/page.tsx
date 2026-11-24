@@ -1,1 +1,1 @@
-export { BridgeSessionsPage as default } from "../../../../../../features/account/ui/bridge-sessions-page";
+export { BridgeSessionsPage as default } from "../../../../../../features/identity/account/ui/bridge-sessions-page";

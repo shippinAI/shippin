@@ -1,1 +1,1 @@
-export { CustomerDetailPage as default } from "../../../../../features/admin/ui/catalog/customer-detail-page";
+export { CustomerDetailPage as default } from "../../../../../features/platform/admin/ui/catalog/customer-detail-page";

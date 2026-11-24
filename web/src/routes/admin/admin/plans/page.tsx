@@ -1,1 +1,1 @@
-export { PlansPage as default } from "../../../../features/admin/ui/catalog/plans-page";
+export { PlansPage as default } from "../../../../features/platform/admin/ui/catalog/plans-page";

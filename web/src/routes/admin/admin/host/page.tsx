@@ -1,1 +1,1 @@
-export { HostPage as default } from "../../../../features/admin/ui/host-page";
+export { HostPage as default } from "../../../../features/platform/admin/ui/host-page";

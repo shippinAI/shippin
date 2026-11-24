@@ -8,7 +8,7 @@ import { RootLayout as m3 } from "./root-layout";
 /** The ops app's routes. */
 export const routes: GenRoute[] = [
   { layout: m3, children: [
-    { path: "/login", page: () => import("../features/auth/ui/sign-in-page").then((m) => ({ default: m.SignInPage })) },
+    { path: "/login", page: () => import("../features/identity/auth/ui/sign-in-page").then((m) => ({ default: m.SignInPage })) },
     { layout: m2, children: [
       { path: "/", page: () => import("../routes/ops/(signed-in)/page") },
       ...mount_admin,

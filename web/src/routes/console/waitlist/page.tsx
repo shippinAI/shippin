@@ -1,1 +1,1 @@
-export { WaitlistPage as default } from "../../../features/auth/ui/waitlist-page";
+export { WaitlistPage as default } from "../../../features/identity/auth/ui/waitlist-page";

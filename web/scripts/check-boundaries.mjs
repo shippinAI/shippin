@@ -4,9 +4,8 @@
 //   - a feature reaches another feature only through that feature's index.ts;
 //   - nothing outside src/modules imports a module (the generated route files only name them);
 //   - no folder is a bucket (common, shared, utils, util, helpers, misc): code belongs to what it serves.
-//   - src/features gains no folder: a feature is a context's panel code (docs/architecture.md), and new
-//     work goes inside the feature of its context. scripts/features-baseline.txt lists today's folders
-//     and only shrinks, by the same two rules as the list below.
+//   - src/features holds one folder per context (docs/architecture.md) and nothing else; a feature is
+//     src/features/<context>/<feature>, and new work goes inside its context's folder.
 // Imports from one feature into another's internals that existed when this check arrived are listed in
 // scripts/boundaries-baseline.txt. The list may only shrink: a new one fails, and so does a listed one
 // that is gone (remove its line). The file is also compared with its version at the merge base, and a
@@ -21,7 +20,8 @@ const at = process.argv.indexOf("--web");
 const web = at >= 0 ? process.argv[at + 1] : fileURLToPath(new URL("..", import.meta.url));
 const src = join(web, "src");
 const baselineFile = join(web, "scripts", "boundaries-baseline.txt");
-const featuresFile = join(web, "scripts", "features-baseline.txt");
+// The contexts of docs/architecture.md, as the panel names them.
+const contexts = ["identity", "organizations", "infrastructure", "services", "runtime", "platform"];
 const buckets = new Set(["common", "shared", "utils", "util", "helpers", "misc"]);
 
 const posix = (p) => p.split(sep).join("/");
@@ -92,7 +92,7 @@ function target(file, spec) {
 }
 
 const area = (rel) => rel.split("/")[0];
-const feature = (rel) => (rel.startsWith("features/") ? rel.split("/")[1] : "");
+const feature = (rel) => (rel.startsWith("features/") ? rel.split("/").slice(1, 3).join("/") : "");
 
 for (const file of walk(src)) {
   const rel = posix(relative(src, file));
@@ -108,8 +108,15 @@ for (const file of walk(src)) {
       problems.push(`${rel}: imports module code ${to}; only the generated route files may name a module`);
     const from = feature(rel);
     const into = feature(to);
-    if (from && into && from !== into && !/^features\/[^/]+\/index\.tsx?$/.test(to)) crossings.push(`${rel} -> ${to}`);
+    if (from && into && from !== into && !/^features\/[^/]+\/[^/]+\/index\.tsx?$/.test(to)) crossings.push(`${rel} -> ${to}`);
   }
+}
+
+// A crossing is named by its features, whichever context holds them, so moving a feature into or
+// between contexts is not a new crossing. A feature's own files sit in ui/ or beside it, so a
+// context folder followed by ui/ is a feature that was named like a context, not a context.
+function sansContext(line) {
+  return line.replace(/features\/([^/]+)\/([^/.]+)\//g, (all, a, b) => (contexts.includes(a) && b !== "ui" ? `features/${b}/` : all));
 }
 
 const current = [...new Set(crossings)].sort();
@@ -125,26 +132,15 @@ for (const b of baseline) if (!now.has(b)) problems.push(`scripts/boundaries-bas
 const prior = priorBaseline(web, baselineFile);
 if (prior.error) problems.push(prior.error);
 else if (!prior.skip) {
-  const had = new Set(prior.lines);
-  for (const b of baseline) if (!had.has(b)) problems.push(`scripts/boundaries-baseline.txt adds "${b}"; the list may only shrink`);
+  const had = new Set(prior.lines.map(sansContext));
+  for (const b of baseline)
+    if (!had.has(sansContext(b))) problems.push(`scripts/boundaries-baseline.txt adds "${b}"; the list may only shrink`);
 }
 
-// The feature folders: only checked where the list exists, so a tree without one is not judged by it.
-if (existsSync(featuresFile) && existsSync(join(src, "features"))) {
-  const allowed = baselineLines(readFileSync(featuresFile, "utf8"));
-  const folders = readdirSync(join(src, "features")).filter((n) => statSync(join(src, "features", n)).isDirectory());
-  for (const f of folders)
-    if (!allowed.includes(f))
-      problems.push(`src/features/${f}: a new feature folder; put it inside the feature of its context (docs/architecture.md)`);
-  for (const a of allowed)
-    if (!folders.includes(a)) problems.push(`scripts/features-baseline.txt lists "${a}", which is gone; remove the line`);
-  const before = priorBaseline(web, featuresFile);
-  if (before.error) problems.push(before.error.replace("boundaries-baseline.txt", "features-baseline.txt"));
-  else if (!before.skip && before.lines.length) {
-    for (const a of allowed)
-      if (!before.lines.includes(a)) problems.push(`scripts/features-baseline.txt adds "${a}"; the list may only shrink`);
-  }
-}
+if (existsSync(join(src, "features")))
+  for (const n of readdirSync(join(src, "features")))
+    if (!contexts.includes(n))
+      problems.push(`src/features/${n}: not a context; a feature is src/features/<context>/<feature> (docs/architecture.md)`);
 
 if (problems.length) {
   console.error(problems.map((p) => "boundaries: " + p).join("\n"));

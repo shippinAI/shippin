@@ -1,1 +1,1 @@
-export { ServersPage as default } from "../../../../../../../features/servers/ui/servers-page";
+export { ServersPage as default } from "../../../../../../../features/infrastructure/servers/ui/servers-page";

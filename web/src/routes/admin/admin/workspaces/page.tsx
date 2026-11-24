@@ -1,1 +1,1 @@
-export { AdminWorkspacesPage as default } from "../../../../features/admin/ui/workspaces-page";
+export { AdminWorkspacesPage as default } from "../../../../features/platform/admin/ui/workspaces-page";

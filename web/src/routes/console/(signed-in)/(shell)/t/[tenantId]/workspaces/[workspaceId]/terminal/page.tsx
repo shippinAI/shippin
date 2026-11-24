@@ -1,1 +1,1 @@
-export { TerminalPage as default } from "../../../../../../../../../features/terminal/ui/terminal-page";
+export { TerminalPage as default } from "../../../../../../../../../features/runtime/terminal/ui/terminal-page";

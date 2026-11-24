@@ -1,1 +1,1 @@
-export { RunnerSizesPage as default } from "../../../../features/admin/ui/catalog/runner-sizes-page";
+export { RunnerSizesPage as default } from "../../../../features/platform/admin/ui/catalog/runner-sizes-page";

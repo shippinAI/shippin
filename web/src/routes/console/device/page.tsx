@@ -1,1 +1,1 @@
-export { DevicePage as default } from "../../../features/bridge/ui/device-page";
+export { DevicePage as default } from "../../../features/runtime/bridge/ui/device-page";

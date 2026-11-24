@@ -1,1 +1,1 @@
-export { TemplatesPage as default } from "../../../../features/admin/ui/templates/templates-page";
+export { TemplatesPage as default } from "../../../../features/platform/admin/ui/templates/templates-page";

@@ -1,1 +1,1 @@
-export { AccessKeysPage as default } from "../../../../../../features/account/ui/access-keys-page";
+export { AccessKeysPage as default } from "../../../../../../features/identity/account/ui/access-keys-page";

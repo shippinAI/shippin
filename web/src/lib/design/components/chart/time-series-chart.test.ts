@@ -9,9 +9,9 @@ import type { TextKey } from "../../../ui-config/text-keys";
 // The components are TSX; load them with JSX turned on, the way Vite builds them.
 const tsx = createJiti(import.meta.url, { jsx: { runtime: "automatic" } });
 const { TimeSeriesChart } = await tsx.import<typeof import("./time-series-chart")>("./time-series-chart.tsx");
-const { HistoryCharts, samplerText } = await tsx.import<typeof import("../../../../features/infrastructure/ui/metrics-history")>(
-  "../../../../features/infrastructure/ui/metrics-history.tsx",
-);
+const { HistoryCharts, samplerText } = await tsx.import<
+  typeof import("../../../../features/infrastructure/infrastructure/ui/metrics-history")
+>("../../../../features/infrastructure/infrastructure/ui/metrics-history.tsx");
 
 // Fixture: ten minutes of one-minute samples with readings missing at minutes 3 and 4.
 const start = Date.UTC(2026, 10, 15, 12, 0);

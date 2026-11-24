@@ -1,1 +1,1 @@
-export { SecurityPage as default } from "../../../../../../features/account/ui/security-page";
+export { SecurityPage as default } from "../../../../../../features/identity/account/ui/security-page";

@@ -1,1 +1,1 @@
-export { ProjectsPage as default } from "../../../../../../../../../features/projects/ui/projects-page";
+export { ProjectsPage as default } from "../../../../../../../../../features/organizations/projects/ui/projects-page";

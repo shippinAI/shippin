@@ -1,1 +1,1 @@
-export { HubPage as default } from "../../../../../features/hub/ui/hub-page";
+export { HubPage as default } from "../../../../../features/runtime/hub/ui/hub-page";

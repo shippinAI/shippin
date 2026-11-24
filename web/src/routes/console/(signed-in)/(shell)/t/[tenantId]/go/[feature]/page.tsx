@@ -1,1 +1,1 @@
-export { GoPage as default } from "../../../../../../../../features/go/ui/go-page";
+export { GoPage as default } from "../../../../../../../../features/runtime/go/ui/go-page";

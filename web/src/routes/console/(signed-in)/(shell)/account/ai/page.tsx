@@ -1,1 +1,1 @@
-export { AIConnectionsPage as default } from "../../../../../../features/account/ui/ai-connections-page";
+export { AIConnectionsPage as default } from "../../../../../../features/identity/account/ui/ai-connections-page";

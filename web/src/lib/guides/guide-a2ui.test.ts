@@ -1,7 +1,7 @@
 // Guides rendered as A2UI v0.9 (jiti runs the TS).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { terminalGuides } from "../../features/guides/guides/all-guides";
+import { terminalGuides } from "../../features/runtime/guides/guides/all-guides";
 import { applyAll } from "../a2ui/a2ui-model";
 import type { A2UIComponent } from "../a2ui/a2ui-types";
 import { guideMessages, pickerMessages } from "./guide-a2ui";

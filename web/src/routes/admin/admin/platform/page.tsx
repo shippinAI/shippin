@@ -1,1 +1,1 @@
-export { PlatformSettingsPage as default } from "../../../../features/admin/ui/platform/platform-settings-page";
+export { PlatformSettingsPage as default } from "../../../../features/platform/admin/ui/platform/platform-settings-page";

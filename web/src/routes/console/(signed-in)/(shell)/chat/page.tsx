@@ -1,1 +1,1 @@
-export { ChatPage as default } from "../../../../../features/chat/ui/chat-page";
+export { ChatPage as default } from "../../../../../features/runtime/chat/ui/chat-page";

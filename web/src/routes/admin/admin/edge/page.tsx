@@ -1,1 +1,1 @@
-export { EdgePage as default } from "../../../../features/admin/ui/edge-page";
+export { EdgePage as default } from "../../../../features/platform/admin/ui/edge-page";

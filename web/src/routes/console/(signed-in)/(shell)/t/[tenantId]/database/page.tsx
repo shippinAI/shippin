@@ -1,1 +1,1 @@
-export { DatabasePage as default } from "../../../../../../../features/database/ui/database-page";
+export { DatabasePage as default } from "../../../../../../../features/services/database/ui/database-page";

@@ -1,1 +1,1 @@
-export { SetupPage as default } from "../../../features/auth/ui/setup-page";
+export { SetupPage as default } from "../../../features/identity/auth/ui/setup-page";

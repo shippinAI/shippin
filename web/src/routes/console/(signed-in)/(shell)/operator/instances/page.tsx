@@ -1,1 +1,1 @@
-export { InstancesPage as default } from "../../../../../../features/instances/ui/instances-page";
+export { InstancesPage as default } from "../../../../../../features/infrastructure/instances/ui/instances-page";

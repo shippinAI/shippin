@@ -1,1 +1,1 @@
-export { CustomersPage as default } from "../../../../features/admin/ui/catalog/customers-page";
+export { CustomersPage as default } from "../../../../features/platform/admin/ui/catalog/customers-page";

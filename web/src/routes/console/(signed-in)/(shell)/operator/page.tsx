@@ -1,1 +1,1 @@
-export { PlatformPage as default } from "../../../../../features/instances/ui/platform-page";
+export { PlatformPage as default } from "../../../../../features/infrastructure/instances/ui/platform-page";
