@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"shippin.cloud/console/internal/devaccounts"
+	"shippin.cloud/console/internal/identity/devaccounts"
 	"time"
 
 	"shippin.cloud/console/internal/db"

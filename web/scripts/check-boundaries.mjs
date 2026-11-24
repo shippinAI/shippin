@@ -4,6 +4,9 @@
 //   - a feature reaches another feature only through that feature's index.ts;
 //   - nothing outside src/modules imports a module (the generated route files only name them);
 //   - no folder is a bucket (common, shared, utils, util, helpers, misc): code belongs to what it serves.
+//   - src/features gains no folder: a feature is a context's panel code (docs/architecture.md), and new
+//     work goes inside the feature of its context. scripts/features-baseline.txt lists today's folders
+//     and only shrinks, by the same two rules as the list below.
 // Imports from one feature into another's internals that existed when this check arrived are listed in
 // scripts/boundaries-baseline.txt. The list may only shrink: a new one fails, and so does a listed one
 // that is gone (remove its line). The file is also compared with its version at the merge base, and a
@@ -18,6 +21,7 @@ const at = process.argv.indexOf("--web");
 const web = at >= 0 ? process.argv[at + 1] : fileURLToPath(new URL("..", import.meta.url));
 const src = join(web, "src");
 const baselineFile = join(web, "scripts", "boundaries-baseline.txt");
+const featuresFile = join(web, "scripts", "features-baseline.txt");
 const buckets = new Set(["common", "shared", "utils", "util", "helpers", "misc"]);
 
 const posix = (p) => p.split(sep).join("/");
@@ -123,6 +127,23 @@ if (prior.error) problems.push(prior.error);
 else if (!prior.skip) {
   const had = new Set(prior.lines);
   for (const b of baseline) if (!had.has(b)) problems.push(`scripts/boundaries-baseline.txt adds "${b}"; the list may only shrink`);
+}
+
+// The feature folders: only checked where the list exists, so a tree without one is not judged by it.
+if (existsSync(featuresFile) && existsSync(join(src, "features"))) {
+  const allowed = baselineLines(readFileSync(featuresFile, "utf8"));
+  const folders = readdirSync(join(src, "features")).filter((n) => statSync(join(src, "features", n)).isDirectory());
+  for (const f of folders)
+    if (!allowed.includes(f))
+      problems.push(`src/features/${f}: a new feature folder; put it inside the feature of its context (docs/architecture.md)`);
+  for (const a of allowed)
+    if (!folders.includes(a)) problems.push(`scripts/features-baseline.txt lists "${a}", which is gone; remove the line`);
+  const before = priorBaseline(web, featuresFile);
+  if (before.error) problems.push(before.error.replace("boundaries-baseline.txt", "features-baseline.txt"));
+  else if (!before.skip && before.lines.length) {
+    for (const a of allowed)
+      if (!before.lines.includes(a)) problems.push(`scripts/features-baseline.txt adds "${a}"; the list may only shrink`);
+  }
 }
 
 if (problems.length) {

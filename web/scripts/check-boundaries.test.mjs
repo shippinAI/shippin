@@ -49,6 +49,17 @@ test("the baseline lists older crossings and may only shrink", () => {
   assert.match(stale.out, /which is gone; remove the line/);
 });
 
+test("a new feature folder fails where the features are listed, and a listed one that is gone does too", () => {
+  assert.ok(check({ ...base, "scripts/features-baseline.txt": "# today's features\na\n" }).ok);
+  const added = check({ ...base, "src/features/b/ui/b.tsx": "export const B = 1;\n", "scripts/features-baseline.txt": "a\n" });
+  assert.ok(!added.ok);
+  assert.match(added.out, /src\/features\/b: a new feature folder/);
+  const stale = check({ ...base, "scripts/features-baseline.txt": "a\nold\n" });
+  assert.ok(!stale.ok);
+  assert.match(stale.out, /features-baseline\.txt lists "old", which is gone/);
+  assert.ok(check({ ...base, "src/features/b/ui/b.tsx": "export const B = 1;\n" }).ok, "a tree without the list is not judged by it");
+});
+
 test("lib depends on no feature, and only generated files name a module", () => {
   const lib = check({ ...base, "src/lib/y.ts": 'import { A } from "../features/a";\n' });
   assert.match(lib.out, /src\/lib imports features\/a\/index\.ts/);

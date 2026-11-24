@@ -16,7 +16,7 @@ import (
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/deployments"
-	"shippin.cloud/console/internal/devaccounts"
+	"shippin.cloud/console/internal/identity/devaccounts"
 	"shippin.cloud/console/internal/hostclient"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/proxmox"

@@ -14,7 +14,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/config"
-	"shippin.cloud/console/internal/devaccounts"
+	"shippin.cloud/console/internal/identity/devaccounts"
 	"shippin.cloud/console/internal/identity"
 )
 

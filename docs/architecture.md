@@ -21,7 +21,9 @@ Each part of the product is one context, and one owner in the code.
 | Platform | Settings, interface, health, updates, setup | `internal/platform` | `settings` |
 | Integrations | GitHub, Vaultix, rrflow, AgentHub, each optional | one package each | under the context that uses it |
 
-`internal/clickhouse` and the database connection are plumbing, shared by contexts.
+These are plumbing, shared by every context and owned by none: `internal/app` (start-up), `internal/mcpl` and `internal/actions` (the action runner and its generated registry), `internal/ext` (the extension seam), `internal/ports` (host ports), `internal/settings` (the settings sections each package declares; the Platform context's `setting` entity edits them), `internal/clickhouse` and the database connection.
+
+Nothing else is added beside them. New code is an entity folder inside its context, and a child of an existing entity is a folder inside that entity. `TestInternalPackagesAreContextsOrListed` in `internal/mcpl` fails on a new top-level package; the packages from before this map are listed in `internal/mcpl/testdata/unplaced-packages.txt`, which only shrinks as each moves into its context. The panel has the same rule for `web/src/features/` in `web/scripts/features-baseline.txt` ([panel framework](web-framework.md)).
 
 ## Editions
 

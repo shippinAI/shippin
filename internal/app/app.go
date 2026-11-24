@@ -20,7 +20,7 @@ import (
 	"shippin.cloud/console/internal/clickhouse"
 	"shippin.cloud/console/internal/config"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/devaccounts"
+	"shippin.cloud/console/internal/identity/devaccounts"
 	"shippin.cloud/console/internal/ext"
 	"shippin.cloud/console/internal/identity"
 	"shippin.cloud/console/internal/mail"

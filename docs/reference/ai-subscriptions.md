@@ -129,9 +129,8 @@ test the UI until the following items have evidence:
    The hub needs Nomen identity, tenant-scoped data, workspace/resource grants,
    owner runner adapters and revocation. No hub container/route was found in the reference host's platform
    inventory. Current agent-hub code does not implement these hosted guarantees.
-   Verified Cloudflare zone `7b8a176774301f13d5773f00d223c057`, account
-   `ada34de5c97b755fd886372fc7b339a7`: apex A records are `207.207.210.36` and
-   `207.207.210.50`; `www` and wildcard CNAME point to `uixie.porkbun.com`, all proxied.
+   The zone, account, current records and addresses are that installation's data and are kept
+   in its own private notes, not here (ENG-01).
    Preserve email MX/SPF and unrelated records. No DNS changes have been made.
 6. Pin the completed release hashes and Daybreak-reviewed checkset in a change ticket. Current
    ruleset SHA is `ebe610e267ed08da2e7237cbcba2b57270b3ff4d8938beb14674b4e3b64da010`.

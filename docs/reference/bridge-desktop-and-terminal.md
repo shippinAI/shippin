@@ -7,7 +7,7 @@ sign-in: no static SSH keys, no open ports, certificates that expire in minutes.
 ## Once per computer
 
 ```bash
-shippin-bridge login --server https://console.shippin.cloud   # device code, approve in the console
+shippin-bridge login --server https://<your panel>   # device code, approve in the panel
 shippin-bridge ls                                             # your devspaces
 ```
 

@@ -1,0 +1,40 @@
+# The panel's feature folders as of 2026-11-24. A feature is a context's panel code (docs/architecture.md).
+# This list only shrinks: new work goes inside the feature of its context, and a line goes when a folder
+# is merged into it.
+a2ui
+access
+account
+admin
+ai-launcher
+api-explorer
+apps
+auth
+bridge
+chat
+connect
+coverage
+database
+deployments
+devspaces
+discussions
+go
+guides
+hub
+identity
+infrastructure
+instances
+onboarding
+orgs
+overview
+platform
+projects
+runners
+servers
+settings
+setup
+sparks
+team
+terminal
+updates
+vaultix
+workspaces
