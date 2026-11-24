@@ -27,4 +27,3 @@ __pycache__/
 !third_party/warden-ct102/warden.env.example
 
 # Astro generated types
-site/shippin-run/.astro/

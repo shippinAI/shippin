@@ -25,5 +25,4 @@ The env file names the app as `host.docker.internal` for a test run in a contain
 argument to `up` for a test run on the host.
 
 Infisical Cloud import: console → Secrets → Import (a read-only machine identity on the Cloud project; one
-environment per run; nothing about it is stored). Local proof: `deploy/screenshots/vaultix-e2e.mjs` against
-`cmd/vaultix-demo` (`scripts/vaultix-demo/`).
+environment per run; nothing about it is stored).

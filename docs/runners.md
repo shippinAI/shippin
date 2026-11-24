@@ -150,11 +150,6 @@ The panel's GitHub App (configured as for project import) must also:
 4. Proxmox, then public clouds and customers' own servers as they land.
 5. The catalog entry for a customer's own runner; usage records for metering (stage 14).
 
-PR #18 preserves the earlier `shippin-run` process and static demo for legacy fleet-file
-compatibility. Its hand-written MCP, file storage and shared-account policies are not used by the
-platform runtime. A dependency test prevents the console from importing its stateful package.
-[The disposition](reference/shippin-run.md#platform-boundary) records retained behavior and gaps;
-source consolidation does not complete platform logs, workflow editing or VM execution.
 PR #20's gateway proxy proposal is reconciled in [its source disposition](runner-service.md).
 Its original commits remain in merged history; the current runner UI and runtime
 stay authoritative. Versioned external profiles and gateway-specific acceptance

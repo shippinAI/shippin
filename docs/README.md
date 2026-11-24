@@ -23,7 +23,6 @@ running.
 
 - [Deploy](deploy.md): containers or a Debian/Ubuntu machine, TLS, upgrades.
 - [Develop](development.md): the local loop and the checks to run before pushing.
-- [Legacy runner prototype](reference/shippin-run.md): preserved fleet-file tools and their boundary; current panel runners are described in [Build runners](runners.md).
 - [Attach a hypervisor](reference/proxmox-connector.md): Incus and Proxmox.
 - [Source ownership](source-of-truth.md): which folder owns what.
 - [Assistant skills](../.agents/library/README.md): the canonical library external assistants load after a flat export.

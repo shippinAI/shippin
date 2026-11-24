@@ -89,22 +89,6 @@ repository assignments. Their actions use MCPL and the single `web/` panel; see
 [build runners](runners.md). `internal/services/jobs/` remains the durable worker lease/retry
 mechanism, not deployment truth.
 
-PR #18's earlier file-based prototype is retained in `internal/runtime/runfleet` and
-`cmd/shippin-run` for standalone legacy fleet-file compatibility and evaluation.
-It does not own platform runners, share panel credentials or databases, or grant
-tenant access. The console must not depend on this package; a dependency-boundary
-test enforces that separation. Its static demo is `site/shippin-run`, not a panel.
-The prototype's original source, tests and limitations remain available without
-replacing the newer runtime. [Its disposition](reference/shippin-run.md#platform-boundary)
-distinguishes preservation from platform feature completion. The Warden HTML stays
-unmounted.
-
-`internal/hv/incus/` and `internal/hv/proxmox/` retain provider-specific
-guest behavior; `internal/infrastructure/hostd/` owns only the bounded in-guest bootstrap and
-workload operations exposed through its authenticated contract. No provider or
-builder implementation may be hidden in the
-catalog handlers or the React panel.
-
 The [capability absorption ledger](absorption/capability-absorption.md) records which
 behaviors from historical console, cloud, mesh and Warden sources are already owned
 here, which need implementation, and the evidence required before those sources are
