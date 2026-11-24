@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"time"
 
 	"shippin.cloud/console/internal/auth"
@@ -12,7 +13,7 @@ import (
 
 // stopAll stops every live workspace of a tenant (used by suspend). Returns the ids that failed.
 func (a *API) stopAll(ctx context.Context, t *db.Tenant) []string {
-	wss, err := a.db.Workspaces(ctx, t.ID)
+	wss, err := devspace.On(a.db.Pool).List(ctx, t.ID)
 	if err != nil {
 		return []string{"(workspace list unavailable)"}
 	}
@@ -23,11 +24,11 @@ func (a *API) stopAll(ctx context.Context, t *db.Tenant) []string {
 		}
 		if err := a.host.Action(ctx, t.ID, ws.ID, "stop", a.hostReq(tv, ws)); err != nil {
 			log.Printf("suspend %s: stop %s: %v", t.ID, ws.ID, err)
-			_ = a.db.SetWorkspaceState(ctx, ws.ID, "failed", "", "Could not stop for suspension: "+err.Error())
+			_ = devspace.On(a.db.Pool).SetState(ctx, ws.ID, "failed", "", "Could not stop for suspension: "+err.Error())
 			failed = append(failed, ws.ID)
 			continue
 		}
-		_ = a.db.SetWorkspaceState(ctx, ws.ID, "stopped", "", "")
+		_ = devspace.On(a.db.Pool).SetState(ctx, ws.ID, "stopped", "", "")
 	}
 	return failed
 }

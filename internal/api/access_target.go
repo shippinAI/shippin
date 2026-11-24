@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"time"
 
 	"shippin.cloud/console/internal/auth"
@@ -39,7 +40,7 @@ func (a *API) accessTarget(w http.ResponseWriter, r *http.Request, c *caller, in
 	}
 	scope := "whole tenant"
 	if in.WorkspaceID != "" {
-		ws, err := a.db.WorkspaceByID(r.Context(), in.WorkspaceID)
+		ws, err := devspace.On(a.db.Pool).ByID(r.Context(), in.WorkspaceID)
 		if err != nil || ws == nil || ws.TenantID != t.ID {
 			auth.Problem(w, http.StatusNotFound, "Workspace not found in this tenant.")
 			return nil, "", false

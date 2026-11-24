@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"shippin.cloud/console/internal/services/jobs"
 	"testing"
 )
@@ -28,7 +29,7 @@ func TestLifecycleDispatchAndRecovery(t *testing.T) {
 			ctx := context.Background()
 			a.jobs = jobs.NewStore(d.Pool)
 			ws := provisioningWS(t, a, d, tn)
-			if err := d.SetWorkspaceState(ctx, ws.ID, "stopped", "", ""); err != nil {
+			if err := devspace.On(d.Pool).SetState(ctx, ws.ID, "stopped", "", ""); err != nil {
 				t.Fatal(err)
 			}
 			payload, _ := json.Marshal(workspaceActionIn{Action: tc.action, Phase: tc.phase})
@@ -59,7 +60,7 @@ func TestLifecycleDispatchAndRecovery(t *testing.T) {
 			if tc.want != "failed" && err != nil {
 				t.Fatal(err)
 			}
-			got, _ := d.WorkspaceByID(ctx, ws.ID)
+			got, _ := devspace.On(d.Pool).ByID(ctx, ws.ID)
 			if got.State != tc.want || posts != tc.posts {
 				t.Fatalf("state=%s posts=%d", got.State, posts)
 			}

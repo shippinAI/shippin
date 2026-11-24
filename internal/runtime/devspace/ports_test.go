@@ -1,4 +1,4 @@
-package db
+package devspace
 
 import (
 	"errors"

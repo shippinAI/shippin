@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"time"
 
 	"shippin.cloud/console/internal/db"
@@ -70,7 +71,7 @@ func (a *API) notifyExpired(g db.Grant) {
 
 // notifyWorkspaceReady tells the workspace's creator it is running; when the creator has no
 // e-mail (an API/machine user) the tenant's managers are told instead.
-func (a *API) notifyWorkspaceReady(tenant string, ws *db.Workspace) {
+func (a *API) notifyWorkspaceReady(tenant string, ws *devspace.Devspace) {
 	a.notifyLater("workspace_ready", func(ctx context.Context) error {
 		to, err := a.workspaceRecipients(ctx, ws)
 		if err != nil || len(to) == 0 {
@@ -83,7 +84,7 @@ func (a *API) notifyWorkspaceReady(tenant string, ws *db.Workspace) {
 	})
 }
 
-func (a *API) workspaceRecipients(ctx context.Context, ws *db.Workspace) ([]string, error) {
+func (a *API) workspaceRecipients(ctx context.Context, ws *devspace.Devspace) ([]string, error) {
 	if to, err := a.emailOf(ctx, ws.CreatedBy); err != nil || to != "" {
 		return []string{to}, err
 	}

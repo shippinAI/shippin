@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"os"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ func testDB(t *testing.T) (*DB, context.Context) {
 func newID() string { id, _ := uuid.NewV7(); return id.String() }
 
 // seed creates an active tenant with one workspace.
-func seed(t *testing.T, d *DB, ctx context.Context) (Tenant, Workspace) {
+func seed(t *testing.T, d *DB, ctx context.Context) (Tenant, devspace.Devspace) {
 	t.Helper()
 	tn := Tenant{ID: newID(), IdpOrgID: newID(), Name: "t", Plan: "p"}
 	if err := d.CreateTenant(ctx, tn); err != nil {
@@ -44,8 +45,8 @@ func seed(t *testing.T, d *DB, ctx context.Context) (Tenant, Workspace) {
 	if err := d.SetTenantStatus(ctx, tn.ID, "active", "", ""); err != nil {
 		t.Fatal(err)
 	}
-	ws := Workspace{ID: newID(), TenantID: tn.ID, Name: "w", CreatedBy: "owner", Host: newID() + ".ws.test"}
-	if err := d.CreateWorkspace(ctx, &ws, 22000, 22999); err != nil {
+	ws := devspace.Devspace{ID: newID(), TenantID: tn.ID, Name: "w", CreatedBy: "owner", Host: newID() + ".ws.test"}
+	if err := devspace.On(d.Pool).Create(ctx, &ws, 22000, 22999); err != nil {
 		t.Fatal(err)
 	}
 	return tn, ws

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"testing"
 
@@ -75,11 +76,11 @@ func TestGitHubImportGuardsAndToken(t *testing.T) {
 	if src == nil || src.RepoID != 42 || src.InstallationID != 7 {
 		t.Fatalf("source %+v", src)
 	}
-	req := a.createReq(ctx, &tenantView{Tenant: tn}, db.Workspace{ProjectID: out.ProjectID})
+	req := a.createReq(ctx, &tenantView{Tenant: tn}, devspace.Devspace{ProjectID: out.ProjectID})
 	if req.GitToken == nil || req.GitToken.Token != "ghs_test" {
 		t.Fatal("imported workspace gets an installation token on create")
 	}
-	if a.createReq(ctx, &tenantView{Tenant: tn}, db.Workspace{}).GitToken != nil {
+	if a.createReq(ctx, &tenantView{Tenant: tn}, devspace.Devspace{}).GitToken != nil {
 		t.Fatal("non-imported workspaces get no token")
 	}
 	_ = d.RevokeRepos(ctx, 7, []int64{42})

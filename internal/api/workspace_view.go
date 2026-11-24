@@ -2,10 +2,10 @@ package api
 
 import (
 	"fmt"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"time"
 
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
 	"shippin.cloud/console/internal/infrastructure/hostd"
 )
@@ -20,7 +20,7 @@ type connectInfo struct {
 }
 
 type workspaceView struct {
-	db.Workspace
+	devspace.Devspace
 	Observation   string       `json:"observation"`
 	ObservedAt    *time.Time   `json:"observed_at,omitempty"`
 	RecordedState string       `json:"recorded_state"`
@@ -37,19 +37,19 @@ type workspaceView struct {
 }
 
 type previewURL struct {
-	db.Preview
+	devspace.Preview
 	URL string `json:"url"`
 }
 
 // view merges the DB row with live Incus state and connect details.
-func (a *API) view(t *tenantView, w db.Workspace, live map[string]hostclient.Instance) workspaceView {
-	v := workspaceView{Workspace: w, Instance: "w-" + w.ID, KeyCount: len(w.SSHKeys),
+func (a *API) view(t *tenantView, w devspace.Devspace, live map[string]hostclient.Instance) workspaceView {
+	v := workspaceView{Devspace: w, Instance: "w-" + w.ID, KeyCount: len(w.SSHKeys),
 		RecordedState: w.State, Observation: "unavailable", URL: "https://" + w.Host, PublicIP: t.SSHIP, Region: a.cfg.Incus.HostLabel, IDEPort: a.cfg.Workspaces.IDEPort}
 	if v.Domains == nil {
 		v.Domains = []string{}
 	}
 	if v.Firewall == nil {
-		v.Firewall = []db.Rule{}
+		v.Firewall = []devspace.Rule{}
 	}
 	v.PreviewURLs = []previewURL{}
 	for _, p := range w.Previews {

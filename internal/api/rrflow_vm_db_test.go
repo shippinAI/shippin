@@ -4,11 +4,11 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"sync"
 	"testing"
 
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
 	"shippin.cloud/console/internal/platform/config"
 	"shippin.cloud/console/internal/services/jobs"
@@ -43,7 +43,7 @@ func TestRRFlowPerVM(t *testing.T) {
 	for i, p := range []string{p1, p2} {
 		exec(`INSERT INTO projects(id,tenant_id,boundary_id,name,created_by) VALUES($1,$2,$3,$4,'u')`, p, tn.ID, b, "p"+p[len(p)-6:]+string(rune('a'+i)))
 	}
-	ws := map[string]*db.Workspace{}
+	ws := map[string]*devspace.Devspace{}
 	old := map[string]string{}
 	for _, p := range []string{p1, p2} {
 		w := provisioningWS(t, a, d, tn)

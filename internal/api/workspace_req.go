@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"shippin.cloud/console/internal/runtime/devspace"
+	"shippin.cloud/console/internal/runtime/template"
 	"strings"
 
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
 )
 
@@ -22,20 +23,20 @@ func (a *API) wsHost(name, id string) string {
 }
 
 // hostReq is the full desired state of a workspace sent to shippin-hostd.
-func (a *API) hostReq(t *tenantView, w db.Workspace) hostclient.WorkspaceReq {
+func (a *API) hostReq(t *tenantView, w devspace.Devspace) hostclient.WorkspaceReq {
 	rules := w.Firewall
 	if rules == nil {
-		rules = []db.Rule{}
+		rules = []devspace.Rule{}
 	}
 	prev := w.Previews
 	if prev == nil {
-		prev = []db.Preview{}
+		prev = []devspace.Preview{}
 	}
 	req := hostclient.WorkspaceReq{Name: w.Name, Plan: t.Plan, Keys: w.SSHKeys, Port: w.SSHPort, SSHIP: t.SSHIP,
 		Host: w.Host, Domains: w.Domains, Rules: rules, Size: w.Size, Repo: w.Repo, Previews: prev,
 		Project: w.ProjectID, Environment: w.EnvironmentID, Boundary: w.BoundaryID}
 	if w.Template != "" {
-		if tpl, err := a.db.Template(context.Background(), w.Template); err == nil && tpl != nil {
+		if tpl, err := template.On(a.db.Pool).Get(context.Background(), w.Template); err == nil && tpl != nil {
 			req.Image, req.Startup = tpl.Image, tpl.Startup
 		}
 	}

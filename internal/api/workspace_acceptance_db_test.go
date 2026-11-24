@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http/httptest"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"shippin.cloud/console/internal/services/jobs"
 	"testing"
 )
@@ -12,7 +13,7 @@ func TestWorkspaceActionReplayAndConflict(t *testing.T) {
 	a.runner.Store(jobs.NewRunner(a.jobs, jobs.Settings{}))
 	a.cfg.Jobs.IdempotencyHours = 1
 	ws := provisioningWS(t, a, d, tn)
-	if err := d.SetWorkspaceState(t.Context(), ws.ID, "stopped", "", ""); err != nil {
+	if err := devspace.On(d.Pool).SetState(t.Context(), ws.ID, "stopped", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	call := func(action, key string) *httptest.ResponseRecorder {

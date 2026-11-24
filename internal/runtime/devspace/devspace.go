@@ -1,10 +1,21 @@
-package db
+// Package devspace is a development space: the machine a person builds a project in (WS-01). This file
+// is its type and its storage; the actions beside it are what the panel and an AI call.
+package devspace
+
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Workspace struct {
+// Store reads and writes development spaces.
+type Store struct{ Pool *pgxpool.Pool }
+
+// On is the store on one database.
+func On(p *pgxpool.Pool) Store { return Store{Pool: p} }
+
+type Devspace struct {
 	ID            string    `json:"id"`
 	TenantID      string    `json:"tenant_id"`
 	Name          string    `json:"name"`
@@ -52,28 +63,28 @@ const wsCols = `id::text, tenant_id::text, name, state, ssh_port, coalesce(ipv4,
 	coalesce(template_id::text,''), repo, size, progress, previews,
 	coalesce(project_id::text,''), coalesce(environment_id::text,''), coalesce(boundary_id::text,'')`
 
-func (d *DB) Workspaces(ctx context.Context, tenant string) ([]Workspace, error) {
-	return d.queryWS(ctx, `WHERE tenant_id=$1 AND state<>'deleted' ORDER BY created_at`, tenant)
+func (d Store) List(ctx context.Context, tenant string) ([]Devspace, error) {
+	return d.query(ctx, `WHERE tenant_id=$1 AND state<>'deleted' ORDER BY created_at`, tenant)
 }
 
-// WorkspaceByHost finds a live workspace by its default host or an attached domain.
-func (d *DB) WorkspaceByHost(ctx context.Context, host string) (*Workspace, error) {
-	ws, err := d.queryWS(ctx, `WHERE state<>'deleted' AND (host=$1 OR $1 = ANY(domains)) LIMIT 1`, host)
+// ByHost finds a live workspace by its default host or an attached domain.
+func (d Store) ByHost(ctx context.Context, host string) (*Devspace, error) {
+	ws, err := d.query(ctx, `WHERE state<>'deleted' AND (host=$1 OR $1 = ANY(domains)) LIMIT 1`, host)
 	if err != nil || len(ws) == 0 {
 		return nil, err
 	}
 	return &ws[0], nil
 }
 
-func (d *DB) queryWS(ctx context.Context, where string, args ...any) ([]Workspace, error) {
+func (d Store) query(ctx context.Context, where string, args ...any) ([]Devspace, error) {
 	rows, err := d.Pool.Query(ctx, `SELECT `+wsCols+` FROM workspaces `+where, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	out := []Workspace{}
+	out := []Devspace{}
 	for rows.Next() {
-		var w Workspace
+		var w Devspace
 		if err := rows.Scan(&w.ID, &w.TenantID, &w.Name, &w.State, &w.SSHPort, &w.IPv4, &w.SSHKeys, &w.CreatedBy, &w.Error, &w.CreatedAt, &w.Host, &w.Domains, &w.Firewall,
 			&w.Template, &w.Repo, &w.Size, &w.Progress, &w.Previews, &w.ProjectID, &w.EnvironmentID, &w.BoundaryID); err != nil {
 			return nil, err
@@ -83,9 +94,9 @@ func (d *DB) queryWS(ctx context.Context, where string, args ...any) ([]Workspac
 	return out, nil
 }
 
-// CreateWorkspace inserts a row with the lowest free SSH port in [portMin, portMax]; a
+// Create inserts a row with the lowest free SSH port in [portMin, portMax]; a
 // concurrent create that takes the same port is retried.
-func (d *DB) CreateWorkspace(ctx context.Context, w *Workspace, portMin, portMax int) error {
+func (d Store) Create(ctx context.Context, w *Devspace, portMin, portMax int) error {
 	if w.Previews == nil {
 		w.Previews = []Preview{}
 	}
@@ -114,37 +125,58 @@ func (d *DB) CreateWorkspace(ctx context.Context, w *Workspace, portMin, portMax
 	return ErrNoPorts
 }
 
-// BeginWorkspaceOp moves a live workspace into state unless an operation is already running
-// (provisioning/deleting/starting/stopping). It returns false when another request won.
-func (d *DB) BeginWorkspaceOp(ctx context.Context, id, state string) (bool, error) {
-	tag, err := d.Pool.Exec(ctx, `UPDATE workspaces SET state=$2, error=NULL, updated_at=now()
-		WHERE id=$1 AND state NOT IN ('provisioning','deleting','deleted','starting','stopping')`, id, state)
-	return err == nil && tag.RowsAffected() == 1, err
-}
-
-func (d *DB) SetWorkspaceState(ctx context.Context, id, state, ipv4, errMsg string) error {
+func (d Store) SetState(ctx context.Context, id, state, ipv4, errMsg string) error {
 	_, err := d.Pool.Exec(ctx, `UPDATE workspaces SET state=$2, ipv4=coalesce(nullif($3,''),ipv4), error=nullif($4,''), updated_at=now() WHERE id=$1`,
 		id, state, ipv4, errMsg)
 	return err
 }
 
-func (d *DB) SetWorkspaceAccess(ctx context.Context, id string, host string, domains []string, fw []Rule) error {
+func (d Store) SetAccess(ctx context.Context, id string, host string, domains []string, fw []Rule) error {
 	_, err := d.Pool.Exec(ctx, `UPDATE workspaces SET host=coalesce(nullif($2,''),host), domains=$3, firewall=$4, updated_at=now() WHERE id=$1`,
 		id, host, domains, fw)
 	return err
 }
 
-func (d *DB) SetWorkspaceKeys(ctx context.Context, id string, keys []string) error {
+func (d Store) SetKeys(ctx context.Context, id string, keys []string) error {
 	_, err := d.Pool.Exec(ctx, `UPDATE workspaces SET ssh_keys=$2, updated_at=now() WHERE id=$1`, id, keys)
 	return err
 }
 
-func (d *DB) SetWorkspaceProgress(ctx context.Context, id, progress string) error {
+func (d Store) SetProgress(ctx context.Context, id, progress string) error {
 	_, err := d.Pool.Exec(ctx, `UPDATE workspaces SET progress=$2, updated_at=now() WHERE id=$1`, id, progress)
 	return err
 }
 
-func (d *DB) SetWorkspacePreviews(ctx context.Context, id string, ps []Preview) error {
+func (d Store) SetPreviews(ctx context.Context, id string, ps []Preview) error {
 	_, err := d.Pool.Exec(ctx, `UPDATE workspaces SET previews=$2, updated_at=now() WHERE id=$1`, id, ps)
 	return err
+}
+
+// ByCreator lists the live development spaces a person created (to give them changed SSH keys).
+func (d Store) ByCreator(ctx context.Context, sub string) ([]Devspace, error) {
+	return d.query(ctx, `WHERE created_by=$1 AND state<>'deleted'`, sub)
+}
+
+// All lists every live development space across organizations, for staff.
+func (d Store) All(ctx context.Context) ([]Devspace, error) {
+	return d.query(ctx, `WHERE state<>'deleted' ORDER BY created_at`)
+}
+
+// ByID returns a live development space.
+func (d Store) ByID(ctx context.Context, id string) (*Devspace, error) {
+	ws, err := d.query(ctx, `WHERE id::text=$1 AND state<>'deleted'`, id)
+	if err != nil || len(ws) == 0 {
+		return nil, err
+	}
+	return &ws[0], nil
+}
+
+// ActionTarget also returns a deleted one, only so a repeated delete can be answered with its
+// receipt. Lists and reads leave deleted ones out.
+func (d Store) ActionTarget(ctx context.Context, id string) (*Devspace, error) {
+	rows, err := d.query(ctx, `WHERE id::text=$1`, id)
+	if err != nil || len(rows) == 0 {
+		return nil, err
+	}
+	return &rows[0], nil
 }

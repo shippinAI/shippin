@@ -2,10 +2,10 @@ package api
 
 import (
 	"net/netip"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"slices"
 	"strings"
 
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostd"
 	"shippin.cloud/console/internal/platform/config"
 )
@@ -20,7 +20,7 @@ func reservedPort(p int, c config.Workspaces) bool {
 }
 
 // checkRules validates firewall rules (published on the shared endpoint). "" = ok.
-func checkRules(rules []db.Rule, c config.Workspaces) string {
+func checkRules(rules []devspace.Rule, c config.Workspaces) string {
 	if len(rules) > 20 {
 		return "At most 20 rules per workspace."
 	}
@@ -76,7 +76,7 @@ func checkDomains(ds []string, c config.Workspaces) string {
 }
 
 // checkPreviews: at most 20, unique, inside the preview range, not the IDE port.
-func checkPreviews(ps []db.Preview, c config.Workspaces) string {
+func checkPreviews(ps []devspace.Preview, c config.Workspaces) string {
 	if len(ps) > 20 {
 		return "At most 20 previews per workspace."
 	}

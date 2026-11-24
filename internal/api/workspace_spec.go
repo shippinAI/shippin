@@ -2,22 +2,23 @@ package api
 
 import (
 	"context"
+	"shippin.cloud/console/internal/runtime/devspace"
+	"shippin.cloud/console/internal/runtime/template"
 	"time"
 
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostd"
 )
 
 type wsSpec struct {
 	Template string
 	Repo     string
-	Size     db.Size
-	Previews []db.Preview
+	Size     devspace.Size
+	Previews []devspace.Preview
 }
 
 // workspaceSpec validates the create-flow choices. Returns a user-facing message on error.
 func (a *API) workspaceSpec(ctx context.Context, tplID, repo, size string) (wsSpec, string) {
-	sp := wsSpec{Repo: repo, Previews: []db.Preview{}}
+	sp := wsSpec{Repo: repo, Previews: []devspace.Preview{}}
 	if repo != "" && hostd.ValidRepo(repo, a.cfg.Workspaces.RepoHosts) != nil {
 		return sp, repoMsg(a.cfg.Workspaces)
 	}
@@ -27,7 +28,7 @@ func (a *API) workspaceSpec(ctx context.Context, tplID, repo, size string) (wsSp
 		}
 		return sp, ""
 	}
-	tpl, err := a.db.Template(ctx, tplID)
+	tpl, err := template.On(a.db.Pool).Get(ctx, tplID)
 	if err != nil || tpl == nil || !tpl.Enabled {
 		return sp, "That template isn't available."
 	}
@@ -35,12 +36,12 @@ func (a *API) workspaceSpec(ctx context.Context, tplID, repo, size string) (wsSp
 	if sp.Repo == "" {
 		sp.Repo = tpl.Repo
 	}
-	sp.Size = db.Size{CPU: tpl.CPU, MemoryGiB: tpl.MemoryGiB, DiskGiB: tpl.DiskGiB}
+	sp.Size = devspace.Size{CPU: tpl.CPU, MemoryGiB: tpl.MemoryGiB, DiskGiB: tpl.DiskGiB}
 	if size != "" {
 		found := false
 		for _, z := range a.cfg.Workspaces.Sizes {
 			if z.ID == size {
-				sp.Size, found = db.Size{CPU: z.CPU, MemoryGiB: z.MemoryGiB, DiskGiB: z.DiskGiB}, true
+				sp.Size, found = devspace.Size{CPU: z.CPU, MemoryGiB: z.MemoryGiB, DiskGiB: z.DiskGiB}, true
 			}
 		}
 		if !found {
@@ -48,7 +49,7 @@ func (a *API) workspaceSpec(ctx context.Context, tplID, repo, size string) (wsSp
 		}
 	}
 	for _, p := range tpl.Ports {
-		sp.Previews = append(sp.Previews, db.Preview{Port: p})
+		sp.Previews = append(sp.Previews, devspace.Preview{Port: p})
 	}
 	return sp, ""
 }
@@ -63,13 +64,13 @@ func (a *API) trackProgress(t, w string, also func(string)) func() {
 		for {
 			select {
 			case <-done:
-				_ = a.db.SetWorkspaceProgress(context.Background(), w, "")
+				_ = devspace.On(a.db.Pool).SetProgress(context.Background(), w, "")
 				return
 			case <-tick.C:
 				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 				if p := a.host.Progress(ctx, t, w); p != "" && p != last {
 					last = p
-					_ = a.db.SetWorkspaceProgress(ctx, w, p)
+					_ = devspace.On(a.db.Pool).SetProgress(ctx, w, p)
 					if also != nil {
 						also(p)
 					}

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"shippin.cloud/console/internal/runtime/devspace"
 
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
@@ -12,7 +13,7 @@ import (
 // runningDevspace is the caller's own first running devspace ("" if none); imports never land in
 // someone else's devspace.
 func (a *API) runningDevspace(ctx context.Context, tenant, sub string) string {
-	ws, err := a.db.Workspaces(ctx, tenant)
+	ws, err := devspace.On(a.db.Pool).List(ctx, tenant)
 	if err != nil {
 		return ""
 	}

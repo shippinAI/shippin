@@ -1,18 +1,17 @@
 package api
 
 import (
+	"shippin.cloud/console/internal/runtime/devspace"
 	"testing"
-
-	"shippin.cloud/console/internal/db"
 )
 
 func TestCheckRules(t *testing.T) {
 	c := testWS()
-	ok := []db.Rule{{Protocol: "tcp", Port: 8080}, {Protocol: "udp", Port: 8080, Source: "203.0.113.0/24"}, {Protocol: "tcp", Port: 5432, Source: "198.51.100.7"}}
+	ok := []devspace.Rule{{Protocol: "tcp", Port: 8080}, {Protocol: "udp", Port: 8080, Source: "203.0.113.0/24"}, {Protocol: "tcp", Port: 5432, Source: "198.51.100.7"}}
 	if msg := checkRules(ok, c); msg != "" {
 		t.Fatalf("valid rules rejected: %s", msg)
 	}
-	bad := map[string][]db.Rule{
+	bad := map[string][]devspace.Rule{
 		"edge https":   {{Protocol: "tcp", Port: 443}},
 		"edge http":    {{Protocol: "tcp", Port: 80}},
 		"ssh":          {{Protocol: "tcp", Port: 22}},
@@ -30,9 +29,9 @@ func TestCheckRules(t *testing.T) {
 			t.Errorf("%s: accepted", name)
 		}
 	}
-	many := make([]db.Rule, 21)
+	many := make([]devspace.Rule, 21)
 	for i := range many {
-		many[i] = db.Rule{Protocol: "tcp", Port: 9000 + i}
+		many[i] = devspace.Rule{Protocol: "tcp", Port: 9000 + i}
 	}
 	if checkRules(many, c) == "" {
 		t.Error("21 rules accepted")
@@ -58,10 +57,10 @@ func TestCheckDomains(t *testing.T) {
 
 func TestCheckPreviews(t *testing.T) {
 	c := testWS()
-	if checkPreviews([]db.Preview{{Port: 5173}, {Port: 8000, Public: true}}, c) != "" {
+	if checkPreviews([]devspace.Preview{{Port: 5173}, {Port: 8000, Public: true}}, c) != "" {
 		t.Fatal("valid previews rejected")
 	}
-	for name, ps := range map[string][]db.Preview{
+	for name, ps := range map[string][]devspace.Preview{
 		"privileged": {{Port: 80}}, "ide": {{Port: 3000}}, "dup": {{Port: 5173}, {Port: 5173}}, "range": {{Port: 70000}},
 	} {
 		if checkPreviews(ps, c) == "" {

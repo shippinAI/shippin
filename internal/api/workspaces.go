@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
@@ -18,7 +19,7 @@ func (a *API) tenantCtx(w http.ResponseWriter, r *http.Request) (*caller, *tenan
 }
 
 func (a *API) liveViews(r *http.Request, t *tenantView) ([]workspaceView, error) {
-	rows, err := a.db.Workspaces(r.Context(), t.ID)
+	rows, err := devspace.On(a.db.Pool).List(r.Context(), t.ID)
 	if err != nil {
 		return nil, err
 	}

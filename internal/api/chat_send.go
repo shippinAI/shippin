@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 )
 
 // chatSession loads the caller's session and re-checks they may still use its workspace.
-func (a *API) chatSession(w http.ResponseWriter, r *http.Request) (*caller, *chat.Session, *db.Workspace, *tenantView, bool) {
+func (a *API) chatSession(w http.ResponseWriter, r *http.Request) (*caller, *chat.Session, *devspace.Devspace, *tenantView, bool) {
 	c, ok := a.chatOn(w, r)
 	if !ok {
 		return nil, nil, nil, nil, false

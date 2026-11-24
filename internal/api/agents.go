@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"unicode/utf8"
 
@@ -132,7 +133,7 @@ func (a *API) checkAgentPlace(r *http.Request, t *tenantView, in agentCreate) st
 	if in.WorkspaceID == "" {
 		return ""
 	}
-	ws, err := a.db.Workspaces(r.Context(), t.ID)
+	ws, err := devspace.On(a.db.Pool).List(r.Context(), t.ID)
 	if err == nil {
 		for _, x := range ws {
 			if x.ID == in.WorkspaceID {

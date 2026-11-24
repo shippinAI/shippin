@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"shippin.cloud/console/internal/runtime/devspace"
 
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/ext"
@@ -67,13 +68,13 @@ type workspacePort struct{ a *API }
 // One workspace failing does not stop the others; every failure is returned together.
 func (p workspacePort) GiveKeys(ctx context.Context, sub string, keys []string) error {
 	a := p.a
-	wss, err := a.db.WorkspacesByCreator(ctx, sub)
+	wss, err := devspace.On(a.db.Pool).ByCreator(ctx, sub)
 	if err != nil {
 		return err
 	}
 	var errs []error
 	for _, ws := range wss {
-		if err := a.db.SetWorkspaceKeys(ctx, ws.ID, keys); err != nil {
+		if err := devspace.On(a.db.Pool).SetKeys(ctx, ws.ID, keys); err != nil {
 			errs = append(errs, fmt.Errorf("workspace %s: %w", ws.ID, err))
 			continue
 		}

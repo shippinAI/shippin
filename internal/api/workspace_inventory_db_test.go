@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"testing"
 )
@@ -21,7 +22,7 @@ func TestWorkspaceInventoryIncomplete(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a, d, tn := notifyAPI(t)
 			ws := provisioningWS(t, a, d, tn)
-			if err := d.SetWorkspaceState(t.Context(), ws.ID, "running", "", ""); err != nil {
+			if err := devspace.On(d.Pool).SetState(t.Context(), ws.ID, "running", "", ""); err != nil {
 				t.Fatal(err)
 			}
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/runtime/devspace"
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/services/jobs"
@@ -65,7 +66,7 @@ func (a *API) attachRRFlowRoute(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&in)
 	pid := r.PathValue("projectId")
 	if in.WorkspaceID == "" {
-		ws, _ := a.db.Workspaces(r.Context(), t.ID)
+		ws, _ := devspace.On(a.db.Pool).List(r.Context(), t.ID)
 		if !hasProjectWorkspace(ws, pid) {
 			auth.Problem(w, http.StatusConflict, "Open the project once so it has a devspace, then attach rrflow.")
 			return
@@ -77,7 +78,7 @@ func (a *API) attachRRFlowRoute(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	if ws, err := a.db.WorkspaceByID(r.Context(), in.WorkspaceID); err != nil || ws == nil || ws.TenantID != t.ID || ws.ProjectID != pid {
+	if ws, err := devspace.On(a.db.Pool).ByID(r.Context(), in.WorkspaceID); err != nil || ws == nil || ws.TenantID != t.ID || ws.ProjectID != pid {
 		auth.Problem(w, http.StatusNotFound, "That devspace isn't part of this project.")
 		return
 	}

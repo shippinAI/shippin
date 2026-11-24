@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"os"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"testing"
 	"time"
 
@@ -82,7 +83,7 @@ func TestNoticesQueuedPerEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.notifyBreakGlass(bg.ID)
-	a.notifyWorkspaceReady(tn.Name, &db.Workspace{ID: uuid.NewString(), TenantID: tn.ID, Name: "api-ws", Host: "api-ws.example.test", CreatedBy: "machine"})
+	a.notifyWorkspaceReady(tn.Name, &devspace.Devspace{ID: uuid.NewString(), TenantID: tn.ID, Name: "api-ws", Host: "api-ws.example.test", CreatedBy: "machine"})
 	got := outbox(t, d)
 	if _, ok := got["workspace_ready owner@acme.test"]; !ok {
 		t.Error("a workspace created by a machine user is announced to the managers")

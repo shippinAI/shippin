@@ -6,12 +6,12 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostd"
 )
 
@@ -62,18 +62,18 @@ func (a *API) newWorkspace(w http.ResponseWriter, r *http.Request, c *caller, t 
 		return
 	}
 	id, _ := uuid.NewV7()
-	ws := &db.Workspace{ID: id.String(), TenantID: t.ID, Name: in.Name, State: "provisioning", SSHKeys: keys,
+	ws := &devspace.Devspace{ID: id.String(), TenantID: t.ID, Name: in.Name, State: "provisioning", SSHKeys: keys,
 		CreatedBy: c.id.Sub, Host: a.wsHost(in.Name, id.String()),
 		Template: spec.Template, Repo: spec.Repo, Size: spec.Size, Previews: spec.Previews}
 	if !a.inProject(w, r, t.ID, in.Project, in.Env, ws) {
 		return
 	}
-	if err := a.db.CreateWorkspace(r.Context(), ws, a.cfg.Workspaces.PortMin, a.cfg.Workspaces.PortMax); err != nil {
+	if err := devspace.On(a.db.Pool).Create(r.Context(), ws, a.cfg.Workspaces.PortMin, a.cfg.Workspaces.PortMax); err != nil {
 		switch {
-		case errors.Is(err, db.ErrNameTaken):
+		case errors.Is(err, devspace.ErrNameTaken):
 			auth.Problem(w, http.StatusConflict, "A workspace with that name already exists.")
 			return
-		case errors.Is(err, db.ErrNoPorts):
+		case errors.Is(err, devspace.ErrNoPorts):
 			auth.Problem(w, http.StatusServiceUnavailable, "The host has no free SSH ports. Contact support.")
 			return
 		}
@@ -89,7 +89,7 @@ func (a *API) newWorkspace(w http.ResponseWriter, r *http.Request, c *caller, t 
 	a.startWorkspace(w, r.Context(), c, t, *ws)
 }
 
-func (a *API) provisionWorkspace(t tenantView, ws db.Workspace) {
+func (a *API) provisionWorkspace(t tenantView, ws devspace.Devspace) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	stop := a.trackProgress(t.ID, ws.ID, nil)
@@ -97,10 +97,10 @@ func (a *API) provisionWorkspace(t tenantView, ws db.Workspace) {
 	stop()
 	if err != nil {
 		log.Printf("workspace %s failed: %v", ws.ID, err)
-		_ = a.db.SetWorkspaceState(ctx, ws.ID, "failed", "", err.Error())
+		_ = devspace.On(a.db.Pool).SetState(ctx, ws.ID, "failed", "", err.Error())
 		return
 	}
-	if err := a.db.SetWorkspaceState(ctx, ws.ID, "running", ip, ""); err == nil {
+	if err := devspace.On(a.db.Pool).SetState(ctx, ws.ID, "running", ip, ""); err == nil {
 		a.notifyWorkspaceReady(t.Name, &ws)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"time"
 
 	"shippin.cloud/console/internal/auth"
@@ -96,13 +97,13 @@ func (a *API) opTenantVMAction(w http.ResponseWriter, r *http.Request, c *caller
 // Ids reported by the guest are only applied to this tenant's own workspace rows.
 func (a *API) recordNested(ctx context.Context, tenant string, before, after *hostclient.TenantVM) {
 	state := nestedStates(before, after)
-	own, err := a.db.Workspaces(ctx, tenant)
+	own, err := devspace.On(a.db.Pool).List(ctx, tenant)
 	if err != nil {
 		return
 	}
 	for _, w := range own {
 		if st, ok := state[w.ID]; ok {
-			_ = a.db.SetWorkspaceState(ctx, w.ID, st, "", "")
+			_ = devspace.On(a.db.Pool).SetState(ctx, w.ID, st, "", "")
 		}
 	}
 }

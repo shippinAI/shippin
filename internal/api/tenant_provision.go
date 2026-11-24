@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,7 +48,7 @@ func (a *API) ensureTenant(ctx context.Context, orgID, name, plan string) (*db.T
 // resyncWorkspaces republishes every workspace's route and ports (needed after hostd migrated
 // the tenant network and workspace addresses changed). Failures are recorded per workspace.
 func (a *API) resyncWorkspaces(ctx context.Context, t db.Tenant) {
-	ws, err := a.db.Workspaces(ctx, t.ID)
+	ws, err := devspace.On(a.db.Pool).List(ctx, t.ID)
 	if err != nil {
 		return
 	}
@@ -58,7 +59,7 @@ func (a *API) resyncWorkspaces(ctx context.Context, t db.Tenant) {
 		}
 		if err := a.host.Action(ctx, t.ID, w.ID, "sync", a.hostReq(&tv, w)); err != nil {
 			log.Printf("resync workspace %s: %v", w.ID, err)
-			_ = a.db.SetWorkspaceState(ctx, w.ID, "failed", "", "Re-sync after network change failed: "+err.Error())
+			_ = devspace.On(a.db.Pool).SetState(ctx, w.ID, "failed", "", "Re-sync after network change failed: "+err.Error())
 		}
 	}
 }

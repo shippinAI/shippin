@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"shippin.cloud/console/internal/services/jobs"
 	"testing"
 )
@@ -16,7 +17,7 @@ func TestLifecycleUsesExactRecordedGrant(t *testing.T) {
 			a, d, tn := notifyAPI(t)
 			a.jobs = jobs.NewStore(d.Pool)
 			ws := provisioningWS(t, a, d, tn)
-			if e := d.SetWorkspaceState(t.Context(), ws.ID, "stopped", "", ""); e != nil {
+			if e := devspace.On(d.Pool).SetState(t.Context(), ws.ID, "stopped", "", ""); e != nil {
 				t.Fatal(e)
 			}
 			g := db.Grant{ID: newUUID(), TenantID: tn.ID, WorkspaceID: ws.ID, Kind: "request", Requester: "u", RequesterName: "test", Reason: "fixture", DurationS: 3600, Status: "approved"}

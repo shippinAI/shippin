@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"sync"
 	"testing"
@@ -115,8 +116,8 @@ func TestSubscriptionActivationFlow(t *testing.T) {
 	if a.utilityOwner(ctx, admin, out.Home.UtilityHost) || a.utilityOwner(ctx, me, "u-000000000000.ws.example.test") {
 		t.Fatal("nobody else, not even a tenant owner, opens a user's AI terminal")
 	}
-	mine := a.hostReq(&tenantView{Tenant: tn}, db.Workspace{CreatedBy: me.id.Sub})
-	theirs := a.hostReq(&tenantView{Tenant: tn}, db.Workspace{CreatedBy: admin.id.Sub})
+	mine := a.hostReq(&tenantView{Tenant: tn}, devspace.Devspace{CreatedBy: me.id.Sub})
+	theirs := a.hostReq(&tenantView{Tenant: tn}, devspace.Devspace{CreatedBy: admin.id.Sub})
 	if mine.AIHome != "" || theirs.AIHome != "" || hasCall(calls(), "/ai-home") {
 		t.Fatalf("provider credentials must stay off shared workspaces: %q %q", mine.AIHome, theirs.AIHome)
 	}

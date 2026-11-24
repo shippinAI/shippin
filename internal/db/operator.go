@@ -2,20 +2,6 @@ package db
 
 import "context"
 
-// AllWorkspaces lists every live workspace across tenants (provider panel).
-func (d *DB) AllWorkspaces(ctx context.Context) ([]Workspace, error) {
-	return d.queryWS(ctx, `WHERE state<>'deleted' ORDER BY created_at`)
-}
-
-// WorkspaceByID returns a live workspace by id.
-func (d *DB) WorkspaceByID(ctx context.Context, id string) (*Workspace, error) {
-	ws, err := d.queryWS(ctx, `WHERE id::text=$1 AND state<>'deleted'`, id)
-	if err != nil || len(ws) == 0 {
-		return nil, err
-	}
-	return &ws[0], nil
-}
-
 // TenantByID returns one tenant (any status).
 func (d *DB) TenantByID(ctx context.Context, id string) (*Tenant, error) {
 	rows, err := d.Pool.Query(ctx, `SELECT `+tenantCols+` FROM tenants WHERE kind='customer' AND id::text=$1`, id)
@@ -50,14 +36,4 @@ func (d *DB) MarkTenantDeleted(ctx context.Context, id string) error {
 func (d *DB) BeginTenantOp(ctx context.Context, id, state string, from ...string) (bool, error) {
 	tag, err := d.Pool.Exec(ctx, `UPDATE tenants SET status=$2, error=NULL, updated_at=now() WHERE kind='customer' AND id::text=$1 AND status = ANY($3)`, id, state, from)
 	return err == nil && tag.RowsAffected() == 1, err
-}
-
-// WorkspaceActionTarget retains tombstones solely for authorized operation receipt
-// replay. Inventory/detail readers continue to exclude deleted workspaces.
-func (d *DB) WorkspaceActionTarget(ctx context.Context, id string) (*Workspace, error) {
-	rows, err := d.queryWS(ctx, `WHERE id::text=$1`, id)
-	if err != nil || len(rows) == 0 {
-		return nil, err
-	}
-	return &rows[0], nil
 }

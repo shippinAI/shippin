@@ -1,4 +1,4 @@
-package db
+package devspace
 
 import (
 	"context"
@@ -26,7 +26,7 @@ func NextPort(used []int, lo, hi int) (int, error) {
 	return 0, ErrNoPorts
 }
 
-func (d *DB) livePorts(ctx context.Context) ([]int, error) {
+func (d Store) livePorts(ctx context.Context) ([]int, error) {
 	rows, err := d.Pool.Query(ctx, `SELECT ssh_port FROM workspaces WHERE state<>'deleted'`)
 	if err != nil {
 		return nil, err

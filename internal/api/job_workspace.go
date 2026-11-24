@@ -5,8 +5,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
 	"shippin.cloud/console/internal/services/jobs"
 )
@@ -19,7 +19,7 @@ type acceptedWorkspace struct {
 
 // startWorkspace hands a saved workspace to the job runner, or (jobs disabled) to a goroutine.
 // An enqueue error isn't fatal: the reconciler re-enqueues workspaces left provisioning.
-func (a *API) startWorkspace(w http.ResponseWriter, ctx context.Context, c *caller, t *tenantView, ws db.Workspace) {
+func (a *API) startWorkspace(w http.ResponseWriter, ctx context.Context, c *caller, t *tenantView, ws devspace.Devspace) {
 	r := a.jobRunner()
 	if r == nil {
 		go a.provisionWorkspace(*t, ws)
@@ -36,7 +36,7 @@ func (a *API) startWorkspace(w http.ResponseWriter, ctx context.Context, c *call
 	writeStatus(w, http.StatusAccepted, acceptedWorkspace{a.view(t, ws, nil), jobView(j, c.op != "")})
 }
 
-func (a *API) workspaceJob(ctx context.Context, ws db.Workspace, by string) jobs.Job {
+func (a *API) workspaceJob(ctx context.Context, ws devspace.Devspace, by string) jobs.Job {
 	return jobs.Job{TenantID: ws.TenantID, Kind: jobs.KindWorkspaceProvision, TargetType: "workspace",
 		TargetID: ws.ID, MaxAttempts: a.liveJobs(ctx).MaxAttempts, CreatedBy: by}
 }
@@ -44,7 +44,7 @@ func (a *API) workspaceJob(ctx context.Context, ws db.Workspace, by string) jobs
 // runWorkspaceJob provisions one workspace. hostd's create is idempotent (existing volume and
 // instance are reused), so a rerun after a crash continues where the last one stopped.
 func (a *API) runWorkspaceJob(ctx context.Context, j *jobs.Job, step func(string)) (any, error) {
-	ws, err := a.db.WorkspaceByID(ctx, j.TargetID)
+	ws, err := devspace.On(a.db.Pool).ByID(ctx, j.TargetID)
 	if err != nil {
 		return nil, err
 	}

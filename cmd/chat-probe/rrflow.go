@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"shippin.cloud/console/internal/runtime/devspace"
 
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
@@ -13,7 +14,7 @@ import (
 // VM's shared rrflow/state instance (Notion D36) with the project's namespace, then bind it (hostd mints the binding token straight into the
 // workspace; this process never sees it). Operator test path only.
 func attachRRFlow(ctx context.Context, d *db.DB, host *hostclient.Client, tenant, ws, by string) error {
-	w, err := d.WorkspaceByID(ctx, ws)
+	w, err := devspace.On(d.Pool).ByID(ctx, ws)
 	if err != nil || w == nil || w.ProjectID == "" {
 		return fmt.Errorf("workspace %s has no project", ws)
 	}

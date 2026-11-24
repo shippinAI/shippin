@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"shippin.cloud/console/internal/services/jobs"
 	"strings"
 	"time"
@@ -45,7 +46,7 @@ func (a *API) runWorkspaceActionJob(ctx context.Context, j *jobs.Job, step func(
 		}
 		return map[string]string{"state": state}, nil
 	}
-	ws, err := a.db.WorkspaceByID(ctx, j.TargetID)
+	ws, err := devspace.On(a.db.Pool).ByID(ctx, j.TargetID)
 	if err != nil {
 		return nil, err
 	}

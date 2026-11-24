@@ -3,9 +3,9 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/db"
 )
 
 // putPreviews replaces the workspace's preview ports (each private or public) and syncs the edge.
@@ -25,14 +25,14 @@ func (a *API) putPreviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		Previews []db.Preview `json:"previews"`
+		Previews []devspace.Preview `json:"previews"`
 	}
 	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10)).Decode(&in) != nil {
 		auth.Problem(w, http.StatusBadRequest, "Invalid request body.")
 		return
 	}
 	if in.Previews == nil {
-		in.Previews = []db.Preview{}
+		in.Previews = []devspace.Preview{}
 	}
 	if msg := checkPreviews(in.Previews, a.cfg.Workspaces); msg != "" {
 		auth.Problem(w, http.StatusBadRequest, msg)
@@ -46,13 +46,13 @@ func (a *API) putPreviews(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusConflict, "Start the workspace to change previews.")
 		return
 	}
-	next := ws.Workspace
+	next := ws.Devspace
 	next.Previews = in.Previews
 	if err := a.host.Action(r.Context(), t.ID, ws.ID, "previews", a.hostReq(t, next)); err != nil {
 		auth.Problem(w, http.StatusConflict, "Couldn't publish previews: "+err.Error())
 		return
 	}
-	if err := a.db.SetWorkspacePreviews(r.Context(), ws.ID, in.Previews); err != nil {
+	if err := devspace.On(a.db.Pool).SetPreviews(r.Context(), ws.ID, in.Previews); err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "Previews were published but couldn't be saved; try again.")
 		return
 	}

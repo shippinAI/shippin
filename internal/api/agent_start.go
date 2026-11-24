@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"shippin.cloud/console/internal/runtime/devspace"
 
 	"shippin.cloud/console/internal/runtime/agentruns"
 	"shippin.cloud/console/internal/runtime/subs"
@@ -86,7 +87,7 @@ func (a *API) runAgentStartJob(ctx context.Context, j *jobs.Job, step func(strin
 	if run.WorkspaceID == "" {
 		return nil, jobs.Permanent(errors.New("the build's devspace isn't ready yet"))
 	}
-	ws, err := a.db.WorkspaceByID(ctx, run.WorkspaceID)
+	ws, err := devspace.On(a.db.Pool).ByID(ctx, run.WorkspaceID)
 	if err != nil || ws == nil || ws.State != "running" {
 		return nil, errors.New("devspace is not running")
 	}

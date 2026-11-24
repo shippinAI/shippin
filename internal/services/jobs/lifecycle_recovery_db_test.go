@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"testing"
 )
 
@@ -14,11 +14,11 @@ func TestSameRunnerReclaimAndFinalReceipt(t *testing.T) {
 		t.Run(state, func(t *testing.T) {
 			s, d, tid := testJobs(t)
 			ctx := context.Background()
-			ws := &db.Workspace{ID: uuid.NewString(), TenantID: tid, Name: "test", CreatedBy: "u", Host: "test.example"}
-			if e := d.CreateWorkspace(ctx, ws, 22000, 22100); e != nil {
+			ws := &devspace.Devspace{ID: uuid.NewString(), TenantID: tid, Name: "test", CreatedBy: "u", Host: "test.example"}
+			if e := devspace.On(d.Pool).Create(ctx, ws, 22000, 22100); e != nil {
 				t.Fatal(e)
 			}
-			if e := d.SetWorkspaceState(ctx, ws.ID, "stopped", "", ""); e != nil {
+			if e := devspace.On(d.Pool).SetState(ctx, ws.ID, "stopped", "", ""); e != nil {
 				t.Fatal(e)
 			}
 			if _, e := s.EnqueueAction(ctx, Job{TenantID: tid, TargetID: ws.ID, CreatedBy: "u", MaxAttempts: 1, Payload: json.RawMessage(`{"action":"start"}`)}, "starting"); e != nil {
@@ -71,7 +71,7 @@ func TestSameRunnerReclaimAndFinalReceipt(t *testing.T) {
 			if saved.Status != want {
 				t.Fatalf("%+v", saved)
 			}
-			row, e := d.WorkspaceByID(ctx, ws.ID)
+			row, e := devspace.On(d.Pool).ByID(ctx, ws.ID)
 			if e != nil || row.State != state {
 				t.Fatalf("workspace=%+v err=%v", row, e)
 			}
@@ -82,11 +82,11 @@ func TestActionReceiptSurvivesResponseSaveFailure(t *testing.T) {
 	s, d, tid := testJobs(t)
 	ctx := context.Background()
 	scope, key := tid+":u", uuid.NewString()
-	ws := &db.Workspace{ID: uuid.NewString(), TenantID: tid, Name: "test", CreatedBy: "u", Host: "test.example"}
-	if e := d.CreateWorkspace(ctx, ws, 22000, 22100); e != nil {
+	ws := &devspace.Devspace{ID: uuid.NewString(), TenantID: tid, Name: "test", CreatedBy: "u", Host: "test.example"}
+	if e := devspace.On(d.Pool).Create(ctx, ws, 22000, 22100); e != nil {
 		t.Fatal(e)
 	}
-	if e := d.SetWorkspaceState(ctx, ws.ID, "running", "", ""); e != nil {
+	if e := devspace.On(d.Pool).SetState(ctx, ws.ID, "running", "", ""); e != nil {
 		t.Fatal(e)
 	}
 	if _, e := d.ClaimIdemKey(ctx, scope, key, "hash", fast.Lease); e != nil {
@@ -109,7 +109,7 @@ func TestActionReceiptSurvivesResponseSaveFailure(t *testing.T) {
 	if _, e := d.Pool.Exec(ctx, `UPDATE jobs SET status='succeeded' WHERE id=$1`, j.ID); e != nil {
 		t.Fatal(e)
 	}
-	if e := d.SetWorkspaceState(ctx, ws.ID, "running", "", ""); e != nil {
+	if e := devspace.On(d.Pool).SetState(ctx, ws.ID, "running", "", ""); e != nil {
 		t.Fatal(e)
 	}
 	rec, e := d.ClaimIdemKey(ctx, scope, key, "hash", fast.Lease)
@@ -125,7 +125,7 @@ func TestActionReceiptSurvivesResponseSaveFailure(t *testing.T) {
 	if e == nil {
 		t.Fatal("missing reservation accepted")
 	}
-	row, _ := d.WorkspaceByID(ctx, ws.ID)
+	row, _ := devspace.On(d.Pool).ByID(ctx, ws.ID)
 	if row.State != "running" {
 		t.Fatal("transaction did not roll back")
 	}

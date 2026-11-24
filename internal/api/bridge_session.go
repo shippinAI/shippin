@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 
 	"shippin.cloud/console/internal/auth"
@@ -41,8 +42,8 @@ func (a *API) bridgeCaller(w http.ResponseWriter, r *http.Request) (*caller, *br
 
 // bridgeWorkspace finds a workspace the caller may open: a member who manages the tenant or
 // created it, or a staff grant covering it (audited). Same rule as the IDE (wsAllowed).
-func (a *API) bridgeWorkspace(w http.ResponseWriter, r *http.Request, c *caller, id string) (*db.Workspace, *tenantView, bool) {
-	ws, err := a.db.WorkspaceByID(r.Context(), id)
+func (a *API) bridgeWorkspace(w http.ResponseWriter, r *http.Request, c *caller, id string) (*devspace.Devspace, *tenantView, bool) {
+	ws, err := devspace.On(a.db.Pool).ByID(r.Context(), id)
 	if err == nil && ws != nil {
 		for i := range c.tenants {
 			t := &c.tenants[i]
@@ -77,7 +78,7 @@ func (a *API) bridgeMe(w http.ResponseWriter, r *http.Request) {
 	out := []wsOut{}
 	for i := range c.tenants {
 		t := &c.tenants[i]
-		list, err := a.db.Workspaces(r.Context(), t.ID)
+		list, err := devspace.On(a.db.Pool).List(r.Context(), t.ID)
 		if err != nil {
 			continue
 		}

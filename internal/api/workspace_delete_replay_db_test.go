@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"shippin.cloud/console/internal/services/jobs"
 	"testing"
 )
@@ -15,7 +16,7 @@ func TestWorkspaceActionReplaysDeletedWorkspace(t *testing.T) {
 	a.runner.Store(jobs.NewRunner(a.jobs, jobs.Settings{}))
 	a.cfg.Jobs.IdempotencyHours = 1
 	ws := provisioningWS(t, a, d, tn)
-	if e := d.SetWorkspaceState(t.Context(), ws.ID, "running", "", ""); e != nil {
+	if e := devspace.On(d.Pool).SetState(t.Context(), ws.ID, "running", "", ""); e != nil {
 		t.Fatal(e)
 	}
 
@@ -53,7 +54,7 @@ func TestWorkspaceActionReplaysDeletedWorkspace(t *testing.T) {
 	if first.Code != 202 {
 		t.Fatalf("first %d %s", first.Code, first.Body.String())
 	}
-	if e := d.SetWorkspaceState(t.Context(), ws.ID, "deleted", "", ""); e != nil {
+	if e := devspace.On(d.Pool).SetState(t.Context(), ws.ID, "deleted", "", ""); e != nil {
 		t.Fatal(e)
 	}
 	if _, e := d.Pool.Exec(t.Context(), `UPDATE jobs SET status='succeeded' WHERE target_id=$1`, ws.ID); e != nil {

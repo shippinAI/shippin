@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"testing"
 	"time"
 
@@ -48,7 +49,7 @@ func TestReconcileRequeuesOrFailsOrphans(t *testing.T) {
 	if _, err := a.jobs.Live(ctx, jobs.KindWorkspaceProvision, "workspace", fresh.ID); err != jobs.ErrNotFound {
 		t.Fatalf("a just-created workspace must be left alone: %v", err)
 	}
-	if w, _ := d.WorkspaceByID(ctx, deadEnd.ID); w.State != "failed" || w.Error != "provisioning failed: disk full" {
+	if w, _ := devspace.On(d.Pool).ByID(ctx, deadEnd.ID); w.State != "failed" || w.Error != "provisioning failed: disk full" {
 		t.Fatalf("dead end: %s %q", w.State, w.Error)
 	}
 	if !a.reconcileOnce(ctx, false) {
@@ -101,7 +102,7 @@ func TestBoundaryJobBindsVM(t *testing.T) {
 }
 
 func TestDriftDetail(t *testing.T) {
-	ws := []db.Workspace{{ID: "a", State: "running"}, {ID: "b", State: "provisioning"}, {ID: "c", State: "stopped"}}
+	ws := []devspace.Devspace{{ID: "a", State: "running"}, {ID: "b", State: "provisioning"}, {ID: "c", State: "stopped"}}
 	inv := []hostclient.Instance{{Config: map[string]string{"user.shippin.workspace": "a"}},
 		{Config: map[string]string{"user.shippin.workspace": "z"}}, {Name: "tvm-x"}}
 	if got := driftDetail(ws, inv); got != "missing instances: w-c; instances without a workspace: w-z" {

@@ -2,9 +2,9 @@ package api
 
 import (
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/tenancy/projects"
 )
 
@@ -38,7 +38,7 @@ func (a *API) projectRoutes(mux Router) {
 }
 
 // inProject places a new workspace in project/env (both empty = legacy tenant placement).
-func (a *API) inProject(w http.ResponseWriter, r *http.Request, tenant, project, env string, ws *db.Workspace) bool {
+func (a *API) inProject(w http.ResponseWriter, r *http.Request, tenant, project, env string, ws *devspace.Devspace) bool {
 	if project == "" {
 		return true
 	}

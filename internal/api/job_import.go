@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"log"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/services/jobs"
 	"shippin.cloud/console/internal/tenancy/projects"
 )
@@ -30,7 +30,7 @@ func (a *API) runImportJob(ctx context.Context, j *jobs.Job, step func(string)) 
 	if err != nil || name == "" {
 		return nil, jobs.Permanent(errors.New("project not found"))
 	}
-	if ws, _ := a.db.Workspaces(ctx, j.TenantID); hasProjectWorkspace(ws, j.TargetID) {
+	if ws, _ := devspace.On(a.db.Pool).List(ctx, j.TenantID); hasProjectWorkspace(ws, j.TargetID) {
 		return map[string]string{"skipped": "project already has a workspace"}, nil
 	}
 	step("Waiting for the project")
@@ -41,14 +41,14 @@ func (a *API) runImportJob(ctx context.Context, j *jobs.Job, step func(string)) 
 	pub, _ := a.userKeys(ctx, j.CreatedBy)
 	id, _ := uuid.NewV7()
 	label := strings.TrimRight(name[:min(len(name), 31)], "-")
-	ws := db.Workspace{ID: id.String(), TenantID: j.TenantID, Name: label, State: "provisioning", SSHKeys: pub,
+	ws := devspace.Devspace{ID: id.String(), TenantID: j.TenantID, Name: label, State: "provisioning", SSHKeys: pub,
 		CreatedBy: j.CreatedBy, Host: a.wsHost(label, id.String()), Repo: "github:" + src.RepoFullName + "@" + src.Branch,
 		ProjectID: j.TargetID, EnvironmentID: p.EnvID}
 	if p.Boundary != nil {
 		ws.BoundaryID = *p.Boundary
 	}
 	step("Creating the workspace")
-	if err := a.db.CreateWorkspace(ctx, &ws, a.cfg.Workspaces.PortMin, a.cfg.Workspaces.PortMax); err != nil {
+	if err := devspace.On(a.db.Pool).Create(ctx, &ws, a.cfg.Workspaces.PortMin, a.cfg.Workspaces.PortMax); err != nil {
 		return nil, err
 	}
 	if a.jobRunner() == nil {
@@ -63,7 +63,7 @@ func (a *API) runImportJob(ctx context.Context, j *jobs.Job, step func(string)) 
 	return map[string]string{"workspace_id": ws.ID}, nil
 }
 
-func hasProjectWorkspace(ws []db.Workspace, project string) bool {
+func hasProjectWorkspace(ws []devspace.Devspace, project string) bool {
 	for _, w := range ws {
 		if w.ProjectID == project && w.State != "deleted" && w.State != "failed" {
 			return true

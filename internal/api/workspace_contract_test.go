@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"shippin.cloud/console/internal/services/jobs"
 	"strings"
 	"testing"
@@ -64,7 +64,7 @@ print(json.dumps({n:yaml.safe_load((p/n).read_text(encoding='utf-8')) for n in n
 	acceptSchema := accepted["content"].(map[string]any)["application/json"].(map[string]any)["schema"].(map[string]any)
 	a := &API{cfg: testCfg()}
 	id := "10000000-0000-4000-8000-000000000001"
-	ws := db.Workspace{ID: id, TenantID: id, Name: "test", State: "running", CreatedAt: time.Now()}
+	ws := devspace.Devspace{ID: id, TenantID: id, Name: "test", State: "running", CreatedAt: time.Now()}
 	for _, live := range []map[string]hostclient.Instance{nil, {}, {"w-" + id: {Status: "Running"}}, {"w-" + id: {Status: "Frozen"}}} {
 		b, _ := json.Marshal(a.view(&tenantView{}, ws, live))
 		var v any
@@ -78,7 +78,7 @@ print(json.dumps({n:yaml.safe_load((p/n).read_text(encoding='utf-8')) for n in n
 	a.jobs = jobs.NewStore(d.Pool)
 	a.runner.Store(jobs.NewRunner(a.jobs, jobs.Settings{}))
 	row := provisioningWS(t, a, d, tn)
-	if err := d.SetWorkspaceState(t.Context(), row.ID, "stopped", "", ""); err != nil {
+	if err := devspace.On(d.Pool).SetState(t.Context(), row.ID, "stopped", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
@@ -123,7 +123,7 @@ print(json.dumps({n:yaml.safe_load((p/n).read_text(encoding='utf-8')) for n in n
 		}
 	}
 	row2 := provisioningWS(t, a, d, tn)
-	if err := d.SetWorkspaceState(t.Context(), row2.ID, "stopped", "", ""); err != nil {
+	if err := devspace.On(d.Pool).SetState(t.Context(), row2.ID, "stopped", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	body, _ := json.Marshal(map[string]string{"confirm": row2.Name})

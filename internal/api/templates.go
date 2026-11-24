@@ -7,10 +7,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"shippin.cloud/console/internal/runtime/template"
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/platform/config"
 )
 
@@ -19,7 +19,7 @@ func (a *API) listTemplates(w http.ResponseWriter, r *http.Request) {
 	if _, ok := a.caller(w, r); !ok {
 		return
 	}
-	ts, err := a.db.Templates(r.Context(), true)
+	ts, err := template.On(a.db.Pool).List(r.Context(), true)
 	if err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "Templates are unavailable right now.")
 		return
@@ -53,19 +53,19 @@ func (a *API) SeedTemplates(ctx context.Context) {
 		log.Printf("template seed: %v", e)
 	}
 	for _, t := range ts {
-		if err := a.db.SaveTemplate(ctx, t, true); err != nil {
+		if err := template.On(a.db.Pool).Save(ctx, t, true); err != nil {
 			log.Printf("template seed %s: %v", t.Slug, err)
 		}
 	}
 }
 
 // parseSeed decodes a seed file and keeps only templates that pass checkTemplate (ids filled in).
-func parseSeed(raw []byte, c config.Workspaces) ([]db.Template, []error) {
-	var in []db.Template
+func parseSeed(raw []byte, c config.Workspaces) ([]template.Template, []error) {
+	var in []template.Template
 	if err := json.Unmarshal(raw, &in); err != nil {
 		return nil, []error{err}
 	}
-	out, errs, seen := []db.Template{}, []error{}, map[string]bool{}
+	out, errs, seen := []template.Template{}, []error{}, map[string]bool{}
 	for _, t := range in {
 		if msg := checkTemplate(&t, c); msg != "" {
 			errs = append(errs, fmt.Errorf("%q skipped: %s", t.Slug, msg))

@@ -1,9 +1,19 @@
-package db
+// Package template is what a development space starts from: an image, a size, a repository, a start
+// command and the ports it serves. This file is its type and its storage.
+package template
 
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// Store reads and writes templates.
+type Store struct{ Pool *pgxpool.Pool }
+
+// On is the store on one database.
+func On(p *pgxpool.Pool) Store { return Store{Pool: p} }
 
 // Template is a workspace blueprint: image + toolchain + default size + optional repo/startup/ports.
 type Template struct {
@@ -27,7 +37,7 @@ type Template struct {
 
 const tplCols = `id::text, slug, name, description, icon, image, toolchain, cpu, memory_gib, disk_gib, repo, startup, ports, enabled, sort, created_at`
 
-func (d *DB) Templates(ctx context.Context, enabledOnly bool) ([]Template, error) {
+func (d Store) List(ctx context.Context, enabledOnly bool) ([]Template, error) {
 	where := ""
 	if enabledOnly {
 		where = "WHERE enabled"
@@ -49,8 +59,8 @@ func (d *DB) Templates(ctx context.Context, enabledOnly bool) ([]Template, error
 	return out, nil
 }
 
-func (d *DB) Template(ctx context.Context, id string) (*Template, error) {
-	ts, err := d.Templates(ctx, false)
+func (d Store) Get(ctx context.Context, id string) (*Template, error) {
+	ts, err := d.List(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +72,8 @@ func (d *DB) Template(ctx context.Context, id string) (*Template, error) {
 	return nil, nil
 }
 
-// SaveTemplate inserts or updates by id; insertOnly skips existing slugs (seeding).
-func (d *DB) SaveTemplate(ctx context.Context, t Template, insertOnly bool) error {
+// Save inserts or updates by id; insertOnly skips existing slugs (seeding).
+func (d Store) Save(ctx context.Context, t Template, insertOnly bool) error {
 	conflict := `ON CONFLICT (id) DO UPDATE SET slug=$2, name=$3, description=$4, icon=$5, image=$6, toolchain=$7, cpu=$8,
 		memory_gib=$9, disk_gib=$10, repo=$11, startup=$12, ports=$13, enabled=$14, sort=$15, updated_at=now()`
 	if insertOnly {
@@ -77,7 +87,7 @@ func (d *DB) SaveTemplate(ctx context.Context, t Template, insertOnly bool) erro
 	return err
 }
 
-func (d *DB) DeleteTemplate(ctx context.Context, id string) error {
+func (d Store) Delete(ctx context.Context, id string) error {
 	_, err := d.Pool.Exec(ctx, `DELETE FROM templates WHERE id::text=$1`, id)
 	return err
 }

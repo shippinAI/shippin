@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"shippin.cloud/console/internal/services/jobs"
 	"testing"
 )
@@ -14,7 +15,7 @@ func TestLifecycleRevokedGrantDoesNotDispatch(t *testing.T) {
 	a, d, tn := notifyAPI(t)
 	a.jobs = jobs.NewStore(d.Pool)
 	ws := provisioningWS(t, a, d, tn)
-	if err := d.SetWorkspaceState(t.Context(), ws.ID, "stopped", "", ""); err != nil {
+	if err := devspace.On(d.Pool).SetState(t.Context(), ws.ID, "stopped", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	g := db.Grant{ID: newUUID(), TenantID: tn.ID, WorkspaceID: ws.ID, Kind: "request", Requester: "u", RequesterName: "test", Reason: "fixture", DurationS: 3600, Status: "approved"}
@@ -42,7 +43,7 @@ func TestLifecycleRevokedGrantDoesNotDispatch(t *testing.T) {
 	if _, err := a.runWorkspaceActionJob(t.Context(), j, func(string) {}); !jobs.IsPermanent(err) {
 		t.Fatalf("must fail permanently: %v", err)
 	}
-	row, _ := d.WorkspaceByID(t.Context(), ws.ID)
+	row, _ := devspace.On(d.Pool).ByID(t.Context(), ws.ID)
 	if row.State != "failed" {
 		t.Fatal(row.State)
 	}

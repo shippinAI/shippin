@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 
 	"shippin.cloud/console/internal/auth"
@@ -17,7 +18,7 @@ func (a *API) setupRRFlow(w http.ResponseWriter, r *http.Request, t *db.Tenant, 
 		auth.Problem(w, http.StatusServiceUnavailable, "Setup state is unavailable right now.")
 		return
 	}
-	ws, _ := a.db.Workspaces(r.Context(), t.ID)
+	ws, _ := devspace.On(a.db.Pool).List(r.Context(), t.ID)
 	queued := []string{}
 	for _, ch := range checks {
 		if !strings.HasPrefix(ch.ID, "rrflow:") || ch.Fix != "rrflow_attach" {

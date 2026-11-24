@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"log"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"time"
 
 	"shippin.cloud/console/internal/platform/config"
@@ -76,7 +77,7 @@ func (a *API) reconcileWorkspaces(ctx context.Context, stale time.Duration) {
 	}
 	for _, o := range orphans {
 		if o.LastStatus == jobs.Failed || o.LastStatus == jobs.Canceled {
-			_ = a.db.SetWorkspaceState(ctx, o.ID, "failed", "", "provisioning failed: "+o.LastError)
+			_ = devspace.On(a.db.Pool).SetState(ctx, o.ID, "failed", "", "provisioning failed: "+o.LastError)
 			continue
 		}
 		a.enqueue(ctx, jobs.Job{TenantID: o.TenantID, Kind: jobs.KindWorkspaceProvision, TargetType: "workspace",

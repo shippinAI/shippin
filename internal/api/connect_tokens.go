@@ -7,10 +7,10 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"time"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/integrations/vaultix"
 )
 
@@ -111,7 +111,7 @@ func (a *API) disconnectProvider(w http.ResponseWriter, r *http.Request) {
 }
 
 // pushConnectionsAfterStart re-injects every Vaultix-held token into a freshly started workspace.
-func (a *API) pushConnectionsAfterStart(ctx context.Context, tenant string, ws db.Workspace, act string) {
+func (a *API) pushConnectionsAfterStart(ctx context.Context, tenant string, ws devspace.Devspace, act string) {
 	if !a.cfg.Connect.Enabled || (act != "start" && act != "restart") {
 		return
 	}

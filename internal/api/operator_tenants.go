@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"slices"
 
 	"shippin.cloud/console/internal/auth"
@@ -25,7 +26,7 @@ func (a *API) opTenants(w http.ResponseWriter, r *http.Request, _ *caller) {
 		auth.Problem(w, http.StatusServiceUnavailable, "The tenant store is unavailable.")
 		return
 	}
-	wss, _ := a.db.AllWorkspaces(r.Context())
+	wss, _ := devspace.On(a.db.Pool).All(r.Context())
 	count := map[string]int{}
 	for _, ws := range wss {
 		count[ws.TenantID]++

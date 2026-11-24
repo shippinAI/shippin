@@ -3,15 +3,15 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/template"
 	"strings"
 
 	"github.com/google/uuid"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/db"
 )
 
 func (a *API) opTemplates(w http.ResponseWriter, r *http.Request, _ *caller) {
-	ts, err := a.db.Templates(r.Context(), false)
+	ts, err := template.On(a.db.Pool).List(r.Context(), false)
 	if err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "Templates are unavailable right now.")
 		return
@@ -21,13 +21,13 @@ func (a *API) opTemplates(w http.ResponseWriter, r *http.Request, _ *caller) {
 
 // opSaveTemplate creates (POST) or updates (PUT /{id}) a template after validation.
 func (a *API) opSaveTemplate(w http.ResponseWriter, r *http.Request, c *caller) {
-	var t db.Template
+	var t template.Template
 	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&t) != nil {
 		auth.Problem(w, http.StatusBadRequest, "Invalid request body.")
 		return
 	}
 	if id := r.PathValue("templateId"); id != "" {
-		if old, err := a.db.Template(r.Context(), id); err != nil || old == nil || old.ID != id {
+		if old, err := template.On(a.db.Pool).Get(r.Context(), id); err != nil || old == nil || old.ID != id {
 			auth.Problem(w, http.StatusNotFound, "Template not found.")
 			return
 		}
@@ -43,7 +43,7 @@ func (a *API) opSaveTemplate(w http.ResponseWriter, r *http.Request, c *caller) 
 	if !a.auditOperator(w, r, c, "", "template.save", t.ID+" "+t.Slug) {
 		return
 	}
-	if err := a.db.SaveTemplate(r.Context(), t, false); err != nil {
+	if err := template.On(a.db.Pool).Save(r.Context(), t, false); err != nil {
 		if strings.Contains(err.Error(), "duplicate") {
 			auth.Problem(w, http.StatusConflict, "A template with that slug already exists.")
 			return
@@ -55,7 +55,7 @@ func (a *API) opSaveTemplate(w http.ResponseWriter, r *http.Request, c *caller) 
 }
 
 func (a *API) opDeleteTemplate(w http.ResponseWriter, r *http.Request, c *caller) {
-	old, err := a.db.Template(r.Context(), r.PathValue("templateId"))
+	old, err := template.On(a.db.Pool).Get(r.Context(), r.PathValue("templateId"))
 	if err != nil || old == nil || old.ID != r.PathValue("templateId") {
 		auth.Problem(w, http.StatusNotFound, "Template not found.")
 		return
@@ -63,7 +63,7 @@ func (a *API) opDeleteTemplate(w http.ResponseWriter, r *http.Request, c *caller
 	if !a.auditOperator(w, r, c, "", "template.delete", old.ID+" "+old.Slug) {
 		return
 	}
-	if err := a.db.DeleteTemplate(r.Context(), r.PathValue("templateId")); err != nil {
+	if err := template.On(a.db.Pool).Delete(r.Context(), r.PathValue("templateId")); err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "Template could not be deleted.")
 		return
 	}

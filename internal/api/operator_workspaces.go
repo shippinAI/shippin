@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
@@ -20,7 +21,7 @@ func (a *API) opWorkspaces(w http.ResponseWriter, r *http.Request, _ *caller) {
 		auth.Problem(w, http.StatusServiceUnavailable, "The tenant store is unavailable.")
 		return
 	}
-	wss, err := a.db.AllWorkspaces(r.Context())
+	wss, err := devspace.On(a.db.Pool).All(r.Context())
 	if err != nil {
 		auth.Problem(w, http.StatusServiceUnavailable, "The workspace store is unavailable.")
 		return
@@ -64,7 +65,7 @@ func (a *API) opWorkspaceAction(w http.ResponseWriter, r *http.Request, c *calle
 		auth.Problem(w, http.StatusBadRequest, "Only start, stop and delete are available here.")
 		return
 	}
-	ws, err := a.db.WorkspaceActionTarget(r.Context(), r.PathValue("workspaceId"))
+	ws, err := devspace.On(a.db.Pool).ActionTarget(r.Context(), r.PathValue("workspaceId"))
 	if err != nil || ws == nil {
 		auth.Problem(w, http.StatusNotFound, "Workspace not found.")
 		return

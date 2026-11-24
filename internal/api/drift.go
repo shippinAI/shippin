@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"log"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"slices"
 	"strings"
 	"sync"
@@ -48,7 +49,7 @@ func (a *API) checkDrift(ctx context.Context) {
 		if err != nil || partial {
 			continue
 		}
-		ws, err := a.db.Workspaces(ctx, t.ID)
+		ws, err := devspace.On(a.db.Pool).List(ctx, t.ID)
 		if err != nil {
 			continue
 		}
@@ -61,7 +62,7 @@ func (a *API) checkDrift(ctx context.Context) {
 }
 
 // driftDetail is "" when rows and instances agree, else a stable description of the difference.
-func driftDetail(ws []db.Workspace, inv []hostclient.Instance) string {
+func driftDetail(ws []devspace.Devspace, inv []hostclient.Instance) string {
 	have := map[string]bool{}
 	for _, i := range inv {
 		if id := i.Config["user.shippin.workspace"]; id != "" {

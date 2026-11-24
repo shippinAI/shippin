@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -100,9 +101,9 @@ type termDB struct {
 	a        *API
 	d        *db.DB
 	tn, tn2  db.Tenant
-	mine     *db.Workspace // tenant tn, created by "creator"
-	other    *db.Workspace // tenant tn, created by "someone-else"
-	foreign  *db.Workspace // tenant tn2, created by "creator"
+	mine     *devspace.Devspace // tenant tn, created by "creator"
+	other    *devspace.Devspace // tenant tn, created by "someone-else"
+	foreign  *devspace.Devspace // tenant tn2, created by "creator"
 	hostd    *fakeHostd
 	console  *httptest.Server
 	who      atomic.Pointer[caller]
@@ -120,13 +121,13 @@ func termDBRig(t *testing.T) *termDB {
 	x := &termDB{a: a, d: d, tn: tn, tn2: tn2}
 	f := &fakeHostd{status: map[string]string{}, frames: make(chan hostd.TermFrame, 64), raw: make(chan []byte, 64)}
 	x.hostd = f
-	mk := func(tenant db.Tenant, by string) *db.Workspace {
+	mk := func(tenant db.Tenant, by string) *devspace.Devspace {
 		id := newUUID()
-		ws := &db.Workspace{ID: id, TenantID: tenant.ID, Name: "w" + id[len(id)-8:], CreatedBy: by, Host: id + ".ws.test"}
-		if err := d.CreateWorkspace(ctx, ws, a.cfg.Workspaces.PortMin, a.cfg.Workspaces.PortMax); err != nil {
+		ws := &devspace.Devspace{ID: id, TenantID: tenant.ID, Name: "w" + id[len(id)-8:], CreatedBy: by, Host: id + ".ws.test"}
+		if err := devspace.On(d.Pool).Create(ctx, ws, a.cfg.Workspaces.PortMin, a.cfg.Workspaces.PortMax); err != nil {
 			t.Fatal(err)
 		}
-		if err := d.SetWorkspaceState(ctx, id, "running", "", ""); err != nil {
+		if err := devspace.On(d.Pool).SetState(ctx, id, "running", "", ""); err != nil {
 			t.Fatal(err)
 		}
 		f.status["w-"+id] = "Running"

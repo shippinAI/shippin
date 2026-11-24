@@ -3,9 +3,9 @@ package api
 import (
 	"context"
 	"log"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"time"
 
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
 	"shippin.cloud/console/internal/integrations/gh"
 )
@@ -14,7 +14,7 @@ import (
 type ghTimers struct{ refresh, poll time.Time }
 
 // createReq is hostReq plus, for a GitHub-imported workspace, a fresh token for the first clone.
-func (a *API) createReq(ctx context.Context, t *tenantView, w db.Workspace) hostclient.WorkspaceReq {
+func (a *API) createReq(ctx context.Context, t *tenantView, w devspace.Devspace) hostclient.WorkspaceReq {
 	req := a.hostReq(t, w)
 	req.GitToken = a.gitTokenFor(ctx, w.ProjectID)
 	return req
@@ -34,7 +34,7 @@ func (a *API) gitTokenFor(ctx context.Context, project string) *hostclient.GitTo
 }
 
 // pushTokenAfterStart gives a (re)started imported workspace a fresh token: /run is tmpfs.
-func (a *API) pushTokenAfterStart(ctx context.Context, tenant string, ws db.Workspace, act string) {
+func (a *API) pushTokenAfterStart(ctx context.Context, tenant string, ws devspace.Devspace, act string) {
 	if act != "start" && act != "restart" {
 		return
 	}

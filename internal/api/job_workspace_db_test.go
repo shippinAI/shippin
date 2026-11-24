@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -51,11 +52,11 @@ func jobAPI(t *testing.T, codes ...int) (*API, *db.DB, db.Tenant, *atomic.Int32)
 	return a, d, tn, &calls
 }
 
-func provisioningWS(t *testing.T, a *API, d *db.DB, tn db.Tenant) *db.Workspace {
+func provisioningWS(t *testing.T, a *API, d *db.DB, tn db.Tenant) *devspace.Devspace {
 	id := newUUID()
-	ws := &db.Workspace{ID: id, TenantID: tn.ID, Name: "w" + id[len(id)-8:], State: "provisioning",
+	ws := &devspace.Devspace{ID: id, TenantID: tn.ID, Name: "w" + id[len(id)-8:], State: "provisioning",
 		CreatedBy: "u", Host: id + ".ws.test"}
-	if err := d.CreateWorkspace(context.Background(), ws, a.cfg.Workspaces.PortMin, a.cfg.Workspaces.PortMax); err != nil {
+	if err := devspace.On(d.Pool).Create(context.Background(), ws, a.cfg.Workspaces.PortMin, a.cfg.Workspaces.PortMax); err != nil {
 		t.Fatal(err)
 	}
 	return ws
@@ -84,7 +85,7 @@ func TestWorkspaceJobRetriesHostdThenRuns(t *testing.T) {
 	if got := finished(t, a, j.ID); got.Status != jobs.Succeeded || got.Attempts != 2 || calls.Load() != 2 {
 		t.Fatalf("got %+v after %d calls", got, calls.Load())
 	}
-	after, _ := d.WorkspaceByID(context.Background(), ws.ID)
+	after, _ := devspace.On(d.Pool).ByID(context.Background(), ws.ID)
 	if after.State != "running" || after.IPv4 != "203.0.113.7" {
 		t.Fatalf("workspace %s %s", after.State, after.IPv4)
 	}
@@ -97,7 +98,7 @@ func TestWorkspaceJobRejectedFailsWorkspace(t *testing.T) {
 	if got := finished(t, a, j.ID); got.Status != jobs.Failed || calls.Load() != 1 {
 		t.Fatalf("a hostd 400 must fail at once: %+v after %d calls", got, calls.Load())
 	}
-	if after, _ := d.WorkspaceByID(context.Background(), ws.ID); after.State != "failed" {
+	if after, _ := devspace.On(d.Pool).ByID(context.Background(), ws.ID); after.State != "failed" {
 		t.Fatalf("workspace state %s", after.State)
 	}
 }

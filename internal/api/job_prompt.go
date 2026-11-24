@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/runtime/agentruns"
 	"shippin.cloud/console/internal/services/jobs"
 	"shippin.cloud/console/internal/tenancy/projects"
@@ -57,7 +57,7 @@ func (a *API) runPromptJob(ctx context.Context, j *jobs.Job, step func(string)) 
 			return nil, err
 		}
 	}
-	if ws, err = a.db.WorkspaceByID(ctx, ws.ID); err != nil || ws == nil || ws.State != "running" {
+	if ws, err = devspace.On(a.db.Pool).ByID(ctx, ws.ID); err != nil || ws == nil || ws.State != "running" {
 		return nil, errors.New("devspace is not running yet")
 	}
 	if (a.cfg.Prompt.AttachRRFlow && a.cfg.Services.RRFlow.Allows(j.TenantID)) || a.rrflowAutoAttach(ctx, j.TenantID) {
@@ -70,8 +70,8 @@ func (a *API) runPromptJob(ctx context.Context, j *jobs.Job, step func(string)) 
 }
 
 // promptWorkspace returns the project's devspace, creating its row (provisioning) on first run.
-func (a *API) promptWorkspace(ctx context.Context, j *jobs.Job, run *agentruns.Run, name string, pl projects.Placement) (*db.Workspace, error) {
-	if all, err := a.db.Workspaces(ctx, j.TenantID); err == nil {
+func (a *API) promptWorkspace(ctx context.Context, j *jobs.Job, run *agentruns.Run, name string, pl projects.Placement) (*devspace.Devspace, error) {
+	if all, err := devspace.On(a.db.Pool).List(ctx, j.TenantID); err == nil {
 		for _, w := range all {
 			if w.ProjectID == j.TargetID && w.State != "deleted" && w.State != "failed" {
 				return &w, nil
@@ -85,13 +85,13 @@ func (a *API) promptWorkspace(ctx context.Context, j *jobs.Job, run *agentruns.R
 	pub, _ := a.userKeys(ctx, j.CreatedBy)
 	id, _ := uuid.NewV7()
 	label := strings.TrimRight(name[:min(len(name), 31)], "-")
-	ws := db.Workspace{ID: id.String(), TenantID: j.TenantID, Name: label, State: "provisioning", SSHKeys: pub,
+	ws := devspace.Devspace{ID: id.String(), TenantID: j.TenantID, Name: label, State: "provisioning", SSHKeys: pub,
 		CreatedBy: j.CreatedBy, Host: a.wsHost(label, id.String()), Template: spec.Template, Size: spec.Size,
 		Previews: spec.Previews, ProjectID: j.TargetID, EnvironmentID: pl.EnvID}
 	if pl.Boundary != nil {
 		ws.BoundaryID = *pl.Boundary
 	}
-	if err := a.db.CreateWorkspace(ctx, &ws, a.cfg.Workspaces.PortMin, a.cfg.Workspaces.PortMax); err != nil {
+	if err := devspace.On(a.db.Pool).Create(ctx, &ws, a.cfg.Workspaces.PortMin, a.cfg.Workspaces.PortMax); err != nil {
 		return nil, err
 	}
 	return &ws, nil

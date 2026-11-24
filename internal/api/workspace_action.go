@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/services/jobs"
 )
 
@@ -27,7 +27,7 @@ func (a *API) workspaceAction(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusBadRequest, "Unknown action.")
 		return
 	}
-	ws, err := a.db.WorkspaceActionTarget(r.Context(), r.PathValue("workspaceId"))
+	ws, err := devspace.On(a.db.Pool).ActionTarget(r.Context(), r.PathValue("workspaceId"))
 	if err != nil || ws == nil || ws.TenantID != t.ID {
 		auth.Problem(w, http.StatusNotFound, "Workspace not found.")
 		return
@@ -45,13 +45,13 @@ func (a *API) workspaceAction(w http.ResponseWriter, r *http.Request) {
 
 // runAction is the one path for lifecycle actions (owner and provider panel): it checks the
 // tenant state, claims the workspace atomically (no two operations at once), then runs hostd.
-func (a *API) runAction(w http.ResponseWriter, r *http.Request, t *tenantView, ws db.Workspace, act, who string) {
+func (a *API) runAction(w http.ResponseWriter, r *http.Request, t *tenantView, ws devspace.Devspace, act, who string) {
 	a.idempotent(w, r, t.ID+":"+strings.TrimPrefix(who, "operator "), func(w http.ResponseWriter, r *http.Request) {
 		a.enqueueWorkspaceAction(w, r, t, ws, act, who)
 	})
 }
 
-func (a *API) enqueueWorkspaceAction(w http.ResponseWriter, r *http.Request, t *tenantView, ws db.Workspace, act, who string) {
+func (a *API) enqueueWorkspaceAction(w http.ResponseWriter, r *http.Request, t *tenantView, ws devspace.Devspace, act, who string) {
 	st := actionState[act]
 	if t.Status == "suspended" && (act == "start" || act == "restart") {
 		auth.Problem(w, http.StatusConflict, "This tenant is suspended. Resume it before starting workspaces.")

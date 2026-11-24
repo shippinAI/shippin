@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"strings"
 	"time"
 
@@ -24,7 +25,7 @@ func (a *API) wsAllowed(r *http.Request, tok, host string) bool {
 	if a.utilityHost(host) {
 		return a.utilityAllowed(r, tok, host)
 	}
-	ws, err := a.db.WorkspaceByHost(r.Context(), workspaceHost(host))
+	ws, err := devspace.On(a.db.Pool).ByHost(r.Context(), workspaceHost(host))
 	if err != nil || ws == nil {
 		return false
 	}

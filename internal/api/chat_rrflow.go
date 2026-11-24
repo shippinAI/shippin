@@ -3,9 +3,9 @@ package api
 import (
 	"context"
 	"log"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"time"
 
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/services/managed"
 )
 
@@ -15,7 +15,7 @@ import (
 // the console only decides whether to stop resending history.
 
 // chatRRFlowBound reports whether the workspace has a bound rrflow/state instance.
-func (a *API) chatRRFlowBound(ctx context.Context, tenant string, ws *db.Workspace) bool {
+func (a *API) chatRRFlowBound(ctx context.Context, tenant string, ws *devspace.Devspace) bool {
 	if a.svcs == nil || ws.ProjectID == "" {
 		return false
 	}
@@ -38,7 +38,7 @@ func (a *API) chatRRFlowBound(ctx context.Context, tenant string, ws *db.Workspa
 
 // chatAttachRRFlow ensures rrflow/state is bound to the chat's workspace, in the background:
 // a new chat works at once (history fallback) and switches to rrflow when the binding is ready.
-func (a *API) chatAttachRRFlow(tenant string, ws *db.Workspace, by string) {
+func (a *API) chatAttachRRFlow(tenant string, ws *devspace.Devspace, by string) {
 	if a.svcs == nil || ws.ProjectID == "" || a.chatRRFlowBound(context.Background(), tenant, ws) {
 		return
 	}

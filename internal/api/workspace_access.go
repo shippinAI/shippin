@@ -3,9 +3,9 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/db"
 )
 
 // putAccess updates firewall rules or custom domains (field = "firewall" | "domains").
@@ -26,14 +26,14 @@ func (a *API) putAccess(field string) http.HandlerFunc {
 			return
 		}
 		var in struct {
-			Rules   []db.Rule `json:"rules"`
-			Domains []string  `json:"domains"`
+			Rules   []devspace.Rule `json:"rules"`
+			Domains []string        `json:"domains"`
 		}
 		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 32<<10)).Decode(&in) != nil {
 			auth.Problem(w, http.StatusBadRequest, "Invalid request body.")
 			return
 		}
-		next := ws.Workspace
+		next := ws.Devspace
 		if field == "firewall" {
 			if msg := checkRules(in.Rules, a.cfg.Workspaces); msg != "" {
 				auth.Problem(w, http.StatusBadRequest, msg)
@@ -46,7 +46,7 @@ func (a *API) putAccess(field string) http.HandlerFunc {
 				return
 			}
 			for _, d := range in.Domains {
-				if o, err := a.db.WorkspaceByHost(r.Context(), d); err != nil || (o != nil && o.ID != ws.ID) {
+				if o, err := devspace.On(a.db.Pool).ByHost(r.Context(), d); err != nil || (o != nil && o.ID != ws.ID) {
 					auth.Problem(w, http.StatusConflict, d+" is already attached to another workspace.")
 					return
 				}
@@ -61,7 +61,7 @@ func (a *API) putAccess(field string) http.HandlerFunc {
 			auth.Problem(w, http.StatusConflict, "Couldn't apply the change: "+err.Error())
 			return
 		}
-		_ = a.db.SetWorkspaceAccess(r.Context(), ws.ID, "", next.Domains, next.Firewall)
+		_ = devspace.On(a.db.Pool).SetAccess(r.Context(), ws.ID, "", next.Domains, next.Firewall)
 		writeJSON(w, map[string]any{"firewall": next.Firewall, "domains": next.Domains})
 	}
 }

@@ -2,9 +2,10 @@ package api
 
 import (
 	"regexp"
+	"shippin.cloud/console/internal/runtime/devspace"
+	"shippin.cloud/console/internal/runtime/template"
 	"strings"
 
-	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/infrastructure/hostd"
 	"shippin.cloud/console/internal/platform/config"
 )
@@ -16,7 +17,7 @@ var (
 )
 
 // checkTemplate validates and normalises an operator-edited template. "" = ok.
-func checkTemplate(t *db.Template, c config.Workspaces) string {
+func checkTemplate(t *template.Template, c config.Workspaces) string {
 	t.Slug, t.Name, t.Image = strings.TrimSpace(t.Slug), strings.TrimSpace(t.Name), strings.TrimSpace(t.Image)
 	l := c.TemplateLimits
 	if t.Icon == "" {
@@ -45,9 +46,9 @@ func checkTemplate(t *db.Template, c config.Workspaces) string {
 			return "Toolchain entries must be 1–30 characters."
 		}
 	}
-	ps := make([]db.Preview, 0, len(t.Ports))
+	ps := make([]devspace.Preview, 0, len(t.Ports))
 	for _, p := range t.Ports {
-		ps = append(ps, db.Preview{Port: p})
+		ps = append(ps, devspace.Preview{Port: p})
 	}
 	if msg := checkPreviews(ps, c); msg != "" {
 		return "Exposed ports: " + msg

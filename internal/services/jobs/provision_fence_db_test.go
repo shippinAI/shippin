@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"testing"
 	"time"
 )
@@ -12,8 +12,8 @@ import (
 func TestProvisionCannotOverwriteNewerLifecycle(t *testing.T) {
 	s, d, tid := testJobs(t)
 	ctx := context.Background()
-	ws := &db.Workspace{ID: uuid.NewString(), TenantID: tid, Name: "test", CreatedBy: "u", Host: "test.example"}
-	if e := d.CreateWorkspace(ctx, ws, 22000, 22100); e != nil {
+	ws := &devspace.Devspace{ID: uuid.NewString(), TenantID: tid, Name: "test", CreatedBy: "u", Host: "test.example"}
+	if e := devspace.On(d.Pool).Create(ctx, ws, 22000, 22100); e != nil {
 		t.Fatal(e)
 	}
 	if _, _, e := s.Enqueue(ctx, job(tid, ws.ID)); e != nil {
@@ -39,7 +39,7 @@ func TestProvisionCannotOverwriteNewerLifecycle(t *testing.T) {
 		t.Fatal(e)
 	}
 	for _, newState := range []string{"starting", "stopping", "deleting", "deleted"} {
-		if e := d.SetWorkspaceState(ctx, ws.ID, newState, "", ""); e != nil {
+		if e := devspace.On(d.Pool).SetState(ctx, ws.ID, newState, "", ""); e != nil {
 			t.Fatal(e)
 		}
 		for _, state := range []string{"running", "failed"} {

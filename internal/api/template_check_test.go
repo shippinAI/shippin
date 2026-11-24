@@ -1,14 +1,13 @@
 package api
 
 import (
+	"shippin.cloud/console/internal/runtime/template"
 	"strings"
 	"testing"
-
-	"shippin.cloud/console/internal/db"
 )
 
-func goodTemplate() db.Template {
-	return db.Template{Slug: "node-vite", Name: "Node", Image: "shippin/tpl-node", CPU: 2, MemoryGiB: 4, DiskGiB: 20,
+func goodTemplate() template.Template {
+	return template.Template{Slug: "node-vite", Name: "Node", Image: "shippin/tpl-node", CPU: 2, MemoryGiB: 4, DiskGiB: 20,
 		Ports: []int{5173}, Repo: "https://github.com/vitejs/vite-plugin-react"}
 }
 
@@ -21,20 +20,20 @@ func TestCheckTemplate(t *testing.T) {
 	if g.Icon != "box" || g.Toolchain == nil {
 		t.Fatal("defaults not filled")
 	}
-	mut := map[string]func(*db.Template){
-		"slug caps":     func(t *db.Template) { t.Slug = "Node" },
-		"no name":       func(t *db.Template) { t.Name = " " },
-		"foreign image": func(t *db.Template) { t.Image = "images:debian/13" },
-		"image escape":  func(t *db.Template) { t.Image = "shippin/../x y" },
-		"cpu":           func(t *db.Template) { t.CPU = 33 },
-		"disk small":    func(t *db.Template) { t.DiskGiB = 1 },
-		"repo host":     func(t *db.Template) { t.Repo = "https://evil.example/x/y" },
-		"repo creds":    func(t *db.Template) { t.Repo = "https://u:p@github.com/x/y" },
-		"dup ports":     func(t *db.Template) { t.Ports = []int{5173, 5173} },
-		"ide port":      func(t *db.Template) { t.Ports = []int{3000} },
-		"startup big":   func(t *db.Template) { t.Startup = strings.Repeat("x", 16385) },
-		"icon":          func(t *db.Template) { t.Icon = "<svg>" },
-		"too many port": func(t *db.Template) {
+	mut := map[string]func(*template.Template){
+		"slug caps":     func(t *template.Template) { t.Slug = "Node" },
+		"no name":       func(t *template.Template) { t.Name = " " },
+		"foreign image": func(t *template.Template) { t.Image = "images:debian/13" },
+		"image escape":  func(t *template.Template) { t.Image = "shippin/../x y" },
+		"cpu":           func(t *template.Template) { t.CPU = 33 },
+		"disk small":    func(t *template.Template) { t.DiskGiB = 1 },
+		"repo host":     func(t *template.Template) { t.Repo = "https://evil.example/x/y" },
+		"repo creds":    func(t *template.Template) { t.Repo = "https://u:p@github.com/x/y" },
+		"dup ports":     func(t *template.Template) { t.Ports = []int{5173, 5173} },
+		"ide port":      func(t *template.Template) { t.Ports = []int{3000} },
+		"startup big":   func(t *template.Template) { t.Startup = strings.Repeat("x", 16385) },
+		"icon":          func(t *template.Template) { t.Icon = "<svg>" },
+		"too many port": func(t *template.Template) {
 			t.Ports = []int{2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011}
 		},
 	}

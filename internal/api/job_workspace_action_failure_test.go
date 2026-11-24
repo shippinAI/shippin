@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"shippin.cloud/console/internal/services/jobs"
 	"sync/atomic"
 	"testing"
@@ -22,7 +23,7 @@ func TestLifecycleLeaseLossAndProviderFailure(t *testing.T) {
 			a, d, tn := notifyAPI(t)
 			a.jobs = jobs.NewStore(d.Pool)
 			ws := provisioningWS(t, a, d, tn)
-			if err := d.SetWorkspaceState(t.Context(), ws.ID, "stopped", "", ""); err != nil {
+			if err := devspace.On(d.Pool).SetState(t.Context(), ws.ID, "stopped", "", ""); err != nil {
 				t.Fatal(err)
 			}
 			j, err := a.jobs.EnqueueAction(t.Context(), jobs.Job{TenantID: tn.ID, TargetID: ws.ID, CreatedBy: "u", MaxAttempts: 3, Payload: json.RawMessage(`{"action":"start"}`)}, "starting")
@@ -74,7 +75,7 @@ func TestLifecycleLeaseLossAndProviderFailure(t *testing.T) {
 			if posts.Load() != wantPosts {
 				t.Fatal("unexpected dispatch count", posts.Load())
 			}
-			row, _ := d.WorkspaceByID(t.Context(), ws.ID)
+			row, _ := devspace.On(d.Pool).ByID(t.Context(), ws.ID)
 			want := "starting"
 			if tc.providerFail {
 				want = "failed"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"time"
 
 	"shippin.cloud/console/internal/auth"
@@ -83,7 +84,7 @@ func (a *API) projectAgent(w http.ResponseWriter, r *http.Request) {
 		out.Label = p.Label
 	}
 	if run.WorkspaceID != "" {
-		if ws, err := a.db.WorkspaceByID(r.Context(), run.WorkspaceID); err == nil && ws != nil && ws.State == "running" {
+		if ws, err := devspace.On(a.db.Pool).ByID(r.Context(), run.WorkspaceID); err == nil && ws != nil && ws.State == "running" {
 			out.TermURL = "https://" + ws.Host + a.cfg.Prompt.TermPath
 			ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 			defer cancel()

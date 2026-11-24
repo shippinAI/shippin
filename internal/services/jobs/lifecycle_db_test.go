@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
-	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/runtime/devspace"
 	"testing"
 	"time"
 )
@@ -13,18 +13,18 @@ import (
 func TestActionAtomicAcceptanceAndLeaseFence(t *testing.T) {
 	s, d, tid := testJobs(t)
 	ctx := context.Background()
-	ws := &db.Workspace{ID: uuid.NewString(), TenantID: tid, Name: "test", CreatedBy: "u", Host: "test.example"}
-	if err := d.CreateWorkspace(ctx, ws, 22000, 22100); err != nil {
+	ws := &devspace.Devspace{ID: uuid.NewString(), TenantID: tid, Name: "test", CreatedBy: "u", Host: "test.example"}
+	if err := devspace.On(d.Pool).Create(ctx, ws, 22000, 22100); err != nil {
 		t.Fatal(err)
 	}
-	if err := d.SetWorkspaceState(ctx, ws.ID, "stopped", "", ""); err != nil {
+	if err := devspace.On(d.Pool).SetState(ctx, ws.ID, "stopped", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	j := Job{TenantID: tid, TargetID: ws.ID, CreatedBy: "u", MaxAttempts: 0, Payload: json.RawMessage(`{"action":"start"}`)}
 	if _, err := s.EnqueueAction(ctx, j, "starting"); err == nil {
 		t.Fatal("invalid job accepted")
 	}
-	got, _ := d.WorkspaceByID(ctx, ws.ID)
+	got, _ := devspace.On(d.Pool).ByID(ctx, ws.ID)
 	if got.State != "stopped" {
 		t.Fatal("claim did not roll back")
 	}
@@ -76,7 +76,7 @@ func TestActionAtomicAcceptanceAndLeaseFence(t *testing.T) {
 	if !json.Valid(saved.Payload) {
 		t.Fatal("invalid receipt")
 	}
-	got, _ = d.WorkspaceByID(ctx, ws.ID)
+	got, _ = devspace.On(d.Pool).ByID(ctx, ws.ID)
 	if got.State != "running" {
 		t.Fatal("completion missing")
 	}
@@ -84,13 +84,13 @@ func TestActionAtomicAcceptanceAndLeaseFence(t *testing.T) {
 	if err := s.Succeed(ctx, claimed.ID, "worker", nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := d.SetWorkspaceState(ctx, ws.ID, "stopping", "", ""); err != nil {
+	if err := devspace.On(d.Pool).SetState(ctx, ws.ID, "stopping", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	if err := d.ReconcileWorkspaceActions(ctx, 0); err != nil {
 		t.Fatal(err)
 	}
-	got, _ = d.WorkspaceByID(ctx, ws.ID)
+	got, _ = devspace.On(d.Pool).ByID(ctx, ws.ID)
 	if got.State != "failed" {
 		t.Fatal("abandoned action not surfaced")
 	}
