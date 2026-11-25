@@ -34,6 +34,8 @@ if [ "$(id -u)" -ne 0 ]; then
   echo "run as root" >&2
   exit 1
 fi
+# A timer or service starts this with no HOME. Go and npm keep their caches under it and stop without one.
+export HOME="${HOME:-/root}"
 if [ -n "$site" ] && [ "$example" -eq 1 ]; then
   echo "pass either --site or --example" >&2
   exit 1
