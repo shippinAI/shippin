@@ -260,7 +260,7 @@ a generated action cannot yet do:
 | A support grant for one devspace | `canManageWS`, `sees` and `grantFor(id)` in `internal/api/grants.go`. The member gate only asks about the whole organization, so a holder of a one-devspace grant would be refused. | `Spec.Scoped`: the gate reads the item's id from the route and asks about that item. `Call.Sees(id)` filters a list. `Call.Grant` is the grant the call runs under, or empty for a member. The rules themselves do not change. |
 | The audit entry of a grant's use | `auditUse` writes a separate entry before the work | The action's own audit entry carries the grant, break-glass and the devspace, in the same transaction as the change. One entry, not two. |
 | An answer that is accepted, not finished | `202` with a `Location` to the job | An output that names its job is answered `202` with `Location`. |
-| A repeated request | `a.idempotent` around the handler | The member and signed-in mounts wrap every change in it, so every action gets `Idempotency-Key`. |
+| A repeated request | `a.idempotent` around the handler | The member mount wraps an action whose answer is accepted work, so a repeat with the same `Idempotency-Key` starts nothing new. Other changes are not recorded, because some answer with a secret shown once. |
 
 ### What the entity needs from the panel
 
@@ -275,7 +275,7 @@ a generated action cannot yet do:
 
 | # | Commit | Moves | Removes | Proof |
 | --- | --- | --- | --- | --- |
-| M1 | Framework: scoped member actions, accepted answers, idempotent changes | Nothing yet | Nothing | New tests in `internal/mcpl` and `internal/api`: member, manager, tenant-wide grant, one-devspace grant, break-glass, expired grant, another organization, each for see and for manage; the audit entry of each |
+| M1 | Framework: scoped member actions, accepted answers, idempotent accepted work | Nothing yet | Nothing | Done. `TestMemberGate` covers owner, member, grant for all, grant for one, break-glass, expired and pending, each for read, manage and decide. The audit entry and the `202` are first exercised by the M3 and M4 database tests, when an action uses them. |
 | M2 | `ports.Guests` and `devspace.Queue` | The host agent calls the lifecycle uses go behind the port | Direct `a.host` use in the files below | Existing job tests pass unchanged |
 | M3 | `devspace.list`, `devspace.get` | `workspaces.go`, `workspace_view.go` into `list.go`, `get.go`, `view.go`. The answer gains `steps` and `actions`. | `GET .../workspaces`, `GET .../workspaces/{id}` | Database test: a member sees all, a one-devspace grant sees one, a stranger gets 404. Panel list and detail read the action. |
 | M4 | `devspace.start`, `stop`, `restart`, `delete` | `workspace_action.go`, `job_workspace_action.go` into `start.go`, `stop.go`, `restart.go`, `delete.go`, `apply.go` | `POST .../workspaces/{id}/actions/{action}` and the staff copy `POST /v1/operator/workspaces/{id}/{action}`. Staff use the same action under their grant; a delete under a grant still needs the name typed. | The five existing job and grant tests, re-pointed at the actions |

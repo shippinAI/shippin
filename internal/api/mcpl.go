@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"slices"
 	"time"
 
@@ -52,24 +53,43 @@ func (a *API) mountActions(mux Router) {
 				g.Serve(a.newCall(r, c), w, r)
 			}))
 		case mcpl.Member:
+			scope := g.Scope()
+			_, replay := reflect.New(g.Runner.Output()).Interface().(mcpl.Accepted)
 			mux.HandleFunc(g.Route, a.flow.Require(func(w http.ResponseWriter, r *http.Request) {
 				c, t, ok := a.tenantCtx(w, r)
 				if !ok {
 					return
 				}
-				if !memberMay(c, t, g.Perm) {
-					auth.Problem(w, http.StatusForbidden, memberRefusal(g.Perm))
+				// item is the one the route names, "" for a list or a create.
+				item := ""
+				if scope != "" {
+					item = r.PathValue(scope)
+				}
+				if status, why := memberGate(c, t, g.Perm, scope != "", item); status != 0 {
+					auth.Problem(w, status, why)
 					return
 				}
 				call := a.newCall(r, c, func(e *db.AuditEntry) {
-					e.TenantID = t.ID
-					if g := t.grantFor(""); !t.member() && g != nil {
+					e.TenantID, e.WorkspaceID = t.ID, item
+					if g := t.grantFor(item); !t.member() && g != nil {
 						e.GrantID, e.BreakGlass = g.ID, g.Kind == "breakglass"
 					}
 				})
 				call.Tenant = t.ID
 				call.Perms = func(role string) bool { return memberMay(c, t, role) }
-				g.Serve(call, w, r)
+				if scope != "" {
+					call.Sees = t.sees
+					if g := t.grantFor(item); !t.member() && g != nil {
+						call.Grant = g.ID
+					}
+				}
+				serve := func(w http.ResponseWriter, r *http.Request) { g.Serve(call, w, r) }
+				if replay {
+					// Accepted work is recorded once per Idempotency-Key, so a repeat starts nothing new.
+					a.idempotent(w, r, t.ID+":"+c.id.Sub, serve)
+					return
+				}
+				serve(w, r)
 			}))
 		default:
 			panic(fmt.Sprintf("mcpl: %s has unknown access %q", g.ID, g.Access))
@@ -131,6 +151,33 @@ func memberMay(c *caller, t *tenantView, role string) bool {
 	return false
 }
 
+// memberGate decides a member action before it runs: 0 to go on, or the status and message to refuse
+// with. For a Scoped action the question is about item, the one the route names, so a support grant
+// for that item alone is enough: to read it the caller must see it (404 otherwise, as if it were not
+// there), to manage it they must manage it. A Scoped list or create names no item: a list is open to
+// anyone who sees the organization and filters with Call.Sees; anything else asks the organization's
+// role as an unscoped action does. "decide" is never answered by a grant.
+func memberGate(c *caller, t *tenantView, role string, scoped bool, item string) (int, string) {
+	if scoped && item != "" {
+		switch role {
+		case "":
+			if !t.sees(item) {
+				return http.StatusNotFound, "Not found."
+			}
+			return 0, ""
+		case "manage":
+			if !c.canManageWS(t, item) {
+				return http.StatusForbidden, memberRefusal(role)
+			}
+			return 0, ""
+		}
+	}
+	if !memberMay(c, t, role) {
+		return http.StatusForbidden, memberRefusal(role)
+	}
+	return 0, ""
+}
+
 func memberRefusal(role string) string {
 	if role == "decide" {
 		return "Only the organization's owners and admins can do that."
@@ -190,11 +237,26 @@ func (a *API) mayFollow(r *http.Request, c *caller, e mcpl.Event) bool {
 		return e.Actor == c.id.Sub
 	case mcpl.Member:
 		t := c.grantedTenant(e.Tenant)
-		return t != nil && memberMay(c, t, e.Perm)
+		if t == nil {
+			return false
+		}
+		scope := scopeOf(e.Action)
+		status, _ := memberGate(c, t, e.Perm, scope != "", e.Subject[scope])
+		return status == 0
 	case mcpl.Staff:
 		return a.decideQuiet(r, c, e.Perm)
 	}
 	return false
+}
+
+// scopeOf is the route parameter a Scoped action's access is asked about, "" for any other action.
+func scopeOf(action string) string {
+	for _, g := range ext.Actions() {
+		if g.ID == action {
+			return g.Scope()
+		}
+	}
+	return ""
 }
 
 func describedActions() []mcpl.Action {

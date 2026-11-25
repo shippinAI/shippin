@@ -41,6 +41,10 @@ type Spec struct {
 	// Singleton: there is one of this entity in its parent (an organization's coverage, a person's
 	// profile), so its path is singular and carries no item ID.
 	Singleton bool
+	// Scoped: a member action on one item that a support grant for that item alone also reaches. The
+	// gate asks about the item named in the route, not the whole organization; a list filters with
+	// Call.Sees. Without it, only a grant for the whole organization counts.
+	Scoped bool
 }
 
 // DB is what an action queries: the pool for a read, the change's transaction for anything else.
@@ -72,6 +76,21 @@ type Call struct {
 	Publish func(Event)
 	// Services are what the action uses besides the database; see Need.
 	Services Services
+	// Sees reports whether the caller reaches one item of a Scoped action's entity; a list keeps the
+	// items it answers true for. nil means the caller reaches everything in the organization.
+	Sees func(item string) bool
+	// Grant is the support grant a Scoped action runs under, "" for a member of the organization. Work
+	// that outlives the request keeps it, so the grant can be checked again when the work runs.
+	Grant string
+}
+
+// Reaches reports whether the caller reaches item: always, unless the gate narrowed the call.
+func (c *Call) Reaches(item string) bool { return c.Sees == nil || c.Sees(item) }
+
+// Accepted is an output for work that was recorded and is not finished: it is answered 202 with
+// Location set to where its progress is read. An empty address is answered as any other output.
+type Accepted interface {
+	AcceptedAt() string
 }
 
 // Services are the dependencies actions use besides the database, keyed by the interface type the
@@ -188,6 +207,10 @@ func (d Def[In, Out]) serve(g Registered, c *Call, w http.ResponseWriter, r *htt
 	code := http.StatusOK
 	if strings.HasSuffix(g.ID, ".create") {
 		code = http.StatusCreated
+	}
+	if a, ok := any(out).(Accepted); ok && a.AcceptedAt() != "" {
+		code = http.StatusAccepted
+		w.Header().Set("Location", a.AcceptedAt())
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
@@ -336,6 +359,9 @@ func Register(id string, r Runner) Registered {
 	if err != nil {
 		panic(fmt.Sprintf("mcpl: %s: %v", id, err))
 	}
+	if s.Scoped && s.Access != Member {
+		panic(fmt.Sprintf("mcpl: %s: only a member action is Scoped", id))
+	}
 	risk := RiskOf(route)
 	a := Action{ID: id, Route: route, Access: s.Access, Perm: s.Perm, Risk: risk,
 		Reason: s.Access == Staff && risk != Read, Summary: s.Summary}
@@ -343,6 +369,16 @@ func Register(id string, r Runner) Registered {
 		a.Event = EventFor(id)
 	}
 	return Registered{Action: a, Runner: r}
+}
+
+// Scope is the route parameter naming the item a Scoped action's access is asked about: the action's
+// outermost entity, so an action on something inside a devspace is asked about the devspace. It is ""
+// for an action that is not Scoped.
+func (g Registered) Scope() string {
+	if !g.Runner.Describe().Scoped {
+		return ""
+	}
+	return param(strings.Split(g.ID, ".")[2])
 }
 
 // Serve runs the action for one request.

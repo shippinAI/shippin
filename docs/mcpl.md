@@ -103,6 +103,13 @@ rules; a route that would need one is a transport (below), not an action.
   firewall) says `Singleton`. Its path is singular with no item ID:
   `internal/tenancy/coverage/get.go` is `GET /v1/tenants/{tenantId}/tenancy/coverage`.
 - **Risk** follows the method: a GET reads, a DELETE destroys, everything else writes.
+- **Scoped.** A member action on one development space says `Scoped` when a support grant for that
+  space alone should reach it. The gate then asks about the space the route names: to read it the
+  caller must see it (404 otherwise), to manage it they must manage it. A scoped `list` keeps what
+  `c.Reaches(id)` allows. `c.Grant` is the grant the call runs under, empty for a member. Without
+  `Scoped`, only a grant for the whole organization counts. A grant never answers `decide`.
+- **Accepted work.** An output with `AcceptedAt() string` is answered `202` with `Location` set to
+  it, and the action is run once per `Idempotency-Key`: a repeat gets the first answer.
 
 ### Who may call it
 

@@ -172,3 +172,26 @@ func TestValidateReactions(t *testing.T) {
 		}
 	}
 }
+
+func TestScope(t *testing.T) {
+	scoped := Def[struct{}, None]{Spec: Spec{Summary: "Stop it.", Access: Member, Perm: "manage", Scoped: true}}
+	for id, want := range map[string]string{
+		"shippin.runtime.devspace.stop":           "devspaceId",
+		"shippin.runtime.devspace.preview.create": "devspaceId",
+		"shippin.tenancy.coverage_tier.publish":   "coverageTierId",
+	} {
+		if got := Register(id, scoped).Scope(); got != want {
+			t.Errorf("%s: scope %q, want %q", id, got, want)
+		}
+	}
+	plain := Def[struct{}, None]{Spec: Spec{Summary: "Stop it.", Access: Member, Perm: "manage"}}
+	if got := Register("shippin.runtime.devspace.stop", plain).Scope(); got != "" {
+		t.Errorf("an action that is not scoped has scope %q", got)
+	}
+	defer func() {
+		if recover() == nil {
+			t.Error("a staff action was registered as Scoped")
+		}
+	}()
+	Register("shippin.runtime.devspace.stop", Def[struct{}, None]{Spec: Spec{Summary: "Stop it.", Access: Staff, Perm: "x", Scoped: true}})
+}
