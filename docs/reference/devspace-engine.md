@@ -243,6 +243,64 @@ Existing code is being moved into the folders above before the engine underneath
 
 Still on the host agent until E1 to E3: making, starting, stopping and entering a devspace.
 
+## Executing the move: the devspace lifecycle
+
+Serves J1 step 1 (WS-01, MCPL-01). Each row is one commit that builds, passes CI and leaves one way
+to do the thing: the hand-written route it replaces is removed in the same commit, and the panel
+call is switched in the same commit. The host agent stays underneath, behind a port, until E1 to E3
+replace what is behind the port.
+
+### What the action framework lacks today
+
+Read in `internal/mcpl/run.go` and `internal/api/mcpl.go`. Four things the lifecycle routes do that
+a generated action cannot yet do:
+
+| Gap | Today, hand-written | Added to the framework |
+| --- | --- | --- |
+| A support grant for one devspace | `canManageWS`, `sees` and `grantFor(id)` in `internal/api/grants.go`. The member gate only asks about the whole organization, so a holder of a one-devspace grant would be refused. | `Spec.Scoped`: the gate reads the item's id from the route and asks about that item. `Call.Sees(id)` filters a list. `Call.Grant` is the grant the call runs under, or empty for a member. The rules themselves do not change. |
+| The audit entry of a grant's use | `auditUse` writes a separate entry before the work | The action's own audit entry carries the grant, break-glass and the devspace, in the same transaction as the change. One entry, not two. |
+| An answer that is accepted, not finished | `202` with a `Location` to the job | An output that names its job is answered `202` with `Location`. |
+| A repeated request | `a.idempotent` around the handler | The member and signed-in mounts wrap every change in it, so every action gets `Idempotency-Key`. |
+
+### What the entity needs from the panel
+
+| Need | Declared in | Provided today by | Replaced at |
+| --- | --- | --- | --- |
+| `ports.Guests`: what runs for an organization, make, apply an action, the current step, plan limits | `internal/ports` | The host agent client, in `internal/api/mcpl_services.go` | E2, by `internal/hv` |
+| `devspace.Queue`: record a provision or an action as a durable job | The entity's package | `internal/services/jobs` | Stays |
+| `devspace.Orgs`: the organization's name, plan, status and SSH address | The entity's package | `internal/db` (`TenantByID`), in `internal/api/mcpl_services.go` | When the organization's storage moves to `internal/tenancy/orgs` |
+| The person's SSH keys | `internal/identity/ssh_key` | Its own storage | Stays |
+
+### The commits
+
+| # | Commit | Moves | Removes | Proof |
+| --- | --- | --- | --- | --- |
+| M1 | Framework: scoped member actions, accepted answers, idempotent changes | Nothing yet | Nothing | New tests in `internal/mcpl` and `internal/api`: member, manager, tenant-wide grant, one-devspace grant, break-glass, expired grant, another organization, each for see and for manage; the audit entry of each |
+| M2 | `ports.Guests` and `devspace.Queue` | The host agent calls the lifecycle uses go behind the port | Direct `a.host` use in the files below | Existing job tests pass unchanged |
+| M3 | `devspace.list`, `devspace.get` | `workspaces.go`, `workspace_view.go` into `list.go`, `get.go`, `view.go`. The answer gains `steps` and `actions`. | `GET .../workspaces`, `GET .../workspaces/{id}` | Database test: a member sees all, a one-devspace grant sees one, a stranger gets 404. Panel list and detail read the action. |
+| M4 | `devspace.start`, `stop`, `restart`, `delete` | `workspace_action.go`, `job_workspace_action.go` into `start.go`, `stop.go`, `restart.go`, `delete.go`, `apply.go` | `POST .../workspaces/{id}/actions/{action}` and the staff copy `POST /v1/operator/workspaces/{id}/{action}`. Staff use the same action under their grant; a delete under a grant still needs the name typed. | The five existing job and grant tests, re-pointed at the actions |
+| M5 | `devspace.create` | `workspace_create.go`, `workspace_spec.go`, `workspace_req.go`, `job_workspace.go` into `create.go`, `spec.go`, `provision.go` | `POST .../workspaces`. The secret-store folder, the rrflow attach and the ready notice become reactions to `shippin.runtime.devspace.created` in their own folders. | Create to running in the job test; replay with the same key returns the same devspace |
+| M6 | `devspace.update` for firewall and domains | `workspace_access.go` into `update.go` | `PUT .../firewall`, `PUT .../domains` | Rule tests already moved; one action test |
+| M7 | `devspace_fleet.get` for staff | `operator_workspaces.go` into `internal/runtime/devspace_fleet/get.go` | `GET /v1/operator/workspaces` | Staff matrix test |
+| M8 | The panel draws from the answer | `use-workspaces.ts`, `use-devspace.ts`, `use-admin-actions.ts` call the actions. Buttons come from `actions`, progress from `steps`. | Hand-written `Workspace` types, `workspace-menu.tsx`'s own rules about which button shows | Panel tests; then as Customer in a browser on the review deploy: create, watch the steps, stop, start, delete |
+
+After M8 the lifecycle has no file left in `internal/api`. The terminal follows (it needs packet
+E0, transports in entity folders), then previews and the published site.
+
+### What changes for someone calling the API
+
+- Routes move from `/v1/tenants/{tenantId}/workspaces…` to `/v1/tenants/{tenantId}/runtime/devspaces…`.
+  The old ones are removed, not kept beside the new.
+- Start, stop, restart and delete are four actions, not one route with the verb in the path.
+- A grant's use is audited as the action's own entry (`shippin.runtime.devspace.stop`), not as a
+  separate `action` entry. The tests that read the old entry change, and their commit says why.
+- Staff no longer have a second route for start, stop and delete.
+
+### What is not proved by these commits
+
+Each is proved by tests in CI. None is seen in a browser until the review deploy runs, which needs
+Docker on this machine. M8 is the commit that step 1 is looked at as Customer.
+
 ## Packets
 
 Each closes only when its proof has been seen. Incus first on the local rig, then the same proof on
