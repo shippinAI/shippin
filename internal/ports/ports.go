@@ -101,6 +101,33 @@ type Workspaces interface {
 	GiveKeys(ctx context.Context, sub string, keys []string) error
 }
 
+// Guests is what the hosts run for an organization: its development spaces as the hypervisor has
+// them now. Today the host agent answers; the provider drivers of internal/hv replace it behind this
+// port (docs/reference/devspace-engine.md).
+type Guests interface {
+	// Inventory is the organization's guests by name. complete is false when a host could not be read
+	// or answered in part: nothing is then known about a guest that is not listed.
+	Inventory(ctx context.Context, org string) (guests map[string]Guest, complete bool)
+	// Limits are what one guest on a plan may use, zero where the host has none for it.
+	Limits(ctx context.Context, plan string) GuestLimits
+}
+
+// Guest is one machine as its host reports it.
+type Guest struct {
+	// Status is the hypervisor's word for it: Running, Stopped and others.
+	Status      string
+	IPv4        string
+	MemoryBytes int64
+}
+
+// GuestLimits are a plan's limits for one guest.
+type GuestLimits struct {
+	CPU    int    `json:"workspace_cpu"`
+	Memory string `json:"workspace_memory"`
+	Home   int    `json:"home_gib"`
+	Root   int    `json:"root_gib"`
+}
+
 // Metrics is the panel's metrics history (OBS-01, docs/metrics.md): the ClickHouse it is connected to
 // now, which an owner can change or turn off while the panel runs, and what this panel process's
 // sampler is doing.

@@ -1580,6 +1580,28 @@
     },
     {
       "method": "GET",
+      "path": "/tenants/{tenantId}/runtime/devspaces",
+      "operationId": "shippin.runtime.devspace.list",
+      "summary": "List the organization's development spaces with their live state.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.devspace.list"
+    },
+    {
+      "method": "GET",
+      "path": "/tenants/{tenantId}/runtime/devspaces/{devspaceId}",
+      "operationId": "shippin.runtime.devspace.get",
+      "summary": "Read one development space: its live state, how to reach it and the steps of work in progress.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.devspace.get"
+    },
+    {
+      "method": "GET",
       "path": "/tenants/{tenantId}/runtime/runner-jobs",
       "operationId": "shippin.runtime.runner_job.list",
       "summary": "List the organization's runner jobs, newest first.",
@@ -2390,16 +2412,6 @@
       "implementationStatus": "registered"
     },
     {
-      "method": "GET",
-      "path": "/tenants/{tenantId}/workspaces",
-      "operationId": "listWorkspaces",
-      "summary": "List workspaces",
-      "tags": [
-        "workspaces"
-      ],
-      "implementationStatus": "unknown"
-    },
-    {
       "method": "POST",
       "path": "/tenants/{tenantId}/workspaces",
       "operationId": "createWorkspace",
@@ -2418,16 +2430,6 @@
         "workspaces"
       ],
       "implementationStatus": "planned"
-    },
-    {
-      "method": "GET",
-      "path": "/tenants/{tenantId}/workspaces/{workspaceId}",
-      "operationId": "getWorkspace",
-      "summary": "Get a workspace",
-      "tags": [
-        "workspaces"
-      ],
-      "implementationStatus": "unknown"
     },
     {
       "method": "PATCH",

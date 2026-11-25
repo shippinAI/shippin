@@ -45,7 +45,7 @@ func (a *API) hostReq(t *tenantView, w devspace.Devspace) hostclient.WorkspaceRe
 	return req
 }
 
-func (a *API) findWorkspace(r interface{ PathValue(string) string }, ws []workspaceView) *workspaceView {
+func (a *API) findWorkspace(r interface{ PathValue(string) string }, ws []devspace.View) *devspace.View {
 	for i := range ws {
 		if ws[i].ID == r.PathValue("workspaceId") {
 			return &ws[i]

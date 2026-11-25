@@ -53,8 +53,8 @@ echo "== customer reads"
 expect 200 "template gallery" "$U" GET /v1/me/runtime/devspace-option
 grep -q '"repo_hosts"' /tmp/it.body && ok "gallery publishes repo rule" || bad "gallery publishes repo rule" "missing"
 grep -q '"startup":"[^"]' /tmp/it.body && bad "gallery hides startup scripts" "present" || ok "gallery hides startup scripts"
-expect 200 "workspace list" "$U" GET "$T/workspaces"
-expect 404 "unknown tenant" "$U" GET "/v1/tenants/$NOID/workspaces"
+expect 200 "devspace list" "$U" GET "$T/runtime/devspaces"
+expect 404 "unknown tenant" "$U" GET "/v1/tenants/$NOID/runtime/devspaces"
 if [ -z "${ONLY_ADMIN:-}" ]; then
 expect 403 "viewer can't create workspaces" "$U" POST "$T/workspaces" '{"name":"itest"}'
 expect 403 "viewer can't run actions" "$U" POST "$T/workspaces/$NOID/actions/stop"

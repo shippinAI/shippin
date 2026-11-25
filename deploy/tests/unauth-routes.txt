@@ -169,6 +169,8 @@ GET /v1/tenants/{tenantId}/projects/{projectId}/services
 GET /v1/tenants/{tenantId}/projects/{projectId}/services/{serviceId}/rrflow/{kind}
 GET /v1/tenants/{tenantId}/projects/{projectId}/workspaces
 GET /v1/tenants/{tenantId}/prompt/options
+GET /v1/tenants/{tenantId}/runtime/devspaces
+GET /v1/tenants/{tenantId}/runtime/devspaces/{devspaceId}
 GET /v1/tenants/{tenantId}/runtime/runner-jobs
 GET /v1/tenants/{tenantId}/runtime/runner-jobs/{runnerJobId}
 GET /v1/tenants/{tenantId}/servers
@@ -184,8 +186,6 @@ GET /v1/tenants/{tenantId}/sparks
 GET /v1/tenants/{tenantId}/team
 GET /v1/tenants/{tenantId}/tenancy/coverage
 GET /v1/tenants/{tenantId}/usage
-GET /v1/tenants/{tenantId}/workspaces
-GET /v1/tenants/{tenantId}/workspaces/{workspaceId}
 GET /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections
 GET /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/login
 GET /v1/tenants/{tenantId}/workspaces/{workspaceId}/discover

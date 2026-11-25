@@ -410,6 +410,22 @@ export type CustomerUpdateInput = {
   notes?: string;
 };
 
+export type DevspaceConnect = {
+  host: string;
+  port: number;
+  user: string;
+  ssh: string;
+  ssh_config: string;
+  vscode: string;
+};
+
+export type DevspaceListed = {
+  items: DevspaceView[];
+  plan: DevspacePlan;
+  can_manage: boolean;
+  tenant_status: string;
+};
+
 export type DevspaceOptionOptions = {
   templates: Template[];
   sizes: ConfigSize[];
@@ -422,6 +438,77 @@ export type DevspaceOptionRules = {
   preview_min: number;
   preview_max: number;
   template: ConfigTemplateLimits;
+};
+
+export type DevspacePlan = {
+  name: string;
+  limits: PortsGuestLimits;
+};
+
+export type DevspacePreview = {
+  port: number;
+  public: boolean;
+};
+
+export type DevspacePreviewURL = {
+  port: number;
+  public: boolean;
+  url: string;
+};
+
+export type DevspaceRule = {
+  protocol: string;
+  port: number;
+  source: string;
+};
+
+export type DevspaceSize = {
+  cpu: number;
+  memory_gib: number;
+  disk_gib: number;
+};
+
+export type DevspaceStep = {
+  id: string;
+  label: string;
+  state: string;
+  detail?: string;
+};
+
+export type DevspaceView = {
+  id: string;
+  tenant_id: string;
+  name: string;
+  state: string;
+  ssh_port: number;
+  ipv4?: string;
+  created_by: string;
+  error?: string;
+  created_at: string;
+  host: string;
+  domains: string[];
+  firewall: DevspaceRule[];
+  template_id?: string;
+  repo: string;
+  size: DevspaceSize;
+  progress?: string;
+  previews: DevspacePreview[];
+  project_id?: string;
+  environment_id?: string;
+  observation: string;
+  observed_at?: string | null;
+  recorded_state: string;
+  instance: string;
+  memory_bytes: number;
+  ssh_key_count: number;
+  connect?: DevspaceConnect | null;
+  url: string;
+  public_ip: string;
+  region: string;
+  vscode_url?: string;
+  ide_port: number;
+  preview_urls: DevspacePreviewURL[];
+  steps: DevspaceStep[];
 };
 
 export type GithubInstallation = {
@@ -558,6 +645,13 @@ export type PlanUpdateInput = {
   public?: boolean | null;
   active?: boolean | null;
   coverage: string;
+};
+
+export type PortsGuestLimits = {
+  workspace_cpu: number;
+  workspace_memory: string;
+  home_gib: number;
+  root_gib: number;
 };
 
 export type ProvisionIntent = {
@@ -839,6 +933,8 @@ export const routes = {
   "shippin.platform.setting.list": "GET /v1/operator/platform/settings",
   "shippin.platform.setting.update": "PUT /v1/operator/platform/settings/{settingId}",
   "shippin.platform.setting.version.list": "GET /v1/operator/platform/settings/{settingId}/versions",
+  "shippin.runtime.devspace.get": "GET /v1/tenants/{tenantId}/runtime/devspaces/{devspaceId}",
+  "shippin.runtime.devspace.list": "GET /v1/tenants/{tenantId}/runtime/devspaces",
   "shippin.runtime.devspace_option.get": "GET /v1/me/runtime/devspace-option",
   "shippin.runtime.runner.delete": "DELETE /v1/operator/runtime/runners/{runnerId}",
   "shippin.runtime.runner.list": "GET /v1/operator/runtime/runners",
@@ -916,6 +1012,8 @@ export type ActionTypes = {
   "shippin.platform.setting.list": { args: [params?: Record<string, never>]; output: { items: SettingsView[] }; risk: "read"; event: never };
   "shippin.platform.setting.update": { args: [params: { settingId: string }, body: SettingUpdateInput & { reason: string }]; output: SettingsView; risk: "write"; event: "shippin.platform.setting.updated" };
   "shippin.platform.setting.version.list": { args: [params: { settingId: string }]; output: { items: Version[] }; risk: "read"; event: never };
+  "shippin.runtime.devspace.get": { args: [params: { tenantId: string; devspaceId: string }]; output: DevspaceView; risk: "read"; event: never };
+  "shippin.runtime.devspace.list": { args: [params: { tenantId: string }]; output: DevspaceListed; risk: "read"; event: never };
   "shippin.runtime.devspace_option.get": { args: [params?: Record<string, never>]; output: DevspaceOptionOptions; risk: "read"; event: never };
   "shippin.runtime.runner.delete": { args: [params: { runnerId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.runtime.runner.deleted" };
   "shippin.runtime.runner.list": { args: [params?: { state?: string }]; output: { items: Runner[] }; risk: "read"; event: never };

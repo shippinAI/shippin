@@ -148,8 +148,6 @@ GET /v1/tenants/{tenantId}/setup
 GET /v1/tenants/{tenantId}/sparks
 GET /v1/tenants/{tenantId}/team
 GET /v1/tenants/{tenantId}/usage
-GET /v1/tenants/{tenantId}/workspaces
-GET /v1/tenants/{tenantId}/workspaces/{workspaceId}
 GET /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections
 GET /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/login
 GET /v1/tenants/{tenantId}/workspaces/{workspaceId}/discover

@@ -13,7 +13,7 @@ import (
 
 // acceptedWorkspace is the 202 body: the workspace plus the job provisioning it.
 type acceptedWorkspace struct {
-	workspaceView
+	devspace.View
 	Job *jobOut `json:"job,omitempty"`
 }
 
@@ -23,7 +23,7 @@ func (a *API) startWorkspace(w http.ResponseWriter, ctx context.Context, c *call
 	r := a.jobRunner()
 	if r == nil {
 		go a.provisionWorkspace(*t, ws)
-		writeStatus(w, http.StatusAccepted, a.view(t, ws, nil))
+		writeStatus(w, http.StatusAccepted, a.devspaces().Show(orgOf(t.Tenant), ws, nil))
 		return
 	}
 	j, _, err := a.jobs.Enqueue(ctx, a.workspaceJob(ctx, ws, c.id.Sub))
@@ -33,7 +33,7 @@ func (a *API) startWorkspace(w http.ResponseWriter, ctx context.Context, c *call
 		r.Wake()
 		w.Header().Set("Location", "/v1/jobs/"+j.ID)
 	}
-	writeStatus(w, http.StatusAccepted, acceptedWorkspace{a.view(t, ws, nil), jobView(j, c.op != "")})
+	writeStatus(w, http.StatusAccepted, acceptedWorkspace{a.devspaces().Show(orgOf(t.Tenant), ws, nil), jobView(j, c.op != "")})
 }
 
 func (a *API) workspaceJob(ctx context.Context, ws devspace.Devspace, by string) jobs.Job {

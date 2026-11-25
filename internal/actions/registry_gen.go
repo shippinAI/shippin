@@ -15,6 +15,7 @@ import (
 	platform_secret_store "shippin.cloud/console/internal/platform/secret_store"
 	platform_setting "shippin.cloud/console/internal/platform/setting"
 	platform_setting_version "shippin.cloud/console/internal/platform/setting/version"
+	runtime_devspace "shippin.cloud/console/internal/runtime/devspace"
 	runtime_devspace_option "shippin.cloud/console/internal/runtime/devspace_option"
 	runtime_runner "shippin.cloud/console/internal/runtime/runner"
 	runtime_runner_job "shippin.cloud/console/internal/runtime/runner_job"
@@ -56,6 +57,8 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.platform.setting.list", platform_setting.List),
 	mcpl.Register("shippin.platform.setting.update", platform_setting.Update),
 	mcpl.Register("shippin.platform.setting.version.list", platform_setting_version.List),
+	mcpl.Register("shippin.runtime.devspace.get", runtime_devspace.Get),
+	mcpl.Register("shippin.runtime.devspace.list", runtime_devspace.List),
 	mcpl.Register("shippin.runtime.devspace_option.get", runtime_devspace_option.Get),
 	mcpl.Register("shippin.runtime.runner.delete", runtime_runner.Delete),
 	mcpl.Register("shippin.runtime.runner.list", runtime_runner.List),

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiSend } from "../api/client";
-import type { Workspace, WorkspaceList } from "../api/types";
+import { callAction } from "../api/actions";
+import { apiSend } from "../api/client";
+import type { Workspace } from "../api/types";
 import { toast } from "../design/components/toast/toast-queue";
 
 export const busy = (w: Workspace) => ["provisioning", "starting", "stopping", "deleting"].includes(w.state);
@@ -9,7 +10,7 @@ export const busy = (w: Workspace) => ["provisioning", "starting", "stopping", "
 export const useWorkspaces = (tenantId?: string) =>
   useQuery({
     queryKey: ["tenant", tenantId, "workspaces"],
-    queryFn: () => apiGet<WorkspaceList>(`/v1/tenants/${tenantId}/workspaces`),
+    queryFn: () => callAction("shippin.runtime.devspace.list", { tenantId: tenantId ?? "" }),
     enabled: !!tenantId,
     refetchInterval: (q) => (q.state.data?.items.some(busy) ? 3000 : 20_000),
   });

@@ -56,7 +56,7 @@ func (a *API) putPreviews(w http.ResponseWriter, r *http.Request) {
 		auth.Problem(w, http.StatusServiceUnavailable, "Previews were published but couldn't be saved; try again.")
 		return
 	}
-	writeJSON(w, a.view(t, next, nil).PreviewURLs)
+	writeJSON(w, a.devspaces().Show(orgOf(t.Tenant), next, nil).PreviewURLs)
 }
 
 // listening reports ports the workspace currently listens on, for "add preview" suggestions.

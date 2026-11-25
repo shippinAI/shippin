@@ -132,51 +132,15 @@ export type TenantSettings = {
 
 export type Problem = { status: number; message: string };
 
-export type WorkspaceState = "unknown" | "provisioning" | "running" | "stopped" | "starting" | "stopping" | "deleting" | "failed";
-
-export type FirewallRule = { protocol: "tcp" | "udp"; port: number; source: string };
+export type { DevspaceRule as FirewallRule, DevspaceConnect as Connect } from "./actions.gen";
 
 /** A public key on a person's account, generated from the ssh_key action types. */
 export type { SshKey as SSHKey } from "./actions.gen";
 
-export type Connect = { host: string; port: number; user: string; ssh: string; ssh_config: string; vscode: string };
-
-export type Workspace = {
-  id: string;
-  tenant_id: string;
-  name: string;
-  state: WorkspaceState;
-  observation?: "observed" | "missing" | "unavailable";
-  observed_at?: string;
-  recorded_state?: string;
-  ssh_port: number;
-  ipv4?: string;
-  created_by: string;
-  error?: string;
-  created_at: string;
-  instance: string;
-  memory_bytes: number;
-  ssh_key_count: number;
-  connect?: Connect;
-  host: string;
-  url: string;
-  public_ip: string;
-  region: string;
-  vscode_url?: string;
-  ide_port: number;
+/** A development space as the server answers it, generated from the devspace action types. */
+export type Workspace = import("./actions.gen").DevspaceView & {
   /** The provisioning job; present on the 202 from create while durable jobs are enabled. */
   job?: Job;
-  /** M1 hierarchy; absent for legacy workspaces. */
-  project_id?: string;
-  environment_id?: string;
-  domains: string[];
-  firewall: FirewallRule[];
-  template_id?: string;
-  repo: string;
-  size: WorkspaceSize;
-  /** Current provisioning step (only while provisioning). */
-  progress?: string;
-  preview_urls: PreviewURL[];
 };
 
 export type WorkspaceSize = { cpu: number; memory_gib: number; disk_gib: number };
@@ -186,11 +150,4 @@ export type PreviewURL = Preview & { url: string };
 // Templates, sizes and their rules are generated from the server's types (actions.gen.ts).
 export type { Template, ConfigSize as SizePreset } from "./actions.gen";
 
-export type PlanLimits = { workspace_cpu: number; workspace_memory: string; home_gib: number; root_gib: number };
-
-export type WorkspaceList = {
-  items: Workspace[];
-  can_manage: boolean;
-  tenant_status: string;
-  plan: { name: string; limits?: PlanLimits };
-};
+export type { PortsGuestLimits as PlanLimits } from "./actions.gen";

@@ -5,6 +5,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
+	"shippin.cloud/console/internal/runtime/devspace"
 )
 
 // connectRoutes: "Connect accounts" for one workspace. The workspace's creator or a tenant org
@@ -24,7 +25,7 @@ func (a *API) connectRoutes(mux Router) {
 type connectCtx struct {
 	c        *caller
 	t        *tenantView
-	ws       *workspaceView
+	ws       *devspace.View
 	provider string
 }
 

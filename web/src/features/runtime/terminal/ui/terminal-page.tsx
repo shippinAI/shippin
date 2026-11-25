@@ -91,7 +91,12 @@ export function TerminalPage() {
         <TerminalPane key={session} tenantId={tenantId} workspaceId={workspaceId} bus={bus} mux={zellij ? "zellij" : "plain"} />
         <GuidePanel runner={runner} onLink={navigate} />
       </div>
-      <WezTermDialog isOpen={wez} onOpenChange={setWez} workspace={ws?.name ?? workspaceId.slice(0, 8)} connect={ws?.connect} />
+      <WezTermDialog
+        isOpen={wez}
+        onOpenChange={setWez}
+        workspace={ws?.name ?? workspaceId.slice(0, 8)}
+        connect={ws?.connect ?? undefined}
+      />
     </div>
   );
 }

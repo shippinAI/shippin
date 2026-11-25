@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiSend } from "../api/client";
-import type { Workspace, WorkspaceList } from "../api/types";
+import { callAction } from "../api/actions";
+import { apiSend } from "../api/client";
+import type { Workspace } from "../api/types";
 import { toast } from "../design/components/toast/toast-queue";
 
 /** The devspace of a project environment: its first workspace there (M1: one per env). */
@@ -15,7 +16,7 @@ export function useOpenDevspace(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ project, env }: { project: { id: string; name: string }; env: { id: string; name: string } }) => {
-      const list = await apiGet<WorkspaceList>(`/v1/tenants/${tenantId}/workspaces`);
+      const list = await callAction("shippin.runtime.devspace.list", { tenantId });
       const ws = devspaceOf(list.items, project.id, env.id);
       if (ws && ws.state === "stopped") await apiSend("POST", `/v1/tenants/${tenantId}/workspaces/${ws.id}/actions/start`);
       if (ws) return ws;

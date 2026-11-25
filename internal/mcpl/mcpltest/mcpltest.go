@@ -25,6 +25,10 @@ type As struct {
 	// Perms answers c.Can; nil allows nothing extra.
 	Perms    func(perm string) bool
 	Services mcpl.Services
+	// Sees and Grant are what the member gate gives a Scoped action for a holder of a support grant:
+	// which items they reach, and the grant the call runs under. nil and "" are a member.
+	Sees  func(item string) bool
+	Grant string
 }
 
 // Harness is the actions whose IDs start with a prefix, served as one caller.
@@ -90,7 +94,7 @@ func Serve(t *testing.T, all []mcpl.Registered, prefix string, as As) *Harness {
 			continue
 		}
 		h.Mux.HandleFunc(g.Route, func(w http.ResponseWriter, r *http.Request) {
-			g.Serve(&mcpl.Call{Ctx: r.Context(), Pool: h.Pool, Actor: h.As.Actor, Via: h.As.Via, Tenant: h.As.Tenant, Perms: h.As.Perms, Services: h.As.Services,
+			g.Serve(&mcpl.Call{Ctx: r.Context(), Pool: h.Pool, Actor: h.As.Actor, Via: h.As.Via, Tenant: h.As.Tenant, Perms: h.As.Perms, Services: h.As.Services, Sees: h.As.Sees, Grant: h.As.Grant,
 				Audit: func(_ mcpl.DB, action, detail string) error {
 					h.Audits = append(h.Audits, action+" "+detail)
 					return nil

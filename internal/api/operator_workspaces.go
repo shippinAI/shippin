@@ -6,11 +6,11 @@ import (
 	"shippin.cloud/console/internal/runtime/devspace"
 
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/ports"
 )
 
 type opWorkspace struct {
-	workspaceView
+	devspace.View
 	TenantName   string `json:"tenant_name"`
 	TenantStatus string `json:"tenant_status"`
 }
@@ -34,14 +34,10 @@ func (a *API) opWorkspaces(w http.ResponseWriter, r *http.Request, _ *caller) {
 	}
 	out := []opWorkspace{}
 	for _, t := range ts {
-		tv := &tenantView{Tenant: t}
-		var live map[string]hostclient.Instance
+		var live map[string]ports.Guest
 		if t.Status != "deleted" {
-			if insts, partial, err := a.host.TenantInventory(r.Context(), t.ID); err == nil && !partial {
-				live = map[string]hostclient.Instance{}
-				for _, i := range insts {
-					live[i.Name] = i
-				}
+			if guests, complete := (guestPort{a}).Inventory(r.Context(), t.ID); complete {
+				live = guests
 			}
 		}
 		for _, ws := range wss {
@@ -49,7 +45,7 @@ func (a *API) opWorkspaces(w http.ResponseWriter, r *http.Request, _ *caller) {
 				if n := names[ws.CreatedBy]; n != "" {
 					ws.CreatedBy = n
 				}
-				out = append(out, opWorkspace{a.view(tv, ws, live), t.Name, t.Status})
+				out = append(out, opWorkspace{a.devspaces().Show(orgOf(t), ws, live), t.Name, t.Status})
 			}
 		}
 	}

@@ -1924,6 +1924,65 @@
         ],
         "type": "object"
       },
+      "DevspaceConnect": {
+        "additionalProperties": false,
+        "properties": {
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "ssh": {
+            "type": "string"
+          },
+          "ssh_config": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "vscode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "port",
+          "user",
+          "ssh",
+          "ssh_config",
+          "vscode"
+        ],
+        "type": "object"
+      },
+      "DevspaceListed": {
+        "additionalProperties": false,
+        "properties": {
+          "can_manage": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DevspaceView"
+            },
+            "type": "array"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/DevspacePlan"
+          },
+          "tenant_status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "plan",
+          "can_manage",
+          "tenant_status"
+        ],
+        "type": "object"
+      },
       "DevspaceOptionOptions": {
         "additionalProperties": false,
         "properties": {
@@ -1978,6 +2037,283 @@
           "preview_min",
           "preview_max",
           "template"
+        ],
+        "type": "object"
+      },
+      "DevspacePlan": {
+        "additionalProperties": false,
+        "properties": {
+          "limits": {
+            "$ref": "#/components/schemas/PortsGuestLimits"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "limits"
+        ],
+        "type": "object"
+      },
+      "DevspacePreview": {
+        "additionalProperties": false,
+        "properties": {
+          "port": {
+            "type": "integer"
+          },
+          "public": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "port",
+          "public"
+        ],
+        "type": "object"
+      },
+      "DevspacePreviewURL": {
+        "additionalProperties": false,
+        "properties": {
+          "port": {
+            "type": "integer"
+          },
+          "public": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "port",
+          "public",
+          "url"
+        ],
+        "type": "object"
+      },
+      "DevspaceRule": {
+        "additionalProperties": false,
+        "properties": {
+          "port": {
+            "type": "integer"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "protocol",
+          "port",
+          "source"
+        ],
+        "type": "object"
+      },
+      "DevspaceSize": {
+        "additionalProperties": false,
+        "properties": {
+          "cpu": {
+            "type": "integer"
+          },
+          "disk_gib": {
+            "type": "integer"
+          },
+          "memory_gib": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cpu",
+          "memory_gib",
+          "disk_gib"
+        ],
+        "type": "object"
+      },
+      "DevspaceStep": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "state"
+        ],
+        "type": "object"
+      },
+      "DevspaceView": {
+        "additionalProperties": false,
+        "properties": {
+          "connect": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DevspaceConnect"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "environment_id": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "firewall": {
+            "items": {
+              "$ref": "#/components/schemas/DevspaceRule"
+            },
+            "type": "array"
+          },
+          "host": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ide_port": {
+            "type": "integer"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "ipv4": {
+            "type": "string"
+          },
+          "memory_bytes": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "observation": {
+            "type": "string"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "preview_urls": {
+            "items": {
+              "$ref": "#/components/schemas/DevspacePreviewURL"
+            },
+            "type": "array"
+          },
+          "previews": {
+            "items": {
+              "$ref": "#/components/schemas/DevspacePreview"
+            },
+            "type": "array"
+          },
+          "progress": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "public_ip": {
+            "type": "string"
+          },
+          "recorded_state": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "size": {
+            "$ref": "#/components/schemas/DevspaceSize"
+          },
+          "ssh_key_count": {
+            "type": "integer"
+          },
+          "ssh_port": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/DevspaceStep"
+            },
+            "type": "array"
+          },
+          "template_id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "vscode_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "name",
+          "state",
+          "ssh_port",
+          "created_by",
+          "created_at",
+          "host",
+          "domains",
+          "firewall",
+          "repo",
+          "size",
+          "previews",
+          "observation",
+          "recorded_state",
+          "instance",
+          "memory_bytes",
+          "ssh_key_count",
+          "url",
+          "public_ip",
+          "region",
+          "ide_port",
+          "preview_urls",
+          "steps"
         ],
         "type": "object"
       },
@@ -2591,6 +2927,30 @@
           "description",
           "rank",
           "coverage"
+        ],
+        "type": "object"
+      },
+      "PortsGuestLimits": {
+        "additionalProperties": false,
+        "properties": {
+          "home_gib": {
+            "type": "integer"
+          },
+          "root_gib": {
+            "type": "integer"
+          },
+          "workspace_cpu": {
+            "type": "integer"
+          },
+          "workspace_memory": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_cpu",
+          "workspace_memory",
+          "home_gib",
+          "root_gib"
         ],
         "type": "object"
       },
@@ -7758,6 +8118,110 @@
           "perm": "manage",
           "reason": false,
           "risk": "write"
+        }
+      }
+    },
+    "/tenants/{tenantId}/runtime/devspaces": {
+      "get": {
+        "operationId": "shippin.runtime.devspace.list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevspaceListed"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the organization's development spaces with their live state.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "id": "shippin.runtime.devspace.list",
+          "reason": false,
+          "risk": "read"
+        }
+      }
+    },
+    "/tenants/{tenantId}/runtime/devspaces/{devspaceId}": {
+      "get": {
+        "operationId": "shippin.runtime.devspace.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "devspaceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevspaceView"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read one development space: its live state, how to reach it and the steps of work in progress.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "id": "shippin.runtime.devspace.get",
+          "reason": false,
+          "risk": "read"
         }
       }
     },

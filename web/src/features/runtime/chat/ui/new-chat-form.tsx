@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { apiGet } from "../../../../lib/api/client";
-import type { Workspace } from "../../../../lib/api/types";
+import { callAction } from "../../../../lib/api/actions";
 import { useMe } from "../../../../lib/hooks/use-api";
 import { useChatConfig, useCreateChat } from "../../../../lib/chat/use-chat";
 import { Button } from "../../../../lib/design/components/button/button";
@@ -13,7 +12,7 @@ export function NewChatForm({ onCreated }: { onCreated: (id: string) => void }) 
   const lists = useQueries({
     queries: tenants.map((t) => ({
       queryKey: ["workspaces", t.tenant_id],
-      queryFn: () => apiGet<{ items: Workspace[] }>(`/v1/tenants/${t.tenant_id}/workspaces`),
+      queryFn: () => callAction("shippin.runtime.devspace.list", { tenantId: t.tenant_id }),
     })),
   });
   const workspaces = lists.flatMap((l) => l.data?.items ?? []).filter((w) => w.state === "running");

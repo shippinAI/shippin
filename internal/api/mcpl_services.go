@@ -27,6 +27,10 @@ func (a *API) provideServices(s mcpl.Services) {
 	mcpl.Provide[ports.Machines](s, machinePort{a})
 	// What templates and development spaces are checked against, from the workspaces section.
 	mcpl.Provide[config.Workspaces](s, a.cfg.Workspaces)
+	// Where development spaces run, what their hosts report, and the organization each belongs to.
+	mcpl.Provide[config.Incus](s, a.cfg.Incus)
+	mcpl.Provide[ports.Guests](s, guestPort{a})
+	mcpl.Provide[devspace.Orgs](s, orgPort{a})
 	// The GitHub App can be turned on and off in the panel, so the port is always there and finds the
 	// App on each call; while it is off, Need answers as if it weren't provided.
 	mcpl.Provide[ports.GitHub](s, githubPort{a})
@@ -90,6 +94,55 @@ func (p workspacePort) GiveKeys(ctx context.Context, sub string, keys []string) 
 		}
 	}
 	return errors.Join(errs...)
+}
+
+// guestPort is ports.Guests on the host agent, until the provider drivers replace it.
+type guestPort struct{ a *API }
+
+func (p guestPort) Inventory(ctx context.Context, org string) (map[string]ports.Guest, bool) {
+	insts, partial, err := p.a.host.TenantInventory(ctx, org)
+	if err != nil || partial {
+		return nil, false
+	}
+	out := make(map[string]ports.Guest, len(insts))
+	for _, i := range insts {
+		g := ports.Guest{Status: i.Status, IPv4: i.IPv4()}
+		if i.State != nil {
+			g.MemoryBytes = i.State.Memory.Usage
+		}
+		out[i.Name] = g
+	}
+	return out, true
+}
+
+func (p guestPort) Limits(ctx context.Context, plan string) ports.GuestLimits {
+	l, err := p.a.host.Plan(ctx, plan)
+	if err != nil || l == nil {
+		return ports.GuestLimits{}
+	}
+	return ports.GuestLimits{CPU: l.CPU, Memory: l.Memory, Home: l.Home, Root: l.Root}
+}
+
+// orgPort is devspace.Orgs on the organizations this panel stores.
+type orgPort struct{ a *API }
+
+func (p orgPort) Org(ctx context.Context, id string) (*devspace.Org, error) {
+	t, err := p.a.db.TenantByID(ctx, id)
+	if err != nil || t == nil {
+		return nil, err
+	}
+	o := orgOf(*t)
+	return &o, nil
+}
+
+// orgOf is what a development space shows of an organization.
+func orgOf(t db.Tenant) devspace.Org {
+	return devspace.Org{ID: t.ID, Name: t.Name, Plan: t.Plan, Status: t.Status, SSHIP: t.SSHIP}
+}
+
+// devspaces reads development spaces for the routes not yet moved into the devspace's folder.
+func (a *API) devspaces() devspace.Reader {
+	return devspace.Reader{Pool: a.db.Pool, Guests: guestPort{a}, Shape: a.cfg.Workspaces, Region: a.cfg.Incus.HostLabel}
 }
 
 // githubPort is ports.GitHub on this panel's GitHub App, as the github section has it now.

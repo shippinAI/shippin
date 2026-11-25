@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"shippin.cloud/console/internal/auth"
-	"shippin.cloud/console/internal/infrastructure/hostclient"
+	"shippin.cloud/console/internal/ports"
 	"shippin.cloud/console/internal/runtime/devspace"
 	"shippin.cloud/console/internal/services/jobs"
 	"strings"
@@ -65,8 +65,8 @@ print(json.dumps({n:yaml.safe_load((p/n).read_text(encoding='utf-8')) for n in n
 	a := &API{cfg: testCfg()}
 	id := "10000000-0000-4000-8000-000000000001"
 	ws := devspace.Devspace{ID: id, TenantID: id, Name: "test", State: "running", CreatedAt: time.Now()}
-	for _, live := range []map[string]hostclient.Instance{nil, {}, {"w-" + id: {Status: "Running"}}, {"w-" + id: {Status: "Frozen"}}} {
-		b, _ := json.Marshal(a.view(&tenantView{}, ws, live))
+	for _, live := range []map[string]ports.Guest{nil, {}, {"w-" + id: {Status: "Running"}}, {"w-" + id: {Status: "Frozen"}}} {
+		b, _ := json.Marshal(devspace.Reader{Shape: a.cfg.Workspaces}.Show(devspace.Org{}, ws, live))
 		var v any
 		json.Unmarshal(b, &v)
 		if err := contractValue(docs, "schemas/workspaces.yaml", docs["schemas/workspaces.yaml"]["Workspace"].(map[string]any), v); err != nil {
