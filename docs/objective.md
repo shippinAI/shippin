@@ -118,6 +118,7 @@ No site's policy is built in.
 
 **PRE-01.** Until the first release, there is one review deploy, and it is overwritten in place: work, overwrite, review.
 - Nothing is built for upgrading older builds: no compatibility shims and no rollback machinery. The database schema may be re-based.
+- A broken build is never rolled back. The deploy stays on the newest build, the error stays visible, and the fix is made in the source and deployed over it. No snapshot is taken to return to, and no earlier build is restored.
 - CI runs the build, unit tests, the database tests against PostgreSQL 17, panel checks, and the secret and public-tree scans. The database tests run in the Checks workflow the Gate requires before main moves; a run that expected a database and did not have one fails instead of skipping them.
 - Installers and ClickHouse tests run by hand when that code changes.
 - Code that is not organized by context is rewritten, not worked around; see [the code map](architecture.md).
