@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
+	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/runtime/devspace"
 	"testing"
 )
@@ -79,7 +80,7 @@ func TestSameRunnerReclaimAndFinalReceipt(t *testing.T) {
 	}
 }
 func TestActionReceiptSurvivesResponseSaveFailure(t *testing.T) {
-	s, d, tid := testJobs(t)
+	_, d, tid := testJobs(t)
 	ctx := context.Background()
 	scope, key := tid+":u", uuid.NewString()
 	ws := &devspace.Devspace{ID: uuid.NewString(), TenantID: tid, Name: "test", CreatedBy: "u", Host: "test.example"}
@@ -92,7 +93,25 @@ func TestActionReceiptSurvivesResponseSaveFailure(t *testing.T) {
 	if _, e := d.ClaimIdemKey(ctx, scope, key, "hash", fast.Lease); e != nil {
 		t.Fatal(e)
 	}
-	j, e := s.EnqueueAction(ctx, Job{TenantID: tid, TargetID: ws.ID, CreatedBy: "u", MaxAttempts: 1, Payload: json.RawMessage(`{"action":"restart"}`)}, "starting", ActionAcceptance{Scope: scope, Key: key, Response: func(j *Job) ([]byte, error) { return json.Marshal(map[string]string{"job": j.ID}) }})
+	// accept is what an accepted action does: the claim, the work and the answer a repeat gets, in one
+	// transaction.
+	accept := func(key string) (*Job, error) {
+		tx, e := d.Pool.Begin(ctx)
+		if e != nil {
+			return nil, e
+		}
+		defer tx.Rollback(ctx)
+		j, e := EnqueueActionOn(ctx, tx, Job{TenantID: tid, TargetID: ws.ID, CreatedBy: "u", MaxAttempts: 1, Payload: json.RawMessage(`{"action":"restart"}`)}, "starting")
+		if e != nil {
+			return nil, e
+		}
+		body, _ := json.Marshal(map[string]string{"job": j.ID})
+		if e := db.KeepIdemReceipt(ctx, tx, scope, key, 202, body, "/v1/jobs/"+j.ID); e != nil {
+			return nil, e
+		}
+		return j, tx.Commit(ctx)
+	}
+	j, e := accept(key)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -121,7 +140,7 @@ func TestActionReceiptSurvivesResponseSaveFailure(t *testing.T) {
 		t.Fatal("lost operation identity")
 	}
 	// A missing reservation rolls back both workspace claim and job insertion.
-	_, e = s.EnqueueAction(ctx, Job{TenantID: tid, TargetID: ws.ID, CreatedBy: "u", MaxAttempts: 1, Payload: json.RawMessage(`{"action":"restart"}`)}, "starting", ActionAcceptance{Scope: scope, Key: uuid.NewString(), Response: func(j *Job) ([]byte, error) { return []byte(`{}`), nil }})
+	_, e = accept(uuid.NewString())
 	if e == nil {
 		t.Fatal("missing reservation accepted")
 	}

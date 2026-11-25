@@ -22,7 +22,7 @@ func TestLifecycleRevokedGrantDoesNotDispatch(t *testing.T) {
 	if err := d.CreateGrant(t.Context(), g); err != nil {
 		t.Fatal(err)
 	}
-	payload, _ := json.Marshal(workspaceActionIn{Action: "start", Grant: g.ID})
+	payload, _ := json.Marshal(devspace.Work{Action: "start", Grant: g.ID})
 	j, err := a.jobs.EnqueueAction(t.Context(), jobs.Job{TenantID: tn.ID, TargetID: ws.ID, CreatedBy: "u", MaxAttempts: 3, Payload: payload}, "starting")
 	if err != nil {
 		t.Fatal(err)

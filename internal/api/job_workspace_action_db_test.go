@@ -32,8 +32,8 @@ func TestLifecycleDispatchAndRecovery(t *testing.T) {
 			if err := devspace.On(d.Pool).SetState(ctx, ws.ID, "stopped", "", ""); err != nil {
 				t.Fatal(err)
 			}
-			payload, _ := json.Marshal(workspaceActionIn{Action: tc.action, Phase: tc.phase})
-			j, err := a.jobs.EnqueueAction(ctx, jobs.Job{TenantID: tn.ID, TargetID: ws.ID, CreatedBy: "u", MaxAttempts: 3, Payload: payload}, actionState[tc.action][0])
+			payload, _ := json.Marshal(devspace.Work{Action: tc.action, Phase: tc.phase})
+			j, err := a.jobs.EnqueueAction(ctx, jobs.Job{TenantID: tn.ID, TargetID: ws.ID, CreatedBy: "u", MaxAttempts: 3, Payload: payload}, devspace.States[tc.action][0])
 			if err != nil {
 				t.Fatal(err)
 			}

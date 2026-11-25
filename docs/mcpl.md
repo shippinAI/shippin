@@ -108,8 +108,12 @@ rules; a route that would need one is a transport (below), not an action.
   caller must see it (404 otherwise), to manage it they must manage it. A scoped `list` keeps what
   `c.Reaches(id)` allows. `c.Grant` is the grant the call runs under, empty for a member. Without
   `Scoped`, only a grant for the whole organization counts. A grant never answers `decide`.
+- **Under a grant.** A scoped action may name `GrantPerm`, the staff permission a person also needs
+  to run it under a support grant. A member is never asked for it. `c.MayManage(id)` tells a read
+  whether to offer an action on one item.
 - **Accepted work.** An output with `AcceptedAt() string` is answered `202` with `Location` set to
-  it, and the action is run once per `Idempotency-Key`: a repeat gets the first answer.
+  it, and the action is run once per `Idempotency-Key`: a repeat gets the first answer. That answer
+  is stored in the action's own transaction, with the work and its audit entry.
 
 ### Who may call it
 

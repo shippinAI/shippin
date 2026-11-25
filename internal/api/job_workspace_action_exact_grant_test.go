@@ -48,7 +48,7 @@ func TestLifecycleUsesExactRecordedGrant(t *testing.T) {
 			if e := d.CreateGrant(t.Context(), extra); e != nil {
 				t.Fatal(e)
 			}
-			payload, _ := json.Marshal(workspaceActionIn{Action: "start", Grant: g.ID})
+			payload, _ := json.Marshal(devspace.Work{Action: "start", Grant: g.ID})
 			j, e := a.jobs.EnqueueAction(t.Context(), jobs.Job{TenantID: tn.ID, TargetID: ws.ID, CreatedBy: "u", MaxAttempts: 3, Payload: payload}, "starting")
 			if e != nil {
 				t.Fatal(e)

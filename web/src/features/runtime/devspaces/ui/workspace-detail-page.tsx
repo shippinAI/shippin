@@ -61,7 +61,7 @@ export function WorkspaceDetailPage() {
       >
         <Code2 className="size-4" /> Open in VS Code
       </Button>
-      <WorkspaceMenu ws={ws} canManage={can} />
+      <WorkspaceMenu ws={ws} />
     </>
   );
   return (

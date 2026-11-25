@@ -34,6 +34,9 @@ var List = mcpl.Def[struct{}, Listed]{
 		if err != nil {
 			return Listed{}, err
 		}
+		for i := range items {
+			items[i].Actions = offers(items[i], c.MayManage(items[i].ID))
+		}
 		return Listed{Items: items, Plan: Plan{Name: org.Plan, Limits: r.Guests.Limits(c.Ctx, org.Plan)},
 			CanManage: c.Can("manage"), TenantStatus: org.Status}, nil
 	},

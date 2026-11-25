@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 234,
+  "operationCount": 236,
   "tags": [
     "agents-runtime",
     "audit",
@@ -1107,16 +1107,6 @@
       "implementationStatus": "registered"
     },
     {
-      "method": "POST",
-      "path": "/operator/workspaces/{workspaceId}/{action}",
-      "operationId": "operatorWorkspaceActionPost",
-      "summary": "Queue an operator workspace lifecycle action",
-      "tags": [
-        "operator-runtime"
-      ],
-      "implementationStatus": "registered"
-    },
-    {
       "method": "GET",
       "path": "/operator/agenthub-connection",
       "operationId": "operatorAgentHubConnectionGet",
@@ -1590,6 +1580,17 @@
       "action": "shippin.runtime.devspace.list"
     },
     {
+      "method": "DELETE",
+      "path": "/tenants/{tenantId}/runtime/devspaces/{devspaceId}",
+      "operationId": "shippin.runtime.devspace.delete",
+      "summary": "Delete a development space with its files and its address; this cannot be undone.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.devspace.delete"
+    },
+    {
       "method": "GET",
       "path": "/tenants/{tenantId}/runtime/devspaces/{devspaceId}",
       "operationId": "shippin.runtime.devspace.get",
@@ -1599,6 +1600,39 @@
       ],
       "implementationStatus": "registered",
       "action": "shippin.runtime.devspace.get"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/runtime/devspaces/{devspaceId}/restart",
+      "operationId": "shippin.runtime.devspace.restart",
+      "summary": "Restart a running development space.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.devspace.restart"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/runtime/devspaces/{devspaceId}/start",
+      "operationId": "shippin.runtime.devspace.start",
+      "summary": "Power on a development space.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.devspace.start"
+    },
+    {
+      "method": "POST",
+      "path": "/tenants/{tenantId}/runtime/devspaces/{devspaceId}/stop",
+      "operationId": "shippin.runtime.devspace.stop",
+      "summary": "Power off a development space; its files are kept.",
+      "tags": [
+        "runtime"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.runtime.devspace.stop"
     },
     {
       "method": "GET",
@@ -2440,16 +2474,6 @@
         "workspaces"
       ],
       "implementationStatus": "planned"
-    },
-    {
-      "method": "POST",
-      "path": "/tenants/{tenantId}/workspaces/{workspaceId}/actions/{action}",
-      "operationId": "runWorkspaceAction",
-      "summary": "Lifecycle action (state machine; invalid transitions return 409)",
-      "tags": [
-        "workspaces"
-      ],
-      "implementationStatus": "unknown"
     },
     {
       "method": "PUT",

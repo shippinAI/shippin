@@ -278,7 +278,8 @@ a generated action cannot yet do:
 | M1 | Framework: scoped member actions, accepted answers, idempotent accepted work | Nothing yet | Nothing | Done. `TestMemberGate` covers owner, member, grant for all, grant for one, break-glass, expired and pending, each for read, manage and decide. The audit entry and the `202` are first exercised by the M3 and M4 database tests, when an action uses them. |
 | M2 | `ports.Guests` and `devspace.Orgs` | Reading what the hosts run goes behind the port. Making and applying join it in M4 and M5, with `devspace.Queue`. | The view built in `internal/api` | Done with M3 |
 | M3 | `devspace.list`, `devspace.get` | `workspaces.go`, `workspace_view.go` into `list.go`, `get.go`, `view.go`. The answer gains `steps`: the list of provisioning steps the panel used to hold is now the server's. `actions` joins it in M4, when there are actions to name. | `GET .../workspaces`, `GET .../workspaces/{id}` | Done. Database test: a member sees their own and not another organization's, a one-devspace grant sees one, state is unknown when the hosts cannot be read. The panel list and the progress card read the action. Not yet seen in a browser. |
-| M4 | `devspace.start`, `stop`, `restart`, `delete` | `workspace_action.go`, `job_workspace_action.go` into `start.go`, `stop.go`, `restart.go`, `delete.go`, `apply.go` | `POST .../workspaces/{id}/actions/{action}` and the staff copy `POST /v1/operator/workspaces/{id}/{action}`. Staff use the same action under their grant; a delete under a grant still needs the name typed. | The five existing job and grant tests, re-pointed at the actions |
+| M4 | `devspace.start`, `stop`, `restart`, `delete` | `workspace_action.go` into `start.go`, `stop.go`, `restart.go`, `delete.go`, `work.go`. Reads now carry `actions`, and the panel menu draws them. The job that carries the work out stays in `internal/api` until M4b. | `POST .../workspaces/{id}/actions/{action}` and the staff copy `POST /v1/operator/workspaces/{id}/{action}` | Pushed; first run of its database tests is in CI. Staff run the same action under their grant and still need the `workspaces.act` permission; a delete under a grant still needs the name typed. |
+| M4b | The work itself | `job_workspace_action.go` into `apply.go`, registered from the entity | The handler in `internal/api` | The four existing job tests, moved with it |
 | M5 | `devspace.create` | `workspace_create.go`, `workspace_spec.go`, `workspace_req.go`, `job_workspace.go` into `create.go`, `spec.go`, `provision.go` | `POST .../workspaces`. The secret-store folder, the rrflow attach and the ready notice become reactions to `shippin.runtime.devspace.created` in their own folders. | Create to running in the job test; replay with the same key returns the same devspace |
 | M6 | `devspace.update` for firewall and domains | `workspace_access.go` into `update.go` | `PUT .../firewall`, `PUT .../domains` | Rule tests already moved; one action test |
 | M7 | `devspace_fleet.get` for staff | `operator_workspaces.go` into `internal/runtime/devspace_fleet/get.go` | `GET /v1/operator/workspaces` | Staff matrix test |
@@ -292,9 +293,14 @@ E0, transports in entity folders), then previews and the published site.
 - Routes move from `/v1/tenants/{tenantId}/workspaces…` to `/v1/tenants/{tenantId}/runtime/devspaces…`.
   The old ones are removed, not kept beside the new.
 - Start, stop, restart and delete are four actions, not one route with the verb in the path.
-- A grant's use is audited as the action's own entry (`shippin.runtime.devspace.stop`), not as a
-  separate `action` entry. The tests that read the old entry change, and their commit says why.
-- Staff no longer have a second route for start, stop and delete.
+- A grant's use is audited as the action's own entry (`shippin.runtime.devspace.stop`), carrying the
+  grant and the devspace, in the same transaction as the accepted work. A replayed request writes no
+  second entry, because nothing happened.
+- Staff no longer have a second route for start, stop and delete. The permission that route asked
+  for, `workspaces.act`, is now asked of anyone running these actions under a support grant. Before,
+  a grant holder without it could use the organization's own route.
+- The answer to an accepted action is kept under its `Idempotency-Key` in the same transaction as
+  the work, as before.
 
 ### What is not proved by these commits
 

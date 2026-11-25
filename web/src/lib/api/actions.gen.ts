@@ -410,6 +410,12 @@ export type CustomerUpdateInput = {
   notes?: string;
 };
 
+export type DevspaceAccepted = {
+  id: string;
+  state: string;
+  job: DevspaceJob;
+};
+
 export type DevspaceConnect = {
   host: string;
   port: number;
@@ -419,11 +425,41 @@ export type DevspaceConnect = {
   vscode: string;
 };
 
+export type DevspaceDeleteInput = {
+  confirm?: string;
+};
+
+export type DevspaceJob = {
+  id: string;
+  tenant_id: string;
+  kind: string;
+  target: DevspaceJobTarget;
+  status: string;
+  message?: string;
+  attempts: number;
+  created_by: string;
+  created_at: string;
+  finished_at?: string | null;
+};
+
+export type DevspaceJobTarget = {
+  type: string;
+  id: string;
+};
+
 export type DevspaceListed = {
   items: DevspaceView[];
   plan: DevspacePlan;
   can_manage: boolean;
   tenant_status: string;
+};
+
+export type DevspaceOffer = {
+  id: string;
+  label: string;
+  enabled: boolean;
+  why?: string;
+  destructive?: boolean;
 };
 
 export type DevspaceOptionOptions = {
@@ -509,6 +545,7 @@ export type DevspaceView = {
   ide_port: number;
   preview_urls: DevspacePreviewURL[];
   steps: DevspaceStep[];
+  actions: DevspaceOffer[];
 };
 
 export type GithubInstallation = {
@@ -933,8 +970,12 @@ export const routes = {
   "shippin.platform.setting.list": "GET /v1/operator/platform/settings",
   "shippin.platform.setting.update": "PUT /v1/operator/platform/settings/{settingId}",
   "shippin.platform.setting.version.list": "GET /v1/operator/platform/settings/{settingId}/versions",
+  "shippin.runtime.devspace.delete": "DELETE /v1/tenants/{tenantId}/runtime/devspaces/{devspaceId}",
   "shippin.runtime.devspace.get": "GET /v1/tenants/{tenantId}/runtime/devspaces/{devspaceId}",
   "shippin.runtime.devspace.list": "GET /v1/tenants/{tenantId}/runtime/devspaces",
+  "shippin.runtime.devspace.restart": "POST /v1/tenants/{tenantId}/runtime/devspaces/{devspaceId}/restart",
+  "shippin.runtime.devspace.start": "POST /v1/tenants/{tenantId}/runtime/devspaces/{devspaceId}/start",
+  "shippin.runtime.devspace.stop": "POST /v1/tenants/{tenantId}/runtime/devspaces/{devspaceId}/stop",
   "shippin.runtime.devspace_option.get": "GET /v1/me/runtime/devspace-option",
   "shippin.runtime.runner.delete": "DELETE /v1/operator/runtime/runners/{runnerId}",
   "shippin.runtime.runner.list": "GET /v1/operator/runtime/runners",
@@ -1012,8 +1053,12 @@ export type ActionTypes = {
   "shippin.platform.setting.list": { args: [params?: Record<string, never>]; output: { items: SettingsView[] }; risk: "read"; event: never };
   "shippin.platform.setting.update": { args: [params: { settingId: string }, body: SettingUpdateInput & { reason: string }]; output: SettingsView; risk: "write"; event: "shippin.platform.setting.updated" };
   "shippin.platform.setting.version.list": { args: [params: { settingId: string }]; output: { items: Version[] }; risk: "read"; event: never };
+  "shippin.runtime.devspace.delete": { args: [params: { tenantId: string; devspaceId: string }, body?: DevspaceDeleteInput & { reason?: string }]; output: DevspaceAccepted; risk: "destructive"; event: "shippin.runtime.devspace.deleted" };
   "shippin.runtime.devspace.get": { args: [params: { tenantId: string; devspaceId: string }]; output: DevspaceView; risk: "read"; event: never };
   "shippin.runtime.devspace.list": { args: [params: { tenantId: string }]; output: DevspaceListed; risk: "read"; event: never };
+  "shippin.runtime.devspace.restart": { args: [params: { tenantId: string; devspaceId: string }, body?: { reason?: string }]; output: DevspaceAccepted; risk: "write"; event: "shippin.runtime.devspace.restarted" };
+  "shippin.runtime.devspace.start": { args: [params: { tenantId: string; devspaceId: string }, body?: { reason?: string }]; output: DevspaceAccepted; risk: "write"; event: "shippin.runtime.devspace.started" };
+  "shippin.runtime.devspace.stop": { args: [params: { tenantId: string; devspaceId: string }, body?: { reason?: string }]; output: DevspaceAccepted; risk: "write"; event: "shippin.runtime.devspace.stopped" };
   "shippin.runtime.devspace_option.get": { args: [params?: Record<string, never>]; output: DevspaceOptionOptions; risk: "read"; event: never };
   "shippin.runtime.runner.delete": { args: [params: { runnerId: string }, body: { reason: string }]; output: void; risk: "destructive"; event: "shippin.runtime.runner.deleted" };
   "shippin.runtime.runner.list": { args: [params?: { state?: string }]; output: { items: Runner[] }; risk: "read"; event: never };

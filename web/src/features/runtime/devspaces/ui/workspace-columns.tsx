@@ -9,7 +9,7 @@ import { WorkspaceMenu } from "./workspace-menu";
 
 const mono = "font-mono text-sm";
 
-export function workspaceColumns(canManage: boolean): ColumnDef<Workspace>[] {
+export function workspaceColumns(): ColumnDef<Workspace>[] {
   return [
     {
       id: "name",
@@ -39,7 +39,7 @@ export function workspaceColumns(canManage: boolean): ColumnDef<Workspace>[] {
       render: (w) => (
         <div className="flex items-center justify-end gap-2">
           <OpenButton ws={w} />
-          <WorkspaceMenu ws={w} canManage={canManage} />
+          <WorkspaceMenu ws={w} />
         </div>
       ),
     },

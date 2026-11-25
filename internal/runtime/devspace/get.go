@@ -21,6 +21,7 @@ var Get = mcpl.Def[ByID, View]{
 		}
 		for _, it := range items {
 			if it.ID == in.ID {
+				it.Actions = offers(it, c.MayManage(it.ID))
 				return it, nil
 			}
 		}

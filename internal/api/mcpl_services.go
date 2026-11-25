@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/platform/config"
 	"shippin.cloud/console/internal/ports"
+	"shippin.cloud/console/internal/services/jobs"
 	"shippin.cloud/console/internal/settings"
 )
 
@@ -31,6 +33,8 @@ func (a *API) provideServices(s mcpl.Services) {
 	mcpl.Provide[config.Incus](s, a.cfg.Incus)
 	mcpl.Provide[ports.Guests](s, guestPort{a})
 	mcpl.Provide[devspace.Orgs](s, orgPort{a})
+	// The durable queue can be turned off in the panel, so the port answers for it on each call.
+	mcpl.Provide[devspace.Queue](s, queuePort{a})
 	// The GitHub App can be turned on and off in the panel, so the port is always there and finds the
 	// App on each call; while it is off, Need answers as if it weren't provided.
 	mcpl.Provide[ports.GitHub](s, githubPort{a})
@@ -121,6 +125,35 @@ func (p guestPort) Limits(ctx context.Context, plan string) ports.GuestLimits {
 		return ports.GuestLimits{}
 	}
 	return ports.GuestLimits{CPU: l.CPU, Memory: l.Memory, Home: l.Home, Root: l.Root}
+}
+
+// queuePort is devspace.Queue on this panel's durable jobs.
+type queuePort struct{ a *API }
+
+// Off reports whether durable work is off (mcpl.Switchable): nothing is then accepted.
+func (p queuePort) Off(context.Context) bool { return p.a.jobRunner() == nil }
+
+func (p queuePort) Apply(ctx context.Context, q mcpl.DB, w devspace.Devspace, work devspace.Work, by string) (devspace.Job, error) {
+	payload, err := json.Marshal(work)
+	if err != nil {
+		return devspace.Job{}, err
+	}
+	j, err := jobs.EnqueueActionOn(ctx, q, jobs.Job{TenantID: w.TenantID, TargetID: w.ID, CreatedBy: by,
+		MaxAttempts: max(p.a.liveJobs(ctx).MaxAttempts, 1), Payload: payload}, devspace.States[work.Action][0])
+	if errors.Is(err, jobs.ErrWorkspaceBusy) {
+		return devspace.Job{}, devspace.ErrBusy
+	}
+	if err != nil {
+		return devspace.Job{}, err
+	}
+	return devspace.Job{ID: j.ID, TenantID: j.TenantID, Kind: j.Kind, Target: devspace.JobTarget{Type: j.TargetType, ID: j.TargetID},
+		Status: j.Status, Message: j.Step, Attempts: j.Attempts, CreatedBy: j.CreatedBy, CreatedAt: j.CreatedAt, FinishedAt: j.FinishedAt}, nil
+}
+
+func (p queuePort) Wake() {
+	if r := p.a.jobRunner(); r != nil {
+		r.Wake()
+	}
 }
 
 // orgPort is devspace.Orgs on the organizations this panel stores.

@@ -57,8 +57,12 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.platform.setting.list", platform_setting.List),
 	mcpl.Register("shippin.platform.setting.update", platform_setting.Update),
 	mcpl.Register("shippin.platform.setting.version.list", platform_setting_version.List),
+	mcpl.Register("shippin.runtime.devspace.delete", runtime_devspace.Delete),
 	mcpl.Register("shippin.runtime.devspace.get", runtime_devspace.Get),
 	mcpl.Register("shippin.runtime.devspace.list", runtime_devspace.List),
+	mcpl.Register("shippin.runtime.devspace.restart", runtime_devspace.Restart),
+	mcpl.Register("shippin.runtime.devspace.start", runtime_devspace.Start),
+	mcpl.Register("shippin.runtime.devspace.stop", runtime_devspace.Stop),
 	mcpl.Register("shippin.runtime.devspace_option.get", runtime_devspace_option.Get),
 	mcpl.Register("shippin.runtime.runner.delete", runtime_runner.Delete),
 	mcpl.Register("shippin.runtime.runner.list", runtime_runner.List),
@@ -115,6 +119,7 @@ var All = []mcpl.Registered{
 var Reactions = []mcpl.RegisteredReaction{
 	mcpl.React("shippin.identity.ssh_key.push_to_workspaces", identity_ssh_key.PushToWorkspaces),
 	mcpl.React("shippin.platform.setting.remove_retired", platform_setting.RemoveRetired),
+	mcpl.React("shippin.runtime.devspace.wake_workers", runtime_devspace.WakeWorkers),
 	mcpl.React("shippin.runtime.runner.remove_machine", runtime_runner.RemoveMachine),
 }
 

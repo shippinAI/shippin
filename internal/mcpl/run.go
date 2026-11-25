@@ -45,6 +45,10 @@ type Spec struct {
 	// gate asks about the item named in the route, not the whole organization; a list filters with
 	// Call.Sees. Without it, only a grant for the whole organization counts.
 	Scoped bool
+	// GrantPerm is the staff permission a person also needs to run a Scoped action under a support
+	// grant rather than as a member: a grant says which space, the permission says their staff role
+	// includes doing this at all.
+	GrantPerm string
 }
 
 // DB is what an action queries: the pool for a read, the change's transaction for anything else.
@@ -82,6 +86,21 @@ type Call struct {
 	// Grant is the support grant a Scoped action runs under, "" for a member of the organization. Work
 	// that outlives the request keeps it, so the grant can be checked again when the work runs.
 	Grant string
+	// Manages reports whether the caller may change one item of a Scoped action's entity, so a read
+	// can say which actions it offers them. nil means what Perms answers for "manage".
+	Manages func(item string) bool
+	// Receipt keeps the answer to accepted work under the request's Idempotency-Key, on the change's
+	// own transaction, so the work and the answer a repeat gets are kept or lost together. nil when
+	// the request carries no key.
+	Receipt func(q DB, status int, body []byte, location string) error
+}
+
+// MayManage reports whether the caller may change item.
+func (c *Call) MayManage(item string) bool {
+	if c.Manages != nil {
+		return c.Manages(item)
+	}
+	return c.Can("manage")
 }
 
 // Reaches reports whether the caller reaches item: always, unless the gate narrowed the call.
@@ -191,6 +210,27 @@ func (d Def[In, Out]) serve(g Registered, c *Call, w http.ResponseWriter, r *htt
 			return
 		}
 	}
+	code, location := http.StatusOK, ""
+	if strings.HasSuffix(g.ID, ".create") {
+		code = http.StatusCreated
+	}
+	if a, ok := any(out).(Accepted); ok && a.AcceptedAt() != "" {
+		code, location = http.StatusAccepted, a.AcceptedAt()
+	}
+	var body bytes.Buffer
+	if _, none := any(out).(None); !none {
+		if err := json.NewEncoder(&body).Encode(out); err != nil {
+			problem(w, err)
+			return
+		}
+	}
+	if location != "" && c.Receipt != nil && tx != nil {
+		if err := c.Receipt(tx, code, body.Bytes(), location); err != nil {
+			log.Printf("receipt %s: %v", g.ID, err)
+			problem(w, &Error{http.StatusServiceUnavailable, "The request couldn't be recorded, so nothing was started."})
+			return
+		}
+	}
 	if tx != nil {
 		if err := tx.Commit(c.Ctx); err != nil {
 			problem(w, err)
@@ -204,17 +244,12 @@ func (d Def[In, Out]) serve(g Registered, c *Call, w http.ResponseWriter, r *htt
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	code := http.StatusOK
-	if strings.HasSuffix(g.ID, ".create") {
-		code = http.StatusCreated
-	}
-	if a, ok := any(out).(Accepted); ok && a.AcceptedAt() != "" {
-		code = http.StatusAccepted
-		w.Header().Set("Location", a.AcceptedAt())
+	if location != "" {
+		w.Header().Set("Location", location)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	_ = json.NewEncoder(w).Encode(out)
+	_, _ = w.Write(body.Bytes())
 }
 
 // subjectOf is what the action acted on: the route's own values (tenantId, coverageTierId), and the
@@ -362,6 +397,9 @@ func Register(id string, r Runner) Registered {
 	if s.Scoped && s.Access != Member {
 		panic(fmt.Sprintf("mcpl: %s: only a member action is Scoped", id))
 	}
+	if s.GrantPerm != "" && !s.Scoped {
+		panic(fmt.Sprintf("mcpl: %s: GrantPerm is for a Scoped action", id))
+	}
 	risk := RiskOf(route)
 	a := Action{ID: id, Route: route, Access: s.Access, Perm: s.Perm, Risk: risk,
 		Reason: s.Access == Staff && risk != Read, Summary: s.Summary}
@@ -380,6 +418,9 @@ func (g Registered) Scope() string {
 	}
 	return param(strings.Split(g.ID, ".")[2])
 }
+
+// GrantPerm is the staff permission a grant holder also needs for this action, "" when none.
+func (g Registered) GrantPerm() string { return g.Runner.Describe().GrantPerm }
 
 // Serve runs the action for one request.
 func (g Registered) Serve(c *Call, w http.ResponseWriter, r *http.Request) {

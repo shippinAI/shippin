@@ -44,7 +44,7 @@ if [ -z "${ONLY_ADMIN:-}" ]; then # USER_PAT_FILE is a non-admin
 echo "== provider panel is platform-admin only"
 for p in "GET /v1/operator/tenants" "GET /v1/operator/workspaces" "GET /v1/operator/runtime/templates" "GET /v1/operator/host" \
   "GET /v1/operator/edge" "GET /v1/operator/identity" "POST /v1/operator/runtime/templates" "DELETE /v1/operator/tenants/$NOID" \
-  "POST /v1/operator/workspaces/$NOID/delete" "POST /v1/operator/tenants/$NOID/suspend"; do
+  "POST /v1/operator/tenants/$NOID/suspend"; do
   expect 403 "non-admin: $p" "$U" ${p% *} ${p#* } '{}'
 done
 
@@ -57,7 +57,8 @@ expect 200 "devspace list" "$U" GET "$T/runtime/devspaces"
 expect 404 "unknown tenant" "$U" GET "/v1/tenants/$NOID/runtime/devspaces"
 if [ -z "${ONLY_ADMIN:-}" ]; then
 expect 403 "viewer can't create workspaces" "$U" POST "$T/workspaces" '{"name":"itest"}'
-expect 403 "viewer can't run actions" "$U" POST "$T/workspaces/$NOID/actions/stop"
+expect 403 "viewer can't run actions" "$U" POST "$T/runtime/devspaces/$NOID/stop"
+expect 403 "viewer can't delete a devspace" "$U" DELETE "$T/runtime/devspaces/$NOID"
 expect '403|404' "viewer can't change firewall" "$U" PUT "$T/workspaces/$NOID/firewall" '{"rules":[]}'
 expect 404 "previews on unknown workspace" "$U" PUT "$T/workspaces/$NOID/previews" '{"previews":[]}'
 fi
@@ -78,8 +79,8 @@ if [ -n "${ADMIN_PAT_FILE:-}" ]; then
   expect 400 "template: duplicate ports refused" "$A" POST /v1/operator/runtime/templates '{"reason":"integration test","slug":"it-x","name":"x","image":"shippin/tpl-blank","cpu":2,"memory_gib":4,"disk_gib":20,"ports":[5173,5173]}'
   expect 404 "template: PUT to unknown id is not an upsert" "$A" PUT "/v1/operator/runtime/templates/$NOID" '{"reason":"integration test","slug":"it-x","name":"x","image":"shippin/tpl-blank","cpu":2,"memory_gib":4,"disk_gib":20}'
   expect 404 "template: delete unknown" "$A" DELETE "/v1/operator/runtime/templates/$NOID" '{"reason":"integration test"}'
-  expect 400 "workspace action: unknown action" "$A" POST "/v1/operator/workspaces/$NOID/rebuild"
-  expect 404 "workspace delete: unknown id" "$A" POST "/v1/operator/workspaces/$NOID/delete" '{"confirm":"x"}'
+  expect 404 "devspace action: no such action" "$A" POST "$T/runtime/devspaces/$NOID/rebuild"
+  expect 404 "devspace delete: unknown id" "$A" DELETE "$T/runtime/devspaces/$NOID" '{"confirm":"x"}'
   expect 404 "tenant delete: unknown id" "$A" DELETE "/v1/operator/tenants/$NOID" '{"confirm":"x"}'
   if [ -n "${TEST_WS_ID:-}" ]; then # a throwaway workspace; every request below is refused before any change
     W=$T/workspaces/$TEST_WS_ID
@@ -89,7 +90,6 @@ if [ -n "${ADMIN_PAT_FILE:-}" ]; then
     expect 400 "domains: platform name refused" "$A" PUT "$W/domains" "{\"domains\":[\"$CONSOLE_HOST\"]}"
     expect 400 "previews: duplicate port refused" "$A" PUT "$W/previews" '{"previews":[{"port":5173},{"port":5173}]}'
     expect 400 "previews: IDE port refused" "$A" PUT "$W/previews" '{"previews":[{"port":3000}]}'
-    expect 400 "provider delete needs the typed name" "$A" POST "/v1/operator/workspaces/$TEST_WS_ID/delete" '{"confirm":"wrong"}'
   fi
   expect 400 "create: bad repo refused" "$A" POST "$T/workspaces" '{"name":"itest","template_id":"node-vite","repo":"https://github.com/a/.."}'
   expect 400 "create: bad name refused" "$A" POST "$T/workspaces" '{"name":"Bad Name"}'

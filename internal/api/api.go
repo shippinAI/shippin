@@ -164,7 +164,6 @@ func (a *API) Register(mux Router) {
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/settings", a.flow.Require(a.tenantSettings))
 	mux.HandleFunc("GET /v1/tenants/{tenantId}/sparks", a.flow.Require(a.sparks))
 	mux.HandleFunc("POST /v1/tenants/{tenantId}/workspaces", a.flow.Require(a.createWorkspace))
-	mux.HandleFunc("POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/actions/{action}", a.flow.Require(a.workspaceAction))
 	mux.HandleFunc("PUT /v1/tenants/{tenantId}/workspaces/{workspaceId}/firewall", a.flow.Require(a.putAccess("firewall")))
 	mux.HandleFunc("PUT /v1/tenants/{tenantId}/workspaces/{workspaceId}/domains", a.flow.Require(a.putAccess("domains")))
 	mux.HandleFunc("PUT /v1/tenants/{tenantId}/workspaces/{workspaceId}/previews", a.flow.Require(a.putPreviews))

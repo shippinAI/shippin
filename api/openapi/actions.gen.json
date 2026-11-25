@@ -1924,6 +1924,26 @@
         ],
         "type": "object"
       },
+      "DevspaceAccepted": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "job": {
+            "$ref": "#/components/schemas/DevspaceJob"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "job"
+        ],
+        "type": "object"
+      },
       "DevspaceConnect": {
         "additionalProperties": false,
         "properties": {
@@ -1956,6 +1976,86 @@
         ],
         "type": "object"
       },
+      "DevspaceDeleteInput": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DevspaceJob": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/DevspaceJobTarget"
+          },
+          "tenant_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "kind",
+          "target",
+          "status",
+          "attempts",
+          "created_by",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "DevspaceJobTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id"
+        ],
+        "type": "object"
+      },
       "DevspaceListed": {
         "additionalProperties": false,
         "properties": {
@@ -1980,6 +2080,32 @@
           "plan",
           "can_manage",
           "tenant_status"
+        ],
+        "type": "object"
+      },
+      "DevspaceOffer": {
+        "additionalProperties": false,
+        "properties": {
+          "destructive": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "enabled"
         ],
         "type": "object"
       },
@@ -2158,6 +2284,12 @@
       "DevspaceView": {
         "additionalProperties": false,
         "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/DevspaceOffer"
+            },
+            "type": "array"
+          },
           "connect": {
             "anyOf": [
               {
@@ -2313,7 +2445,8 @@
           "region",
           "ide_port",
           "preview_urls",
-          "steps"
+          "steps",
+          "actions"
         ],
         "type": "object"
       },
@@ -8170,6 +8303,85 @@
       }
     },
     "/tenants/{tenantId}/runtime/devspaces/{devspaceId}": {
+      "delete": {
+        "operationId": "shippin.runtime.devspace.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "devspaceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/DevspaceDeleteInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevspaceAccepted"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Delete a development space with its files and its address; this cannot be undone.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "event": "shippin.runtime.devspace.deleted",
+          "id": "shippin.runtime.devspace.delete",
+          "perm": "manage",
+          "reason": false,
+          "risk": "destructive"
+        }
+      },
       "get": {
         "operationId": "shippin.runtime.devspace.get",
         "parameters": [
@@ -8222,6 +8434,228 @@
           "id": "shippin.runtime.devspace.get",
           "reason": false,
           "risk": "read"
+        }
+      }
+    },
+    "/tenants/{tenantId}/runtime/devspaces/{devspaceId}/restart": {
+      "post": {
+        "operationId": "shippin.runtime.devspace.restart",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "devspaceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevspaceAccepted"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Restart a running development space.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "event": "shippin.runtime.devspace.restarted",
+          "id": "shippin.runtime.devspace.restart",
+          "perm": "manage",
+          "reason": false,
+          "risk": "write"
+        }
+      }
+    },
+    "/tenants/{tenantId}/runtime/devspaces/{devspaceId}/start": {
+      "post": {
+        "operationId": "shippin.runtime.devspace.start",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "devspaceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevspaceAccepted"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Power on a development space.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "event": "shippin.runtime.devspace.started",
+          "id": "shippin.runtime.devspace.start",
+          "perm": "manage",
+          "reason": false,
+          "risk": "write"
+        }
+      }
+    },
+    "/tenants/{tenantId}/runtime/devspaces/{devspaceId}/stop": {
+      "post": {
+        "operationId": "shippin.runtime.devspace.stop",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "devspaceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevspaceAccepted"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Power off a development space; its files are kept.",
+        "tags": [
+          "runtime"
+        ],
+        "x-mcpl": {
+          "access": "member",
+          "event": "shippin.runtime.devspace.stopped",
+          "id": "shippin.runtime.devspace.stop",
+          "perm": "manage",
+          "reason": false,
+          "risk": "write"
         }
       }
     },

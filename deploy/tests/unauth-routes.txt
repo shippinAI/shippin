@@ -30,6 +30,7 @@ DELETE /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepository
 DELETE /v1/tenants/{tenantId}/members/{userId}
 DELETE /v1/tenants/{tenantId}/organization-workspaces/{groupId}
 DELETE /v1/tenants/{tenantId}/projects/{projectId}
+DELETE /v1/tenants/{tenantId}/runtime/devspaces/{devspaceId}
 DELETE /v1/tenants/{tenantId}/subscriptions/{provider}
 DELETE /v1/tenants/{tenantId}/teams/{teamId}
 DELETE /v1/tenants/{tenantId}/teams/{teamId}/members/{userId}
@@ -262,7 +263,6 @@ POST /v1/operator/tenants/{tenantId}/vm
 POST /v1/operator/tenants/{tenantId}/vm/harden
 POST /v1/operator/tenants/{tenantId}/vm/{action}
 POST /v1/operator/waitlist/{id}/invite
-POST /v1/operator/workspaces/{workspaceId}/{action}
 POST /v1/ops/support-grants
 POST /v1/ops/support-grants/{id}/revoke
 POST /v1/tenants
@@ -294,6 +294,9 @@ POST /v1/tenants/{tenantId}/projects/{projectId}/environments
 POST /v1/tenants/{tenantId}/projects/{projectId}/github/publish
 POST /v1/tenants/{tenantId}/projects/{projectId}/services/rrflow
 POST /v1/tenants/{tenantId}/provision
+POST /v1/tenants/{tenantId}/runtime/devspaces/{devspaceId}/restart
+POST /v1/tenants/{tenantId}/runtime/devspaces/{devspaceId}/start
+POST /v1/tenants/{tenantId}/runtime/devspaces/{devspaceId}/stop
 POST /v1/tenants/{tenantId}/servers
 POST /v1/tenants/{tenantId}/servers/{serverId}/enroll-token
 POST /v1/tenants/{tenantId}/servers/{serverId}/guests/{guest}/power-review/{verb}
@@ -306,7 +309,6 @@ POST /v1/tenants/{tenantId}/subscriptions/{provider}/activate
 POST /v1/tenants/{tenantId}/subscriptions/{provider}/check
 POST /v1/tenants/{tenantId}/teams
 POST /v1/tenants/{tenantId}/workspaces
-POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/actions/{action}
 POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/adopt
 POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/code
 POST /v1/tenants/{tenantId}/workspaces/{workspaceId}/connections/{provider}/login

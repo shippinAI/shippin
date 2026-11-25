@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 	"shippin.cloud/console/internal/runtime/devspace"
 
@@ -50,39 +49,4 @@ func (a *API) opWorkspaces(w http.ResponseWriter, r *http.Request, _ *caller) {
 		}
 	}
 	writeJSON(w, map[string]any{"items": out})
-}
-
-// opWorkspaceAction lets a platform admin start, stop or delete a workspace (202 + polling)
-// only while holding a customer-approved or break-glass grant covering it; each use is
-// audited. Delete needs the exact name in {"confirm": ...} and runs the owner's delete path.
-func (a *API) opWorkspaceAction(w http.ResponseWriter, r *http.Request, c *caller) {
-	act := r.PathValue("action")
-	if act != "start" && act != "stop" && act != "delete" {
-		auth.Problem(w, http.StatusBadRequest, "Only start, stop and delete are available here.")
-		return
-	}
-	ws, err := devspace.On(a.db.Pool).ActionTarget(r.Context(), r.PathValue("workspaceId"))
-	if err != nil || ws == nil {
-		auth.Problem(w, http.StatusNotFound, "Workspace not found.")
-		return
-	}
-	if act == "delete" {
-		var body struct {
-			Confirm string `json:"confirm"`
-		}
-		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&body) != nil || body.Confirm != ws.Name {
-			auth.Problem(w, http.StatusBadRequest, "Type the workspace name exactly to confirm deletion.")
-			return
-		}
-	}
-	t := c.grantedTenant(ws.TenantID)
-	if t == nil || !c.canManageWS(t, ws.ID) {
-		auth.Problem(w, http.StatusForbidden, "Workspace actions need the customer's approval. Request access first.")
-		return
-	}
-	if !a.auditUse(r, c, t, ws.ID, "action", act) {
-		refuseUnaudited(w)
-		return
-	}
-	a.runAction(w, r, t, *ws, act, "operator "+c.id.Sub)
 }

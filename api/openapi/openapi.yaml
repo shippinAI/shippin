@@ -101,8 +101,6 @@ paths:
     $ref: paths/deployments-runtime.yaml#/deploymentReviewAuthorization
   /tenants/{tenantId}/workspaces/{workspaceId}:
     $ref: paths/workspaces.yaml#/workspace
-  /tenants/{tenantId}/workspaces/{workspaceId}/actions/{action}:
-    $ref: paths/workspace-actions.yaml#/action
   /tenants/{tenantId}/workspaces/{workspaceId}/firewall:
     $ref: paths/workspace-access.yaml#/firewall
   /tenants/{tenantId}/workspaces/{workspaceId}/domains:
@@ -291,8 +289,6 @@ paths:
     $ref: paths/operator-runtime.yaml#/operatorCreateProject
   /operator/workspaces:
     $ref: paths/operator-runtime.yaml#/operatorWorkspaces
-  /operator/workspaces/{workspaceId}/{action}:
-    $ref: paths/operator-runtime.yaml#/operatorWorkspaceAction
   /setup:
     $ref: paths/directory.yaml#/setup
   /session/magic:

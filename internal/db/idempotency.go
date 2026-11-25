@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // IdemRecord is a stored Idempotency-Key response (Status 0 = the first request is still running).
@@ -61,4 +62,24 @@ func (d *DB) DropIdemKey(ctx context.Context, scope, key string) error {
 func (d *DB) PruneIdemKeys(ctx context.Context, ttl time.Duration) (int64, error) {
 	tag, err := d.Pool.Exec(ctx, `DELETE FROM idempotency_keys WHERE created_at < now()-make_interval(secs => $1)`, ttl.Seconds())
 	return tag.RowsAffected(), err
+}
+
+// KeepIdemReceipt stores the answer to accepted work under its reserved key, on the work's own
+// transaction q. It fails when the reservation is gone, so the work is not committed without it.
+func KeepIdemReceipt(ctx context.Context, q interface {
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+}, scope, key string, status int, body []byte, location string) error {
+	headers, err := json.Marshal(map[string]string{"Content-Type": "application/json", "Location": location})
+	if err != nil {
+		return err
+	}
+	tag, err := q.Exec(ctx, `UPDATE idempotency_keys SET status=$3, body=$4, headers=$5 WHERE scope=$1 AND key=$2 AND status=0`,
+		scope, key, status, body, headers)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return errors.New("idempotency reservation lost")
+	}
+	return nil
 }

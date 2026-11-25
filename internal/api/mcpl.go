@@ -65,7 +65,8 @@ func (a *API) mountActions(mux Router) {
 				if scope != "" {
 					item = r.PathValue(scope)
 				}
-				if status, why := memberGate(c, t, g.Perm, scope != "", item); status != 0 {
+				staffMay := func(perm string) bool { ok, _ := a.decide(r.Context(), c, perm); return ok }
+				if status, why := memberGate(c, t, g.Perm, scope != "", item, g.GrantPerm(), staffMay); status != 0 {
 					auth.Problem(w, status, why)
 					return
 				}
@@ -79,14 +80,23 @@ func (a *API) mountActions(mux Router) {
 				call.Perms = func(role string) bool { return memberMay(c, t, role) }
 				if scope != "" {
 					call.Sees = t.sees
+					call.Manages = func(item string) bool { return c.canManageWS(t, item) }
 					if g := t.grantFor(item); !t.member() && g != nil {
 						call.Grant = g.ID
 					}
 				}
 				serve := func(w http.ResponseWriter, r *http.Request) { g.Serve(call, w, r) }
 				if replay {
-					// Accepted work is recorded once per Idempotency-Key, so a repeat starts nothing new.
-					a.idempotent(w, r, t.ID+":"+c.id.Sub, serve)
+					// Accepted work is recorded once per Idempotency-Key, so a repeat starts nothing new. The
+					// answer is kept on the work's own transaction: a crash between the two cannot leave work
+					// that a repeat would start again.
+					scope := t.ID + ":" + c.id.Sub
+					if key := r.Header.Get("Idempotency-Key"); key != "" {
+						call.Receipt = func(q mcpl.DB, status int, body []byte, location string) error {
+							return db.KeepIdemReceipt(r.Context(), q, scope, key, status, body, location)
+						}
+					}
+					a.idempotent(w, r, scope, serve)
 					return
 				}
 				serve(w, r)
@@ -157,7 +167,14 @@ func memberMay(c *caller, t *tenantView, role string) bool {
 // there), to manage it they must manage it. A Scoped list or create names no item: a list is open to
 // anyone who sees the organization and filters with Call.Sees; anything else asks the organization's
 // role as an unscoped action does. "decide" is never answered by a grant.
-func memberGate(c *caller, t *tenantView, role string, scoped bool, item string) (int, string) {
+//
+// A person who is not a member reaches the organization only through a support grant. For an action
+// that names a grantPerm they must also hold that staff permission, asked with staffMay: the grant
+// says which space, the permission says their staff role includes the action.
+func memberGate(c *caller, t *tenantView, role string, scoped bool, item, grantPerm string, staffMay func(perm string) bool) (int, string) {
+	if grantPerm != "" && !t.member() && (staffMay == nil || !staffMay(grantPerm)) {
+		return http.StatusForbidden, "Your staff role doesn't include that."
+	}
 	if scoped && item != "" {
 		switch role {
 		case "":
@@ -241,7 +258,7 @@ func (a *API) mayFollow(r *http.Request, c *caller, e mcpl.Event) bool {
 			return false
 		}
 		scope := scopeOf(e.Action)
-		status, _ := memberGate(c, t, e.Perm, scope != "", e.Subject[scope])
+		status, _ := memberGate(c, t, e.Perm, scope != "", e.Subject[scope], grantPermOf(e.Action), func(perm string) bool { return a.decideQuiet(r, c, perm) })
 		return status == 0
 	case mcpl.Staff:
 		return a.decideQuiet(r, c, e.Perm)
@@ -254,6 +271,16 @@ func scopeOf(action string) string {
 	for _, g := range ext.Actions() {
 		if g.ID == action {
 			return g.Scope()
+		}
+	}
+	return ""
+}
+
+// grantPermOf is the staff permission a grant holder also needs for an action, "" when none.
+func grantPermOf(action string) string {
+	for _, g := range ext.Actions() {
+		if g.ID == action {
+			return g.GrantPerm()
 		}
 	}
 	return ""

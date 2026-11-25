@@ -10,24 +10,14 @@ import (
 	"time"
 )
 
-type workspaceActionIn struct {
-	Action     string `json:"action"`
-	Grant      string `json:"grant,omitempty"`
-	Phase      string `json:"phase,omitempty"`
-	Completion *struct {
-		State   string `json:"state"`
-		Message string `json:"message"`
-	} `json:"completion,omitempty"`
-}
-
 // Accepted member authority is captured by the durable intent. Delegated access is rechecked
 // before dispatch; tokens and credentials are never retained in a job.
 func (a *API) runWorkspaceActionJob(ctx context.Context, j *jobs.Job, step func(string)) (any, error) {
-	var in workspaceActionIn
+	var in devspace.Work
 	if json.Unmarshal(j.Payload, &in) != nil {
 		return nil, jobs.Permanent(errors.New("invalid operation"))
 	}
-	states, ok := actionState[in.Action]
+	states, ok := devspace.States[in.Action]
 	if !ok {
 		return nil, jobs.Permanent(errors.New("unknown operation"))
 	}

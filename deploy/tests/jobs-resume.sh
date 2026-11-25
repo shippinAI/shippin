@@ -31,6 +31,6 @@ until [ $SECONDS -ge $deadline ]; do
   sleep 5
 done
 echo "job status: ${status:-unknown}"
-api POST "/v1/tenants/$T/workspaces/$WS/actions/delete" >/dev/null || echo "WARN: delete $WS by hand"
+api DELETE "/v1/tenants/$T/runtime/devspaces/$WS" >/dev/null || echo "WARN: delete $WS by hand"
 [ "$status" = succeeded ] || { echo "FAIL: job did not survive the restart"; exit 1; }
 echo "jobs-resume: OK"

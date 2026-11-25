@@ -30,7 +30,6 @@ POST /v1/operator/tenants/{tenantId}/vm/{action}
 POST /v1/operator/tenants/{tenantId}/vm/harden
 POST /v1/operator/tenants/{tenantId}/desktop/prepare
 GET /v1/operator/workspaces
-POST /v1/operator/workspaces/{workspaceId}/{action}
 GET /v1/operator/identity
 GET /v1/operator/runtime/templates
 GET /v1/operator/runtime/templates/{templateId}
@@ -69,7 +68,6 @@ POST /v1/operator/tenants/{tenantId}/vm/{action}
 POST /v1/operator/tenants/{tenantId}/vm/harden
 POST /v1/operator/tenants/{tenantId}/desktop/prepare
 GET /v1/operator/workspaces
-POST /v1/operator/workspaces/{workspaceId}/{action}
 GET /v1/operator/identity
 GET /v1/operator/runtime/templates
 GET /v1/operator/runtime/templates/{templateId}

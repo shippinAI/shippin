@@ -74,6 +74,45 @@ type View struct {
 	IDEPort       int          `json:"ide_port"`
 	PreviewURLs   []PreviewURL `json:"preview_urls"`
 	Steps         []Step       `json:"steps"`
+	// Actions are what can be done to the space, each with whether this caller may do it now. The
+	// panel draws them as they are; it holds no rule of its own about which to show.
+	Actions []Offer `json:"actions"`
+}
+
+// Offer is one action on a space, as it stands for the caller.
+type Offer struct {
+	// ID is the action to call.
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	// Enabled says whether it can be called now; Why says why not.
+	Enabled bool   `json:"enabled"`
+	Why     string `json:"why,omitempty"`
+	// Destructive: ask the person to type the space's name before calling it.
+	Destructive bool `json:"destructive,omitempty"`
+}
+
+// offers are the lifecycle actions on v for a caller who may, or may not, manage it.
+func offers(v View, manages bool) []Offer {
+	busy := v.State == "provisioning" || v.State == "starting" || v.State == "stopping" || v.State == "deleting"
+	running := v.State == "running"
+	offer := func(verb, label string, fits bool, unfit string) Offer {
+		o := Offer{ID: "shippin.runtime.devspace." + verb, Label: label, Enabled: manages && !busy && fits, Destructive: verb == "delete"}
+		switch {
+		case !manages:
+			o.Why = "Your role in this organization doesn't include that."
+		case busy:
+			o.Why = "Wait until the current operation finishes."
+		case !fits:
+			o.Why = unfit
+		}
+		return o
+	}
+	return []Offer{
+		offer("start", "Power on", !running, "It is already running."),
+		offer("stop", "Power off", running, "It is not running."),
+		offer("restart", "Restart", running, "It is not running."),
+		offer("delete", "Delete", true, ""),
+	}
 }
 
 // Reader reads development spaces together with what their hosts report.
@@ -173,7 +212,7 @@ func (r Reader) Show(org Org, w Devspace, live map[string]ports.Guest) View {
 		}
 		v.VSCodeURL = fmt.Sprintf("vscode://vscode-remote/ssh-remote+%s@%s:%d%s", u, org.SSHIP, w.SSHPort, r.Shape.CodeDir)
 	}
-	v.Steps = steps(w)
+	v.Steps, v.Actions = steps(w), []Offer{}
 	return v
 }
 

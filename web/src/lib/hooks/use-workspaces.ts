@@ -4,7 +4,7 @@ import { apiSend } from "../api/client";
 import type { Workspace } from "../api/types";
 import { toast } from "../design/components/toast/toast-queue";
 
-export const busy = (w: Workspace) => ["provisioning", "starting", "stopping", "deleting"].includes(w.state);
+const busy = (w: Workspace) => ["provisioning", "starting", "stopping", "deleting"].includes(w.state);
 
 /** Workspaces of a tenant; polls fast while anything is in flight. */
 export const useWorkspaces = (tenantId?: string) =>
@@ -36,11 +36,26 @@ const verbs: Record<WsAction, [string, string]> = {
   delete: ["Deleting", "is being deleted"],
 };
 
+/** Run one lifecycle action on a development space. A delete carries the typed name. */
+export function runWorkspaceAction(tenantId: string, id: string, action: WsAction, confirm?: string) {
+  const at = { tenantId, devspaceId: id };
+  switch (action) {
+    case "start":
+      return callAction("shippin.runtime.devspace.start", at);
+    case "stop":
+      return callAction("shippin.runtime.devspace.stop", at);
+    case "restart":
+      return callAction("shippin.runtime.devspace.restart", at);
+    case "delete":
+      return callAction("shippin.runtime.devspace.delete", at, confirm ? { confirm } : undefined);
+  }
+}
+
 export function useWorkspaceAction(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, action }: { id: string; name: string; action: WsAction }) =>
-      apiSend("POST", `/v1/tenants/${tenantId}/workspaces/${id}/actions/${action}`),
+    mutationFn: ({ id, action, confirm }: { id: string; name: string; action: WsAction; confirm?: string }) =>
+      runWorkspaceAction(tenantId, id, action, confirm),
     onSuccess: (_d, { name, action }) => {
       toast.info(`${name} ${verbs[action][1]}`, "We'll let you know when it's done.");
       void qc.invalidateQueries({ queryKey: ["tenant", tenantId, "workspaces"] });

@@ -26,7 +26,7 @@ export function AdminWorkspacesPage() {
   const cols = workspaceColumns((w, a) => {
     if (a === "delete") setDoomed(w);
     else if (a === "request" || a === "breakglass") setAsk({ w, mode: a });
-    else act.mutate({ id: w.id, name: w.name, action: a });
+    else act.mutate({ tenantId: w.tenant_id, id: w.id, name: w.name, action: a });
   }, act.isPending);
   return (
     <>
@@ -90,7 +90,9 @@ export function AdminWorkspacesPage() {
         body={`The workspace in ${doomed?.tenant_name ?? "its tenant"}, its home volume, HTTPS and preview routes and SSH port are removed. This can't be undone.`}
         confirmLabel="Delete workspace"
         typeToConfirm={doomed?.name}
-        onConfirm={() => doomed && act.mutate({ id: doomed.id, name: doomed.name, action: "delete", confirm: doomed.name })}
+        onConfirm={() =>
+          doomed && act.mutate({ tenantId: doomed.tenant_id, id: doomed.id, name: doomed.name, action: "delete", confirm: doomed.name })
+        }
       />
     </>
   );

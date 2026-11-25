@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiSend } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
+import { runWorkspaceAction } from "./use-workspaces";
 
 type TenantAction = "provision" | "suspend" | "resume" | "delete";
 
@@ -31,12 +32,15 @@ export function useTenantAction() {
 type WsAction = "start" | "stop" | "delete";
 const wsCopy: Record<WsAction, string> = { start: "Starting", stop: "Stopping", delete: "Deleting" };
 
-/** Start/stop/delete any workspace from the provider panel; delete sends the typed name. */
+/**
+ * Start, stop or delete a workspace from the provider panel: the same actions its organization runs,
+ * under the support grant the staff member holds. Delete sends the typed name.
+ */
 export function useAdminWorkspaceAction() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, action, confirm }: { id: string; name: string; action: WsAction; confirm?: string }) =>
-      apiSend<{ state: string }>("POST", `/v1/operator/workspaces/${id}/${action}`, action === "delete" ? { confirm } : undefined),
+    mutationFn: ({ tenantId, id, action, confirm }: { tenantId: string; id: string; name: string; action: WsAction; confirm?: string }) =>
+      runWorkspaceAction(tenantId, id, action, confirm),
     onSuccess: (_d, { name, action }) => toast.info(`${wsCopy[action]} ${name}…`),
     onError: (e, { name, action }) => toast.error(`Couldn't ${action} ${name}`, e.message),
     onSettled: () => {

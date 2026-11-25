@@ -32,7 +32,6 @@ func (a *API) operatorRoutes() []opRoute {
 		{"GET /v1/operator/workspaces", "workspaces.read", a.opWorkspaces},
 		{"GET /v1/operator/tenants/{tenantId}/workspaces/{workspaceId}/discover", "projects.create", a.opDiscover},
 		{"POST /v1/operator/tenants/{tenantId}/projects", "projects.create", a.opCreateProject},
-		{"POST /v1/operator/workspaces/{workspaceId}/{action}", "workspaces.act", a.opWorkspaceAction},
 		{"GET /v1/operator/identity", "identity.read", a.opIdentity},
 		{"GET /v1/operator/host", "host.read", a.opHost},
 		{"GET /v1/operator/edge", "edge.read", a.opEdge},

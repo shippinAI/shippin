@@ -6,23 +6,38 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 var ErrWorkspaceBusy = errors.New("workspace has an operation in progress")
 
-// ActionAcceptance binds the HTTP replay receipt to the durable operation transaction.
-type ActionAcceptance struct {
-	Scope, Key string
-	Response   func(*Job) ([]byte, error)
+// Tx is what EnqueueActionOn writes through: the caller's transaction.
+type Tx interface {
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
 // EnqueueAction commits the workspace claim and durable intent together.
-func (s *Store) EnqueueAction(ctx context.Context, j Job, state string, receipts ...ActionAcceptance) (*Job, error) {
+func (s *Store) EnqueueAction(ctx context.Context, j Job, state string) (*Job, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
+	got, err := EnqueueActionOn(ctx, tx, j, state)
+	if err != nil {
+		return nil, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return got, nil
+}
+
+// EnqueueActionOn claims the workspace and records the durable intent on the caller's transaction,
+// so they are kept or lost with whatever else it holds: the audit entry and the replay receipt.
+// ErrWorkspaceBusy when the workspace has work in progress.
+func EnqueueActionOn(ctx context.Context, tx Tx, j Job, state string) (*Job, error) {
 	tag, err := tx.Exec(ctx, `UPDATE workspaces SET state=$3,error=NULL,updated_at=now()
  WHERE id::text=$1 AND tenant_id::text=$2 AND state NOT IN ('provisioning','deleting','deleted','starting','stopping')
  AND NOT EXISTS (SELECT 1 FROM jobs WHERE target_type='workspace' AND target_id=$1 AND status IN ('queued','running','canceling'))`, j.TargetID, j.TenantID, state)
@@ -32,31 +47,8 @@ func (s *Store) EnqueueAction(ctx context.Context, j Job, state string, receipts
 	if tag.RowsAffected() != 1 {
 		return nil, ErrWorkspaceBusy
 	}
-	id := uuid.NewString()
-	got, err := scan(tx.QueryRow(ctx, `INSERT INTO jobs(id,tenant_id,kind,target_type,target_id,max_attempts,payload,created_by)
- VALUES($1,$2,$3,'workspace',$4,$5,$6,$7) RETURNING `+cols, id, j.TenantID, KindWorkspaceAction, j.TargetID, j.MaxAttempts, []byte(j.Payload), j.CreatedBy))
-	if err != nil {
-		return nil, err
-	}
-	if len(receipts) > 0 && receipts[0].Key != "" {
-		receipt := receipts[0]
-		body, e := receipt.Response(got)
-		if e != nil {
-			return nil, e
-		}
-		headers, _ := json.Marshal(map[string]string{"Content-Type": "application/json", "Location": "/v1/jobs/" + got.ID})
-		tag, e := tx.Exec(ctx, `UPDATE idempotency_keys SET status=202,body=$3,headers=$4 WHERE scope=$1 AND key=$2 AND status=0`, receipt.Scope, receipt.Key, body, headers)
-		if e != nil {
-			return nil, e
-		}
-		if tag.RowsAffected() != 1 {
-			return nil, errors.New("idempotency reservation lost")
-		}
-	}
-	if err = tx.Commit(ctx); err != nil {
-		return nil, err
-	}
-	return got, nil
+	return scan(tx.QueryRow(ctx, `INSERT INTO jobs(id,tenant_id,kind,target_type,target_id,max_attempts,payload,created_by)
+ VALUES($1,$2,$3,'workspace',$4,$5,$6,$7) RETURNING `+cols, uuid.NewString(), j.TenantID, KindWorkspaceAction, j.TargetID, j.MaxAttempts, []byte(j.Payload), j.CreatedBy))
 }
 
 // ActionPhase fences writes by the current lease. Dispatch is persisted before hostd is called.

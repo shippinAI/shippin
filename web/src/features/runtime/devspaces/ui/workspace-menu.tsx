@@ -5,16 +5,21 @@ import { ConfirmDialog } from "../../../../lib/design/components/dialog/confirm-
 import { Menu, MenuItem } from "../../../../lib/design/components/menu/menu";
 import { Tooltip } from "../../../../lib/design/components/tooltip/tooltip";
 import type { Workspace } from "../../../../lib/api/types";
-import { busy, useWorkspaceAction } from "../../../../lib/hooks/use-workspaces";
+import { type WsAction, useWorkspaceAction } from "../../../../lib/hooks/use-workspaces";
 
-/** Power and lifecycle actions; Delete asks for the workspace name. */
-export function WorkspaceMenu({ ws, canManage }: { ws: Workspace; canManage: boolean }) {
+const icons: Record<string, typeof Play> = { start: Play, stop: Square, restart: RotateCw, delete: Trash2 };
+const verbOf = (id: string) => id.slice(id.lastIndexOf(".") + 1) as WsAction;
+
+/**
+ * The actions the server offers on a development space, drawn as it lists them: which are there,
+ * which can be used now and why not are the server's. One marked destructive asks for the name first.
+ */
+export function WorkspaceMenu({ ws }: { ws: Workspace }) {
   const act = useWorkspaceAction(ws.tenant_id);
-  const [confirm, setConfirm] = useState(false);
-  const locked = !canManage || busy(ws);
-  const run = (action: "start" | "stop" | "restart") => act.mutate({ id: ws.id, name: ws.name, action });
-  const running = ws.state === "running";
-  const why = !canManage ? "Needs the owner or admin role" : busy(ws) ? "Wait for the current operation" : "Power and lifecycle";
+  const [confirm, setConfirm] = useState<WsAction>();
+  const offers = ws.actions;
+  const locked = !offers.some((o) => o.enabled);
+  const why = locked ? (offers[0]?.why ?? "Nothing can be done to it now") : "Power and lifecycle";
   return (
     <>
       <Menu
@@ -31,27 +36,30 @@ export function WorkspaceMenu({ ws, canManage }: { ws: Workspace; canManage: boo
           </Tooltip>
         }
       >
-        <MenuItem id="start" isDisabled={running} onAction={() => run("start")}>
-          <Play className="size-4" /> Power on
-        </MenuItem>
-        <MenuItem id="stop" isDisabled={!running} onAction={() => run("stop")}>
-          <Square className="size-4" /> Power off
-        </MenuItem>
-        <MenuItem id="restart" isDisabled={!running} onAction={() => run("restart")}>
-          <RotateCw className="size-4" /> Restart
-        </MenuItem>
-        <MenuItem id="delete" onAction={() => setConfirm(true)}>
-          <Trash2 className="size-4 text-danger" /> <span className="text-danger">Delete…</span>
-        </MenuItem>
+        {offers.map((o) => {
+          const verb = verbOf(o.id);
+          const Icon = icons[verb] ?? MoreHorizontal;
+          return (
+            <MenuItem
+              key={o.id}
+              id={o.id}
+              isDisabled={!o.enabled}
+              onAction={() => (o.destructive ? setConfirm(verb) : act.mutate({ id: ws.id, name: ws.name, action: verb }))}
+            >
+              <Icon className={o.destructive ? "size-4 text-danger" : "size-4"} />{" "}
+              <span className={o.destructive ? "text-danger" : undefined}>{o.destructive ? `${o.label}…` : o.label}</span>
+            </MenuItem>
+          );
+        })}
       </Menu>
       <ConfirmDialog
-        isOpen={confirm}
-        onOpenChange={setConfirm}
+        isOpen={confirm !== undefined}
+        onOpenChange={(open) => !open && setConfirm(undefined)}
         title={`Delete ${ws.name}?`}
         body={<p>This permanently deletes the workspace, its home volume and its HTTPS address. Files in the workspace are lost.</p>}
         typeToConfirm={ws.name}
         confirmLabel="Delete workspace"
-        onConfirm={() => act.mutate({ id: ws.id, name: ws.name, action: "delete" })}
+        onConfirm={() => confirm && act.mutate({ id: ws.id, name: ws.name, action: confirm, confirm: ws.name })}
       />
     </>
   );

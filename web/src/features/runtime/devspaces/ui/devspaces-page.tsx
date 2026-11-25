@@ -65,7 +65,7 @@ export function DevspacesPage() {
           ) : (
             <DataTable
               label="Devspaces"
-              columns={workspaceColumns(!!q.data?.can_manage)}
+              columns={workspaceColumns()}
               rows={items}
               empty={
                 <EmptyState

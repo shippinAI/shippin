@@ -18,7 +18,7 @@ export function useOpenDevspace(tenantId: string) {
     mutationFn: async ({ project, env }: { project: { id: string; name: string }; env: { id: string; name: string } }) => {
       const list = await callAction("shippin.runtime.devspace.list", { tenantId });
       const ws = devspaceOf(list.items, project.id, env.id);
-      if (ws && ws.state === "stopped") await apiSend("POST", `/v1/tenants/${tenantId}/workspaces/${ws.id}/actions/start`);
+      if (ws && ws.state === "stopped") await callAction("shippin.runtime.devspace.start", { tenantId, devspaceId: ws.id });
       if (ws) return ws;
       return apiSend<Workspace>("POST", `/v1/tenants/${tenantId}/workspaces`, {
         name: `${project.name}-${env.name}`.slice(0, 40),

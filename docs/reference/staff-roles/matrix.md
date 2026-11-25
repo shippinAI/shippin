@@ -31,7 +31,7 @@ break-glass, for every role including Owner (unchanged from the 50bcc84 design).
 | `tenants.lifecycle` | POST .../provision, suspend, resume, POST .../vm, .../vm/{action}, .../vm/harden, POST .../desktop/prepare |
 | `tenants.delete` | DELETE /v1/operator/tenants/{id} |
 | `workspaces.read` | GET /v1/operator/workspaces |
-| `workspaces.act` | POST /v1/operator/workspaces/{id}/{action} |
+| `workspaces.act` | `shippin.runtime.devspace.start`, `stop`, `restart` and `delete`, when run under a support grant |
 | `projects.create` | POST /v1/operator/tenants/{id}/projects, GET .../tenants/{id}/workspaces/{id}/discover (owner only; Risk) |
 | `identity.read` | GET /v1/operator/identity |
 | `templates.read` / `templates.write` | GET / POST, PUT, DELETE /v1/operator/runtime/templates |
