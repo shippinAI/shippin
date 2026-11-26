@@ -9,8 +9,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -19,7 +21,9 @@ import (
 
 // Endpoint is one Incus API.
 type Endpoint struct {
-	BaseURL    string // https://host:8443
+	// BaseURL is https://host:8443, or unix:///var/lib/incus/unix.socket for the Incus on the machine the
+	// panel runs on, where the socket's file permissions are the authentication and there is no TLS.
+	BaseURL    string
 	Project    string // "" is the server's default project
 	CAPEM      []byte
 	TrustedPEM []byte           // one certificate an operator accepted; it replaces the system roots
@@ -32,12 +36,37 @@ type Client struct {
 	Secret   func() (string, error) // bearer; may return "" when the test server does not check it
 	HTTP     *http.Client
 	Now      func() time.Time
+	// base is where requests go: BaseURL, or a placeholder host for a Unix socket.
+	base string
+}
+
+// unixBase is the URL requests carry over a Unix socket; the socket, not the host, decides where they go.
+const unixBase = "http://incus.socket"
+
+// SocketPath is the socket of a unix:// base URL, or "" for any other URL.
+func SocketPath(baseURL string) string {
+	p, ok := strings.CutPrefix(baseURL, "unix://")
+	if !ok || (!strings.HasPrefix(p, "/") && !filepath.IsAbs(filepath.FromSlash(p))) {
+		return ""
+	}
+	return p
 }
 
 // New builds a verifying client.
 func New(ep Endpoint, secret func() (string, error)) (*Client, error) {
 	if ep.BaseURL == "" || secret == nil {
 		return nil, fmt.Errorf("incus: base URL and secret resolver are required")
+	}
+	if sock := SocketPath(ep.BaseURL); sock != "" {
+		dial := func(ctx context.Context, _, _ string) (net.Conn, error) {
+			var d net.Dialer
+			return d.DialContext(ctx, "unix", sock)
+		}
+		return &Client{Endpoint: ep, Secret: secret, base: unixBase, Now: time.Now,
+			HTTP: &http.Client{Timeout: 60 * time.Second, Transport: &http.Transport{DialContext: dial}}}, nil
+	}
+	if strings.HasPrefix(ep.BaseURL, "unix:") {
+		return nil, fmt.Errorf("incus: a socket address is unix:// followed by an absolute path")
 	}
 	tlsCfg, err := hv.TLSConfig(ep.CAPEM, ep.TrustedPEM, ep.ClientCert)
 	if err != nil {
@@ -46,6 +75,7 @@ func New(ep Endpoint, secret func() (string, error)) (*Client, error) {
 	return &Client{
 		Endpoint: ep,
 		Secret:   secret,
+		base:     ep.BaseURL,
 		// Longer than operationWait: a mutation holds this request open until Incus finishes.
 		HTTP: &http.Client{Timeout: 60 * time.Second, Transport: &http.Transport{TLSClientConfig: tlsCfg}},
 		Now:  time.Now,
@@ -328,7 +358,11 @@ func (c *Client) doLimit(ctx context.Context, method, path string, raw []byte, l
 	if err != nil {
 		return nil, 0, err
 	}
-	u := strings.TrimRight(c.Endpoint.BaseURL, "/") + path
+	base := c.base
+	if base == "" {
+		base = c.Endpoint.BaseURL // a Client built by hand, as tests do
+	}
+	u := strings.TrimRight(base, "/") + path
 	var body io.Reader
 	if raw != nil {
 		body = bytes.NewReader(raw)

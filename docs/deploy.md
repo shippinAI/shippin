@@ -125,6 +125,22 @@ The `--example` install claims its own installation, checks that a second claim 
 
 ## Connect a hypervisor
 
+### The machine the panel is installed on
+
+When the installer runs on an Incus or Proxmox VE host, the panel attaches that host itself the first time it starts, so it is listed under **Infrastructure → Hosts & nodes** with nothing typed or copied:
+
+- **Incus:** through its local socket, `/var/lib/incus/unix.socket`. There is no certificate or token: the socket's file permissions are the authentication, and the installed panel runs as root.
+- **Proxmox VE:** the installer creates the user `shippin@pve` with the roles that managing guests needs (`PVEVMAdmin`, `PVEAuditor`, `PVEDatastoreUser`, `PVESDNUser`, on `/`) and an API token `panel` for it. It keeps the token's secret in `/etc/shippin/proxmox-token`, readable by root only. The panel reaches `https://127.0.0.1:8006` and trusts the host's own certificate, `/etc/pve/local/pve-ssl.pem`.
+  On a Proxmox VE host without a subscription, the enterprise repository Proxmox enables cannot be read, and the installer stops with that reason. Turn it off (`Enabled: no` in `/etc/apt/sources.list.d/pve-enterprise.sources`) or add a subscription first. The installer does not change the host's Proxmox repositories itself.
+
+The panel saves the host only after it answers as a real, authenticated API, the same check **Add host** makes, under the slug `this-machine-incus` or `this-machine-proxmox`. It is attached once; removing it in the panel and restarting attaches it again. The installer records these in `console.env`:
+- `SHIPPIN_LOCAL_INCUS_SOCKET`;
+- `SHIPPIN_LOCAL_PROXMOX_TOKEN_ID`, `SHIPPIN_LOCAL_PROXMOX_TOKEN_FILE` and `SHIPPIN_LOCAL_PROXMOX_CERT_FILE`, and optionally `SHIPPIN_LOCAL_PROXMOX_URL`.
+
+With Compose, mount the Incus socket into the panel container (`/var/lib/incus/unix.socket`) and give the container the socket's group, and the entrypoint sets the variable itself.
+
+### Other hosts
+
 Add a host under **Infrastructure → Hosts & nodes**. The panel needs two things from it.
 
 **Incus.** A trust token, which the panel exchanges for its own certificate. On the server:

@@ -47,5 +47,9 @@ export SHIPPIN_STATIC=$root/web/dist
 # There is no setup code (REL-03). An owner named in the environment (SHIPPIN_OWNER_EMAIL with
 # SHIPPIN_OWNER_PASSWORD or SHIPPIN_OWNER_PASSWORD_FILE) is created when the panel starts; otherwise the
 # first person to open it creates the owner account.
+# An Incus socket mounted into the container is the machine this panel runs on: attach it (docs/deploy.md).
+if [ -z "${SHIPPIN_LOCAL_INCUS_SOCKET:-}" ] && [ -S /var/lib/incus/unix.socket ]; then
+  export SHIPPIN_LOCAL_INCUS_SOCKET=/var/lib/incus/unix.socket
+fi
 echo "Shippin is starting at https://$SHIPPIN_CONSOLE_HOST:${SHIPPIN_PORT:-8443}"
 exec shippin-console

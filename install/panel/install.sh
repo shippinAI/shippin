@@ -55,7 +55,18 @@ case "${ID:-}" in
 esac
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
+# apt_update fails with the reason when a host's package sources cannot be read. The common one on a
+# Proxmox VE host without a subscription is Proxmox's enterprise repository, which the installer does
+# not change on its own: the owner decides which Proxmox repository the host uses.
+apt_update() {
+  if apt-get update -qq; then return 0; fi
+  if grep -rqs 'enterprise.proxmox.com' /etc/apt/sources.list /etc/apt/sources.list.d/; then
+    echo "apt could not read Proxmox's enterprise repository, which needs a subscription. Add a subscription, or turn" >&2
+    echo "the repository off (set 'Enabled: no' in /etc/apt/sources.list.d/pve-enterprise.sources), then run this again." >&2
+  fi
+  exit 1
+}
+apt_update
 apt-get install -y -qq postgresql postgresql-client curl ca-certificates openssl python3 git xz-utils >/dev/null
 if ! pg_isready -q; then
   ver=$(pg_lsclusters --no-header | awk 'NR==1 {print $1}')
@@ -190,7 +201,7 @@ if [ -z "${SHIPPIN_CLICKHOUSE_URL:-}" ]; then
     rm -f "$key"
     echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg arch=$(dpkg --print-architecture)] https://packages.clickhouse.com/deb lts main" \
       > /etc/apt/sources.list.d/clickhouse.list
-    apt-get update -qq
+    apt_update
     apt-get install -y -qq clickhouse-server clickhouse-client >/dev/null
   fi
   # A re-run keeps the password, or the panel loses its history store until the next restart.
@@ -292,6 +303,31 @@ if [ -n "$SHIPPIN_TLS_CERT$SHIPPIN_TLS_KEY" ]; then
   done
 fi
 
+# This machine. When the panel is installed on an Incus or Proxmox VE host, it attaches that host itself
+# when it starts, so nobody copies a trust token or an API token from a shell (docs/deploy.md). For
+# Incus that is the local socket. For Proxmox VE the installer, as root, makes a user that can manage
+# guests and nothing else, and an API token for it whose secret stays in a root-only file.
+local_incus="" local_pve_id="" local_pve_file="" local_pve_cert=""
+if [ -S /var/lib/incus/unix.socket ]; then
+  local_incus=/var/lib/incus/unix.socket
+  echo "this machine runs Incus; the panel attaches it through its socket"
+fi
+if command -v pveum >/dev/null && [ -f /etc/pve/local/pve-ssl.pem ]; then
+  local_pve_id='shippin@pve!panel' local_pve_file=/etc/shippin/proxmox-token local_pve_cert=/etc/pve/local/pve-ssl.pem
+  if [ ! -s "$local_pve_file" ]; then
+    if ! pveum user list --output-format json | python3 -c 'import json,sys; sys.exit(0 if any(u.get("userid") == "shippin@pve" for u in json.load(sys.stdin)) else 1)'; then
+      pveum user add shippin@pve --comment "Shippin panel on this machine"
+    fi
+    pveum acl modify / --users shippin@pve --roles PVEVMAdmin,PVEAuditor,PVEDatastoreUser,PVESDNUser
+    pveum user token remove shippin@pve panel >/dev/null 2>&1 || true
+    pve_secret=$(pveum user token add shippin@pve panel --privsep 0 --output-format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
+    install -d -m 0700 /etc/shippin
+    (umask 077; printf '%s\n' "$pve_secret" > "$local_pve_file")
+    pve_secret=""
+  fi
+  echo "this machine runs Proxmox VE; the panel attaches it with the shippin@pve token"
+fi
+
 # Secrets that only live in console.env (IdP machine tokens, client and SMTP secrets) survive a
 # re-run: a value the site file leaves unset keeps the one already installed.
 keep_secrets="SHIPPIN_IDP_SERVICE_TOKEN SHIPPIN_IDP_READ_TOKEN SHIPPIN_IDP_TEAM_TOKEN SHIPPIN_OIDC_CLIENT_SECRET SHIPPIN_SMTP_PASSWORD SHIPPIN_CAPTCHA_SECRET"
@@ -337,6 +373,10 @@ SHIPPIN_OWNER_NAME=${SHIPPIN_OWNER_NAME:-}
 SHIPPIN_OWNER_USERNAME=${SHIPPIN_OWNER_USERNAME:-}
 SHIPPIN_OWNER_PASSWORD_FILE=${SHIPPIN_OWNER_PASSWORD_FILE:-}
 SHIPPIN_ORGANIZATION=${SHIPPIN_ORGANIZATION:-}
+SHIPPIN_LOCAL_INCUS_SOCKET=${local_incus}
+SHIPPIN_LOCAL_PROXMOX_TOKEN_ID=${local_pve_id}
+SHIPPIN_LOCAL_PROXMOX_TOKEN_FILE=${local_pve_file}
+SHIPPIN_LOCAL_PROXMOX_CERT_FILE=${local_pve_cert}
 EOF
 if [ -n "$hv_env" ]; then printf '%s\n' "$hv_env" >> /etc/shippin/console.env; fi
 chmod 600 /etc/shippin/console.env

@@ -910,7 +910,9 @@ func validateEndpoint(e servers.Endpoint, in hvAttach) error {
 		}
 	}
 	// A trust token says where the server is; a typed address is checked either way.
-	if in.TrustToken == "" || e.BaseURL != "" {
+	// The Incus on the panel's own machine is reached through its socket (local_host.go), not https.
+	local := e.Kind == "incus" && incus.SocketPath(e.BaseURL) != ""
+	if !local && (in.TrustToken == "" || e.BaseURL != "") {
 		u, err := url.Parse(e.BaseURL)
 		if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" && u.Path != "/" {
 			return fmt.Errorf("base_url must be https with a host and no user, query, or path")

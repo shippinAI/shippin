@@ -80,6 +80,7 @@ func Main() {
 	consoleAPI.Register(mux)
 	consoleAPI.RegisterHub(mux)
 	consoleAPI.RegisterVaultixHosted(mux)
+	go consoleAPI.AttachLocalHosts(ctx) // SHIPPIN_LOCAL_*: the machine the install runs on, once
 	go consoleAPI.RunSweeper(ctx)
 	go consoleAPI.RunSettings(ctx)
 	go consoleAPI.RunNetworkInventory(ctx)
