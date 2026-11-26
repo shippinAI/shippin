@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"shippin.cloud/console/internal/auth"
+	"shippin.cloud/console/internal/mcpl"
 )
 
 func rpc(t *testing.T, mux http.Handler, path, body string) map[string]any {
@@ -39,10 +40,40 @@ func TestMCPToolsAreTheCallersActions(t *testing.T) {
 		if init["result"].(map[string]any)["protocolVersion"] != "2025-06-18" {
 			t.Fatalf("initialize: %v", init)
 		}
-		tools := rpc(t, mux, "/v1/mcp", `{"jsonrpc":"2.0","id":2,"method":"tools/list"}`)["result"].(map[string]any)["tools"].([]any)
+		// The entrance holds no action of its own: only the way to a boundary.
+		entrance := rpc(t, mux, "/v1/mcp", `{"jsonrpc":"2.0","id":2,"method":"tools/list"}`)["result"].(map[string]any)["tools"].([]any)
+		var doors []string
+		for _, x := range entrance {
+			doors = append(doors, x.(map[string]any)["name"].(string))
+		}
+		if strings.Join(doors, " ") != "boundaries enter run" {
+			t.Fatalf("the entrance lists %v", doors)
+		}
+		open := map[string]bool{}
+		for _, x := range rpc(t, mux, "/v1/mcp", `{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"boundaries","arguments":{}}}`)["result"].(map[string]any)["structuredContent"].(map[string]any)["boundaries"].([]any) {
+			b := x.(map[string]any)
+			if b["purpose"] == "" || b["tools"].(float64) < 1 {
+				t.Errorf("boundary %v", b)
+			}
+			open[b["name"].(string)] = true
+		}
+		if !open["identity"] {
+			t.Errorf("%q: identity is not open: %v", tc.op, open)
+		}
+		// Entering a boundary hands over its knowledge and exactly the caller's tools in it.
 		names := map[string]map[string]any{}
-		for _, x := range tools {
-			names[x.(map[string]any)["name"].(string)] = x.(map[string]any)
+		for d := range open {
+			in := rpc(t, mux, "/v1/mcp", `{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"enter","arguments":{"boundary":"`+d+`"}}}`)["result"].(map[string]any)["structuredContent"].(map[string]any)
+			if !strings.HasPrefix(in["knowledge"].(string), mcpl.Boundaries[d].Knowledge) {
+				t.Errorf("%s knowledge: %v", d, in["knowledge"])
+			}
+			for _, x := range in["tools"].([]any) {
+				name := x.(map[string]any)["name"].(string)
+				if !strings.HasPrefix(name, d+"-") {
+					t.Errorf("%s holds %s", d, name)
+				}
+				names[name] = x.(map[string]any)
+			}
 		}
 		if names["identity-ssh_key-create"] == nil {
 			t.Errorf("%q: signed-in tools missing: %v", tc.op, names)
@@ -64,7 +95,15 @@ func TestMCPToolsAreTheCallersActions(t *testing.T) {
 			}
 		}
 		// Someone without the staff role is refused the tool, not served around the gate.
-		call := rpc(t, mux, "/v1/mcp", `{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"tenancy-coverage_tier-delete","arguments":{"coverageTierId":"x","reason":"testing the gate"}}}`)
+		call := rpc(t, mux, "/v1/mcp", `{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"run","arguments":{"boundary":"tenancy","tool":"tenancy-coverage_tier-delete","arguments":{"coverageTierId":"x","reason":"testing the gate"}}}}`)
+		direct := rpc(t, mux, "/v1/mcp/tenancy", `{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"tenancy-coverage_tier-delete","arguments":{"coverageTierId":"x","reason":"testing the gate"}}}`)
+		if (call["error"] == nil) != (direct["error"] == nil) {
+			t.Errorf("%q: the entrance and the boundary disagree: %v %v", tc.op, call, direct)
+		}
+		// An action is not callable at the entrance itself.
+		if rpc(t, mux, "/v1/mcp", `{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"identity-ssh_key-create","arguments":{}}}`)["error"] == nil {
+			t.Errorf("%q: an action ran at the entrance", tc.op)
+		}
 		if !tc.staffTool && call["error"] == nil {
 			t.Errorf("%q: a tool the caller can't run was called: %v", tc.op, call)
 		}

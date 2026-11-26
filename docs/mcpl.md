@@ -258,8 +258,20 @@ the workspaces were given after each add and remove.
 
 ## MCP
 
-`POST /v1/mcp` is an MCP server (streamable HTTP, JSON responses) whose tools are the generated actions
-the caller may run, and nothing else. `POST /v1/mcp/<domain>` serves one domain's tools.
+The panel serves MCP (streamable HTTP, JSON responses) as one entrance and one boundary per domain.
+
+- **The entrance, `POST /v1/mcp`.** It holds no action. Its three tools lead to a boundary:
+  - `boundaries` lists the boundaries where the caller has at least one tool, each with its purpose;
+  - `enter` hands over one boundary's knowledge and its tools, with their inputs;
+  - `run` runs one of those tools.
+- **A boundary, `POST /v1/mcp/<domain>`.** Its instructions are that domain's knowledge, and its tools are
+  the generated actions in that domain that the caller may run, and nothing else. A client can connect
+  to it directly.
+- **Knowledge.** Each domain's purpose and knowledge are in `internal/mcpl/boundary.go`, and a test
+  fails when a domain has none.
+
+An AI client connects to the entrance once and is taken to the knowledge and tools it needs, instead of
+being handed every tool at the start.
 
 - **Names.** A tool is the action ID without `shippin.` and with dashes: `identity-ssh_key-create`.
 - **Input.** Its input schema is derived from the action's `In` type, plus its route's parameters and,
@@ -345,7 +357,7 @@ The same list names action IDs, events, UI actions and, later, the per-domain MC
 | Contracts | Generated from the registry: the panel's typed `callAction` (parameters, body and answer from the Go types) and `api/openapi/actions.gen.json`, which the API explorer lists. The hand-written `api/openapi/openapi.yaml` keeps only routes that are not actions; `TestOpenAPIContract` refuses an action's path in it and ratchets the undocumented rest in `internal/api/testdata/openapi-drift.txt`. |
 | Factory | `mcplgen new` for actions and `mcplgen react` for reactions, tested by scaffolding every shape and finding it where it says. |
 | Build | The image regenerates the registry and contracts from source. |
-| MCP | `POST /v1/mcp` and `POST /v1/mcp/<domain>`: tools generated from the registry, dispatched through each action's own route. Access keys for AI clients, in the panel under **Account > AI access**. |
+| MCP | `POST /v1/mcp` is the entrance and `POST /v1/mcp/<domain>` a boundary: knowledge per domain, and tools generated from the registry, dispatched through each action's own route. Access keys for AI clients, in the panel under **Account > AI access**. |
 | UI actions, components, lessons | Planned: `shippin.ui.<domain>.<workflow>.<action>` with readiness and receipts. The panel's controls have roles and labels, which browser tests already drive. |
 
 Measured on 2026-11-12, before any entity moved:

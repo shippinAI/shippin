@@ -195,3 +195,15 @@ func TestScope(t *testing.T) {
 	}()
 	Register("shippin.runtime.devspace.stop", Def[struct{}, None]{Spec: Spec{Summary: "Stop it.", Access: Staff, Perm: "x", Scoped: true}})
 }
+
+// Every domain is a boundary an AI client can enter, so each one says what it is for.
+func TestEveryDomainIsABoundary(t *testing.T) {
+	if len(Boundaries) != len(Domains) {
+		t.Errorf("%d boundaries for %d domains", len(Boundaries), len(Domains))
+	}
+	for _, d := range Domains {
+		if b := Boundaries[d]; b.Purpose == "" || b.Knowledge == "" {
+			t.Errorf("%s has no purpose or knowledge", d)
+		}
+	}
+}
