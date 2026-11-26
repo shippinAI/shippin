@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"shippin.cloud/console/internal/db"
@@ -69,6 +70,12 @@ func (a *API) decide(ctx context.Context, c *caller, perm string) (ok bool, note
 	if c.founder {
 		return true, "founder"
 	}
+	// The configured infrastructure role, and the owner of a local installation, hold every
+	// infrastructure permission, on the routes written before actions and on the actions alike.
+	if strings.HasPrefix(perm, "infra.") && a.infraAllowed(c) {
+		return true, ""
+	}
+
 	old := a.isPlatformAdmin(c)
 	switch a.authzMode(ctx) {
 	case "shadow":

@@ -178,7 +178,13 @@ func TestInfraGuestPowerRequiresCurrentAgentHubReviewAndConsumesOnce(t *testing.
 		r.SetPathValue("guest", "guest-a")
 		r.SetPathValue("verb", "reboot")
 		w := httptest.NewRecorder()
-		a.infraStatus(w, r, c)
+		// The operator power action runs this same path, through ports.Hypervisors.
+		live, err := a.powerEndpoint(r.Context(), "", serverID)
+		if err != nil {
+			infraErr(w, err)
+			return w
+		}
+		a.executeInfraPower(w, r, c, "", live, serverID, "guest-a", "reboot")
 		return w
 	}
 	stale := execute(prepared.Review.ID)

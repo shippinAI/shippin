@@ -37,7 +37,7 @@ try {
   items = [];
   assert.deepEqual(await qc.fetchQuery(a), { items: [] }, "recovery can legitimately report no guests");
   assert.equal(qc.getQueryState(a.queryKey)?.status, "success");
-  assert.ok(requests.every((p) => p === "/v1/infra/servers/host-a/guests"));
+  assert.ok(requests.every((p) => p === "/v1/operator/infrastructure/servers/host-a/guests"));
   assert.equal(guestInventoryQuery("").enabled, false, "no host means no discovery request");
 } finally {
   globalThis.fetch = originalFetch;

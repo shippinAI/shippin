@@ -461,14 +461,6 @@ func TestRefuseSelfNeedsConfirmationAndThePermission(t *testing.T) {
 	}
 }
 
-func TestMarkSelfFlagsOnlyThePanel(t *testing.T) {
-	t.Setenv("SHIPPIN_SELF_GUEST", "Panel-VM")
-	got := markSelf([]hv.Guest{{ID: "100", Name: "panel-vm"}, {ID: "101", Name: "other"}})
-	if !got[0].Self || got[1].Self {
-		t.Fatalf("%+v", got)
-	}
-}
-
 func TestAChangeWithNoRecordDoesNotRun(t *testing.T) {
 	dir := &memHV{failOps: true}
 	a := usableAPI(t, dir)

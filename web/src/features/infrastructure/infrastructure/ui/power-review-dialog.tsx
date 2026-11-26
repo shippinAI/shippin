@@ -1,3 +1,4 @@
+import { sendGuestPower } from "../../../../lib/hooks/use-hosts";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet, apiSend } from "../../../../lib/api/client";
@@ -79,15 +80,7 @@ export function PowerReviewDialog({
     setError("");
     setExecuting(true);
     try {
-      await apiSend(
-        "POST",
-        `${base}/guests/${encodeURIComponent(guest)}/status/${verb}${confirmSelf ? "?confirm=self" : ""}`,
-        {},
-        {
-          note: note.trim(),
-          headers: { "X-AgentHub-Review-ID": review.id },
-        },
-      );
+      await sendGuestPower(base, guest, verb, { note: note.trim(), confirmSelf, review: review.id });
       onExecuted?.();
       onClose();
     } catch (e) {

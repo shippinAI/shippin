@@ -6,6 +6,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/hv"
+	guests "shippin.cloud/console/internal/infrastructure/server/guest"
 	"shippin.cloud/console/internal/hv/proxmox"
 	"shippin.cloud/console/internal/infrastructure/servers"
 )
@@ -153,7 +154,7 @@ func (a *API) tenantGuests(w http.ResponseWriter, r *http.Request, _ *caller, te
 		infraErr(w, err)
 		return
 	}
-	writeJSON(w, map[string]any{"items": markSelf(items)})
+	writeJSON(w, map[string]any{"items": guests.MarkSelf(items)})
 }
 
 func (a *API) tenantGuest(w http.ResponseWriter, r *http.Request, _ *caller, tenant string) {

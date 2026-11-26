@@ -9,7 +9,9 @@ import (
 	"sync"
 	"testing"
 
+	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/proxmox"
+	guests "shippin.cloud/console/internal/infrastructure/server/guest"
 	"shippin.cloud/console/internal/infrastructure/servers"
 	"shippin.cloud/console/internal/platform/config"
 )
@@ -93,23 +95,32 @@ func newGuestsHarness(t *testing.T) *guestsHarness {
 	return h
 }
 
+// create makes a guest through the action, as the panel's create form does.
+func (h *guestsHarness) create(in guests.CreateInput) (hv.Guest, error) {
+	in.Server = guestServerID
+	return guests.Create.Run(asStaff(h.a), in)
+}
+
+func (h *guestsHarness) remove(id, confirm string) error {
+	_, err := guests.Delete.Run(asStaff(h.a), guests.DeleteInput{ByID: guests.ByID{Server: guestServerID, ID: id}, Confirm: confirm})
+	return err
+}
+
 func TestABadNewGuestIsRefusedBeforeAnythingHappens(t *testing.T) {
 	h := newGuestsHarness(t)
-	for name, body := range map[string]string{
-		"no name":              `{"kind":"vm"}`,
-		"no kind":              `{"name":"web"}`,
-		"another kind":         `{"kind":"pod","name":"web"}`,
-		"negative memory":      `{"kind":"vm","name":"web","memory":-1}`,
-		"negative cores":       `{"kind":"vm","name":"web","cores":-1}`,
-		"negative disk":        `{"kind":"vm","name":"web","disk":-1}`,
-		"missing placement":    `{"kind":"vm","name":"web","disk":8}`,
-		"storage only":         `{"kind":"vm","name":"web","disk":8,"storage":"local"}`,
-		"network only":         `{"kind":"vm","name":"web","disk":8,"network":"vmbr0"}`,
-		"a field nobody knows": `{"kind":"vm","name":"web","root_password":"x"}`,
+	for name, in := range map[string]guests.CreateInput{
+		"no name":           {Kind: "vm"},
+		"no kind":           {Name: "web"},
+		"another kind":      {Kind: "pod", Name: "web"},
+		"negative memory":   {Kind: "vm", Name: "web", Memory: -1},
+		"negative cores":    {Kind: "vm", Name: "web", Cores: -1},
+		"negative disk":     {Kind: "vm", Name: "web", Disk: -1},
+		"missing placement": {Kind: "vm", Name: "web", Disk: 8},
+		"storage only":      {Kind: "vm", Name: "web", Disk: 8, Storage: "local"},
+		"network only":      {Kind: "vm", Name: "web", Disk: 8, Network: "vmbr0"},
 	} {
-		rec := infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", body)
-		if rec.Code != http.StatusBadRequest {
-			t.Errorf("%s: got %d %s", name, rec.Code, rec.Body)
+		if _, err := h.create(in); refusal(err) != http.StatusBadRequest {
+			t.Errorf("%s: got %v", name, err)
 		}
 	}
 	ops, _ := h.dir.Operations(t.Context(), "", 0)
@@ -120,9 +131,9 @@ func TestABadNewGuestIsRefusedBeforeAnythingHappens(t *testing.T) {
 
 func TestANewGuestIsMadeOnTheProviderAndRecorded(t *testing.T) {
 	h := newGuestsHarness(t)
-	rec := infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", `{"kind":"vm","name":"web","memory":512,"disk":8,"storage":"local","network":"vmbr0"}`)
-	if rec.Code != http.StatusCreated || !strings.Contains(rec.Body.String(), `"id":"107"`) {
-		t.Fatalf("%d %s", rec.Code, rec.Body)
+	g, err := h.create(guests.CreateInput{Kind: "vm", Name: "web", Memory: 512, Disk: 8, Storage: "local", Network: "vmbr0"})
+	if err != nil || g.ID != "107" {
+		t.Fatalf("%v %+v", err, g)
 	}
 	ops, _ := h.dir.Operations(t.Context(), "", 0)
 	if h.posted() == 0 || len(ops) != 1 {
@@ -133,9 +144,9 @@ func TestANewGuestIsMadeOnTheProviderAndRecorded(t *testing.T) {
 func TestAProviderRefusalReachesTheOperatorWithItsReason(t *testing.T) {
 	h := newGuestsHarness(t)
 	h.refuse = `{"data":null,"message":"Permission check failed (/storage/local, Datastore.AllocateSpace)\n"}`
-	rec := infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", `{"kind":"vm","name":"web","disk":8,"storage":"local","network":"vmbr0"}`)
-	if rec.Code != http.StatusBadGateway || !strings.Contains(rec.Body.String(), "Datastore.AllocateSpace") || strings.Contains(rec.Body.String(), "s3cret") {
-		t.Fatalf("%d %s", rec.Code, rec.Body)
+	_, err := h.create(guests.CreateInput{Kind: "vm", Name: "web", Disk: 8, Storage: "local", Network: "vmbr0"})
+	if refusal(err) != http.StatusBadGateway || !strings.Contains(err.Error(), "Datastore.AllocateSpace") || strings.Contains(err.Error(), "s3cret") {
+		t.Fatalf("%v", err)
 	}
 	ops, _ := h.dir.Operations(t.Context(), "", 0)
 	if len(ops) != 1 {
@@ -163,20 +174,20 @@ func TestImagesAreWhatTheHostHasThenWhatThisInstallationNames(t *testing.T) {
 func TestDeletingThePanelsOwnGuestNeedsItsOwnConfirmation(t *testing.T) {
 	t.Setenv("SHIPPIN_SELF_GUEST", "web")
 	h := newGuestsHarness(t)
-	infraDo(h.mux, http.MethodPost, "/v1/infra/servers/"+guestServerID+"/guests", `{"kind":"vm","name":"web","memory":512,"disk":8,"storage":"local","network":"vmbr0"}`)
-	rec := infraDo(h.mux, http.MethodDelete, "/v1/infra/servers/"+guestServerID+"/guests/107?confirm_name=107", "")
-	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "self_guest") {
-		t.Fatalf("%d %s", rec.Code, rec.Body)
+	if _, err := h.create(guests.CreateInput{Kind: "vm", Name: "web", Memory: 512, Disk: 8, Storage: "local", Network: "vmbr0"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.remove("107", "107"); refusal(err) != http.StatusConflict || !strings.Contains(err.Error(), "This panel runs on that guest") {
+		t.Fatalf("%v", err)
 	}
 }
 
 func TestDeletingAGuestMustNameIt(t *testing.T) {
 	t.Setenv("SHIPPIN_SELF_GUEST", "someone-else")
 	h := newGuestsHarness(t)
-	for _, url := range []string{"/guests/107", "/guests/107?confirm_name=108"} {
-		rec := infraDo(h.mux, http.MethodDelete, "/v1/infra/servers/"+guestServerID+url, "")
-		if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "confirmation_required") {
-			t.Fatalf("%s: %d %s", url, rec.Code, rec.Body)
+	for _, confirm := range []string{"", "108"} {
+		if err := h.remove("107", confirm); refusal(err) != http.StatusBadRequest || !strings.Contains(err.Error(), "Confirm what you are removing") {
+			t.Fatalf("%q: %v", confirm, err)
 		}
 	}
 	if ops, _ := h.dir.Operations(t.Context(), "", 0); len(ops) != 0 {

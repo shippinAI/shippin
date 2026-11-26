@@ -25,8 +25,6 @@ code /infra/servers/{}/attachment
 code /infra/servers/{}/backups
 code /infra/servers/{}/firewall/rules
 code /infra/servers/{}/fleet
-code /infra/servers/{}/guests
-code /infra/servers/{}/guests/{}
 code /infra/servers/{}/guests/{}/clone
 code /infra/servers/{}/guests/{}/config
 code /infra/servers/{}/guests/{}/migrate
@@ -35,7 +33,6 @@ code /infra/servers/{}/guests/{}/power-reviews/{}
 code /infra/servers/{}/guests/{}/resize
 code /infra/servers/{}/guests/{}/snapshots
 code /infra/servers/{}/guests/{}/snapshots/{}/rollback
-code /infra/servers/{}/guests/{}/status/{}
 code /infra/servers/{}/guests/{}/template
 code /infra/servers/{}/health
 code /infra/servers/{}/identity

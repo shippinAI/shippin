@@ -16,6 +16,7 @@ import (
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/hv"
+	guests "shippin.cloud/console/internal/infrastructure/server/guest"
 	"shippin.cloud/console/internal/infrastructure/servers"
 	"shippin.cloud/console/internal/integrations/agenthub"
 )
@@ -244,77 +245,135 @@ func (a *API) externalReviewConnected(ctx context.Context) bool {
 	return err != nil || (connection.BaseURL != "" && connection.HasCredential)
 }
 
-// executeInfraPower runs a guest power action, through the outside reviewer when one is connected.
+// hvProblem is a refusal of a guest change: its status, a code the panel can act on, and the sentence
+// a person reads.
+type hvProblem struct {
+	status int
+	code   string
+	msg    string
+}
+
+func (p *hvProblem) Error() string { return p.msg }
+
+func (p *hvProblem) write(w http.ResponseWriter) {
+	if p.code == "" {
+		auth.Problem(w, p.status, p.msg)
+		return
+	}
+	writeHVProblem(w, p.status, p.code, p.msg, "", "")
+}
+
+// hvProblemOf is infraErr as a value.
+func hvProblemOf(err error) *hvProblem {
+	switch {
+	case errors.Is(err, servers.ErrNotFound):
+		return &hvProblem{http.StatusNotFound, "", "No hypervisor is attached to that server."}
+	case errors.Is(err, hv.ErrUnsupported):
+		return &hvProblem{http.StatusConflict, "", "This provider does not offer that action."}
+	case errors.Is(err, hv.ErrGuestNotFound), strings.Contains(err.Error(), "not in inventory"):
+		return &hvProblem{http.StatusNotFound, "", "The hypervisor has no guest with that id."}
+	}
+	return &hvProblem{http.StatusBadGateway, "", err.Error()}
+}
+
+// powerCall is one guest power change and who asked for it: from a request, or from an action through
+// ports.Hypervisors.
+type powerCall struct {
+	tenant                 string
+	endpoint               servers.Endpoint
+	serverID, guest, verb  string
+	reviewID               string
+	actor, actorName, note string
+	confirmSelf, maySelf   bool
+}
+
+func (p powerCall) operation() servers.Operation {
+	return servers.Operation{ServerID: p.serverID, Guest: p.guest, Verb: p.verb, Actor: p.actor, ActorName: p.actorName, Note: p.note}
+}
+
+// executeInfraPower runs a guest power action for a request, through the outside reviewer when one is
+// connected.
 func (a *API) executeInfraPower(w http.ResponseWriter, r *http.Request, c *caller, tenant string, endpoint servers.Endpoint, serverID, guest, verb string) bool {
-	if a.externalReviewConnected(r.Context()) {
-		return a.executeInfraPowerReview(w, r, c, tenant, endpoint, serverID, guest, verb)
-	}
-	driver, err := a.openDriver(endpoint)
-	if err != nil {
-		infraErr(w, err)
+	if c == nil || c.id == nil {
+		infraReviewUnavailable(w)
 		return false
 	}
-	current, err := driver.Guest(r.Context(), guest)
-	if err != nil {
-		infraErr(w, err)
-		return false
-	}
-	if !a.verifyInfraPowerTarget(w, r, c, current, guest, verb) {
-		return false
-	}
-	g, err := a.tracked(r, c, serverID, guest, verb, func(ctx context.Context) (hv.Guest, error) { return runVerb(ctx, driver, verb, guest) })
-	if err != nil {
-		infraErr(w, err)
+	g, problem := a.power(r.Context(), powerCall{tenant: tenant, endpoint: endpoint, serverID: serverID, guest: guest, verb: verb,
+		reviewID: strings.TrimSpace(r.Header.Get(infraPowerReviewHeader)), actor: c.id.Sub, actorName: displayName(c), note: c.note,
+		confirmSelf: r.URL.Query().Get("confirm") == "self", maySelf: a.infraCan(r.Context(), c, "infra.self")})
+	if problem != nil {
+		problem.write(w)
 		return false
 	}
 	writeJSON(w, g)
 	return true
 }
 
-func (a *API) executeInfraPowerReview(w http.ResponseWriter, r *http.Request, c *caller, tenant string, endpoint servers.Endpoint, serverID, guest, verb string) bool {
-	if a.db == nil || c == nil || c.id == nil {
-		infraReviewUnavailable(w)
-		return false
+// power runs a guest power change, through the outside reviewer when one is connected.
+func (a *API) power(ctx context.Context, p powerCall) (hv.Guest, *hvProblem) {
+	if a.externalReviewConnected(ctx) {
+		return a.reviewedPower(ctx, p)
 	}
-	reviewID := strings.TrimSpace(r.Header.Get(infraPowerReviewHeader))
-	review, err := a.serverStore().GetPowerReview(r.Context(), reviewID, serverID)
-	if err != nil || review.State != "pending_review" || review.Guest != guest || review.Verb != verb || review.Actor != c.id.Sub {
-		writeHVProblem(w, http.StatusConflict, "agenthub_review_required", "Request a current AgentHub review for this exact guest action first.", "", "")
-		return false
+	driver, err := a.openDriver(p.endpoint)
+	if err != nil {
+		return hv.Guest{}, hvProblemOf(err)
+	}
+	current, err := driver.Guest(ctx, p.guest)
+	if err != nil {
+		return hv.Guest{}, hvProblemOf(err)
+	}
+	if problem := powerTarget(current, p.guest, p.verb, p.confirmSelf, p.maySelf); problem != nil {
+		return hv.Guest{}, problem
+	}
+	g, err := a.track(ctx, p.operation(), func(ctx context.Context) (hv.Guest, error) { return runVerb(ctx, driver, p.verb, p.guest) })
+	if err != nil {
+		return hv.Guest{}, hvProblemOf(err)
+	}
+	return g, nil
+}
+
+var reviewUnavailable = &hvProblem{http.StatusServiceUnavailable, "agenthub_review_unavailable", "The AgentHub guest review could not be recorded or verified."}
+
+// reviewedPower runs a power change the outside reviewer was asked about: only the exact change that
+// was sent for review, on the exact connection it was reviewed against, and only once.
+func (a *API) reviewedPower(ctx context.Context, p powerCall) (hv.Guest, *hvProblem) {
+	none := hv.Guest{}
+	if a.db == nil || p.actor == "" {
+		return none, reviewUnavailable
+	}
+	serverID, guest, verb, endpoint := p.serverID, p.guest, p.verb, p.endpoint
+	review, err := a.serverStore().GetPowerReview(ctx, p.reviewID, serverID)
+	if err != nil || review.State != "pending_review" || review.Guest != guest || review.Verb != verb || review.Actor != p.actor {
+		return none, &hvProblem{http.StatusConflict, "agenthub_review_required", "Request a current AgentHub review for this exact guest action first."}
 	}
 	if endpoint.ID != serverID || infraEndpointSHA(endpoint) != review.EndpointSHA256 {
-		writeHVProblem(w, http.StatusConflict, "agenthub_review_stale", "The provider connection changed after review was requested.", "", "")
-		return false
+		return none, &hvProblem{http.StatusConflict, "agenthub_review_stale", "The provider connection changed after review was requested."}
 	}
-	action := infraPowerAction{"guest_power." + verb, serverID, endpoint.Kind, guest, verb, review.EndpointSHA256, c.note, c.id.Sub, r.URL.Query().Get("confirm") == "self"}
+	action := infraPowerAction{"guest_power." + verb, serverID, endpoint.Kind, guest, verb, review.EndpointSHA256, p.note, p.actor, p.confirmSelf}
 	data, _ := json.Marshal(action)
 	digest := sha256.Sum256(data)
 	actionSHA := hex.EncodeToString(digest[:])
 	if actionSHA != review.ActionSHA256 {
-		writeHVProblem(w, http.StatusConflict, "agenthub_review_stale", "The requested action differs from the action sent to AgentHub.", "", "")
-		return false
+		return none, &hvProblem{http.StatusConflict, "agenthub_review_stale", "The requested action differs from the action sent to AgentHub."}
 	}
 	driver, err := a.openDriver(endpoint)
 	if err != nil {
-		infraErr(w, err)
-		return false
+		return none, hvProblemOf(err)
 	}
-	current, err := driver.Guest(r.Context(), guest)
+	current, err := driver.Guest(ctx, guest)
 	if err != nil {
-		infraErr(w, err)
-		return false
+		return none, hvProblemOf(err)
 	}
-	if !a.verifyInfraPowerTarget(w, r, c, current, guest, verb) {
-		return false
+	if problem := powerTarget(current, guest, verb, p.confirmSelf, p.maySelf); problem != nil {
+		return none, problem
 	}
-	client, identity, err := a.deploymentReviewClient(r.Context(), serverID)
+	client, identity, err := a.deploymentReviewClient(ctx, serverID)
 	if err != nil {
-		writeHVProblem(w, http.StatusBadGateway, "agenthub_review_unavailable", "AgentHub could not authorize this action.", "", "")
-		return false
+		return none, &hvProblem{http.StatusBadGateway, "agenthub_review_unavailable", "AgentHub could not authorize this action."}
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	authCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
 	defer cancel()
-	provenance, err := client.Authorize(ctx, agenthub.Request{TenantID: identity.AgentHubTenantID, MachineID: identity.AgentHubMachineID,
+	provenance, err := client.Authorize(authCtx, agenthub.Request{TenantID: identity.AgentHubTenantID, MachineID: identity.AgentHubMachineID,
 		TicketID: review.AgentHubTicket, Tool: "shippin:infrastructure.guest_power", Command: infraPowerCommand(actionSHA, action), ActionSHA256: actionSHA})
 	if err != nil {
 		code := "agenthub_review_unavailable"
@@ -322,44 +381,38 @@ func (a *API) executeInfraPowerReview(w http.ResponseWriter, r *http.Request, c 
 		if errors.Is(err, agenthub.ErrDenied) {
 			code, status = "agenthub_review_denied", http.StatusConflict
 		}
-		writeHVProblem(w, status, code, "AgentHub did not authorize this guest action.", "", "")
-		return false
+		return none, &hvProblem{status, code, "AgentHub did not authorize this guest action."}
 	}
 	if provenance.TicketSHA256 != review.TicketSHA256 {
-		writeHVProblem(w, http.StatusConflict, "agenthub_review_stale", "The AgentHub ticket changed after Shippin submitted it for review.", "", "")
-		return false
+		return none, &hvProblem{http.StatusConflict, "agenthub_review_stale", "The AgentHub ticket changed after Shippin submitted it for review."}
 	}
 	// Re-read after AgentHub authorization and open the exact endpoint snapshot
 	// immediately before consuming the decision. Never call a client opened from
 	// a different configuration revision than the one reviewed.
-	liveEndpoint, err := a.powerEndpoint(r.Context(), tenant, serverID)
+	liveEndpoint, err := a.powerEndpoint(ctx, p.tenant, serverID)
 	if err != nil || infraEndpointSHA(liveEndpoint) != review.EndpointSHA256 {
-		writeHVProblem(w, http.StatusConflict, "agenthub_review_stale", "The provider connection changed while AgentHub was authorizing the action.", "", "")
-		return false
+		return none, &hvProblem{http.StatusConflict, "agenthub_review_stale", "The provider connection changed while AgentHub was authorizing the action."}
 	}
 	liveDriver, err := a.openDriver(liveEndpoint)
 	if err != nil {
-		infraErr(w, err)
-		return false
+		return none, hvProblemOf(err)
 	}
-	liveGuest, err := liveDriver.Guest(r.Context(), guest)
+	liveGuest, err := liveDriver.Guest(ctx, guest)
 	if err != nil {
-		infraErr(w, err)
-		return false
+		return none, hvProblemOf(err)
 	}
-	if !a.verifyInfraPowerTarget(w, r, c, liveGuest, guest, verb) {
-		return false
+	if problem := powerTarget(liveGuest, guest, verb, p.confirmSelf, p.maySelf); problem != nil {
+		return none, problem
 	}
 	proof, _ := json.Marshal(struct {
 		agenthub.Provenance
 		ActionSHA256 string `json:"action_sha256"`
 	}{provenance, actionSHA})
-	claimed, err := a.serverStore().ClaimPowerReview(r.Context(), review.ID, serverID, actionSHA, provenance.TicketSHA256, json.RawMessage(proof))
+	claimed, err := a.serverStore().ClaimPowerReview(ctx, review.ID, serverID, actionSHA, provenance.TicketSHA256, json.RawMessage(proof))
 	if err != nil || !claimed {
-		writeHVProblem(w, http.StatusConflict, "agenthub_review_consumed", "This review was already used or could not be recorded.", "", "")
-		return false
+		return none, &hvProblem{http.StatusConflict, "agenthub_review_consumed", "This review was already used or could not be recorded."}
 	}
-	g, callErr := a.tracked(r, c, serverID, guest, verb, func(ctx context.Context) (hv.Guest, error) { return runVerb(ctx, liveDriver, verb, guest) })
+	g, callErr := a.track(ctx, p.operation(), func(ctx context.Context) (hv.Guest, error) { return runVerb(ctx, liveDriver, verb, guest) })
 	state, failure := servers.OpSucceeded, ""
 	if callErr != nil {
 		state, _ = operationOutcome(callErr)
@@ -369,32 +422,36 @@ func (a *API) executeInfraPowerReview(w http.ResponseWriter, r *http.Request, c 
 			state, failure = "failed_execution", "provider_action_failed"
 		}
 	}
-	if err := a.serverStore().FinishPowerReview(context.WithoutCancel(r.Context()), review.ID, state, failure); err != nil {
-		infraReviewUnavailable(w)
-		return false
+	if err := a.serverStore().FinishPowerReview(context.WithoutCancel(ctx), review.ID, state, failure); err != nil {
+		return none, reviewUnavailable
 	}
 	if callErr != nil {
-		infraErr(w, callErr)
-		return false
+		return none, hvProblemOf(callErr)
 	}
-	writeJSON(w, g)
-	return true
+	return g, nil
+}
+
+// powerTarget refuses a power change the hypervisor answered for a different guest, or one that would
+// take down the panel's own guest without the confirmation and the permission to.
+func powerTarget(guestRecord hv.Guest, guestID, verb string, confirmSelf, maySelf bool) *hvProblem {
+	if guestRecord.ID != guestID {
+		return &hvProblem{http.StatusConflict, "guest_binding_mismatch", "The provider returned a different guest than requested."}
+	}
+	if verb == "start" || !guests.IsSelf(guestRecord) {
+		return nil
+	}
+	if !confirmSelf {
+		return &hvProblem{http.StatusConflict, "self_guest", "This panel runs on that guest. Doing this takes the panel down; confirm it to go ahead."}
+	}
+	if !maySelf {
+		return &hvProblem{http.StatusForbidden, "self_guest", "Changing the guest this panel runs on needs the infra.self permission."}
+	}
+	return nil
 }
 
 func (a *API) verifyInfraPowerTarget(w http.ResponseWriter, r *http.Request, c *caller, guestRecord hv.Guest, guestID, verb string) bool {
-	if guestRecord.ID != guestID {
-		writeHVProblem(w, http.StatusConflict, "guest_binding_mismatch", "The provider returned a different guest than requested.", "", "")
-		return false
-	}
-	if verb == "start" || !isSelf(guestRecord) {
-		return true
-	}
-	if r.URL.Query().Get("confirm") != "self" {
-		writeHVProblem(w, http.StatusConflict, "self_guest", "This panel runs on that guest. Doing this takes the panel down; confirm it to go ahead.", "", "")
-		return false
-	}
-	if !a.infraCan(r.Context(), c, "infra.self") {
-		writeHVProblem(w, http.StatusForbidden, "self_guest", "Changing the guest this panel runs on needs the infra.self permission.", "", "")
+	if problem := powerTarget(guestRecord, guestID, verb, r.URL.Query().Get("confirm") == "self", a.infraCan(r.Context(), c, "infra.self")); problem != nil {
+		problem.write(w)
 		return false
 	}
 	return true

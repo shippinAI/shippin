@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"shippin.cloud/console/internal/auth"
+	guests "shippin.cloud/console/internal/infrastructure/server/guest"
 )
 
 // opSystem describes the control plane: its tenant, the hosts it owns, and whether the audit log is
@@ -42,6 +43,6 @@ func (a *API) opSystem(w http.ResponseWriter, r *http.Request, _ *caller) {
 		"tenant":       map[string]any{"id": t.ID, "name": t.Name, "status": t.Status, "created_at": t.CreatedAt},
 		"hosts":        len(hosts),
 		"audit":        chain,
-		"self_guest":   selfGuest(),
+		"self_guest":   guests.Self(),
 	})
 }

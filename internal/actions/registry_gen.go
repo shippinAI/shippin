@@ -7,6 +7,8 @@ import (
 	identity_ssh_key "shippin.cloud/console/internal/identity/ssh_key"
 	infrastructure_host_detection "shippin.cloud/console/internal/infrastructure/host_detection"
 	infrastructure_metric "shippin.cloud/console/internal/infrastructure/metric"
+	infrastructure_server "shippin.cloud/console/internal/infrastructure/server"
+	infrastructure_server_guest "shippin.cloud/console/internal/infrastructure/server/guest"
 	integrations_github_app "shippin.cloud/console/internal/integrations/github_app"
 	integrations_github_installation "shippin.cloud/console/internal/integrations/github_installation"
 	integrations_github_repository "shippin.cloud/console/internal/integrations/github_repository"
@@ -45,6 +47,16 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.identity.ssh_key.list", identity_ssh_key.List),
 	mcpl.Register("shippin.infrastructure.host_detection.get", infrastructure_host_detection.Get),
 	mcpl.Register("shippin.infrastructure.metric.list", infrastructure_metric.List),
+	mcpl.Register("shippin.infrastructure.server.get", infrastructure_server.Get),
+	mcpl.Register("shippin.infrastructure.server.guest.create", infrastructure_server_guest.Create),
+	mcpl.Register("shippin.infrastructure.server.guest.delete", infrastructure_server_guest.Delete),
+	mcpl.Register("shippin.infrastructure.server.guest.get", infrastructure_server_guest.Get),
+	mcpl.Register("shippin.infrastructure.server.guest.list", infrastructure_server_guest.List),
+	mcpl.Register("shippin.infrastructure.server.guest.restart", infrastructure_server_guest.Restart),
+	mcpl.Register("shippin.infrastructure.server.guest.shutdown", infrastructure_server_guest.Shutdown),
+	mcpl.Register("shippin.infrastructure.server.guest.start", infrastructure_server_guest.Start),
+	mcpl.Register("shippin.infrastructure.server.guest.stop", infrastructure_server_guest.Stop),
+	mcpl.Register("shippin.infrastructure.server.list", infrastructure_server.List),
 	mcpl.Register("shippin.integrations.github_installation.list", integrations_github_installation.List),
 	mcpl.Register("shippin.integrations.github_repository.delete", integrations_github_repository.Delete),
 	mcpl.Register("shippin.integrations.github_repository.list", integrations_github_repository.List),

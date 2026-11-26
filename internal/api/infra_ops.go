@@ -15,6 +15,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/hv"
+	guests "shippin.cloud/console/internal/infrastructure/server/guest"
 	"shippin.cloud/console/internal/infrastructure/servers"
 )
 
@@ -32,9 +33,14 @@ const (
 // tracked runs one change to a guest and records how it ended. With no record there is no change,
 // the same rule the audit log follows.
 func (a *API) tracked(r *http.Request, c *caller, server, guest, verb string, fn func(context.Context) (hv.Guest, error)) (hv.Guest, error) {
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), opTimeout)
+	return a.track(r.Context(), servers.Operation{ServerID: server, Guest: guest, Verb: verb, Actor: c.id.Sub, ActorName: displayName(c), Note: c.note}, fn)
+}
+
+// track is tracked for a caller that is not a request: an action, through ports.Hypervisors.
+func (a *API) track(parent context.Context, op servers.Operation, fn func(context.Context) (hv.Guest, error)) (hv.Guest, error) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(parent), opTimeout)
 	defer cancel()
-	id, err := a.hvDir().StartOperation(ctx, servers.Operation{ServerID: server, Guest: guest, Verb: verb, Actor: c.id.Sub, ActorName: displayName(c), Note: c.note})
+	id, err := a.hvDir().StartOperation(ctx, op)
 	if err != nil {
 		log.Printf("infra operation start: %v", err)
 		return hv.Guest{}, errors.New("the change could not be recorded, so it was not made")
@@ -146,7 +152,7 @@ func (a *API) stopOne(ctx context.Context, d hv.Driver, id, guest string, force 
 		a.finishOperation(ctx, id, hv.Guest{}, err)
 		return
 	}
-	if isSelf(current) {
+	if guests.IsSelf(current) {
 		if e := a.hvDir().FinishOperation(ctx, id, servers.OpSkipped, "This panel runs on this guest, so it was left running.", current.Status); e != nil {
 			log.Printf("infra stop-guests skip %s: %v", id, e)
 		}

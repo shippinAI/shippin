@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 236,
+  "operationCount": 246,
   "tags": [
     "agents-runtime",
     "audit",
@@ -899,6 +899,116 @@
       ],
       "implementationStatus": "registered",
       "action": "shippin.infrastructure.metric.list"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/infrastructure/servers",
+      "operationId": "shippin.infrastructure.server.list",
+      "summary": "List the servers this installation has added, with each one's kind and address.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.list"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/infrastructure/servers/{serverId}",
+      "operationId": "shippin.infrastructure.server.get",
+      "summary": "Read one server: its kind, address and whether a credential is stored.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.get"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/infrastructure/servers/{serverId}/guests",
+      "operationId": "shippin.infrastructure.server.guest.list",
+      "summary": "List the virtual machines and containers on a server, with each one's state.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.guest.list"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/infrastructure/servers/{serverId}/guests",
+      "operationId": "shippin.infrastructure.server.guest.create",
+      "summary": "Make a virtual machine or container on a server from an image.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.guest.create"
+    },
+    {
+      "method": "DELETE",
+      "path": "/operator/infrastructure/servers/{serverId}/guests/{guestId}",
+      "operationId": "shippin.infrastructure.server.guest.delete",
+      "summary": "Delete a guest from a server with its disks; this cannot be undone.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.guest.delete"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/infrastructure/servers/{serverId}/guests/{guestId}",
+      "operationId": "shippin.infrastructure.server.guest.get",
+      "summary": "Read one guest on a server: its kind, state and what it is using.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.guest.get"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/infrastructure/servers/{serverId}/guests/{guestId}/restart",
+      "operationId": "shippin.infrastructure.server.guest.restart",
+      "summary": "Restart a running guest.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.guest.restart"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/infrastructure/servers/{serverId}/guests/{guestId}/shutdown",
+      "operationId": "shippin.infrastructure.server.guest.shutdown",
+      "summary": "Ask a guest's operating system to shut down cleanly.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.guest.shutdown"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/infrastructure/servers/{serverId}/guests/{guestId}/start",
+      "operationId": "shippin.infrastructure.server.guest.start",
+      "summary": "Start a stopped guest.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.guest.start"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/infrastructure/servers/{serverId}/guests/{guestId}/stop",
+      "operationId": "shippin.infrastructure.server.guest.stop",
+      "summary": "Power a guest off at once, without asking its operating system.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.guest.stop"
     },
     {
       "method": "GET",

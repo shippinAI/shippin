@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -62,7 +61,6 @@ func (a *API) infraRoutes(mux Router) {
 func (a *API) infraRouteTable() []infraRoute {
 	return []infraRoute{
 		{"GET /v1/infra/overview", "infra.read", false, a.infraOverview},
-		{"GET /v1/infra/servers", "infra.read", false, a.infraServers},
 		{"GET /v1/infra/servers/{id}/identity", "infra.read", false, a.infraSystemIdentity},
 		{"PUT /v1/infra/servers/{id}/identity", "infra.hosts.write", true, a.infraSetSystemIdentity},
 		{"POST /v1/infra/servers/{id}/identity/test", "infra.hosts.write", true, a.infraTestSystemIdentity},
@@ -87,17 +85,12 @@ func (a *API) infraRouteTable() []infraRoute {
 		{"PUT /v1/infra/servers/{id}", "infra.hosts.write", true, a.infraAttach},
 		{"DELETE /v1/infra/servers/{id}/attachment", "infra.hosts.write", true, a.infraDetach},
 		{"GET /v1/infra/servers/{id}/health", "infra.read", false, a.infraHealth},
-		{"GET /v1/infra/servers/{id}/guests", "infra.read", false, a.infraGuests},
-		{"GET /v1/infra/servers/{id}/guests/{guest}", "infra.read", false, a.infraGuest},
 		{"GET /v1/infra/servers/{id}/images", "infra.read", false, a.infraImages},
-		{"POST /v1/infra/servers/{id}/guests", "infra.guests.manage", true, a.infraCreate},
 		{"POST /v1/infra/servers/{id}/guests/{guest}/clone", "infra.guests.manage", true, a.infraClone},
 		{"POST /v1/infra/servers/{id}/guests/{guest}/template", "infra.guests.manage", true, a.infraTemplate},
-		{"DELETE /v1/infra/servers/{id}/guests/{guest}", "infra.guests.manage", true, a.infraDelete},
 		{"PUT /v1/infra/servers/{id}/guests/{guest}/config", "infra.guests.manage", true, a.infraConfig},
 		{"POST /v1/infra/servers/{id}/guests/{guest}/resize", "infra.guests.manage", true, a.infraResize},
 		{"POST /v1/infra/servers/{id}/guests/{guest}/migrate", "infra.guests.manage", true, a.infraMigrate},
-		{"POST /v1/infra/servers/{id}/guests/{guest}/status/{verb}", "infra.guests.power", true, a.infraStatus},
 		{"POST /v1/infra/servers/{id}/guests/{guest}/power-review/{verb}", "infra.guests.power", true, a.prepareInfraPowerReview},
 		{"GET /v1/infra/servers/{id}/guests/{guest}/power-reviews/{reviewID}", "infra.read", false, a.getInfraPowerReview},
 		{"GET /v1/infra/servers/{id}/guests/{guest}/snapshots", "infra.read", false, a.infraSnapshots},
@@ -185,16 +178,6 @@ func (a *API) infraGate(rt infraRoute) http.HandlerFunc {
 		}
 		rt.h(w, r, c)
 	}
-}
-
-// confirmedName requires the caller to repeat what a destructive change will remove, so a stale tab or a
-// replayed request cannot remove something else. The panel sends it after its "I understand" checkbox.
-func confirmedName(w http.ResponseWriter, r *http.Request, name string) bool {
-	if r.URL.Query().Get("confirm_name") != name {
-		writeHVProblem(w, http.StatusBadRequest, "confirmation_required", "Confirm what you are removing: "+name+".", "", "")
-		return false
-	}
-	return true
 }
 
 // noteHeader carries why a change is being made, percent-encoded so that any language survives a header.
@@ -352,18 +335,6 @@ func (a *API) openProxmox(ep servers.Endpoint) (*proxmox.Client, error) {
 	return proxmox.New(proxmox.Endpoint{BaseURL: ep.BaseURL, Node: ep.Node, TokenID: ep.TokenID, CAPEM: ca, TrustedPEM: []byte(ep.TrustedCert)}, a.secretFor(ep))
 }
 
-func (a *API) infraServers(w http.ResponseWriter, r *http.Request, _ *caller) {
-	items, err := a.hvDir().Endpoints(r.Context())
-	if err != nil {
-		auth.Problem(w, http.StatusServiceUnavailable, "Servers are unavailable right now.")
-		return
-	}
-	if items == nil {
-		items = []servers.Endpoint{}
-	}
-	writeJSON(w, map[string]any{"items": items})
-}
-
 func (a *API) infraRegistry(w http.ResponseWriter, r *http.Request, _ *caller) {
 	items, err := a.hvDir().Registry(r.Context())
 	if err != nil {
@@ -483,50 +454,6 @@ func (a *API) infraHealth(w http.ResponseWriter, r *http.Request, _ *caller) {
 		"checked": checked, "latency_ms": latency, "health_state": state, "endpoint_revision": ep.Revision})
 }
 
-func (a *API) infraGuests(w http.ResponseWriter, r *http.Request, _ *caller) {
-	c, err := a.driver(r.Context(), r.PathValue("id"))
-	if err != nil {
-		infraErr(w, err)
-		return
-	}
-	items, err := c.Guests(r.Context())
-	if err != nil {
-		infraErr(w, err)
-		return
-	}
-	writeJSON(w, map[string]any{"items": markSelf(a.withRecentOutcomes(r.Context(), r.PathValue("id"), items))})
-}
-
-// withRecentOutcomes shows what a change just did while the hypervisor's inventory catches up. Without
-// it a guest the panel just stopped reads as running until the next inventory refresh.
-func (a *API) withRecentOutcomes(ctx context.Context, server string, items []hv.Guest) []hv.Guest {
-	recent, err := a.hvDir().RecentOutcomes(ctx, server, inventoryLag)
-	if err != nil {
-		log.Printf("infra recent outcomes %s: %v", server, err)
-		return items
-	}
-	for i := range items {
-		if status, ok := recent[items[i].ID]; ok {
-			items[i].Status = status
-		}
-	}
-	return items
-}
-
-func (a *API) infraGuest(w http.ResponseWriter, r *http.Request, _ *caller) {
-	c, err := a.driver(r.Context(), r.PathValue("id"))
-	if err != nil {
-		infraErr(w, err)
-		return
-	}
-	g, err := c.Guest(r.Context(), r.PathValue("guest"))
-	if err != nil {
-		infraErr(w, err)
-		return
-	}
-	writeJSON(w, g)
-}
-
 type guestBody struct {
 	Kind    string `json:"kind"`
 	ID      string `json:"id"`
@@ -564,80 +491,6 @@ func (a *API) guestManager(ctx context.Context, id string) (hv.GuestManager, err
 		return nil, hv.ErrUnsupported
 	}
 	return m, nil
-}
-
-type newGuest struct {
-	Kind    string `json:"kind"`
-	Name    string `json:"name"`
-	Image   string `json:"image"`
-	Storage string `json:"storage"`
-	Network string `json:"network"`
-	Memory  int    `json:"memory"`
-	Cores   int    `json:"cores"`
-	Disk    int    `json:"disk"`
-	Start   bool   `json:"start"`
-}
-
-func validateGuestPlacement(in newGuest, fields []string) error {
-	provided := map[string]string{"storage": in.Storage, "network": in.Network}
-	allowed := map[string]bool{}
-	for _, field := range fields {
-		allowed[field] = true
-	}
-	for name, value := range provided {
-		if allowed[name] && strings.TrimSpace(value) == "" {
-			return fmt.Errorf("choose a %s for this guest", name)
-		}
-		if !allowed[name] && value != "" {
-			return fmt.Errorf("%s does not apply to this provider", name)
-		}
-	}
-	if allowed["disk"] && in.Disk == 0 {
-		return errors.New("choose a positive disk size in GiB")
-	}
-	return nil
-}
-
-func (a *API) infraCreate(w http.ResponseWriter, r *http.Request, c *caller) {
-	var in newGuest
-	if !decodeStrict(w, r, &in) {
-		return
-	}
-	if in.Name == "" || (in.Kind != hv.KindCT && in.Kind != hv.KindVM) || in.Memory < 0 || in.Cores < 0 || in.Disk < 0 {
-		auth.Problem(w, http.StatusBadRequest, "A new guest needs a name and a kind, and any sizes must be whole numbers.")
-		return
-	}
-	ep, err := a.hvDir().Endpoint(r.Context(), r.PathValue("id"))
-	if err != nil {
-		infraErr(w, err)
-		return
-	}
-	spec, known := hv.SpecFor(ep.Kind)
-	if !known {
-		auth.Problem(w, http.StatusBadRequest, "The attached provider has no guest creation contract.")
-		return
-	}
-	if err := validateGuestPlacement(in, spec.CreateFields); err != nil {
-		auth.Problem(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	m, err := a.guestManager(r.Context(), r.PathValue("id"))
-	if err != nil {
-		infraErr(w, err)
-		return
-	}
-	guest := hv.GuestSpec{Kind: in.Kind, Name: in.Name, Image: in.Image, Storage: in.Storage, Network: in.Network, Memory: in.Memory, Cores: in.Cores, Disk: in.Disk, Start: in.Start}
-	if remote, alias, ok := a.uiConfig(r.Context()).ImageRemote(ep.Kind, in.Image); ok {
-		guest.Image, guest.ImageServer, guest.ImageProtocol = alias, remote.Server, remote.Protocol
-	}
-	g, err := a.tracked(r, c, r.PathValue("id"), in.Name, "create", func(ctx context.Context) (hv.Guest, error) {
-		return m.CreateGuest(ctx, guest)
-	})
-	if err != nil {
-		infraErr(w, err)
-		return
-	}
-	writeStatus(w, http.StatusCreated, g)
 }
 
 // infraImages is what a guest can be made from: what the host has, then what this installation names.
@@ -703,31 +556,6 @@ func (a *API) infraTemplate(w http.ResponseWriter, r *http.Request, c *caller) {
 	writeJSON(w, g)
 }
 
-func (a *API) infraDelete(w http.ResponseWriter, r *http.Request, c *caller) {
-	id, guest := r.PathValue("id"), r.PathValue("guest")
-	d, err := a.driver(r.Context(), id)
-	if err != nil {
-		infraErr(w, err)
-		return
-	}
-	if a.refuseSelf(w, r, c, d, guest, "delete") {
-		return
-	}
-	if !confirmedName(w, r, guest) {
-		return
-	}
-	cl, err := a.guestManager(r.Context(), id)
-	if err != nil {
-		infraErr(w, err)
-		return
-	}
-	if _, err := a.tracked(r, c, id, guest, "delete", func(ctx context.Context) (hv.Guest, error) { return hv.Guest{}, cl.DeleteGuest(ctx, guest) }); err != nil {
-		infraErr(w, err)
-		return
-	}
-	writeJSON(w, map[string]bool{"deleted": true})
-}
-
 func (a *API) infraConfig(w http.ResponseWriter, r *http.Request, c *caller) {
 	var in map[string]string
 	if !decodeStrict(w, r, &in) {
@@ -786,25 +614,6 @@ func (a *API) infraMigrate(w http.ResponseWriter, r *http.Request, c *caller) {
 		return
 	}
 	writeJSON(w, g)
-}
-
-func (a *API) infraStatus(w http.ResponseWriter, r *http.Request, c *caller) {
-	verb := r.PathValue("verb")
-	switch verb {
-	case "start", "stop", "shutdown", "reboot":
-	default:
-		auth.Problem(w, http.StatusBadRequest, "Verb must be start, stop, shutdown, or reboot.")
-		return
-	}
-	id, guest := r.PathValue("id"), r.PathValue("guest")
-	ep, err := a.powerEndpoint(r.Context(), "", id)
-	if err != nil {
-		infraErr(w, err)
-		return
-	}
-	if !a.executeInfraPower(w, r, c, "", ep, id, guest, verb) {
-		return
-	}
 }
 
 // snapshotKeeper opens a driver that can list and restore its snapshots.

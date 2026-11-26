@@ -27,6 +27,8 @@ func (a *API) provideServices(s mcpl.Services) {
 	}
 	mcpl.Provide[ports.Workspaces](s, workspacePort{a})
 	mcpl.Provide[ports.Machines](s, machinePort{a})
+	// The servers this installation added and the hypervisor behind each, opened with the panel's keys.
+	mcpl.Provide[ports.Hypervisors](s, hypervisorPort{a})
 	// What templates and development spaces are checked against, from the workspaces section.
 	mcpl.Provide[config.Workspaces](s, a.cfg.Workspaces)
 	// Where development spaces run, what their hosts report, and the organization each belongs to.

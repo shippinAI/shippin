@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"shippin.cloud/console/internal/clickhouse"
+	"shippin.cloud/console/internal/hv"
+	"shippin.cloud/console/internal/infrastructure/servers"
 )
 
 // Sealer is the panel's at-rest encryption. Callers pass distinct associated data for each purpose,
@@ -150,4 +152,41 @@ type Sampling struct {
 	// LastRows is how many samples it last wrote, and Failed the hosts that could not be read then.
 	LastRows int
 	Failed   []string
+}
+
+// Hypervisors are the servers this installation has added and the hypervisor behind each: Incus,
+// Proxmox VE or none. Opening one needs the keys the panel sealed for it, so it is a port. The
+// entities under internal/infrastructure hold the rules; this only reaches the server.
+type Hypervisors interface {
+	// Servers are the added servers, without their secrets.
+	Servers(ctx context.Context) ([]servers.Endpoint, error)
+	// Server is one of them; servers.ErrNotFound when there is none with that id.
+	Server(ctx context.Context, id string) (servers.Endpoint, error)
+	// Open connects to a server's hypervisor with its stored credential.
+	Open(ep servers.Endpoint) (hv.Driver, error)
+	// Track runs one change to a guest and records how it ended in the server's operations. With no
+	// record there is no change. The change is not cancelled when the request that asked for it ends.
+	Track(ctx context.Context, op servers.Operation, change func(context.Context) (hv.Guest, error)) (hv.Guest, error)
+	// RecentOutcomes are the states changes just left guests in, by guest id, for the short time the
+	// hypervisor's own inventory lags behind.
+	RecentOutcomes(ctx context.Context, server string) map[string]string
+	// ImageSource finds where an image this installation names comes from: the alias to ask for, and the
+	// server and protocol to ask. ok is false for an image the host already has.
+	ImageSource(ctx context.Context, kind, image string) (alias, server, protocol string, ok bool)
+	// OutsideReview reports whether this installation sends guest power changes to an outside reviewer
+	// before they run. While it does, ReviewedPower runs one with the review the person requested.
+	OutsideReview(ctx context.Context) bool
+	ReviewedPower(ctx context.Context, p ReviewedPower) (hv.Guest, error)
+}
+
+// ReviewedPower is one guest power change that an outside reviewer was asked to approve.
+type ReviewedPower struct {
+	Server, Guest, Verb string
+	// Review is the id of the review the person requested for exactly this change.
+	Review string
+	Actor  string
+	Reason string
+	// ConfirmSelf says the person confirmed taking down the guest the panel runs on, and MaySelf that
+	// they hold the permission to.
+	ConfirmSelf, MaySelf bool
 }

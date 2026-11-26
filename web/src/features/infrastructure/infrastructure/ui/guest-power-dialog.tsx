@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { apiSend } from "../../../../lib/api/client";
 import { Button } from "../../../../lib/design/components/button/button";
 import { Checkbox } from "../../../../lib/design/components/checkbox/checkbox";
 import { ModalDialog } from "../../../../lib/design/components/dialog/modal-dialog";
 import { TextField } from "../../../../lib/design/components/field/text-field";
 import { useMe } from "../../../../lib/hooks/use-api";
+import { sendGuestPower } from "../../../../lib/hooks/use-hosts";
 import { useText } from "../../../../lib/ui-config/use-ui-config";
 import { noteOK } from "../model";
 import { PowerReviewDialog } from "./power-review-dialog";
@@ -29,12 +29,7 @@ function DirectPowerDialog({ base, guest, verb, confirmSelf = false, onClose, on
     setError("");
     setRunning(true);
     try {
-      await apiSend(
-        "POST",
-        `${base}/guests/${encodeURIComponent(guest)}/status/${verb}${confirmSelf ? "?confirm=self" : ""}`,
-        {},
-        { note: note.trim() },
-      );
+      await sendGuestPower(base, guest, verb, { note: note.trim(), confirmSelf });
       onExecuted?.();
       onClose();
     } catch (e) {

@@ -15,6 +15,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/infrastructure/hostclient"
+	guests "shippin.cloud/console/internal/infrastructure/server/guest"
 	"shippin.cloud/console/internal/infrastructure/servers"
 	"shippin.cloud/console/internal/platform/config"
 	"shippin.cloud/console/internal/runtime/approval"
@@ -273,15 +274,9 @@ func TestHostConfigurationDoesNotUseTheLifecycleReviewBoard(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("attach: %d %s", rec.Code, rec.Body)
 	}
-	mux := http.NewServeMux()
-	a.infraRoutes(mux)
-	req := httptest.NewRequest(http.MethodPost, "/v1/infra/servers/"+dir.items[0].ID+"/guests/vm1/status/start", nil)
-	req.Header.Set("Authorization", "Bearer test")
-	req.Header.Set(noteHeader, "A test of this change")
-	got := httptest.NewRecorder()
-	mux.ServeHTTP(got, req)
-	if got.Code != http.StatusNotFound || !strings.Contains(got.Body.String(), "no guest with that id") {
-		t.Fatalf("a guest change reaches the provider, whatever a board says: %d %s", got.Code, got.Body)
+	_, err := guests.Start.Run(asStaff(a), guests.PowerInput{ByID: guests.ByID{Server: dir.items[0].ID, ID: "vm1"}})
+	if refusal(err) != http.StatusNotFound || !strings.Contains(err.Error(), "no guest with that id") {
+		t.Fatalf("a guest change reaches the provider, whatever a board says: %v", err)
 	}
 }
 
@@ -339,8 +334,8 @@ func TestIncusGuestsAndStorageWorkThroughSharedRoutesButProxmoxContentIsRefused(
 		mux.ServeHTTP(rec, req)
 		return rec
 	}
-	if rec := call(http.MethodGet, "/v1/infra/servers/s1/guests"); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"vma"`) {
-		t.Fatalf("guests: %d %s", rec.Code, rec.Body)
+	if out, err := guests.List.Run(asStaff(a), guests.OnServer{Server: "s1"}); err != nil || len(out.Items) == 0 || out.Items[0].ID != "vma" {
+		t.Fatalf("guests: %v %+v", err, out.Items)
 	}
 	if rec := call(http.MethodGet, "/v1/infra/servers/s1/health"); rec.Code != http.StatusOK {
 		t.Fatalf("health: %d %s", rec.Code, rec.Body)

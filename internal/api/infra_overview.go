@@ -20,6 +20,7 @@ import (
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
 	"shippin.cloud/console/internal/hv"
+	guestentity "shippin.cloud/console/internal/infrastructure/server/guest"
 	"shippin.cloud/console/internal/infrastructure/servers"
 	"shippin.cloud/console/internal/platform/config"
 )
@@ -342,7 +343,7 @@ func (a *API) probeNode(ctx context.Context, ep servers.Endpoint) infraNode {
 		if strings.EqualFold(g.Status, "running") {
 			n.Guests.Running++
 		}
-		if isSelf(g) {
+		if guestentity.IsSelf(g) {
 			n.ControlPlane = true
 		}
 	}

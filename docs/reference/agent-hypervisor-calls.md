@@ -4,11 +4,11 @@ Use the console API. Do not invent hosts, tokens, or a second login.
 
 ## Before a mutation
 
-1. `GET /v1/infra/servers` as the infra role, or `GET /v1/tenants/{tenantId}/servers` as an org admin, and take `id` from the row the user named.
+1. `GET /v1/operator/infrastructure/servers` (action `shippin.infrastructure.server.list`) as the infra role, or `GET /v1/tenants/{tenantId}/servers` as an org admin, and take `id` from the row the user named.
 2. `GET .../guests` and match the guest by `name` or `id`. The status in the response is the hypervisor's word.
 3. Provider mutations are currently disabled until AgentHub review is integrated. Requests return `503` with `code: agenthub_review_unavailable`; the provider is not called. Keep using the read routes for current inventory.
 
-Operator base: `/v1/infra/servers/{id}`.
+Operator guests are actions under `/v1/operator/infrastructure/servers/{serverId}/guests` (list, get, create, delete, start, stop, shutdown, restart); see [MCPL](../mcpl.md). The operator routes not yet moved keep the base `/v1/infra/servers/{id}`.
 Tenant base: `/v1/tenants/{tenantId}/servers/{serverId}`.
 
 Create, delete, migrate, upload, and `PUT /v1/infra/servers/{id}` are operator-only.

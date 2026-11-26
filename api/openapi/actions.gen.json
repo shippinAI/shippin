@@ -2586,6 +2586,78 @@
         ],
         "type": "object"
       },
+      "GuestCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "cores": {
+            "type": "integer"
+          },
+          "disk": {
+            "type": "integer"
+          },
+          "image": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/GuestKind"
+          },
+          "memory": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "network": {
+            "type": "string"
+          },
+          "start": {
+            "type": "boolean"
+          },
+          "storage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "image"
+        ],
+        "type": "object"
+      },
+      "GuestDeleteInput": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm": {
+            "type": "string"
+          },
+          "confirm_self": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "type": "object"
+      },
+      "GuestKind": {
+        "enum": [
+          "vm",
+          "ct"
+        ],
+        "type": "string"
+      },
+      "GuestPowerInput": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm_self": {
+            "type": "boolean"
+          },
+          "review": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "HvCertificateInfo": {
         "additionalProperties": false,
         "properties": {
@@ -2682,6 +2754,98 @@
           "certificate_verified",
           "evidence",
           "probes"
+        ],
+        "type": "object"
+      },
+      "HvGuest": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HvGuestMetrics"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "node": {
+            "type": "string"
+          },
+          "pool": {
+            "type": "string"
+          },
+          "self": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "string"
+          },
+          "template": {
+            "type": "boolean"
+          },
+          "uptime_seconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "status",
+          "node"
+        ],
+        "type": "object"
+      },
+      "HvGuestMetrics": {
+        "additionalProperties": false,
+        "properties": {
+          "cpu_count": {
+            "type": "integer"
+          },
+          "cpu_fraction": {
+            "type": "number"
+          },
+          "disk_total_bytes": {
+            "type": "integer"
+          },
+          "disk_used_bytes": {
+            "type": "integer"
+          },
+          "memory_total_bytes": {
+            "type": "integer"
+          },
+          "memory_used_bytes": {
+            "type": "integer"
+          },
+          "network_in_bytes": {
+            "type": "integer"
+          },
+          "network_out_bytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cpu_fraction",
+          "memory_used_bytes",
+          "memory_total_bytes",
+          "disk_used_bytes",
+          "disk_total_bytes",
+          "network_in_bytes",
+          "network_out_bytes"
         ],
         "type": "object"
       },
@@ -3656,6 +3820,77 @@
           "environment",
           "path",
           "client_id"
+        ],
+        "type": "object"
+      },
+      "ServersEndpoint": {
+        "additionalProperties": false,
+        "properties": {
+          "allow_tenant_deployment_secrets": {
+            "type": "boolean"
+          },
+          "base_url": {
+            "type": "string"
+          },
+          "ca_file": {
+            "type": "string"
+          },
+          "cert_file": {
+            "type": "string"
+          },
+          "fleet_id": {
+            "type": "string"
+          },
+          "has_secret": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key_file": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "node": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "site": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "token_env": {
+            "type": "string"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "trusted_cert": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "label",
+          "site",
+          "kind",
+          "base_url",
+          "node",
+          "token_id",
+          "token_env",
+          "allow_tenant_deployment_secrets",
+          "revision",
+          "has_secret"
         ],
         "type": "object"
       },
@@ -4728,6 +4963,709 @@
           "perm": "infra.read",
           "reason": false,
           "risk": "read"
+        }
+      }
+    },
+    "/operator/infrastructure/servers": {
+      "get": {
+        "operationId": "shippin.infrastructure.server.list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/ServersEndpoint"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the servers this installation has added, with each one's kind and address.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.infrastructure.server.list",
+          "perm": "infra.read",
+          "reason": false,
+          "risk": "read"
+        }
+      }
+    },
+    "/operator/infrastructure/servers/{serverId}": {
+      "get": {
+        "operationId": "shippin.infrastructure.server.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServersEndpoint"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read one server: its kind, address and whether a credential is stored.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.infrastructure.server.get",
+          "perm": "infra.read",
+          "reason": false,
+          "risk": "read"
+        }
+      }
+    },
+    "/operator/infrastructure/servers/{serverId}/guests": {
+      "get": {
+        "operationId": "shippin.infrastructure.server.guest.list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/HvGuest"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "List the virtual machines and containers on a server, with each one's state.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.infrastructure.server.guest.list",
+          "perm": "infra.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "post": {
+        "operationId": "shippin.infrastructure.server.guest.create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GuestCreateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HvGuest"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Make a virtual machine or container on a server from an image.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.infrastructure.server.guest.created",
+          "id": "shippin.infrastructure.server.guest.create",
+          "perm": "infra.guests.manage",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/infrastructure/servers/{serverId}/guests/{guestId}": {
+      "delete": {
+        "operationId": "shippin.infrastructure.server.guest.delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "guestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GuestDeleteInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Delete a guest from a server with its disks; this cannot be undone.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.infrastructure.server.guest.deleted",
+          "id": "shippin.infrastructure.server.guest.delete",
+          "perm": "infra.guests.manage",
+          "reason": true,
+          "risk": "destructive"
+        }
+      },
+      "get": {
+        "operationId": "shippin.infrastructure.server.guest.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "guestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HvGuest"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Read one guest on a server: its kind, state and what it is using.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.infrastructure.server.guest.get",
+          "perm": "infra.read",
+          "reason": false,
+          "risk": "read"
+        }
+      }
+    },
+    "/operator/infrastructure/servers/{serverId}/guests/{guestId}/restart": {
+      "post": {
+        "operationId": "shippin.infrastructure.server.guest.restart",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "guestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GuestPowerInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HvGuest"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Restart a running guest.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.infrastructure.server.guest.restarted",
+          "id": "shippin.infrastructure.server.guest.restart",
+          "perm": "infra.guests.power",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/infrastructure/servers/{serverId}/guests/{guestId}/shutdown": {
+      "post": {
+        "operationId": "shippin.infrastructure.server.guest.shutdown",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "guestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GuestPowerInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HvGuest"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Ask a guest's operating system to shut down cleanly.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.infrastructure.server.guest.shutdowned",
+          "id": "shippin.infrastructure.server.guest.shutdown",
+          "perm": "infra.guests.power",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/infrastructure/servers/{serverId}/guests/{guestId}/start": {
+      "post": {
+        "operationId": "shippin.infrastructure.server.guest.start",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "guestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GuestPowerInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HvGuest"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Start a stopped guest.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.infrastructure.server.guest.started",
+          "id": "shippin.infrastructure.server.guest.start",
+          "perm": "infra.guests.power",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/infrastructure/servers/{serverId}/guests/{guestId}/stop": {
+      "post": {
+        "operationId": "shippin.infrastructure.server.guest.stop",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "guestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GuestPowerInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HvGuest"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Power a guest off at once, without asking its operating system.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.infrastructure.server.guest.stopped",
+          "id": "shippin.infrastructure.server.guest.stop",
+          "perm": "infra.guests.power",
+          "reason": true,
+          "risk": "write"
         }
       }
     },

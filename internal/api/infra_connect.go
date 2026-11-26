@@ -12,6 +12,7 @@ import (
 
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/hv"
+	guests "shippin.cloud/console/internal/infrastructure/server/guest"
 	"shippin.cloud/console/internal/hv/incus"
 	"shippin.cloud/console/internal/infrastructure/servers"
 )
@@ -235,28 +236,6 @@ func (a *API) verifyEndpoint(ctx context.Context, ep servers.Endpoint) error {
 	return nil
 }
 
-// selfGuest is the guest this panel runs on, if it can tell. Stopping it takes the panel down, so
-// nothing does that without being told to. A site sets SHIPPIN_SELF_GUEST when names differ.
-func selfGuest() string {
-	if v := strings.TrimSpace(os.Getenv("SHIPPIN_SELF_GUEST")); v != "" {
-		return v
-	}
-	h, _ := os.Hostname()
-	return h
-}
-
-func isSelf(g hv.Guest) bool {
-	self := selfGuest()
-	return self != "" && (strings.EqualFold(g.Name, self) || strings.EqualFold(g.ID, self))
-}
-
-func markSelf(items []hv.Guest) []hv.Guest {
-	for i := range items {
-		items[i].Self = isSelf(items[i])
-	}
-	return items
-}
-
 // refuseSelf stops a change that would take down the panel's own guest. Going ahead takes a confirmation
 // and the permission to touch it, so an ordinary infrastructure role cannot do it by accident or at all.
 func (a *API) refuseSelf(w http.ResponseWriter, r *http.Request, c *caller, d hv.Driver, guest, verb string) bool {
@@ -266,7 +245,7 @@ func (a *API) refuseSelf(w http.ResponseWriter, r *http.Request, c *caller, d hv
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 	g, err := d.Guest(ctx, guest)
-	if err != nil || !isSelf(g) {
+	if err != nil || !guests.IsSelf(g) {
 		return false
 	}
 	if r.URL.Query().Get("confirm") != "self" {

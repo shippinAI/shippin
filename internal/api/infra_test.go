@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -13,12 +12,16 @@ import (
 	"testing"
 	"time"
 
+	"errors"
 	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/db"
-	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/proxmox"
+	"shippin.cloud/console/internal/infrastructure/server"
+	guests "shippin.cloud/console/internal/infrastructure/server/guest"
 	"shippin.cloud/console/internal/infrastructure/servers"
+	"shippin.cloud/console/internal/mcpl"
 	"shippin.cloud/console/internal/runtime/approval"
+	"slices"
 )
 
 func TestInfraRoutesNeedTheInfraRole(t *testing.T) {
@@ -105,33 +108,33 @@ func TestInfraListsAndStartsGuestsWithoutLeakingCredentials(t *testing.T) {
 	mux := http.NewServeMux()
 	a.infraRoutes(mux)
 
-	rec := infraDo(mux, http.MethodGet, "/v1/infra/servers", "")
-	if rec.Code != http.StatusOK || strings.Contains(rec.Body.String(), secret) {
-		t.Fatalf("list %d %s", rec.Code, rec.Body.String())
+	listed, err := server.List.Run(asStaff(a), mcpl.None{})
+	if body, _ := json.Marshal(listed); err != nil || len(listed.Items) != 1 || strings.Contains(string(body), secret) {
+		t.Fatalf("list %v %s", err, body)
 	}
-	rec = infraDo(mux, http.MethodGet, "/v1/infra/servers/registry", "")
+	rec := infraDo(mux, http.MethodGet, "/v1/infra/servers/registry", "")
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"slug":"lab"`) || strings.Contains(rec.Body.String(), secret) || strings.Contains(rec.Body.String(), "token_env") {
 		t.Fatalf("registry %d %s", rec.Code, rec.Body.String())
 	}
-	rec = infraDo(mux, http.MethodGet, "/v1/infra/servers/"+id+"/guests", "")
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"id":"100"`) {
-		t.Fatalf("guests %d %s", rec.Code, rec.Body.String())
+	found, err := guests.List.Run(asStaff(a), guests.OnServer{Server: id})
+	if err != nil || len(found.Items) != 1 || found.Items[0].ID != "100" {
+		t.Fatalf("guests %v %+v", err, found)
 	}
-	rec = infraDo(mux, http.MethodPost, "/v1/infra/servers/"+id+"/guests/100/status/start", "")
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"status":"running"`) {
-		t.Fatalf("start %d %s", rec.Code, rec.Body.String())
+	started, err := guests.Start.Run(asStaff(a), guests.PowerInput{ByID: guests.ByID{Server: id, ID: "100"}})
+	if err != nil || started.Status != "running" {
+		t.Fatalf("start %v %+v", err, started)
 	}
-	if strings.Contains(rec.Body.String(), secret) {
+	if body, _ := json.Marshal(started); strings.Contains(string(body), secret) {
 		t.Fatal("response included the token secret")
+	}
+	ops, _ := dir.Operations(t.Context(), "", 0)
+	if len(ops) != 1 || ops[0].Verb != "start" || ops[0].Note != "A test of this change" || strings.Contains(ops[0].Note+ops[0].Detail, secret) {
+		t.Fatalf("operations %+v", ops)
 	}
 	upid := "UPID:n1:00000001:00000002:00000003:vzstart:100:token@pve:"
 	rec = infraDo(mux, http.MethodGet, "/v1/infra/servers/"+id+"/tasks/"+upid, "")
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"done":true`) || !strings.Contains(rec.Body.String(), "TASK OK") {
 		t.Fatalf("task %d %s", rec.Code, rec.Body.String())
-	}
-	acts := a.staffDB.(*fakeStore).actions()
-	if strings.Join(acts, ",") != "infra.change" {
-		t.Fatalf("audit %v", acts)
 	}
 	for _, e := range a.staffDB.(*fakeStore).audit {
 		if strings.Contains(e.Detail, secret) || strings.Contains(e.Detail, "id!tok") {
@@ -150,20 +153,6 @@ func TestAHostIsOnlyAttachedOverHTTPS(t *testing.T) {
 	rec := infraDo(mux, http.MethodPut, "/v1/infra/servers/"+id, `{"kind":"proxmox","base_url":"http://pve.example:8006","node":"n1","token_id":"id!tok","token_env":"SHIPPIN_HV_TOKEN"}`)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("http url %d %s", rec.Code, rec.Body.String())
-	}
-}
-
-func TestGuestListShowsWhatAChangeJustDid(t *testing.T) {
-	dir := &memHV{recent: map[string]string{"100": "stopped"}}
-	a := infraAPI(t, "op_infra", dir)
-	got := a.withRecentOutcomes(context.Background(), "s1", []hv.Guest{{ID: "100", Status: "running"}, {ID: "101", Status: "running"}})
-	if got[0].Status != "stopped" || got[1].Status != "running" {
-		t.Fatalf("%+v", got)
-	}
-	dir.recent, dir.recentErr = nil, errors.New("database is down")
-	got = a.withRecentOutcomes(context.Background(), "s1", []hv.Guest{{ID: "100", Status: "running"}})
-	if got[0].Status != "running" {
-		t.Fatalf("no record must leave the inventory as it is: %+v", got)
 	}
 }
 
@@ -347,6 +336,26 @@ func infraAPI(t *testing.T, op string, dir hvDirectory) *API {
 }
 
 const hvAction = "hv.lifecycle"
+
+// asStaff is an action's call as this test's staff user with the panel's own services: what the
+// operator gate hands an action after letting the request through. The gate, the reason, the audit
+// entry and the event are the runner's, tested with each entity (internal/infrastructure/server).
+func asStaff(a *API, perms ...string) *mcpl.Call {
+	return &mcpl.Call{Ctx: context.Background(), Actor: "u1", Reason: "A test of this change", Services: a.actionServices(),
+		Perms: func(perm string) bool { return slices.Contains(perms, perm) }}
+}
+
+// refusal is the status an action refused with, 0 when it did not refuse.
+func refusal(err error) int {
+	var e *mcpl.Error
+	if errors.As(err, &e) {
+		return e.Status
+	}
+	if err != nil {
+		return -1
+	}
+	return 0
+}
 
 func TestTenantGuestsStayInsideTheOrg(t *testing.T) {
 	var mu sync.Mutex

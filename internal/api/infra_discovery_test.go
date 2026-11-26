@@ -5,12 +5,13 @@ import (
 	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"sync"
 	"testing"
 
+	"shippin.cloud/console/internal/auth"
 	"shippin.cloud/console/internal/hv"
 	"shippin.cloud/console/internal/hv/incus"
+	guestentity "shippin.cloud/console/internal/infrastructure/server/guest"
 	"shippin.cloud/console/internal/infrastructure/servers"
 )
 
@@ -89,10 +90,9 @@ func TestIncusDiscoveryManagesExistingGuestsAndTracksExternalChanges(t *testing.
 	base := "/v1/infra/servers/" + guestServerID
 	list := func(want int) []hv.Guest {
 		t.Helper()
-		rec := infraDo(mux, http.MethodGet, base+"/guests", "")
-		var out struct{ Items []hv.Guest }
-		if rec.Code != http.StatusOK || json.Unmarshal(rec.Body.Bytes(), &out) != nil || len(out.Items) != want {
-			t.Fatalf("want %d discovered guests: %d %s", want, rec.Code, rec.Body)
+		out, err := guestentity.List.Run(asStaff(a), guestentity.OnServer{Server: guestServerID})
+		if err != nil || len(out.Items) != want {
+			t.Fatalf("want %d discovered guests: %v %+v", want, err, out.Items)
 		}
 		return out.Items
 	}
@@ -106,28 +106,30 @@ func TestIncusDiscoveryManagesExistingGuestsAndTracksExternalChanges(t *testing.
 	if got := list(3); got[2].ID != "external-vm" {
 		t.Fatalf("external creation missing: %+v", got)
 	}
-	for _, action := range []struct{ path, body string }{
-		{"/guests/external-vm/status/stop", ""},
-		{"/guests/external-vm/snapshots", `{"snapname":"before-change"}`},
-	} {
-		rec := infraDo(mux, http.MethodPost, base+action.path, action.body)
-		if rec.Code != http.StatusOK {
-			t.Fatalf("existing guest action failed: %d %s", rec.Code, rec.Body)
-		}
+	if _, err := guestentity.Stop.Run(asStaff(a), guestentity.PowerInput{ByID: guestentity.ByID{Server: guestServerID, ID: "external-vm"}}); err != nil {
+		t.Fatalf("existing guest action failed: %v", err)
+	}
+	if rec := infraDo(mux, http.MethodPost, base+"/guests/external-vm/snapshots", `{"snapname":"before-change"}`); rec.Code != http.StatusOK {
+		t.Fatalf("existing guest action failed: %d %s", rec.Code, rec.Body)
 	}
 	if got := list(3); got[2].Status != "Stopped" {
 		t.Fatalf("power action not read back: %+v", got)
 	}
+	// The guest actions sit behind the operator gate, which asks decide for their permission.
 	denied := infraAPI(t, "org_owner", dir)
-	denied.openHV = a.openHV
-	deniedMux := http.NewServeMux()
-	denied.infraRoutes(deniedMux)
-	for _, request := range []struct{ method, path string }{
-		{http.MethodGet, "/guests"}, {http.MethodPost, "/guests/external-vm/status/stop"},
-	} {
-		if rec := infraDo(deniedMux, request.method, base+request.path, ""); rec.Code != http.StatusForbidden {
-			t.Fatalf("discovery must not grant organization owners staff authority: %d %s", rec.Code, rec.Body)
+	for _, perm := range []string{"infra.read", "infra.guests.power", "infra.guests.manage"} {
+		if ok, _ := denied.decide(t.Context(), &caller{id: &auth.Identity{Sub: "u1"}, op: "org_owner"}, perm); ok {
+			t.Fatalf("discovery must not grant organization owners staff authority: %s", perm)
 		}
+		if ok, _ := a.decide(t.Context(), &caller{id: &auth.Identity{Sub: "u1"}, op: "op_infra"}, perm); !ok {
+			t.Fatalf("the infrastructure role lost %s", perm)
+		}
+	}
+	deniedMux := http.NewServeMux()
+	denied.openHV = a.openHV
+	denied.infraRoutes(deniedMux)
+	if rec := infraDo(deniedMux, http.MethodPost, base+"/guests/external-vm/snapshots", `{"snapname":"x"}`); rec.Code != http.StatusForbidden {
+		t.Fatalf("discovery must not grant organization owners staff authority: %d %s", rec.Code, rec.Body)
 	}
 	mu.Lock()
 	guests = guests[1:]
@@ -138,8 +140,8 @@ func TestIncusDiscoveryManagesExistingGuestsAndTracksExternalChanges(t *testing.
 	mu.Lock()
 	unavailable = true
 	mu.Unlock()
-	if rec := infraDo(mux, http.MethodGet, base+"/guests", ""); rec.Code != http.StatusBadGateway || strings.Contains(rec.Body.String(), `"items"`) {
-		t.Fatalf("an outage must not look like empty inventory: %d %s", rec.Code, rec.Body)
+	if out, err := guestentity.List.Run(asStaff(a), guestentity.OnServer{Server: guestServerID}); refusal(err) != http.StatusBadGateway || len(out.Items) != 0 {
+		t.Fatalf("an outage must not look like empty inventory: %v %+v", err, out.Items)
 	}
 	mu.Lock()
 	unavailable = false

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { callAction } from "../api/actions";
 import { apiGet, apiSend } from "../api/client";
 import { toast } from "../design/components/toast/toast-queue";
 
@@ -22,16 +23,50 @@ export type Guest = {
   pool?: string;
   template?: boolean;
   uptime_seconds?: number;
-  metrics?: GuestMetrics;
+  metrics?: GuestMetrics | null;
   self?: boolean;
 };
 
 export type Task = { upid: string; status: string; exitstatus: string; type: string; log?: string[]; done: boolean };
 
+const STAFF = "/v1/infra/servers/";
+
+/** The server a staff path names. It is "" for an organization's own servers, which keep their own routes. */
+const staffServer = (base: string) => (base.startsWith(STAFF) ? decodeURIComponent(base.slice(STAFF.length)) : "");
+
+export type PowerVerb = "start" | "stop" | "shutdown" | "reboot";
+const powerAction = {
+  start: "shippin.infrastructure.server.guest.start",
+  stop: "shippin.infrastructure.server.guest.stop",
+  shutdown: "shippin.infrastructure.server.guest.shutdown",
+  reboot: "shippin.infrastructure.server.guest.restart",
+} as const;
+
+/** Runs a power change on a guest: the staff action on a server staff manage, the organization's route otherwise. */
+export function sendGuestPower(base: string, guest: string, verb: PowerVerb, o: { note: string; confirmSelf?: boolean; review?: string }) {
+  const serverId = staffServer(base);
+  if (serverId) {
+    return callAction(
+      powerAction[verb],
+      { serverId, guestId: guest },
+      { reason: o.note, confirm_self: o.confirmSelf || undefined, review: o.review },
+    );
+  }
+  return apiSend(
+    "POST",
+    `${base}/guests/${encodeURIComponent(guest)}/status/${verb}${o.confirmSelf ? "?confirm=self" : ""}`,
+    {},
+    { note: o.note, ...(o.review ? { headers: { "X-AgentHub-Review-ID": o.review } } : {}) },
+  );
+}
+
 /** One live inventory cache for every screen using this attached host. */
 export const guestInventoryQuery = (base: string) => ({
   queryKey: ["hv", base, "guests"],
-  queryFn: () => apiGet<{ items: Guest[] }>(`${base}/guests`),
+  queryFn: (): Promise<{ items: Guest[] }> =>
+    staffServer(base)
+      ? callAction("shippin.infrastructure.server.guest.list", { serverId: staffServer(base) })
+      : apiGet<{ items: Guest[] }>(`${base}/guests`),
   enabled: !!base,
   refetchInterval: 15_000,
 });
@@ -112,11 +147,10 @@ export function useDeleteGuest(base: string) {
   return useMutation({
     onMutate: () => showStarted(qc),
     mutationFn: (v: { guest: string; confirmSelf?: boolean; note?: string }) =>
-      apiSend(
-        "DELETE",
-        `${base}/guests/${v.guest}?confirm_name=${encodeURIComponent(v.guest)}${v.confirmSelf ? "&confirm=self" : ""}`,
-        undefined,
-        { note: v.note },
+      callAction(
+        "shippin.infrastructure.server.guest.delete",
+        { serverId: staffServer(base), guestId: v.guest },
+        { confirm: v.guest, confirm_self: v.confirmSelf || undefined, reason: v.note ?? "" },
       ),
     onSuccess: (_d, v) => {
       toast.info(`${v.guest} was removed`, "That is what the hypervisor reported after the call.");
@@ -131,8 +165,12 @@ export function useCreateGuest(id: string) {
   const qc = useQueryClient();
   return useMutation({
     onMutate: () => showStarted(qc),
-    mutationFn: ({ note, ...body }: NewGuest & { note?: string }) =>
-      apiSend<Guest>("POST", `/v1/infra/servers/${id}/guests`, body, { note }),
+    mutationFn: ({ note, ...body }: NewGuest & { note?: string }): Promise<Guest> =>
+      callAction(
+        "shippin.infrastructure.server.guest.create",
+        { serverId: id },
+        { ...body, kind: body.kind as "vm" | "ct", reason: note ?? "" },
+      ),
     onSuccess: (g) => {
       toast.info(`Guest ${g.id} is ${g.status}`, "The task finished and inventory was read again.");
       void qc.invalidateQueries({ queryKey: ["hv", `/v1/infra/servers/${id}`, "guests"] });
