@@ -1,6 +1,7 @@
 package guest
 
 import (
+	"errors"
 	"testing"
 
 	"shippin.cloud/console/internal/hv"
@@ -8,7 +9,8 @@ import (
 )
 
 func status(err error) int {
-	if e, ok := err.(*mcpl.Error); ok {
+	var e *mcpl.Error
+	if errors.As(err, &e) {
 		return e.Status
 	}
 	return 0
