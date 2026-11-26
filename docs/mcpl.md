@@ -293,7 +293,6 @@ An AI client signs in with an access key: **Account > AI access** in the panel, 
   applies.
 - A key cannot make another key.
 - Staff routes that need a recent sign-in refuse it, so those stay a person's own session.
-- Taking over the setup account revokes the keys made with it.
 
 ```sh
 claude mcp add --transport http shippin https://<panel>/v1/mcp --header "Authorization: Bearer shp_..."

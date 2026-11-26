@@ -41,14 +41,16 @@ async function main() {
   if (phase === "bootstrap") {
     const api = await request.newContext({ baseURL, ignoreHTTPSErrors: tls, extraHTTPHeaders: headers });
     try {
-      const code = (await readFile(requireEnv("ACQUISITION_TEST_SETUP_CODE_FILE"), "utf8")).trim();
+      // No setup code (REL-03): the fixture panel has no owner, so the first claim makes this one.
       expectStatus(
         await api.post("/v1/setup", {
           data: {
-            Code: code,
-            Password: password,
-            Organization: "Acquisition qualification operations",
-            Brand: { name: "Acquisition qualification", short: "Qualification", tagline: "Disposable integration fixture" },
+            name: "Fixture owner",
+            email: "fixture-owner@example.test",
+            username: "fixture-owner",
+            password,
+            organization: "Acquisition qualification operations",
+            brand: { name: "Acquisition qualification", short: "Qualification", tagline: "Disposable integration fixture" },
           },
         }),
         200,
@@ -72,7 +74,7 @@ async function main() {
       assert.match(me.user_id, /^local:[0-9a-f-]{36}$/);
       ids[kind] = { subject: me.user_id };
     }
-    const owner = await session("setup");
+    const owner = await session("fixture-owner");
     try {
       const existing = await owner.get("/v1/operator/team/permission-grants");
       expectStatus(existing, 200, "Fixture grant list");

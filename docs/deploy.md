@@ -8,7 +8,7 @@ Two ways, with the same settings. Containers are the quickest; the installer giv
 curl -fsSL https://raw.githubusercontent.com/shippinAI/shippin/main/install.sh | sudo bash
 ```
 
-This works on Debian and Ubuntu. It writes `/etc/shippin/site.env` the first time, installs the panel on port 8443 with a self-signed certificate for this machine's address, and prints the address and a setup code. Use `--host` for a name or an address other than the first one it finds, and `--port` for another port. Running it again updates the panel and keeps its settings.
+This works on Debian and Ubuntu. It writes `/etc/shippin/site.env` the first time, installs the panel on port 8443 with a self-signed certificate for this machine's address, and prints the address. Open it and create the owner account, or pass `--owner-email` and `--owner-password-file` to have the owner ready without opening it ([First sign-in](#first-sign-in)). Use `--host` for a name or an address other than the first one it finds, and `--port` for another port. Running it again updates the panel and keeps its settings.
 
 ## With containers
 
@@ -17,8 +17,9 @@ git clone https://github.com/shippinAI/shippin && cd shippin
 cp config/site.env.example .env   # optional; edit it for a real site
 python install/docker/configure.py # generates missing credentials; keeps existing values
 docker compose up -d --build
-docker compose logs panel | grep setup_code
 ```
+
+Then open `https://localhost:8443` and create the owner account, or set `SHIPPIN_OWNER_EMAIL` and `SHIPPIN_OWNER_PASSWORD_FILE` in `.env` first ([First sign-in](#first-sign-in)).
 
 With generated credentials and no other settings it serves `https://localhost:8443` with a generated certificate. PostgreSQL, ClickHouse and authenticated Dragonfly are private services in the same Compose project, with no database ports published. `install/docker/postgres.compose.yaml`, `clickhouse.compose.yaml` and `dragonfly.compose.yaml` own those definitions; root `compose.yaml` assembles the installation. PostgreSQL holds platform data, encrypted sessions and durable jobs. The panel connects as its own role, which is not a superuser; the superuser password is only used inside the Compose project, and the `db-secure` step hands the audit log to a role nobody can log in as after each deploy. ClickHouse holds time series and events, starting with host and guest metrics; if it is down the panel keeps working, `/healthz` reports `"clickhouse":"down"`, and history is unavailable. Dragonfly holds expiring shared password/passkey/public-form rate-limit counters. Its snapshot volume does not replace PostgreSQL backups. The platform health page reports live connectivity for both. Loss of a configured Dragonfly connection denies limited authentication attempts and returns HTTP 503 from `/readyz` and `/healthz`.
 
@@ -53,7 +54,7 @@ Add each Incus or Proxmox connection under **Infrastructure → Hosts & nodes**.
 
 ## On a Debian or Ubuntu machine
 
-One command installs the panel on a fresh Debian or Ubuntu machine (Debian 13 is tested). It installs PostgreSQL and ClickHouse, fetches the Go and Node.js toolchains the build needs when the machine does not already have new enough ones, builds the control plane and the web UI, writes a root-only env file, starts the process, checks `GET /healthz`, and prints the one-time setup code for the first owner.
+One command installs the panel on a fresh Debian or Ubuntu machine (Debian 13 is tested). It installs PostgreSQL and ClickHouse, fetches the Go and Node.js toolchains the build needs when the machine does not already have new enough ones, builds the control plane and the web UI, writes a root-only env file, starts the process, checks `GET /healthz`, and reports whether the installation still waits for its owner (`setup_open=yes`).
 
 ```sh
 sudo apt-get install -y git
@@ -107,22 +108,20 @@ incus config device add <vm> panel proxy nat=true listen=tcp:<host address>:443 
 
 ## First sign-in
 
-After the health check passes, the installer runs `shippin-console setup` and prints `setup_code=...` while no owner exists. The code is valid for 24 hours. Running the installer again before it is redeemed issues a new code and invalidates the old one; once an owner exists, nothing is issued.
+There is no setup code (REL-03). After the installer's health check passes, the panel is either already owned or waiting for its owner:
 
-1. **Setup account.** Open `https://<console host>/setup`, enter the one-time code, choose a password, and give the internal organization's name and the installation's branding. This creates the built-in `setup` account. It owns the installation and signs in with username `setup`. Whoever installs, you or an AI assistant, uses it to finish setting up. The installer ships no shared default credential: the password is chosen at `/setup`.
-2. **Take it over.** Until the owner has taken over, every page shows **Take over this installation** with two steps:
-   1. **Set a new password for the setup account.** The password used during setup stops working, every other sign-in of the setup account is signed out, and any passkeys or recovery codes on it are removed.
-   2. **Create your own owner account,** with your username, email and password. It is shown eight recovery codes once.
+- **Open it and create the owner account.** With no owner named, the first person to open `https://<console host>` gets **Create the owner account**: their name, email, password and the organization's name. They are signed in and shown eight recovery codes once. The first claim wins; anyone after that is sent to sign in.
+- **Or name the owner up front,** and nobody has to open the panel to finish. The panel creates that owner the first time it starts:
+  - the installer: `install.sh --owner-email you@example.com --owner-password-file /root/owner-password [--owner-name "Your Name"]`. It copies the password file to `/etc/shippin/owner-password`, readable by root only, and removes that copy once the owner exists;
+  - Compose or any environment: `SHIPPIN_OWNER_EMAIL`, with `SHIPPIN_OWNER_PASSWORD` or `SHIPPIN_OWNER_PASSWORD_FILE`, and optionally `SHIPPIN_OWNER_NAME`, `SHIPPIN_OWNER_USERNAME` and `SHIPPIN_ORGANIZATION`.
 
-   Sign in with your own account from then on, and keep the setup account for emergencies.
+  An owner created this way has no recovery codes until they make some under **Account > Security**. The variables do nothing once an owner exists.
 
-If an AI assistant ran setup, it gives you the setup account's password in your chat, and you do both steps yourself. The panel cannot tell a person from an assistant: an assistant should never do the takeover steps.
+**The risk this accepts:** anyone who can reach the panel's address before its owner opens it can claim it. Naming the owner up front leaves no such window; so does keeping the port private (the Compose default binds `127.0.0.1`) until you have. Every claim is in the audit log with the address it came from.
 
-The takeover does not revoke tokens or other credentials the setup account created before it. The audit log under **Access & audit** shows what the setup account did. Sign-in accepts username or email with a password, passkeys and recovery codes.
+Sign-in accepts username or email with a password, passkeys and recovery codes. The owner is the platform admin without any upstream IdP: a local session maps the owner to the `roles.iam` source of `operator.role`. No compute is provisioned during first-run setup. Existing passwordless accounts can set their first password under **Account → Security** after signing in; accounts with a password must verify it to change it. See [identity and access](reference/identity-and-access.md).
 
-The owner is the platform admin without any upstream IdP: a local session maps the owner to the `roles.iam` source of `operator.role`, and the first local organization maps directly to a customer tenant boundary. No compute is provisioned during first-run setup. Existing passwordless accounts can set their first password under **Account → Security** after signing in; accounts with a password must verify it to change it. See [identity and access](reference/identity-and-access.md).
-
-The `--example` install redeems its own code, opens the waitlist and takes the setup account over as part of its smoke test.
+The `--example` install claims its own installation, checks that a second claim is refused, and opens the waitlist as part of its smoke test.
 
 ## Connect a hypervisor
 

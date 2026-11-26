@@ -134,11 +134,13 @@ No site's policy is built in.
 | ClickHouse | Time series and events: host and guest metrics, activity, logs. Dashboards read it. |
 | Dragonfly | Short-lived shared counters and caches. Nothing durable. |
 
-**REL-01.** The installer generates every credential, shares no password, and prints a one-time setup code.
+**REL-01.** The installer generates every credential and shares no password. It prints no setup code: installing needs no step in a terminal beyond running it.
 
-**REL-03.** The code creates the built-in setup account, the installation's organization and the branding. Whoever installs, a person or an AI assistant, finishes setting up as that account. Until the owner takes it over, every page asks them to:
-1. set its password, which signs every other session of it out;
-2. create their own owner account.
+**REL-03.** The installation is owned by a person from the start, with no setup code (the owner's decision, 2026-11-25, accepting the risk below for a simple install). Either:
+1. the installation names its owner up front (`SHIPPIN_OWNER_EMAIL` with `SHIPPIN_OWNER_PASSWORD` or `SHIPPIN_OWNER_PASSWORD_FILE`), and the panel creates that owner when it first starts, so nobody has to open it to finish; or
+2. while no owner exists, the first person to open the panel creates the owner account, with the installation's organization, and is signed in and shown their recovery codes once.
+
+The first claim wins and every later one is refused; the claim and its address are audited. The accepted risk: anyone who reaches the panel's address before its owner does can claim it. The first way leaves no such window.
 
 **REL-02.** From the first release, upgrades keep data and grants, and backup, restore and rollback are proved, not assumed.
 

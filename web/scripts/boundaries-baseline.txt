@@ -37,7 +37,6 @@ features/platform/platform/ui/get-started-page.tsx -> features/infrastructure/in
 features/platform/settings/ui/settings-page.tsx -> features/identity/access/ui/access-grants-card.tsx
 features/platform/settings/ui/settings-page.tsx -> features/organizations/coverage/ui/coverage-card.tsx
 features/platform/settings/ui/settings-page.tsx -> features/runtime/apps/ui/app-cards.tsx
-features/platform/setup/ui/handover-banner.tsx -> features/identity/auth/ui/recovery-codes.tsx
 features/runtime/apps/ui/app-cards.tsx -> features/runtime/chat/a2ui/a2ui-renderer.tsx
 features/runtime/chat/ui/chat-context-slot.tsx -> features/runtime/a2ui/a2ui-surface.tsx
 features/runtime/chat/ui/chat-context-slot.tsx -> features/runtime/a2ui/use-surfaces.ts

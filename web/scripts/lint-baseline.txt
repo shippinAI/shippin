@@ -40,7 +40,6 @@
 2 src/features/platform/api-explorer/operations.ts lint/suspicious/noControlCharactersInRegex
 1 src/features/platform/overview/ui/service-card.tsx lint/a11y/noNoninteractiveTabindex
 1 src/features/platform/overview/ui/services-grid.tsx lint/suspicious/noArrayIndexKey
-1 src/features/platform/setup/ui/handover-banner.tsx lint/a11y/noRedundantRoles
 6 src/features/platform/updates/update-status.tsx lint/style/noNonNullAssertion
 1 src/features/runtime/a2ui/a2ui-node.tsx lint/a11y/useSemanticElements
 1 src/features/runtime/a2ui/a2ui-surface.tsx lint/a11y/useAriaPropsSupportedByRole

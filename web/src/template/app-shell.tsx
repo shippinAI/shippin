@@ -4,7 +4,6 @@ import { lazy, Suspense } from "react";
 import { Outlet, useLocation } from "../lib/router/router";
 import { AccessBanner } from "../features/identity/access/ui/access-banner";
 import { SignInRequired } from "../features/identity/access/ui/sign-in-required";
-import { HandoverBanner } from "../features/platform/setup/ui/handover-banner";
 import { useTenant } from "../lib/hooks/use-tenant";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
@@ -40,7 +39,6 @@ export function AppShell() {
       <Sidebar />
       <div className="relative flex min-w-0 flex-1 flex-col overflow-y-auto">
         <Topbar crumb={crumb} />
-        <HandoverBanner />
         <main className={`relative mx-auto w-full ${pathname === "/hub" ? "max-w-none" : "max-w-6xl"} px-4 py-6 sm:px-8 sm:py-9`}>
           {refused ? <SignInRequired tenant={refused} /> : <AccessBanner />}
           <Suspense fallback={null}>

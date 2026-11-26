@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Exercise a disposable, fresh Docker panel. Never run against an owned install.
 
-SHIPPIN_TEST_PANEL_URL must be loopback HTTPS; SHIPPIN_TEST_SETUP_CODE comes from
-that disposable container. Credentials/recovery codes remain in memory. The
+SHIPPIN_TEST_PANEL_URL must be loopback HTTPS on a container with no owner yet; the
+script claims it (there is no setup code). Credentials/recovery codes remain in memory. The
 script prints only check outcomes and retains no authentication material.
 """
 import http.cookiejar
@@ -49,12 +49,15 @@ def run(restart=None):
     ready = request(owner, "GET", "/readyz")
     assert ready["db"] and ready["cache"] == "up"
     password = secrets.token_urlsafe(24)
-    setup = {"code": os.environ["SHIPPIN_TEST_SETUP_CODE"], "username": "smoke-owner", "name": "Smoke Owner", "email": "owner@example.invalid", "password": password, "organization": "Smoke Operations", "brand": {"name": "Smoke Cloud", "short": "Smoke", "color": "#123456"}}
-    request(owner, "POST", "/v1/setup", {**setup, "code": "incorrect"}, 401)
+    # No setup code (REL-03): the first claim makes the owner, and every later one is refused.
+    setup = {"username": "smoke-owner", "name": "Smoke Owner", "email": "owner@example.invalid", "password": password, "organization": "Smoke Operations", "brand": {"name": "Smoke Cloud", "short": "Smoke", "color": "#123456"}}
+    request(owner, "POST", "/v1/setup", {**setup, "code": "an old client's setup code"}, 400)
+    request(owner, "POST", "/v1/setup", {**setup, "email": "not an address"}, 400)
     request(owner, "POST", "/v1/setup", {**setup, "password": "short"}, 400)
     installed = request(owner, "POST", "/v1/setup", setup)
-    assert len(installed["recovery_codes"]) == 8
-    request(owner, "POST", "/v1/setup", setup, 409)
+    assert installed["username"] == "smoke-owner" and len(installed["recovery_codes"]) == 8
+    request(owner, "POST", "/v1/setup", {**setup, "email": "second@example.invalid", "username": "second"}, 409)
+    assert not request(owner, "GET", "/v1/settings/public")["setup_open"]
     me = request(owner, "GET", "/v1/me")
     assert me["platform_roles"] and not me["tenants"]
     assert me["capabilities"]["infra.hosts"]
@@ -70,7 +73,7 @@ def run(restart=None):
     system = request(owner, "GET", "/v1/operator/system")
     assert system["organization"]["name"] == "Smoke Operations"
     assert request(owner, "GET", "/v1/settings/public")["brand"]["name"] == "Smoke Cloud"
-    print("PASS setup validation, replay rejection, internal ownership and saved branding")
+    print("PASS first-owner claim, second claim refused, internal ownership and saved branding")
     plans = request(owner, "GET", "/v1/operator/tenancy/plans")["items"]
     plan = next(p["id"] for p in plans if p["active"])
     key = str(uuid.uuid4())

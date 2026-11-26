@@ -44,11 +44,8 @@ SHIPPIN_CONFIG_OUT=$state/shippin.json python3 "$root/install/panel/render-confi
 export SHIPPIN_CONFIG=$state/shippin.json
 export SHIPPIN_STATIC=$root/web/dist
 
-# While no owner exists this issues a fresh one-time code on every start; afterwards it prints nothing.
-code=$(shippin-console setup | sed -n 's/^setup_code=//p')
-if [ -n "$code" ]; then
-  echo "setup_code=$code"
-  echo "No owner yet. Open https://$SHIPPIN_CONSOLE_HOST:${SHIPPIN_PORT:-8443}/setup and enter that code. It works once and expires in 24 hours."
-fi
-
+# There is no setup code (REL-03). An owner named in the environment (SHIPPIN_OWNER_EMAIL with
+# SHIPPIN_OWNER_PASSWORD or SHIPPIN_OWNER_PASSWORD_FILE) is created when the panel starts; otherwise the
+# first person to open it creates the owner account.
+echo "Shippin is starting at https://$SHIPPIN_CONSOLE_HOST:${SHIPPIN_PORT:-8443}"
 exec shippin-console

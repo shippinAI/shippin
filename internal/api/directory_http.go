@@ -22,10 +22,7 @@ func (a *API) registerDirectory(mux Router) {
 	if a.directory == nil {
 		return
 	}
-	mux.HandleFunc("POST /v1/setup", a.setupRedeem)
-	mux.HandleFunc("GET /v1/setup/handover", a.handoverState)
-	mux.HandleFunc("POST /v1/setup/handover/password", a.handoverPassword)
-	mux.HandleFunc("POST /v1/setup/handover/owner", a.handoverOwner)
+	mux.HandleFunc("POST /v1/setup", a.setupClaim)
 	mux.HandleFunc("POST /v1/session/password", a.passwordLogin)
 	a.transport(mux, "POST /auth/dev", Redirect, a.devLogin)
 	mux.HandleFunc("PUT /v1/directory/me/password", a.passwordChange)
@@ -102,21 +99,33 @@ func (a *API) startSession(w http.ResponseWriter, r *http.Request, id, method st
 	writeJSON(w, map[string]string{"user_id": id, "session": sid})
 }
 
-func (a *API) setupRedeem(w http.ResponseWriter, r *http.Request) {
-	var in identity.SetupInput
+// setupClaim creates the installation's first owner and signs them in (REL-03). There is no code:
+// while no owner exists the first person to send this claims the installation, which the owner accepted
+// for a simple install; afterwards it is refused. The claim and its address are audited.
+func (a *API) setupClaim(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Name         string       `json:"name"`
+		Email        string       `json:"email"`
+		Username     string       `json:"username"`
+		Password     string       `json:"password"`
+		Organization string       `json:"organization"`
+		Brand        config.Brand `json:"brand"`
+	}
 	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10))
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(&in) != nil {
 		auth.Problem(w, http.StatusBadRequest, "Request body was not accepted.")
 		return
 	}
-	u, err := a.directory.RedeemSetup(r.Context(), in)
+	u, codes, err := a.directory.ClaimInstallation(r.Context(), identity.FirstOwnerInput{Name: in.Name, Email: in.Email,
+		Username: in.Username, Password: in.Password, Organization: in.Organization, Brand: in.Brand},
+		identity.Claim{Via: "browser", From: clientIP(r), Recovery: true})
 	if err != nil {
 		switch {
-		case errors.Is(err, identity.ErrSetupUsed):
-			auth.Problem(w, http.StatusUnauthorized, "Setup code is not valid or has expired.")
 		case errors.Is(err, identity.ErrOwnerExists):
 			auth.Problem(w, http.StatusConflict, "This installation already has an owner. Sign in to continue.")
+		case errors.Is(err, identity.ErrConflict):
+			auth.Problem(w, http.StatusConflict, "That email address or username is already in use.")
 		case errors.Is(err, identity.ErrSetupInput), errors.Is(err, identity.ErrPassword), errors.Is(err, identity.ErrBrand):
 			auth.Problem(w, http.StatusBadRequest, err.Error())
 		default:
@@ -127,10 +136,10 @@ func (a *API) setupRedeem(w http.ResponseWriter, r *http.Request) {
 	}
 	sid, err := a.flow.StartLocal(w, r, u.ID, "setup")
 	if err != nil {
-		auth.Problem(w, http.StatusServiceUnavailable, "Sign-in is unavailable right now.")
+		auth.Problem(w, http.StatusServiceUnavailable, "Your account was created, but signing in failed. Sign in to continue.")
 		return
 	}
-	writeJSON(w, map[string]any{"user_id": u.ID, "session": sid, "username": u.Username})
+	writeJSON(w, map[string]any{"user_id": u.ID, "session": sid, "username": u.Username, "recovery_codes": codes})
 }
 
 func (a *API) passwordLogin(w http.ResponseWriter, r *http.Request) {

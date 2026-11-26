@@ -6,7 +6,6 @@ package app
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
@@ -30,15 +29,11 @@ import (
 	"shippin.cloud/console/internal/platform/version"
 )
 
-// Main runs the console until it is told to stop. `console setup` prints a one-time setup code instead.
+// Main runs the console until it is told to stop.
 func Main() {
 	setupLogging()
 	b := version.Current()
 	slog.Info("shippin console", "version", b.Version, "channel", b.Channel, "commit", b.Short(), "modified", b.Modified)
-	if len(os.Args) > 1 && os.Args[1] == "setup" {
-		runSetup()
-		return
-	}
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("config: %v", err)
@@ -80,6 +75,7 @@ func Main() {
 	consoleAPI.StartJobs(ctx)
 	template.Seed(ctx, database.Pool, cfg.Workspaces)
 	consoleAPI.SyncStaff(ctx)
+	ensureOwner(ctx, directory)      // SHIPPIN_OWNER_*, before any development sign-in takes a username
 	ensureDevAccounts(ctx, database) // after the role catalog is loaded
 	consoleAPI.Register(mux)
 	consoleAPI.RegisterHub(mux)
@@ -228,28 +224,6 @@ func openClickHouse(ctx context.Context, raw string) *clickhouse.Client {
 		}
 		time.Sleep(5 * time.Second)
 	}
-}
-
-func runSetup() {
-	cfg, err := config.Load()
-	if err != nil {
-		log.Fatalf("config: %v", err)
-	}
-	ctx := context.Background()
-	database, err := db.OpenWith(ctx, cfg.DatabaseURL, cfg.Migrations.Hold, moduleMigrations()...)
-	if err != nil {
-		log.Fatalf("db: %v", err)
-	}
-	defer database.Pool.Close()
-	code, err := identity.New(database.Pool, cfg, nil, nil).IssueSetup(ctx)
-	if errors.Is(err, identity.ErrOwnerExists) {
-		fmt.Println("setup_code=")
-		return
-	}
-	if err != nil {
-		log.Fatalf("setup: %v", err)
-	}
-	fmt.Println("setup_code=" + code)
 }
 
 func mailSender(cfg *config.Config) identity.Sender {

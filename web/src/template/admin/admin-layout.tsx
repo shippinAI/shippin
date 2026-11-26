@@ -7,7 +7,6 @@ import { AccessDenied } from "../../features/platform/admin/ui/access-denied";
 import { BreakGlassBanner } from "../../features/platform/admin/ui/access/break-glass-banner";
 import { StaffModeBanner } from "../../features/platform/admin/ui/staff-mode/staff-mode-banner";
 import { StaffBanner } from "../../features/platform/admin/ui/staff-banner";
-import { HandoverBanner } from "../../features/platform/setup/ui/handover-banner";
 import { AdminMobileNav } from "./admin-mobile-nav";
 import { AdminSidebar } from "./admin-sidebar";
 
@@ -29,7 +28,6 @@ export function AdminLayout() {
       <AdminSidebar />
       <AdminMobileNav />
       <div className="relative flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <HandoverBanner />
         <BreakGlassBanner />
         <StaffModeBanner />
         <StaffBanner />

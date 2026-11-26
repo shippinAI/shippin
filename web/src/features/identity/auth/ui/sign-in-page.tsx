@@ -259,12 +259,11 @@ export function SignInPage() {
             )}
           </div>
           {s?.setup_open && (
-            <p className="mt-6 text-base">
-              New installation?{" "}
+            <p className="mt-6 text-base" data-testid="setup-open">
+              This installation has no owner yet.{" "}
               <a className="font-medium underline" href="/setup">
                 Create the owner account
-              </a>{" "}
-              with the setup code the installer printed.
+              </a>
             </p>
           )}
           <p className="mt-8 text-sm text-fg-subtle">

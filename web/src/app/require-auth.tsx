@@ -1,11 +1,12 @@
 import { Navigate, Outlet } from "../lib/router/router";
-import { useMe } from "../lib/hooks/use-api";
+import { useMe, usePublicSettings } from "../lib/hooks/use-api";
 import { BrandMark } from "../template/brand-mark";
 
-/** Gate: unauthenticated users go to /login. */
+/** Gate: a signed-out visitor goes to /login, or to /setup while the installation has no owner (REL-03). */
 export function RequireAuth() {
   const me = useMe();
-  if (me.isPending)
+  const pub = usePublicSettings();
+  if (me.isPending || (me.isError && pub.isPending))
     return (
       <div className="flex h-full items-center justify-center">
         <div className="animate-pulse motion-reduce:animate-none">
@@ -13,7 +14,7 @@ export function RequireAuth() {
         </div>
       </div>
     );
-  if (me.isError) return <Navigate to="/login" replace />;
+  if (me.isError) return <Navigate to={pub.data?.setup_open ? "/setup" : "/login"} replace />;
   return <Outlet />;
 }
 

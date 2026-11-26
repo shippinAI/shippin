@@ -10,17 +10,16 @@ Run the backend in containers and the panel with hot reload:
 
 ```sh
 docker compose up -d --build
-docker compose logs panel | grep setup_code
 cd web && npm ci && npm run dev
 ```
 
-Open <http://localhost:5173/setup> and enter the code. The dev server proxies `/v1` and `/auth` to `https://localhost:8443`. Set `SHIPPIN_DEV_API` to point it somewhere else.
+Open <http://localhost:5173> and, on a new database, create the owner account; there is no setup code. The dev server proxies `/v1` and `/auth` to `https://localhost:8443`. Set `SHIPPIN_DEV_API` to point it somewhere else.
 
 Chrome, Edge and Firefox keep the panel's `Secure` session cookie on `http://localhost`. Safari does not, so use one of those for this loop.
 
 ## The control plane
 
-`scripts/dev-server.sh` starts the database in a container, makes a session key and a certificate under `.run/` (ignored by git), prints a setup code, and runs the console from source at <https://localhost:8443>:
+`scripts/dev-server.sh` starts the database in a container, makes a session key and a certificate under `.run/` (ignored by git), and runs the console from source at <https://localhost:8443>:
 
 ```sh
 scripts/dev-server.sh

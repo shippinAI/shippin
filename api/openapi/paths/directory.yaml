@@ -1,8 +1,12 @@
 setup:
   post:
     tags: [identity]
-    operationId: redeemSetupCode
-    summary: Redeem the one-time setup code printed by shippin-console setup
+    operationId: claimInstallation
+    summary: Create the installation's first owner, with no setup code; refused once an owner exists
+    description: >-
+      While the installation has no owner, the first claim creates the owner account, the installation's
+      organization and, when given, its brand, and signs the caller in (REL-03). An installation can also name
+      its owner up front with SHIPPIN_OWNER_EMAIL and nobody calls this.
     x-implementation-status: registered
     requestBody:
       required: true
@@ -10,16 +14,17 @@ setup:
         application/json:
           schema:
             type: object
-            required: [code, username, name, email, password, organization, brand]
+            additionalProperties: false
+            required: [name, email, password]
             properties:
-              code: {type: string}
-              username: {type: string, minLength: 3, maxLength: 32}
               name: {type: string, minLength: 1, maxLength: 120}
               email: {type: string, format: email}
+              username: {type: string, minLength: 3, maxLength: 32, description: "Made from the email address when absent."}
               password: {type: string, minLength: 12, maxLength: 1024, writeOnly: true}
-              organization: {type: string, minLength: 2, maxLength: 120}
+              organization: {type: string, minLength: 2, maxLength: 120, description: "Operations when absent."}
               brand:
                 type: object
+                description: The installation's branding; when absent the panel keeps its default.
                 required: [name]
                 properties:
                   name: {type: string, maxLength: 80}
@@ -30,8 +35,9 @@ setup:
                   privacy_url: {type: string, format: uri}
                   terms_url: {type: string, format: uri}
     responses:
-      "200": {description: Owner id, session, and one-time recovery codes.}
-      "401": {$ref: ../components/responses.yaml#/Problem401}
+      "200": {description: "The owner's id and username, a session, and the owner's recovery codes, shown once."}
+      "400": {$ref: ../components/responses.yaml#/Problem400}
+      "409": {description: The installation already has an owner, or the email address or username is in use.}
       default: {$ref: ../components/responses.yaml#/ProblemDefault}
 passwordLogin:
   post:

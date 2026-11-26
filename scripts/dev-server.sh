@@ -25,6 +25,5 @@ SHIPPIN_SESSION_KEY=$(cat .run/session.key)
 export SHIPPIN_SESSION_KEY
 export SHIPPIN_TLS_CERT=.run/tls/panel.crt SHIPPIN_TLS_KEY=.run/tls/panel.key
 
-code=$(go run ./cmd/console setup | sed -n 's/^setup_code=//p')
-if [ -n "$code" ]; then echo "setup_code=$code   (open /setup and enter it)"; fi
+# No setup code: with no owner yet, open https://localhost:8443 and create the owner account.
 exec go run ./cmd/console

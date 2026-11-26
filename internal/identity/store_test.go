@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -42,80 +41,51 @@ func (c *capture) Send(_ context.Context, _, _, body string) error { c.last = bo
 func TestStoreBootstrapMagicInviteWaitlist(t *testing.T) {
 	s, mail := testService(t)
 	ctx := context.Background()
-	code, err := s.IssueSetup(ctx)
-	if err != nil || code == "" {
-		t.Fatal(err)
+	if s.HasOwner(ctx) {
+		t.Fatal("a fresh installation has no owner")
 	}
-	if _, err := s.IssueSetup(ctx); err != nil {
-		t.Fatal("unused setup should be replaceable")
-	}
-	code, err = s.IssueSetup(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	input := SetupInput{Code: code, Password: "the installer's password", Organization: "Owner Works", Brand: config.Brand{Name: "Shippin", Short: "Ship", Tagline: "Build and ship"}}
+	// There is no setup code: the first person to claim the installation becomes its owner (REL-03).
+	input := FirstOwnerInput{Name: "Owner", Email: "Owner@Example.invalid", Username: "owner", Password: "a long test password",
+		Organization: "Owner Works", Brand: config.Brand{Name: "Shippin", Short: "Ship", Tagline: "Build and ship"}}
+	browser := Claim{Via: "browser", From: "203.0.113.9", Recovery: true}
 	invalid := input
 	invalid.Organization = "x"
-	if _, err := s.RedeemSetup(ctx, invalid); !errors.Is(err, ErrSetupInput) {
+	if _, _, err := s.ClaimInstallation(ctx, invalid, browser); !errors.Is(err, ErrSetupInput) {
 		t.Fatal("one-letter organization accepted", err)
 	}
 	invalid = input
+	invalid.Email = "not an address"
+	if _, _, err := s.ClaimInstallation(ctx, invalid, browser); !errors.Is(err, ErrSetupInput) {
+		t.Fatal("invalid email accepted", err)
+	}
+	invalid = input
 	invalid.Password = "short"
-	if _, err := s.RedeemSetup(ctx, invalid); !errors.Is(err, ErrPassword) {
+	if _, _, err := s.ClaimInstallation(ctx, invalid, browser); !errors.Is(err, ErrPassword) {
 		t.Fatal("short password accepted", err)
 	}
 	invalid = input
 	invalid.Brand.LogoURL = "javascript:alert(1)"
-	if _, err := s.RedeemSetup(ctx, invalid); !errors.Is(err, ErrBrand) {
+	if _, _, err := s.ClaimInstallation(ctx, invalid, browser); !errors.Is(err, ErrBrand) {
 		t.Fatal("invalid branding accepted", err)
 	}
-	if h, err := s.SetupHandover(ctx); err != nil || h.Exists || h.Pending() {
-		t.Fatal("handover before setup", h, err)
+	if s.HasOwner(ctx) {
+		t.Fatal("a refused claim left an owner behind")
 	}
-	setup, err := s.RedeemSetup(ctx, input)
-	if err != nil || setup.Role != "owner" || setup.Username != SetupUsername {
-		t.Fatal(err, setup)
-	}
-	if _, err := s.RedeemSetup(ctx, input); err == nil {
-		t.Fatal("setup code reused")
-	}
-	if _, err := s.AuthenticatePassword(ctx, "setup", "the installer's password", "test"); err != nil {
-		t.Fatal("setup account sign-in", err)
-	}
-	if h, _ := s.SetupHandover(ctx); !h.Exists || h.PasswordSet || len(h.Owners) != 0 || !h.Pending() {
-		t.Fatal("fresh setup should be pending takeover", h)
-	}
-	// A person takes the setup account over: the installer's password stops working.
-	if _, err := s.TakeOverSetup(ctx, setup.ID, "short"); !errors.Is(err, ErrPassword) {
-		t.Fatal("short takeover password accepted", err)
-	}
-	if _, err := s.TakeOverSetup(ctx, uuid.NewString(), "the owner's own password"); !errors.Is(err, ErrNotOwner) {
-		t.Fatal("a stranger took the setup account over", err)
-	}
-	if id, err := s.TakeOverSetup(ctx, setup.ID, "the owner's own password"); err != nil || id != setup.ID {
-		t.Fatal("takeover", err, id)
-	}
-	if _, err := s.AuthenticatePassword(ctx, "setup", "the installer's password", "test"); err == nil {
-		t.Fatal("the installer's password still works after takeover")
-	}
-	if _, err := s.AuthenticatePassword(ctx, "setup", "the owner's own password", "test"); err != nil {
-		t.Fatal("the new setup password does not work", err)
-	}
-	if h, _ := s.SetupHandover(ctx); !h.PasswordSet || !h.Pending() {
-		t.Fatal("still pending until an owner account exists", h)
-	}
-	if _, _, err := s.CreateOwner(ctx, setup.ID, OwnerInput{Username: "setup", Email: "x@example.invalid", Name: "X", Password: "a long test password"}); !errors.Is(err, ErrSetupInput) {
-		t.Fatal("an owner named setup was accepted", err)
-	}
-	user, codes, err := s.CreateOwner(ctx, setup.ID, OwnerInput{Username: "owner", Email: "Owner@Example.invalid", Name: "Owner", Password: "a long test password"})
-	if err != nil || user.Role != "owner" || user.Username != "owner" || len(codes) != 8 {
+	user, codes, err := s.ClaimInstallation(ctx, input, browser)
+	if err != nil || user.Role != "owner" || user.Username != "owner" || user.Email != "owner@example.invalid" || len(codes) != 8 {
 		t.Fatal(err, user, len(codes))
 	}
-	if _, _, err := s.CreateOwner(ctx, setup.ID, OwnerInput{Username: "owner2", Email: "owner@example.invalid", Name: "Owner", Password: "a long test password"}); !errors.Is(err, ErrConflict) {
-		t.Fatal("duplicate owner email accepted", err)
+	if !s.HasOwner(ctx) {
+		t.Fatal("the claim made no owner")
 	}
-	if h, _ := s.SetupHandover(ctx); h.Pending() || len(h.Owners) != 1 || h.Owners[0] != "owner" {
-		t.Fatal("takeover should be complete", h)
+	second := input
+	second.Email, second.Username = "someone@example.invalid", "someone"
+	if _, _, err := s.ClaimInstallation(ctx, second, browser); !errors.Is(err, ErrOwnerExists) {
+		t.Fatal("a second claim was accepted", err)
+	}
+	var via string
+	if err := s.db.QueryRow(ctx, `SELECT detail->>'via' FROM identity_audit WHERE action='setup.owner_claimed' AND actor=$1`, user.ID).Scan(&via); err != nil || via != "browser" {
+		t.Fatal("the claim is not in the audit log", via, err)
 	}
 	if _, err := s.AuthenticatePassword(ctx, "OWNER", "a long test password", "test"); err != nil {
 		t.Fatal("password login", err)

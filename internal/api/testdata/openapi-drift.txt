@@ -118,9 +118,6 @@ code /session/passkeys/{}
 code /session/recovery
 code /settings/public
 code /settings/ui
-code /setup/handover
-code /setup/handover/owner
-code /setup/handover/password
 code /tenants/{}/access
 code /tenants/{}/access/{}/{}
 code /tenants/{}/apps

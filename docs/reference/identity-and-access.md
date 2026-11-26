@@ -8,7 +8,7 @@ A site turns the pieces on through `config/shippin.example.json` (`directory`) a
 
 `identity_users` is the local account: email, verified flag, display name, and role `owner`, `admin`, or `member`. `identity_orgs` and `identity_members` are the local org membership. They are not Incus projects and they do not replace `tenants`.
 
-The first owner is created only by redeeming a one-time setup code. The installer runs `shippin-console setup`, which prints `setup_code=...` once and stores a SHA-256 hash. There is no "first visitor becomes admin" path. A second call while an owner already exists prints nothing and creates nothing.
+There is no setup code (REL-03, decided 2026-11-25). The first owner is either named by the installation (`SHIPPIN_OWNER_EMAIL` with `SHIPPIN_OWNER_PASSWORD` or `SHIPPIN_OWNER_PASSWORD_FILE`) and created when the panel first starts, or, while no owner exists, created by the first person to open the panel (`POST /v1/setup`). One transaction holds a table lock, so concurrent claims cannot both win; every later claim gets 409. The claim is audited with how it was made and the client address. The accepted risk is that anyone reaching the address before the owner can claim it; naming the owner up front removes it.
 
 After that, a person can hold:
 
@@ -82,7 +82,7 @@ Outbound webhooks are HTTPS URLs and an event list. The body is signed `Shippin-
 
 ## Threat notes
 
-- Setup codes, magic links, invites, and recovery codes are stored as hashes. The database is the secret store for webhook signing keys.
+- Magic links, invites, and recovery codes are stored as hashes. The database is the secret store for webhook signing keys.
 - Cookies stay `HttpOnly`, `Secure`, and `SameSite=Lax`, matching the existing session cookie.
 - PKCE `S256` is required for the local authorization server. A missing verifier is a rejection.
 - Upstream email merge runs only when the issuer says the email is verified.

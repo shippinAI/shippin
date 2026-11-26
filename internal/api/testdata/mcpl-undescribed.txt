@@ -95,7 +95,6 @@ GET /v1/platform/services
 GET /v1/session/passkeys
 GET /v1/settings/public
 GET /v1/settings/ui
-GET /v1/setup/handover
 GET /v1/tenants
 GET /v1/tenants/{tenantId}
 GET /v1/tenants/{tenantId}/access
@@ -226,8 +225,6 @@ POST /v1/session/passkey/register
 POST /v1/session/password
 POST /v1/session/recovery
 POST /v1/setup
-POST /v1/setup/handover/owner
-POST /v1/setup/handover/password
 POST /v1/tenants
 POST /v1/tenants/{tenantId}/access/{grantId}/{decision}
 POST /v1/tenants/{tenantId}/ai-terminal/touch

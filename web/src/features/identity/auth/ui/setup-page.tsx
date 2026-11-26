@@ -3,6 +3,7 @@ import { Button } from "../../../../lib/design/components/button/button";
 import { toast } from "../../../../lib/design/components/toast/toast-queue";
 import { usePublicSettings } from "../../../../lib/hooks/use-api";
 import { BrandMark } from "../../../../template/brand-mark";
+import { RecoveryCodes } from "./recovery-codes";
 
 const field = "rounded-lg border border-line-control bg-canvas px-3 py-2 text-base";
 
@@ -10,17 +11,20 @@ function SetupField({ placeholder, ...props }: InputHTMLAttributes<HTMLInputElem
   return (
     <label className="flex min-w-0 flex-col gap-1.5 text-base">
       <span className="font-medium">{placeholder}</span>
-      <input {...props} />
+      <input {...props} className={field} />
     </label>
   );
 }
 
-/** First run (REL-03): the one-time setup code creates the built-in setup account, the internal
- * organization and the brand. Whoever installs Shippin, you or an AI assistant, finishes setting up as
- * that account; the panel then asks the owner to take it over. */
+type Claimed = { username: string; recovery_codes?: string[] };
+
+/** First run (REL-03). There is no setup code: while the installation has no owner, the first person to
+ *  open it creates the owner account here and is signed in. An installation can also name its owner up
+ *  front (docs/deploy.md), and then nobody sees this page. */
 export function SetupPage() {
   const s = usePublicSettings().data;
   const [busy, setBusy] = useState(false);
+  const [claimed, setClaimed] = useState<Claimed>();
   return (
     <div className="flex min-h-full items-center justify-center overflow-auto p-6 sm:p-10">
       <div className="w-full max-w-xl py-8">
@@ -28,24 +32,40 @@ export function SetupPage() {
           <BrandMark size={36} logoURL={s?.brand.logo_url} />
           <span className="text-xl font-semibold tracking-tight">{s?.brand.name}</span>
         </div>
-        {s && !s.setup_open ? (
+        {claimed ? (
+          <div data-testid="setup-done">
+            {claimed.recovery_codes && claimed.recovery_codes.length > 0 ? (
+              <RecoveryCodes
+                codes={claimed.recovery_codes}
+                next={
+                  <Button variant="primary" tooltip="Open the panel" onPress={() => window.location.assign("/admin/start")}>
+                    I saved them, continue
+                  </Button>
+                }
+              />
+            ) : (
+              <Button variant="primary" tooltip="Open the panel" onPress={() => window.location.assign("/admin/start")}>
+                Continue
+              </Button>
+            )}
+          </div>
+        ) : s && !s.setup_open ? (
           <div>
-            <h1 className="text-3xl font-semibold">Setup is done</h1>
-            <p className="mt-2 text-base text-fg-muted">This installation is already set up. Sign in with the setup account or your own.</p>
+            <h1 className="text-3xl font-semibold">This installation has an owner</h1>
+            <p className="mt-2 text-base text-fg-muted">Sign in to continue.</p>
             <Button className="mt-6" variant="primary" tooltip="Sign in" onPress={() => window.location.assign("/login")}>
               Go to sign in
             </Button>
           </div>
         ) : (
           <>
-            <h1 className="text-3xl font-semibold tracking-tight">Set up {s?.brand.name}</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">Create the owner account</h1>
             <p className="mt-2 text-base text-fg-muted">
-              The one-time setup code creates the built-in <span className="font-mono text-fg">setup</span> account. Whoever is installing,
-              you or an AI assistant, uses it to finish setting up. Afterwards the panel asks the owner to set their own password for it and
-              create their own account.
+              This installation has no owner yet. The account you create here owns it and can do everything in it.
             </p>
             <form
               className="mt-6 grid gap-3 rounded-xl border border-line bg-surface p-5"
+              data-testid="setup-form"
               onSubmit={(e) => {
                 e.preventDefault();
                 const f = new FormData(e.currentTarget);
@@ -58,53 +78,24 @@ export function SetupPage() {
                 void fetch("/v1/setup", {
                   method: "POST",
                   headers: { "content-type": "application/json" },
-                  body: JSON.stringify({
-                    code: f.get("code"),
-                    password,
-                    organization: f.get("organization"),
-                    brand: {
-                      name: f.get("brand_name"),
-                      short: f.get("brand_short"),
-                      tagline: f.get("tagline"),
-                      logo_url: f.get("logo_url"),
-                      color: f.get("color"),
-                      privacy_url: f.get("privacy_url"),
-                      terms_url: f.get("terms_url"),
-                    },
-                  }),
+                  body: JSON.stringify({ name: f.get("name"), email: f.get("email"), password, organization: f.get("organization") }),
                 })
                   .then(async (res) => {
+                    const body = (await res.json().catch(() => ({}))) as Claimed & { message?: string };
                     if (!res.ok) {
-                      const detail = (await res.json().catch(() => ({}))) as { message?: string; detail?: string };
-                      toast.error(
-                        "Setup failed",
-                        detail.message ?? detail.detail ?? "Check the required fields and setup code, then try again.",
-                      );
+                      toast.error("Setup failed", body.message ?? "Check the fields, then try again.");
                       return;
                     }
-                    window.location.assign("/admin");
+                    setClaimed(body);
                   })
-                  .catch(() =>
-                    toast.error(
-                      "Setup failed",
-                      "The panel could not complete setup. Your setup code remains usable if setup did not commit.",
-                    ),
-                  )
+                  .catch(() => toast.error("Setup failed", "The panel could not be reached. Try again."))
                   .finally(() => setBusy(false));
               }}
             >
-              <h2 className="text-base font-semibold">Setup account</h2>
-              <SetupField
-                name="code"
-                required
-                autoComplete="one-time-code"
-                placeholder="One-time setup code"
-                className={`${field} font-mono`}
-              />
-              <p className="text-sm text-fg-muted">
-                Username: <span className="font-mono text-fg">setup</span>. Choose its password for now; the owner replaces it when they
-                take over.
-              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <SetupField name="name" required maxLength={120} autoComplete="name" placeholder="Your name" />
+                <SetupField name="email" type="email" required autoComplete="email" placeholder="Email address" />
+              </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <SetupField
                   name="password"
@@ -114,7 +105,6 @@ export function SetupPage() {
                   maxLength={1024}
                   autoComplete="new-password"
                   placeholder="Password (12+ characters)"
-                  className={field}
                 />
                 <SetupField
                   name="password_confirm"
@@ -123,59 +113,26 @@ export function SetupPage() {
                   minLength={12}
                   autoComplete="new-password"
                   placeholder="Confirm password"
-                  className={field}
                 />
               </div>
-              <h2 className="mt-3 text-base font-semibold">Internal organization and installation brand</h2>
-              <SetupField
-                name="organization"
-                required
-                minLength={2}
-                maxLength={120}
-                placeholder="Internal operator organization"
-                className={field}
-              />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <SetupField
-                  name="brand_name"
-                  required
-                  maxLength={80}
-                  defaultValue={s?.brand.name ?? "Shippin"}
-                  placeholder="Product name"
-                  className={field}
-                />
-                <SetupField
-                  name="brand_short"
-                  maxLength={24}
-                  defaultValue={s?.brand.short ?? "Shippin"}
-                  placeholder="Short name"
-                  className={field}
-                />
-              </div>
-              <SetupField name="tagline" maxLength={160} defaultValue={s?.brand.tagline ?? ""} placeholder="Tagline" className={field} />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <SetupField name="logo_url" type="url" placeholder="Logo URL (HTTPS)" className={field} />
-                <label className="flex items-center gap-3 rounded-lg border border-line-control bg-canvas px-3 py-2 text-base text-fg-muted">
-                  Brand color {/* tokens-allow: a colour input needs a #rrggbb starting value; brand colour is installation data */}
-                  <input name="color" type="color" defaultValue="#3559e0" className="ml-auto h-7 w-10 bg-transparent" />
-                </label>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <SetupField name="privacy_url" type="url" placeholder="Privacy policy URL (optional)" className={field} />
-                <SetupField name="terms_url" type="url" placeholder="Terms URL (optional)" className={field} />
-              </div>
+              <SetupField name="organization" required minLength={2} maxLength={120} defaultValue="Operations" placeholder="Organization" />
               <Button
                 type="submit"
                 variant="primary"
                 size="lg"
                 className="mt-2 w-full"
                 isDisabled={busy}
-                tooltip="Creates the setup account, internal organization, and brand settings"
+                tooltip="Creates your owner account and signs you in"
               >
-                Create installation
+                Create the owner account
               </Button>
             </form>
-            <p className="mt-3 text-xs text-fg-subtle">Public hostname and TLS are configured in the deployment settings.</p>
+            <p className="mt-3 text-sm text-fg-subtle">
+              Branding, sign-in providers and everything else are set in the panel afterwards.{" "}
+              <a className="underline" href="/login">
+                Sign in instead
+              </a>
+            </p>
           </>
         )}
       </div>

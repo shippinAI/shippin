@@ -15,7 +15,7 @@ and their acceptance gates. It does not create another product definition.
 
 | Evidence inspected | Existing behavior | Consequence for implementation |
 | --- | --- | --- |
-| `install/docker/configure.py`, `entrypoint.sh`, `install/panel/render-config.py`, `compose.yaml` | Compose credentials are generated only when missing; persistent session key and TLS files; setup code issuance; hostname/origin supplied through environment. | Complete and validate this path. Keep local binding as a safe default; make internal or public exposure an explicit choice. |
+| `install/docker/configure.py`, `entrypoint.sh`, `install/panel/render-config.py`, `compose.yaml` | Compose credentials are generated only when missing; persistent session key and TLS files; the first owner named by environment or claimed on first visit, with no setup code; hostname/origin supplied through environment. | Complete and validate this path. Keep local binding as a safe default; make internal or public exposure an explicit choice. |
 | `entrypoint.sh` | Generated certificates are reused merely because the files exist; SAN generation distinguishes a numeric IPv4-like string from a DNS name. | Cover hostname changes, IPv6, expiry and incomplete pairs; never overwrite owner-supplied certificates. |
 | `internal/app/app.go` | One composition root starts API, identity, jobs and background services; module migrations and registry already exist. | Extend the existing startup. Do not introduce another server or universal service container. |
 | `internal/platform/setting/{setting,update}.go` | Registered settings use the existing store, version checks and secret-store path. | Add owner-declared sections; no separate settings database or frontend-only configuration. |
@@ -84,7 +84,7 @@ instead of an endlessly nested sidebar.
 | Concern | Current owner to extend | Target context and UI ownership |
 | --- | --- | --- |
 | Process and bootstrap | `internal/app`, `internal/platform/config`, `install/`, root deployment files | Composition and bootstrap stay here; installation behavior belongs to Platform. |
-| Claim and account security | `internal/identity`, `internal/api/setup_account.go`, auth/setup features | Identity owns code redemption and accounts; Platform owns setup progress. Access owns caller and authorization. |
+| Claim and account security | `internal/identity` (`first_owner.go`), `internal/app/owner.go`, auth/setup features | Identity owns the first-owner claim and accounts; Platform owns setup progress. Access owns caller and authorization. |
 | Internal organization links | `internal/tenancy/orgs` | Preserve explicit registry links while moving toward Organizations; never infer staff access from tenant membership. |
 | Workspace grouping and projects | `internal/tenancy/projects`, `features/workspaces` | Organizations (`internal/tenancy` target); membership and ancestry stay authoritative here. |
 | Hosts, guests and provider IO | `internal/hv`, infrastructure API handlers, `features/infrastructure` | Infrastructure owns orchestration/inventory; `hv/incus` and `hv/proxmox` own protocol details. |

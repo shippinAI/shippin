@@ -9,14 +9,13 @@ Root orchestration owns `deploy/tests/acquisition.compose.yaml`. These test arti
 - `ACQUISITION_TEST_SIGNUP_ORIGIN=https://127.0.0.1:25443`
 - `ACQUISITION_TEST_SELF_SIGNED=1` permits only the guarded loopback fixture browser origins. Panel-to-source TLS remains verified.
 - `ACQUISITION_TEST_PASSWORD_FILE`: private file containing the generated fixture password, not an env-file with other settings.
-- `ACQUISITION_TEST_SETUP_CODE_FILE`: private current fixture setup-code file, bootstrap only.
 - `ACQUISITION_TEST_PLAYWRIGHT_ROOT`: directory containing installed locked Playwright package.json (existing runner scripts/browser may be used).
 - `ACQUISITION_TEST_IDS_FILE`: private JSON output containing only canonical fixture subject IDs.
 - `ACQUISITION_TEST_RECORD_FILE`: private nonsecret fixture-record output for subsequent persistence/tombstone phases.
 - `ACQUISITION_TEST_SIGNER_FILE`: private synthetic Ed25519 PKCS8 signer file; never print.
 - `ACQUISITION_TEST_SOURCE_CA_FILE`: fixture source admin certificate PEM.
 
-PowerShell launcher requires explicit `-PrivateFixturePath` and `-PlaywrightRoot` (or ACQUISITION_FIXTURE_PATH / ACQUISITION_TEST_PLAYWRIGHT_ROOT). It never defaults to another checkout. Bootstrap captures only the fixture panel setup code privately.
+PowerShell launcher requires explicit `-PrivateFixturePath` and `-PlaywrightRoot` (or ACQUISITION_FIXTURE_PATH / ACQUISITION_TEST_PLAYWRIGHT_ROOT). It never defaults to another checkout. Bootstrap claims the fixture panel, which has no owner, as `fixture-owner`; there is no setup code.
 
 Commands from platform repository root:
 

@@ -795,8 +795,8 @@
     {
       "method": "POST",
       "path": "/setup",
-      "operationId": "redeemSetupCode",
-      "summary": "Redeem the one-time setup code printed by shippin-console setup",
+      "operationId": "claimInstallation",
+      "summary": "Create the installation's first owner, with no setup code; refused once an owner exists",
       "tags": [
         "identity"
       ],
