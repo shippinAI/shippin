@@ -135,7 +135,21 @@ When the installer runs on an Incus or Proxmox VE host, the panel attaches that 
 
 The panel saves the host only after it answers as a real, authenticated API, the same check **Add host** makes, under the slug `this-machine-incus` or `this-machine-proxmox`. It is attached once; removing it in the panel and restarting attaches it again. The installer records these in `console.env`:
 - `SHIPPIN_LOCAL_INCUS_SOCKET`;
+- `SHIPPIN_LOCAL_INCUS_TRUST_TOKEN_FILE` and optionally `SHIPPIN_LOCAL_INCUS_NAME`, from the site file (see below);
 - `SHIPPIN_LOCAL_PROXMOX_TOKEN_ID`, `SHIPPIN_LOCAL_PROXMOX_TOKEN_FILE` and `SHIPPIN_LOCAL_PROXMOX_CERT_FILE`, and optionally `SHIPPIN_LOCAL_PROXMOX_URL`.
+
+**A panel in a guest of the Incus host it manages** cannot reach that host's socket. On the host, make a one-time trust token and put it in the guest, then name the file in the site file. The panel spends the token the first time it starts and lists the host under the slug `host-incus`:
+
+```sh
+incus config set core.https_address <an address the guest reaches, never a public one>:8443
+incus config trust add shippin-panel --quiet | incus exec <guest> -- install -m 0600 /dev/stdin /etc/shippin/incus-trust-token
+```
+
+```sh
+SHIPPIN_LOCAL_INCUS_TRUST_TOKEN_FILE=/etc/shippin/incus-trust-token
+SHIPPIN_LOCAL_INCUS_NAME=<the host's name>
+SHIPPIN_SELF_GUEST=<the guest's name>   # so the panel asks before stopping or deleting itself
+```
 
 With Compose, mount the Incus socket into the panel container (`/var/lib/incus/unix.socket`) and give the container the socket's group, and the entrypoint sets the variable itself.
 

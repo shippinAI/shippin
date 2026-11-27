@@ -46,8 +46,14 @@ func TestLocalHostsFromEnv(t *testing.T) {
 	if pve.ep.Kind != "proxmox" || pve.ep.BaseURL != "https://127.0.0.1:8006" || pve.ep.TokenID != "shippin@pve!panel" || pve.ep.TrustedCert != "PEM" || pve.secret != "s3cret" {
 		t.Errorf("proxmox: %+v %q", pve.ep, pve.secret)
 	}
+	guest, err := localHostsFromEnv(envMap(map[string]string{"SHIPPIN_LOCAL_INCUS_TRUST_TOKEN_FILE": "/etc/shippin/incus-trust-token"}),
+		fileMap(map[string]string{"/etc/shippin/incus-trust-token": "tok\n"}), "vm1")
+	if err != nil || len(guest) != 1 || guest[0].trust != "tok" || guest[0].ep.Kind != "incus" || guest[0].ep.Slug != hostIncusSlug || guest[0].ep.Label != "Incus host" || guest[0].ep.BaseURL != "" {
+		t.Errorf("host of a guest: %+v %v", guest, err)
+	}
 	for name, env := range map[string]map[string]string{
 		"relative socket": {"SHIPPIN_LOCAL_INCUS_SOCKET": "incus.socket"},
+		"no trust token":  {"SHIPPIN_LOCAL_INCUS_TRUST_TOKEN_FILE": "/nope"},
 		"token, no files": {"SHIPPIN_LOCAL_PROXMOX_TOKEN_ID": "shippin@pve!panel"},
 		"missing secret":  {"SHIPPIN_LOCAL_PROXMOX_TOKEN_ID": "x", "SHIPPIN_LOCAL_PROXMOX_TOKEN_FILE": "/nope", "SHIPPIN_LOCAL_PROXMOX_CERT_FILE": "/etc/pve/local/pve-ssl.pem"},
 	} {

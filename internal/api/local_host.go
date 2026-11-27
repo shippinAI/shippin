@@ -20,6 +20,9 @@ import (
 // the panel's environment. The console attaches them when it starts, once:
 //
 //	SHIPPIN_LOCAL_INCUS_SOCKET         the local Incus socket, such as /var/lib/incus/unix.socket
+//	SHIPPIN_LOCAL_INCUS_TRUST_TOKEN_FILE  a root-only file holding a one-time Incus trust token, for a
+//	                                   panel in a guest of the host it manages, where no socket reaches
+//	SHIPPIN_LOCAL_INCUS_NAME           optional, the name that host is listed under
 //	SHIPPIN_LOCAL_PROXMOX_TOKEN_ID     user@realm!token for the local Proxmox VE
 //	SHIPPIN_LOCAL_PROXMOX_TOKEN_FILE   a root-only file holding that token's secret
 //	SHIPPIN_LOCAL_PROXMOX_CERT_FILE    the host's certificate (/etc/pve/local/pve-ssl.pem)
@@ -30,13 +33,15 @@ import (
 // Slugs of the hosts attached this way.
 const (
 	localIncusSlug   = "this-machine-incus"
+	hostIncusSlug    = "host-incus"
 	localProxmoxSlug = "this-machine-proxmox"
 )
 
-// localHost is one attachment the environment names, with its secret for this start only.
+// localHost is one attachment the environment names, with its secret or trust token for this start only.
 type localHost struct {
 	ep     servers.Endpoint
 	secret string
+	trust  string
 }
 
 // localHostsFromEnv reads the attachments the environment names.
@@ -48,6 +53,18 @@ func localHostsFromEnv(getenv func(string) string, readFile func(string) ([]byte
 			return nil, fmt.Errorf("SHIPPIN_LOCAL_INCUS_SOCKET must be an absolute path")
 		}
 		out = append(out, localHost{ep: servers.Endpoint{Kind: "incus", BaseURL: base, Slug: localIncusSlug, Label: machine}})
+	}
+	if file := getenv("SHIPPIN_LOCAL_INCUS_TRUST_TOKEN_FILE"); file != "" {
+		token, err := readFile(file)
+		if err != nil {
+			return nil, fmt.Errorf("SHIPPIN_LOCAL_INCUS_TRUST_TOKEN_FILE: %w", err)
+		}
+		label := getenv("SHIPPIN_LOCAL_INCUS_NAME")
+		if label == "" {
+			label = "Incus host"
+		}
+		// The token names the server's addresses and certificate, so no address is given here.
+		out = append(out, localHost{trust: strings.TrimSpace(string(token)), ep: servers.Endpoint{Kind: "incus", Slug: hostIncusSlug, Label: label}})
 	}
 	if id := getenv("SHIPPIN_LOCAL_PROXMOX_TOKEN_ID"); id != "" {
 		secretFile, certFile := getenv("SHIPPIN_LOCAL_PROXMOX_TOKEN_FILE"), getenv("SHIPPIN_LOCAL_PROXMOX_CERT_FILE")
@@ -114,7 +131,7 @@ func (a *API) attachLocalHost(ctx context.Context, h localHost) error {
 	ep.ID = id.String()
 	cctx, cancel := context.WithTimeout(ctx, connectTimeout)
 	defer cancel()
-	if err := a.prepareEndpoint(cctx, &ep, hvAttach{TokenSecret: h.secret}); err != nil {
+	if err := a.prepareEndpoint(cctx, &ep, hvAttach{TokenSecret: h.secret, TrustToken: h.trust}); err != nil {
 		return err
 	}
 	if err := a.verifyEndpoint(cctx, ep); err != nil {
