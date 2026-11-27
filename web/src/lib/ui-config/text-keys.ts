@@ -296,6 +296,23 @@ export const textDefaults = {
   "infra.self.confirmTooltip": "Go ahead, knowing the panel goes down with it",
   "infra.guest.self": "This panel",
   "infra.guest.owner": "Customer",
+  "infra.monitor.title": "Host readings",
+  "infra.monitor.onBody": "The host's live load, CPU and memory are read through a small monitor container on this server.",
+  "infra.monitor.offBody":
+    "This kind of server does not report how busy the host is now. Turn on the monitor to read its live load, CPU and memory.",
+  "infra.monitor.off": "Off",
+  "infra.monitor.running": "Running",
+  "infra.monitor.stopped": "Stopped",
+  "infra.monitor.turnOn": "Turn on host readings",
+  "infra.monitor.turnOff": "Turn off host readings",
+  "infra.monitor.turnOnTooltip": "Makes one small container on this server that reads the host's load",
+  "infra.monitor.turnOffTooltip": "Removes the monitor container from this server",
+  "infra.monitor.turnOnBody":
+    "This makes one small container on the server, with no network and the host's /proc read-only. Nothing else changes.",
+  "infra.monitor.turnOffBody": "This removes the monitor container. The host's live load, CPU and memory stop being read.",
+  "infra.monitor.image": "Image",
+  "infra.monitor.imageHelp":
+    "Any small image with a shell. One the server has (local:<fingerprint>) or one from a configured image server.",
   "infra.guest.unassigned": "Unassigned",
   "infra.assign.open": "Assign to a customer",
   "infra.assign.change": "Change customer",

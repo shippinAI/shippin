@@ -67,11 +67,12 @@ func TestHostMetricsReportOnlyWhatIncusExposes(t *testing.T) {
 	}))
 	defer srv.Close()
 	m, err := clientFor(t, srv).HostMetrics(context.Background())
-	if err != nil || m.Node != "node1" || m.CPUs != 12 || *m.MemoryUsed != 3000 || *m.MemoryTotal != 8000 {
+	if err != nil || m.Node != "node1" || m.CPUs != 12 || *m.MemoryTotal != 8000 {
 		t.Fatalf("%+v %v", m, err)
 	}
-	if m.CPU != nil || m.Load1 != nil || m.DiskUsed != nil || m.NetInRate != nil {
-		t.Fatalf("Incus does not report these, so they must stay missing: %+v", m)
+	// Incus answers with what it read when its daemon started, so memory in use is not taken from it.
+	if m.CPU != nil || m.Load1 != nil || m.MemoryUsed != nil || m.DiskUsed != nil || m.NetInRate != nil {
+		t.Fatalf("Incus does not report these live, so without a monitor they must stay missing: %+v", m)
 	}
 }
 
@@ -120,19 +121,35 @@ func TestNetworksReportAddressAndUse(t *testing.T) {
 	}
 }
 
-// A server that reports its load average has it sampled.
-func TestHostMetricsReportLoad(t *testing.T) {
+// With a host monitor the host's load, CPU and memory are read live through it, and the output it
+// recorded on the host is removed afterwards.
+func TestHostMetricsAreLiveThroughTheMonitor(t *testing.T) {
+	var deleted []string
+	const nl = "\n"
+	logs := "/1.0/instances/" + MonitorName + "/logs/exec-output/exec_1"
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/1.0/resources":
-			io.WriteString(w, `{"metadata":{"cpu":{"total":4},"memory":{"total":8000,"used":3000},"load":{"Average1Min":1.5,"Average5Min":1}}}`)
+		switch {
+		case r.URL.Path == "/1.0/resources":
+			io.WriteString(w, `{"metadata":{"cpu":{"total":4},"memory":{"total":8000,"used":3000},"load":{"Average1Min":9}}}`)
+		case r.URL.Path == "/1.0/instances/"+MonitorName+"/exec" && r.Method == http.MethodPost:
+			io.WriteString(w, `{"type":"async","metadata":{"id":"op1"}}`)
+		case r.URL.Path == "/1.0/operations/op1/wait":
+			io.WriteString(w, `{"metadata":{"status_code":200,"metadata":{"return":0,"output":{"1":"`+logs+`.stdout","2":"`+logs+`.stderr"}}}}`)
+		case r.URL.Path == logs+".stdout" && r.Method == http.MethodGet:
+			io.WriteString(w, "1.50 2.00 3.00 3/2600 500"+nl+"cpu  100 0 100 700 100 0 0 0 50 0"+nl+"cpu  150 0 150 800 100 0 0 0 60 0"+nl+"MemTotal:       1000 kB"+nl+"MemAvailable:    250 kB"+nl)
+		case r.Method == http.MethodDelete:
+			deleted = append(deleted, r.URL.Path)
 		default:
 			http.NotFound(w, r)
 		}
 	}))
 	defer srv.Close()
 	m, err := clientFor(t, srv).HostMetrics(context.Background())
-	if err != nil || m.Load1 == nil || *m.Load1 != 1.5 || m.CPU != nil {
+	// Between the two CPU lines 100 of 200 ticks were busy; memory in use is the total less the available.
+	if err != nil || m.Load1 == nil || *m.Load1 != 1.5 || m.CPU == nil || *m.CPU != 0.5 || *m.MemoryUsed != 750*1024 || *m.MemoryTotal != 1000*1024 || m.CPUs != 4 {
 		t.Fatalf("%+v %v", m, err)
+	}
+	if len(deleted) != 2 {
+		t.Fatalf("recorded output left on the host: %v", deleted)
 	}
 }

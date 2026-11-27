@@ -49,16 +49,29 @@ Missing is never zero:
 
 | | Proxmox VE | Incus |
 | --- | --- | --- |
-| Host `cpu` | `/nodes/{node}/status` `cpu` | Not read: `/1.0/resources` has CPU counts and topology but no usage |
-| Host `load1` | `/nodes/{node}/status` `loadavg` | Not read |
-| Host memory | `/nodes/{node}/status` `memory` | `/1.0/resources` `memory` |
+| Host `cpu` | `/nodes/{node}/status` `cpu` | The host monitor: the busy share of all CPUs over one second, from `/proc/stat`. Not read without the monitor |
+| Host `load1` | `/nodes/{node}/status` `loadavg` | The host monitor: `/proc/loadavg`. Not read without the monitor |
+| Host memory | `/nodes/{node}/status` `memory` | Total from `/1.0/resources`. In use from the host monitor: `MemTotal` less `MemAvailable` in `/proc/meminfo`. Not read without the monitor |
 | Host disk | `/nodes/{node}/status` `rootfs` | Not read: storage pools are not the host's disk, and several can share one filesystem |
 | Host network | The node's newest one-minute average in `/nodes/{node}/rrddata`, if under five minutes old | Not read |
 | Guest `cpu` | `/cluster/resources` `cpu`, already a fraction | Rate of `state.cpu.usage` (nanoseconds) over `limits.cpu`, or the host's CPUs for a container without one, or one CPU for a VM without one |
 | Guest memory | `mem`, `maxmem` | `state.memory.usage`, `total` |
 | Guest disk | Containers: `disk`, `maxdisk`. VMs: `maxdisk` only, because Proxmox reports a VM's used disk as 0 | `state.disk` usage and total, summed over the guest's disks |
 | Guest network | Rate of `netin`, `netout` | Rate of `state.network.*.counters`, from inside the guest |
-| Calls per host per tick | `/nodes/{node}/status`, `/nodes/{node}/rrddata`, `/cluster/resources` | `/1.0`, `/1.0/resources`, one `/1.0/instances?recursion=2` |
+| Calls per host per tick | `/nodes/{node}/status`, `/nodes/{node}/rrddata`, `/cluster/resources` | `/1.0`, `/1.0/resources`, one `/1.0/instances?recursion=2`, and with the monitor one recorded command and its output |
+
+### The Incus host monitor
+
+Incus answers `/1.0/resources` from what it read when its daemon started. On a real host the memory in
+use and the load it gave there did not change in over two hours, so they are not sampled. The panel
+reads the host through a monitor instead, which someone turns on per server under **Host readings**
+(`shippin.infrastructure.server.host_monitor.update`). Nothing is installed on the host:
+
+- Turning it on makes one container named `shippin-host-monitor` through the Incus API, from an image
+  the person names. It has no network, one CPU, 64 MiB of memory and the host's `/proc` read-only.
+- Each tick the panel runs one recorded command in it, reads the output and removes the recorded files.
+- Turning it off removes the container. Without a monitor the host's CPU, load and memory in use are
+  missing, never estimated.
 
 For a Proxmox cluster the host is the attached node, and the guests are every guest in the cluster,
 each with the node it runs on. Incus reports 0 or less for a VM's CPU time or memory when it cannot read

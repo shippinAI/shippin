@@ -9,6 +9,7 @@ import (
 	infrastructure_metric "shippin.cloud/console/internal/infrastructure/metric"
 	infrastructure_server "shippin.cloud/console/internal/infrastructure/server"
 	infrastructure_server_guest "shippin.cloud/console/internal/infrastructure/server/guest"
+	infrastructure_server_host_monitor "shippin.cloud/console/internal/infrastructure/server/host_monitor"
 	integrations_github_app "shippin.cloud/console/internal/integrations/github_app"
 	integrations_github_installation "shippin.cloud/console/internal/integrations/github_installation"
 	integrations_github_repository "shippin.cloud/console/internal/integrations/github_repository"
@@ -58,6 +59,8 @@ var All = []mcpl.Registered{
 	mcpl.Register("shippin.infrastructure.server.guest.start", infrastructure_server_guest.Start),
 	mcpl.Register("shippin.infrastructure.server.guest.stop", infrastructure_server_guest.Stop),
 	mcpl.Register("shippin.infrastructure.server.guest.unassign", infrastructure_server_guest.Unassign),
+	mcpl.Register("shippin.infrastructure.server.host_monitor.get", infrastructure_server_host_monitor.Get),
+	mcpl.Register("shippin.infrastructure.server.host_monitor.update", infrastructure_server_host_monitor.Update),
 	mcpl.Register("shippin.infrastructure.server.list", infrastructure_server.List),
 	mcpl.Register("shippin.integrations.github_installation.list", integrations_github_installation.List),
 	mcpl.Register("shippin.integrations.github_repository.delete", integrations_github_repository.Delete),

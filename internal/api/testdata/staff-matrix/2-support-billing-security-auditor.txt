@@ -59,6 +59,7 @@ GET /v1/operator/infrastructure/servers
 GET /v1/operator/infrastructure/servers/{serverId}
 GET /v1/operator/infrastructure/servers/{serverId}/guests
 GET /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}
+GET /v1/operator/infrastructure/servers/{serverId}/host-monitor
 GET /v1/operator/break-glass/pending
 POST /v1/operator/break-glass/{grantId}/{decision}
 GET /v1/operator/audit
@@ -89,6 +90,7 @@ GET /v1/operator/infrastructure/servers
 GET /v1/operator/infrastructure/servers/{serverId}
 GET /v1/operator/infrastructure/servers/{serverId}/guests
 GET /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}
+GET /v1/operator/infrastructure/servers/{serverId}/host-monitor
 GET /v1/operator/audit
 GET /v1/operator/team
 GET /v1/operator/team/permission-grants

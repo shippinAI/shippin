@@ -61,3 +61,20 @@ type GuestMeter interface {
 
 // Ptr is a pointer to v, for the optional fields above.
 func Ptr[T any](v T) *T { return &v }
+
+// HostMonitorState is whether a server has the panel's host monitor, and whether it is running.
+type HostMonitorState struct {
+	Enabled bool `json:"enabled"`
+	// Guest is the monitor's guest on the server; empty when there is none.
+	Guest   string `json:"guest,omitempty"`
+	Running bool   `json:"running"`
+}
+
+// HostMonitored is a driver whose own API cannot say how busy the host is now, and which reads that
+// through a small guest it makes for the purpose when asked to. Nothing is made until then.
+type HostMonitored interface {
+	HostMonitor(ctx context.Context) (HostMonitorState, error)
+	// EnableHostMonitor makes the monitor from the image the spec names and starts it.
+	EnableHostMonitor(ctx context.Context, image GuestSpec) (HostMonitorState, error)
+	DisableHostMonitor(ctx context.Context) error
+}

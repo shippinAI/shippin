@@ -2676,6 +2676,44 @@
         },
         "type": "object"
       },
+      "HostMonitorState": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "guest": {
+            "type": "string"
+          },
+          "running": {
+            "type": "boolean"
+          },
+          "supported": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "supported",
+          "enabled",
+          "running"
+        ],
+        "type": "object"
+      },
+      "HostMonitorUpdateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "image": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "type": "object"
+      },
       "HvCertificateInfo": {
         "additionalProperties": false,
         "properties": {
@@ -5869,6 +5907,129 @@
           "event": "shippin.infrastructure.server.guest.unassigned",
           "id": "shippin.infrastructure.server.guest.unassign",
           "perm": "customers.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/infrastructure/servers/{serverId}/host-monitor": {
+      "get": {
+        "operationId": "shippin.infrastructure.server.host_monitor.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostMonitorState"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "See whether a server has the host monitor that reads its live load, CPU and memory, and whether it is running.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "id": "shippin.infrastructure.server.host_monitor.get",
+          "perm": "infra.read",
+          "reason": false,
+          "risk": "read"
+        }
+      },
+      "put": {
+        "operationId": "shippin.infrastructure.server.host_monitor.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/HostMonitorUpdateInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostMonitorState"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Turn a server's host monitor on or off. On makes one small container that reads the host's live load, CPU and memory; off removes it.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.infrastructure.server.host_monitor.updated",
+          "id": "shippin.infrastructure.server.host_monitor.update",
+          "perm": "infra.hosts.write",
           "reason": true,
           "risk": "write"
         }

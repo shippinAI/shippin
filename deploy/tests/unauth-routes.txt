@@ -88,6 +88,7 @@ GET /v1/operator/infrastructure/servers
 GET /v1/operator/infrastructure/servers/{serverId}
 GET /v1/operator/infrastructure/servers/{serverId}/guests
 GET /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}
+GET /v1/operator/infrastructure/servers/{serverId}/host-monitor
 GET /v1/operator/mcpl
 GET /v1/operator/platform-services
 GET /v1/operator/platform-services/{serviceId}/observations
@@ -329,6 +330,7 @@ PUT /v1/infra/servers/{id}/identity
 PUT /v1/operator/agenthub-connection
 PUT /v1/operator/built-in-services/clickhouse
 PUT /v1/operator/catalog/defaults
+PUT /v1/operator/infrastructure/servers/{serverId}/host-monitor
 PUT /v1/operator/platform-services/{serviceId}
 PUT /v1/operator/platform-settings/{key}
 PUT /v1/operator/platform/secret-store

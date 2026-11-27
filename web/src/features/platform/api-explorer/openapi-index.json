@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 248,
+  "operationCount": 250,
   "tags": [
     "agents-runtime",
     "audit",
@@ -1031,6 +1031,28 @@
       ],
       "implementationStatus": "registered",
       "action": "shippin.infrastructure.server.guest.unassign"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/infrastructure/servers/{serverId}/host-monitor",
+      "operationId": "shippin.infrastructure.server.host_monitor.get",
+      "summary": "See whether a server has the host monitor that reads its live load, CPU and memory, and whether it is running.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.host_monitor.get"
+    },
+    {
+      "method": "PUT",
+      "path": "/operator/infrastructure/servers/{serverId}/host-monitor",
+      "operationId": "shippin.infrastructure.server.host_monitor.update",
+      "summary": "Turn a server's host monitor on or off. On makes one small container that reads the host's live load, CPU and memory; off removes it.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.host_monitor.update"
     },
     {
       "method": "GET",

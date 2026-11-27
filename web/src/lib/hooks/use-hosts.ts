@@ -163,6 +163,32 @@ export function useDeleteGuest(base: string) {
   });
 }
 
+/** Whether a server has the host monitor that reads its live load, CPU and memory. */
+export const useHostMonitor = (serverId: string) =>
+  useQuery({
+    queryKey: ["hv", "host-monitor", serverId],
+    queryFn: () => callAction("shippin.infrastructure.server.host_monitor.get", { serverId }),
+    enabled: serverId !== "",
+    retry: false,
+  });
+
+/** Turns a server's host monitor on, which makes one small container there, or off, which removes it. */
+export function useSetHostMonitor(serverId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { enabled: boolean; image?: string; note: string }) =>
+      callAction("shippin.infrastructure.server.host_monitor.update", { serverId }, { enabled: v.enabled, image: v.image, reason: v.note }),
+    onSuccess: (_s, v) => {
+      toast.info(
+        v.enabled ? "The host monitor is on" : "The host monitor is off",
+        v.enabled ? "Live readings appear within a minute." : "Its container was removed.",
+      );
+      void qc.invalidateQueries({ queryKey: ["hv"] });
+    },
+    onError: (e) => reportError("Couldn't change the host monitor", e),
+  });
+}
+
 /** Places a guest under a customer, by id or by the email address of the person it belongs to. */
 export function useAssignGuest(base: string) {
   const qc = useQueryClient();

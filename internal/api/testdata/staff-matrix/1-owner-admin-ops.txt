@@ -78,6 +78,7 @@ GET /v1/operator/infrastructure/servers
 GET /v1/operator/infrastructure/servers/{serverId}
 GET /v1/operator/infrastructure/servers/{serverId}/guests
 GET /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}
+GET /v1/operator/infrastructure/servers/{serverId}/host-monitor
 POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/restart
 POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/shutdown
 POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/start
@@ -99,6 +100,8 @@ GET /v1/operator/infrastructure/servers
 GET /v1/operator/infrastructure/servers/{serverId}
 GET /v1/operator/infrastructure/servers/{serverId}/guests
 GET /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}
+GET /v1/operator/infrastructure/servers/{serverId}/host-monitor
+PUT /v1/operator/infrastructure/servers/{serverId}/host-monitor
 POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/restart
 POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/shutdown
 POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/start

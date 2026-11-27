@@ -39,6 +39,7 @@ import { ActivityCard } from "./activity-card";
 import { AssignGuestDialog } from "./assign-guest-dialog";
 import { ChangeNoteDialog, type PendingChange } from "./change-note-dialog";
 import { GuestPowerDialog } from "./guest-power-dialog";
+import { HostMonitorCard } from "./host-monitor-card";
 import { StopGuestsDialog } from "./stop-guests-dialog";
 import { CreateGuestCard } from "./create-guest-card";
 import { MetricsHistory } from "./metrics-history";
@@ -274,6 +275,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
           </div>
         )}
       </Card>
+      <HostMonitorCard serverId={node.id} />
       {provider.capabilities.includes("storage_inventory") && (
         <Card className="mb-6 overflow-hidden" data-testid="storage-inventory">
           <CardHeader title={t("infra.storage.title")} description={t("infra.storage.capacity")} />
