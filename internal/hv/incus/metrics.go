@@ -14,9 +14,10 @@ import (
 // readingsLimit bounds the instance listing with state, which grows with the number of guests.
 const readingsLimit = 32 << 20
 
-// HostMetrics reads the server's CPU count and memory from /1.0/resources. That has CPU counts and
-// topology but no CPU usage or load, and the API calls used here give no host disk or network traffic
-// (storage pools are not the host's disk), so those stay missing rather than being estimated.
+// HostMetrics reads the server's CPU count, memory and load average from /1.0/resources. That has no
+// CPU usage, and the API calls used here give no host disk or network traffic (storage pools are not
+// the host's disk), so those stay missing rather than being estimated. A server too old to report its
+// load leaves that missing too.
 func (c *Client) HostMetrics(ctx context.Context) (hv.HostMetrics, error) {
 	var m hv.HostMetrics
 	if body, code, err := c.do(ctx, http.MethodGet, "/1.0", nil); err == nil && code == http.StatusOK {
@@ -47,10 +48,16 @@ func (c *Client) HostMetrics(ctx context.Context) (hv.HostMetrics, error) {
 				Total int64 `json:"total"`
 				Used  int64 `json:"used"`
 			} `json:"memory"`
+			Load *struct {
+				Average1Min float64 `json:"Average1Min"`
+			} `json:"load"`
 		} `json:"metadata"`
 	}
 	if err := json.Unmarshal(body, &r); err != nil {
 		return hv.HostMetrics{}, fmt.Errorf("incus: resources: %w", err)
+	}
+	if r.Metadata.Load != nil {
+		m.Load1 = hv.Ptr(r.Metadata.Load.Average1Min)
 	}
 	m.CPUs = r.Metadata.CPU.Total
 	if r.Metadata.Memory.Total > 0 {

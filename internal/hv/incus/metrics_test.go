@@ -119,3 +119,20 @@ func TestNetworksReportAddressAndUse(t *testing.T) {
 		t.Fatalf("%+v %v", n, err)
 	}
 }
+
+// A server that reports its load average has it sampled.
+func TestHostMetricsReportLoad(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/1.0/resources":
+			io.WriteString(w, `{"metadata":{"cpu":{"total":4},"memory":{"total":8000,"used":3000},"load":{"Average1Min":1.5,"Average5Min":1}}}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	m, err := clientFor(t, srv).HostMetrics(context.Background())
+	if err != nil || m.Load1 == nil || *m.Load1 != 1.5 || m.CPU != nil {
+		t.Fatalf("%+v %v", m, err)
+	}
+}
