@@ -126,6 +126,12 @@ type Network struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 	Node string `json:"node"`
+	// Address is the network's own IPv4 address and prefix, where the hypervisor gives one.
+	Address string `json:"address,omitempty"`
+	// Managed is true for a network the hypervisor created, false for a host interface it only sees.
+	Managed bool `json:"managed"`
+	// Guests is how many guests and profiles use the network.
+	Guests int `json:"guests"`
 }
 
 // Health is a probe. Online is true only when the API answered.

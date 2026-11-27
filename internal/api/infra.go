@@ -774,12 +774,12 @@ func (a *API) infraServices(w http.ResponseWriter, r *http.Request, _ *caller) {
 }
 
 func (a *API) infraNetwork(w http.ResponseWriter, r *http.Request, _ *caller) {
-	cl, err := a.pve(r.Context(), r.PathValue("id"))
+	cl, err := a.driver(r.Context(), r.PathValue("id"))
 	if err != nil {
 		infraErr(w, err)
 		return
 	}
-	items, err := cl.NodeNetworks(r.Context())
+	items, err := cl.Networks(r.Context())
 	if err != nil {
 		infraErr(w, err)
 		return

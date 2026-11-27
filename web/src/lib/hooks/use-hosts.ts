@@ -111,7 +111,7 @@ export type NewGuest = {
 export type GuestImage = { id: string; label: string; kind?: string };
 export type GuestStorage = { name: string; type: string; content?: string; node?: string };
 export type StorageVolume = GuestStorage & { used_bytes: number; total_bytes: number };
-export type GuestNetwork = { name: string; type: string; node?: string };
+export type GuestNetwork = { name: string; type: string; node?: string; address?: string; managed?: boolean; guests?: number };
 
 /** What a guest can be made from on this host. */
 export const useGuestImages = (base: string) =>

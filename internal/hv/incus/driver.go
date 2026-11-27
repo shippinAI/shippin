@@ -357,8 +357,11 @@ func (c *Client) Networks(ctx context.Context) ([]hv.Network, error) {
 	}
 	var r struct {
 		Metadata []struct {
-			Name string `json:"name"`
-			Type string `json:"type"`
+			Name    string            `json:"name"`
+			Type    string            `json:"type"`
+			Managed bool              `json:"managed"`
+			UsedBy  []string          `json:"used_by"`
+			Config  map[string]string `json:"config"`
 		} `json:"metadata"`
 	}
 	if err := json.Unmarshal(body, &r); err != nil {
@@ -366,7 +369,15 @@ func (c *Client) Networks(ctx context.Context) ([]hv.Network, error) {
 	}
 	out := make([]hv.Network, 0, len(r.Metadata))
 	for _, n := range r.Metadata {
-		out = append(out, hv.Network{Name: n.Name, Type: n.Type})
+		// The loopback interface is no network anyone attaches a guest to.
+		if n.Type == "loopback" {
+			continue
+		}
+		address := n.Config["ipv4.address"]
+		if address == "none" {
+			address = ""
+		}
+		out = append(out, hv.Network{Name: n.Name, Type: n.Type, Address: address, Managed: n.Managed, Guests: len(n.UsedBy)})
 	}
 	return out, nil
 }

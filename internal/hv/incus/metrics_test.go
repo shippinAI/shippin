@@ -104,3 +104,18 @@ func TestStorageReportsPoolSpace(t *testing.T) {
 		t.Fatalf("%+v %v", v, err)
 	}
 }
+
+// Networks are listed with their address and how many guests use them; loopback is left out.
+func TestNetworksReportAddressAndUse(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, `{"metadata":[
+			{"name":"incusbr0","type":"bridge","managed":true,"used_by":["/1.0/instances/a","/1.0/profiles/default"],"config":{"ipv4.address":"10.0.0.1/24"}},
+			{"name":"eno1","type":"physical","managed":false,"used_by":[],"config":{}},
+			{"name":"lo","type":"loopback","managed":false}]}`)
+	}))
+	defer srv.Close()
+	n, err := clientFor(t, srv).Networks(context.Background())
+	if err != nil || len(n) != 2 || n[0].Name != "incusbr0" || n[0].Address != "10.0.0.1/24" || !n[0].Managed || n[0].Guests != 2 || n[1].Name != "eno1" || n[1].Managed {
+		t.Fatalf("%+v %v", n, err)
+	}
+}
