@@ -3,10 +3,10 @@ package orgs
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"net/mail"
 	"strings"
 	"unicode"
-
-	"net/mail"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -90,7 +90,7 @@ func CustomerForEmail(ctx context.Context, q Q, email, name, plan, actor string)
 	var user string
 	err = q.QueryRow(ctx, `SELECT id::text FROM identity_users WHERE email=$1`, email).Scan(&user)
 	switch {
-	case err == pgx.ErrNoRows:
+	case errors.Is(err, pgx.ErrNoRows):
 		user = uuid.Must(uuid.NewV7()).String()
 		if _, err := q.Exec(ctx, `INSERT INTO identity_users(id,email,email_verified,name,role) VALUES($1,$2,false,'','member')`, user, email); err != nil {
 			return "", false, err
@@ -104,7 +104,7 @@ func CustomerForEmail(ctx context.Context, q Q, email, name, plan, actor string)
 		if err == nil {
 			return tenant, false, nil
 		}
-		if err != pgx.ErrNoRows {
+		if !errors.Is(err, pgx.ErrNoRows) {
 			return "", false, err
 		}
 	}
@@ -113,7 +113,7 @@ func CustomerForEmail(ctx context.Context, q Q, email, name, plan, actor string)
 	}
 	if plan == "" {
 		if err := q.QueryRow(ctx, `SELECT id FROM plans WHERE active ORDER BY rank, id LIMIT 1`).Scan(&plan); err != nil {
-			if err == pgx.ErrNoRows {
+			if errors.Is(err, pgx.ErrNoRows) {
 				return "", false, ErrBadInput
 			}
 			return "", false, err

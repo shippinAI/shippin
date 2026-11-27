@@ -1,6 +1,6 @@
 {
   "basePath": "/v1",
-  "operationCount": 246,
+  "operationCount": 248,
   "tags": [
     "agents-runtime",
     "audit",
@@ -968,6 +968,17 @@
     },
     {
       "method": "POST",
+      "path": "/operator/infrastructure/servers/{serverId}/guests/{guestId}/assign",
+      "operationId": "shippin.infrastructure.server.guest.assign",
+      "summary": "Assign a guest to a customer: an existing one, or the customer of an email address, created when that person has none.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.guest.assign"
+    },
+    {
+      "method": "POST",
       "path": "/operator/infrastructure/servers/{serverId}/guests/{guestId}/restart",
       "operationId": "shippin.infrastructure.server.guest.restart",
       "summary": "Restart a running guest.",
@@ -1009,6 +1020,17 @@
       ],
       "implementationStatus": "registered",
       "action": "shippin.infrastructure.server.guest.stop"
+    },
+    {
+      "method": "POST",
+      "path": "/operator/infrastructure/servers/{serverId}/guests/{guestId}/unassign",
+      "operationId": "shippin.infrastructure.server.guest.unassign",
+      "summary": "Take a guest away from the customer it is assigned to. The guest itself is not touched.",
+      "tags": [
+        "infrastructure"
+      ],
+      "implementationStatus": "registered",
+      "action": "shippin.infrastructure.server.guest.unassign"
     },
     {
       "method": "GET",

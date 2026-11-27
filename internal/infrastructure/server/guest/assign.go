@@ -83,7 +83,7 @@ var Assign = mcpl.Def[AssignInput, hv.Guest]{
 		}
 		var o hv.GuestOwner
 		err = c.DB.QueryRow(c.Ctx, `SELECT id::text, name FROM tenants WHERE kind='customer' AND id::text=$1`, tenant).Scan(&o.CustomerID, &o.Name)
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return hv.Guest{}, mcpl.Invalid("There is no customer with that id.")
 		}
 		if err != nil {
