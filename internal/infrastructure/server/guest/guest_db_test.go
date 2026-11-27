@@ -86,16 +86,18 @@ type fakeHosts struct {
 	noRecord bool
 	review   bool
 	reviewed []ports.ReviewedPower
+	// alias is a second id the one server answers to, for a test that needs it to be a stored row's.
+	alias string
 }
 
 func (f *fakeHosts) Servers(context.Context) ([]servers.Endpoint, error) {
 	return []servers.Endpoint{{ID: "s1", Kind: "incus", BaseURL: "https://host.example:8443", HasSecret: true}}, nil
 }
 func (f *fakeHosts) Server(_ context.Context, id string) (servers.Endpoint, error) {
-	if id != "s1" {
+	if id != "s1" && (f.alias == "" || id != f.alias) {
 		return servers.Endpoint{}, servers.ErrNotFound
 	}
-	return servers.Endpoint{ID: "s1", Kind: "incus", BaseURL: "https://host.example:8443", HasSecret: true}, nil
+	return servers.Endpoint{ID: id, Kind: "incus", BaseURL: "https://host.example:8443", HasSecret: true}, nil
 }
 func (f *fakeHosts) Open(servers.Endpoint) (hv.Driver, error) { return f.hv, nil }
 func (f *fakeHosts) Track(ctx context.Context, op servers.Operation, change func(context.Context) (hv.Guest, error)) (hv.Guest, error) {

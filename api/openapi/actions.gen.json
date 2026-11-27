@@ -2586,6 +2586,24 @@
         ],
         "type": "object"
       },
+      "GuestAssignInput": {
+        "additionalProperties": false,
+        "properties": {
+          "customer_id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "plan_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "GuestCreateInput": {
         "additionalProperties": false,
         "properties": {
@@ -2782,6 +2800,16 @@
           "node": {
             "type": "string"
           },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HvGuestOwner"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "pool": {
             "type": "string"
           },
@@ -2846,6 +2874,22 @@
           "disk_total_bytes",
           "network_in_bytes",
           "network_out_bytes"
+        ],
+        "type": "object"
+      },
+      "HvGuestOwner": {
+        "additionalProperties": false,
+        "properties": {
+          "customer_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id",
+          "name"
         ],
         "type": "object"
       },
@@ -5333,6 +5377,90 @@
         }
       }
     },
+    "/operator/infrastructure/servers/{serverId}/guests/{guestId}/assign": {
+      "post": {
+        "operationId": "shippin.infrastructure.server.guest.assign",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "guestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GuestAssignInput"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
+                        "description": "Why this change is being made; kept in the audit log with it.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HvGuest"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Assign a guest to a customer: an existing one, or the customer of an email address, created when that person has none.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.infrastructure.server.guest.assigned",
+          "id": "shippin.infrastructure.server.guest.assign",
+          "perm": "customers.write",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
     "/operator/infrastructure/servers/{serverId}/guests/{guestId}/restart": {
       "post": {
         "operationId": "shippin.infrastructure.server.guest.restart",
@@ -5664,6 +5792,83 @@
           "event": "shippin.infrastructure.server.guest.stopped",
           "id": "shippin.infrastructure.server.guest.stop",
           "perm": "infra.guests.power",
+          "reason": true,
+          "risk": "write"
+        }
+      }
+    },
+    "/operator/infrastructure/servers/{serverId}/guests/{guestId}/unassign": {
+      "post": {
+        "operationId": "shippin.infrastructure.server.guest.unassign",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serverId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "guestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "description": "Why this change is being made; kept in the audit log with it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HvGuest"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "accessKey": []
+          }
+        ],
+        "summary": "Take a guest away from the customer it is assigned to. The guest itself is not touched.",
+        "tags": [
+          "infrastructure"
+        ],
+        "x-mcpl": {
+          "access": "staff",
+          "event": "shippin.infrastructure.server.guest.unassigned",
+          "id": "shippin.infrastructure.server.guest.unassign",
+          "perm": "customers.write",
           "reason": true,
           "risk": "write"
         }

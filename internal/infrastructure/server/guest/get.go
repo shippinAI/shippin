@@ -19,6 +19,13 @@ var Get = mcpl.Def[ByID, hv.Guest]{
 			return hv.Guest{}, server.Problem(err)
 		}
 		g.Self = IsSelf(g)
+		owned, err := owners(c, in.Server)
+		if err != nil {
+			return hv.Guest{}, err
+		}
+		if o, ok := owned[g.ID]; ok {
+			g.Owner = &o
+		}
 		return g, nil
 	},
 }

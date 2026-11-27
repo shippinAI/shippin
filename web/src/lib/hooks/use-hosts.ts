@@ -25,6 +25,8 @@ export type Guest = {
   uptime_seconds?: number;
   metrics?: GuestMetrics | null;
   self?: boolean;
+  /** The customer the guest is assigned to; absent for an unassigned guest. */
+  owner?: { customer_id: string; name: string } | null;
 };
 
 export type Task = { upid: string; status: string; exitstatus: string; type: string; log?: string[]; done: boolean };
@@ -158,6 +160,39 @@ export function useDeleteGuest(base: string) {
     },
     onSettled: () => void qc.invalidateQueries({ queryKey: ["infra", "operations"] }),
     onError: (e) => reportError("Couldn't remove the guest", e),
+  });
+}
+
+/** Places a guest under a customer, by id or by the email address of the person it belongs to. */
+export function useAssignGuest(base: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { guest: string; note: string; customerId?: string; email?: string }) =>
+      callAction(
+        "shippin.infrastructure.server.guest.assign",
+        { serverId: staffServer(base), guestId: v.guest },
+        { reason: v.note, customer_id: v.customerId, email: v.email },
+      ),
+    onSuccess: (g, v) => {
+      toast.info(`${v.guest} now belongs to ${g.owner?.name ?? "that customer"}`, "Nothing on the server changed.");
+      void qc.invalidateQueries({ queryKey: ["hv", base, "guests"] });
+      void qc.invalidateQueries({ queryKey: ["catalog", "customers"] });
+    },
+    onError: (e) => reportError("Couldn't assign the guest", e),
+  });
+}
+
+/** Takes a guest away from its customer; the guest keeps running. */
+export function useUnassignGuest(base: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { guest: string; note: string }) =>
+      callAction("shippin.infrastructure.server.guest.unassign", { serverId: staffServer(base), guestId: v.guest }, { reason: v.note }),
+    onSuccess: (_g, v) => {
+      toast.info(`${v.guest} is unassigned`, "Nothing on the server changed.");
+      void qc.invalidateQueries({ queryKey: ["hv", base, "guests"] });
+    },
+    onError: (e) => reportError("Couldn't unassign the guest", e),
   });
 }
 

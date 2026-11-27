@@ -81,6 +81,15 @@ type Guest struct {
 	Metrics  *GuestMetrics `json:"metrics,omitempty"`
 	// Self marks the guest this panel runs on, so nothing stops it by accident.
 	Self bool `json:"self,omitempty"`
+	// Owner is the customer the guest is assigned to in the panel; absent for an unassigned guest. The
+	// hypervisor knows nothing of it.
+	Owner *GuestOwner `json:"owner,omitempty"`
+}
+
+// GuestOwner is the customer a guest is assigned to.
+type GuestOwner struct {
+	CustomerID string `json:"customer_id"`
+	Name       string `json:"name"`
 }
 
 // GuestNetworkObserver reads addresses reported by the hypervisor or its guest agent.

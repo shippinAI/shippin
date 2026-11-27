@@ -17,6 +17,7 @@ import {
   useDeleteGuest,
   useGuests,
   useRollback,
+  useUnassignGuest,
   useSnapshot,
   useSnapshots,
   useStorageInventory,
@@ -35,6 +36,7 @@ import { useNavigate, useSearchParams } from "../../../../lib/router/router";
 import { useText } from "../../../../lib/ui-config/use-ui-config";
 import { firstAnswering, formatUptime, hostHref, isRunning, isStopped, verbApplies } from "../model";
 import { ActivityCard } from "./activity-card";
+import { AssignGuestDialog } from "./assign-guest-dialog";
 import { ChangeNoteDialog, type PendingChange } from "./change-note-dialog";
 import { GuestPowerDialog } from "./guest-power-dialog";
 import { StopGuestsDialog } from "./stop-guests-dialog";
@@ -72,6 +74,11 @@ function useGuestColumns(): ColumnDef<Guest>[] {
           <StatusDot health={isRunning(g.status) ? "up" : "unknown"} /> {g.status}
         </Badge>
       ),
+    },
+    {
+      id: "owner",
+      label: t("infra.guest.owner"),
+      render: (g) => (g.owner ? g.owner.name : <span className="text-fg-subtle">{t("infra.guest.unassigned")}</span>),
     },
     { id: "node", label: t("infra.guest.node"), render: (g) => g.node },
     {
@@ -161,6 +168,8 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
   const back = useRollback(base);
   const create = useCreateGuest(node.id);
   const remove = useDeleteGuest(base);
+  const unassign = useUnassignGuest(base);
+  const [assigning, setAssigning] = useState<Guest | null>(null);
   const detach = useDetachHost();
   const may = useInfraCan();
   const [change, setChange] = useState<PendingChange | null>(null);
@@ -326,7 +335,38 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
       )}
       {guest && (can("lifecycle") || can("snapshot") || can("snapshot_list")) && (
         <Card className="mb-6 p-5">
-          <h2 className="mb-3 text-base font-semibold text-fg">{guest.name || guest.id}</h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-base font-semibold text-fg">{guest.name || guest.id}</h2>
+              <p className="text-sm text-fg-muted" data-testid="guest-owner">
+                {t("infra.guest.owner")}: {guest.owner ? guest.owner.name : t("infra.guest.unassigned")}
+              </p>
+            </div>
+            {may("customers.write") && (
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" tooltip={t("infra.assign.openTooltip")} onPress={() => setAssigning(guest)}>
+                  {guest.owner ? t("infra.assign.change") : t("infra.assign.open")}
+                </Button>
+                {guest.owner && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    tooltip={t("infra.unassign.tooltip")}
+                    onPress={() =>
+                      setChange({
+                        title: t("infra.unassign.title", { label: guest.name || guest.id }),
+                        description: t("infra.unassign.body"),
+                        confirm: t("infra.unassign.open"),
+                        run: (note) => unassign.mutate({ guest: guest.id, note }),
+                      })
+                    }
+                  >
+                    {t("infra.unassign.open")}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
           {guest.metrics && (
             <dl
               className="mb-4 grid gap-3 rounded-lg border border-line bg-canvas/40 p-3 text-xs sm:grid-cols-2 lg:grid-cols-4"
@@ -531,6 +571,7 @@ function ApiGuests({ provider, node, onEdit }: { provider: InfraProvider; node: 
         <ActivityCard serverId={node.id} />
       </div>
       <ChangeNoteDialog change={change} onClose={() => setChange(null)} />
+      <AssignGuestDialog base={base} guest={assigning} onClose={() => setAssigning(null)} />
       <StopGuestsDialog
         serverId={node.id}
         guests={guests.data?.items ?? []}

@@ -578,6 +578,13 @@ export type GithubRepositoryUpdateInput = {
   runners: boolean;
 };
 
+export type GuestAssignInput = {
+  customer_id?: string;
+  email?: string;
+  name?: string;
+  plan_id?: string;
+};
+
 export type GuestCreateInput = {
   kind: GuestKind;
   name: string;
@@ -637,6 +644,7 @@ export type HvGuest = {
   uptime_seconds?: number;
   metrics?: HvGuestMetrics | null;
   self?: boolean;
+  owner?: HvGuestOwner | null;
 };
 
 export type HvGuestMetrics = {
@@ -648,6 +656,11 @@ export type HvGuestMetrics = {
   disk_total_bytes: number;
   network_in_bytes: number;
   network_out_bytes: number;
+};
+
+export type HvGuestOwner = {
+  customer_id: string;
+  name: string;
 };
 
 export type HvProbe = {
@@ -1028,6 +1041,7 @@ export const routes = {
   "shippin.infrastructure.host_detection.get": "GET /v1/operator/infrastructure/host-detection",
   "shippin.infrastructure.metric.list": "GET /v1/operator/infrastructure/metrics",
   "shippin.infrastructure.server.get": "GET /v1/operator/infrastructure/servers/{serverId}",
+  "shippin.infrastructure.server.guest.assign": "POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/assign",
   "shippin.infrastructure.server.guest.create": "POST /v1/operator/infrastructure/servers/{serverId}/guests",
   "shippin.infrastructure.server.guest.delete": "DELETE /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}",
   "shippin.infrastructure.server.guest.get": "GET /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}",
@@ -1036,6 +1050,7 @@ export const routes = {
   "shippin.infrastructure.server.guest.shutdown": "POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/shutdown",
   "shippin.infrastructure.server.guest.start": "POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/start",
   "shippin.infrastructure.server.guest.stop": "POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/stop",
+  "shippin.infrastructure.server.guest.unassign": "POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/unassign",
   "shippin.infrastructure.server.list": "GET /v1/operator/infrastructure/servers",
   "shippin.integrations.github_installation.list": "GET /v1/tenants/{tenantId}/integrations/github-installations",
   "shippin.integrations.github_repository.delete": "DELETE /v1/tenants/{tenantId}/integrations/github-repositories/{githubRepositoryId}",
@@ -1121,6 +1136,7 @@ export type ActionTypes = {
   "shippin.infrastructure.host_detection.get": { args: [params?: { address?: string }]; output: HvDetection; risk: "read"; event: never };
   "shippin.infrastructure.metric.list": { args: [params?: { server_id?: string; guest_id?: string; metrics?: string; from?: string; to?: string; step?: string }]; output: MetricRange; risk: "read"; event: never };
   "shippin.infrastructure.server.get": { args: [params: { serverId: string }]; output: ServersEndpoint; risk: "read"; event: never };
+  "shippin.infrastructure.server.guest.assign": { args: [params: { serverId: string; guestId: string }, body: GuestAssignInput & { reason: string }]; output: HvGuest; risk: "write"; event: "shippin.infrastructure.server.guest.assigned" };
   "shippin.infrastructure.server.guest.create": { args: [params: { serverId: string }, body: GuestCreateInput & { reason: string }]; output: HvGuest; risk: "write"; event: "shippin.infrastructure.server.guest.created" };
   "shippin.infrastructure.server.guest.delete": { args: [params: { serverId: string; guestId: string }, body: GuestDeleteInput & { reason: string }]; output: void; risk: "destructive"; event: "shippin.infrastructure.server.guest.deleted" };
   "shippin.infrastructure.server.guest.get": { args: [params: { serverId: string; guestId: string }]; output: HvGuest; risk: "read"; event: never };
@@ -1129,6 +1145,7 @@ export type ActionTypes = {
   "shippin.infrastructure.server.guest.shutdown": { args: [params: { serverId: string; guestId: string }, body: GuestPowerInput & { reason: string }]; output: HvGuest; risk: "write"; event: "shippin.infrastructure.server.guest.shutdowned" };
   "shippin.infrastructure.server.guest.start": { args: [params: { serverId: string; guestId: string }, body: GuestPowerInput & { reason: string }]; output: HvGuest; risk: "write"; event: "shippin.infrastructure.server.guest.started" };
   "shippin.infrastructure.server.guest.stop": { args: [params: { serverId: string; guestId: string }, body: GuestPowerInput & { reason: string }]; output: HvGuest; risk: "write"; event: "shippin.infrastructure.server.guest.stopped" };
+  "shippin.infrastructure.server.guest.unassign": { args: [params: { serverId: string; guestId: string }, body: { reason: string }]; output: HvGuest; risk: "write"; event: "shippin.infrastructure.server.guest.unassigned" };
   "shippin.infrastructure.server.list": { args: [params?: Record<string, never>]; output: { items: ServersEndpoint[] }; risk: "read"; event: never };
   "shippin.integrations.github_installation.list": { args: [params: { tenantId: string }]; output: GithubInstallationConnections; risk: "read"; event: never };
   "shippin.integrations.github_repository.delete": { args: [params: { tenantId: string; githubRepositoryId: string }, body?: { reason?: string }]; output: void; risk: "destructive"; event: "shippin.integrations.github_repository.deleted" };

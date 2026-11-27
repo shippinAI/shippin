@@ -232,10 +232,12 @@ POST /v1/operator/backups
 POST /v1/operator/break-glass
 POST /v1/operator/break-glass/{grantId}/{decision}
 POST /v1/operator/infrastructure/servers/{serverId}/guests
+POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/assign
 POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/restart
 POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/shutdown
 POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/start
 POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/stop
+POST /v1/operator/infrastructure/servers/{serverId}/guests/{guestId}/unassign
 POST /v1/operator/platform-services
 POST /v1/operator/platform-services/{serviceId}/check
 POST /v1/operator/platform/secret-store/test
