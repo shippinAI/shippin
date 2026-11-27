@@ -319,9 +319,32 @@ func (c *Client) Storage(ctx context.Context) ([]hv.Volume, error) {
 	}
 	out := make([]hv.Volume, 0, len(r.Metadata))
 	for _, p := range r.Metadata {
-		out = append(out, hv.Volume{Name: p.Name, Type: p.Driver})
+		v := hv.Volume{Name: p.Name, Type: p.Driver}
+		v.Used, v.Total = c.poolSpace(ctx, p.Name)
+		out = append(out, v)
 	}
 	return out, nil
+}
+
+// poolSpace reads how full a storage pool is. Incus keeps that apart from the pool list. A pool that
+// does not report it is listed with no sizes rather than failing the whole list.
+func (c *Client) poolSpace(ctx context.Context, pool string) (used, total int64) {
+	body, code, err := c.do(ctx, http.MethodGet, c.path("/1.0/storage-pools/"+url.PathEscape(pool)+"/resources"), nil)
+	if err != nil || code != http.StatusOK {
+		return 0, 0
+	}
+	var r struct {
+		Metadata struct {
+			Space struct {
+				Used  int64 `json:"used"`
+				Total int64 `json:"total"`
+			} `json:"space"`
+		} `json:"metadata"`
+	}
+	if json.Unmarshal(body, &r) != nil {
+		return 0, 0
+	}
+	return r.Metadata.Space.Used, r.Metadata.Space.Total
 }
 
 func (c *Client) Networks(ctx context.Context) ([]hv.Network, error) {

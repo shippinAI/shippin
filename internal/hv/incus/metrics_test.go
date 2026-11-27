@@ -85,3 +85,22 @@ func TestCPULimit(t *testing.T) {
 		t.Error("a virtual machine without limits.cpu has one CPU")
 	}
 }
+
+// A storage pool is listed with how full it is, and a pool that does not say is still listed.
+func TestStorageReportsPoolSpace(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/1.0/storage-pools":
+			io.WriteString(w, `{"metadata":[{"name":"fast","driver":"zfs"},{"name":"odd","driver":"dir"}]}`)
+		case "/1.0/storage-pools/fast/resources":
+			io.WriteString(w, `{"metadata":{"space":{"used":3000,"total":8000}}}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	v, err := clientFor(t, srv).Storage(context.Background())
+	if err != nil || len(v) != 2 || v[0].Name != "fast" || v[0].Used != 3000 || v[0].Total != 8000 || v[1].Name != "odd" || v[1].Total != 0 {
+		t.Fatalf("%+v %v", v, err)
+	}
+}
