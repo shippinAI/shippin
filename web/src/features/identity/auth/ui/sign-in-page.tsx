@@ -260,9 +260,9 @@ export function SignInPage() {
           </div>
           {s?.setup_open && (
             <p className="mt-6 text-base" data-testid="setup-open">
-              This installation has no owner yet.{" "}
+              This installation is new.{" "}
               <a className="font-medium underline" href="/setup">
-                Create the owner account
+                Set the administrator password
               </a>
             </p>
           )}

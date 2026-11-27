@@ -138,7 +138,7 @@ No site's policy is built in.
 
 **REL-03.** The installation is owned by a person from the start, with no setup code (the owner's decision, 2026-11-25, accepting the risk below for a simple install). Either:
 1. the installation names its owner up front (`SHIPPIN_OWNER_EMAIL` with `SHIPPIN_OWNER_PASSWORD` or `SHIPPIN_OWNER_PASSWORD_FILE`), and the panel creates that owner when it first starts, so nobody has to open it to finish; or
-2. while no owner exists, the first person to open the panel creates the owner account, with the installation's organization, and is signed in and shown their recovery codes once.
+2. while no owner exists, the first person to open the panel chooses a password for the built-in administrator account, and is signed in and shown their recovery codes once. That account needs no email address; its username is `admin` until its holder changes it (the owner's decision, 2026-11-27).
 
 The first claim wins and every later one is refused; the claim and its address are audited. The accepted risk: anyone who reaches the panel's address before its owner does can claim it. The first way leaves no such window.
 

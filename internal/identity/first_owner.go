@@ -19,9 +19,19 @@ import (
 // install (2026-11-25); or the installation names its owner up front (SHIPPIN_OWNER_EMAIL, internal/app)
 // and nobody has to visit the panel at all. Either way the first claim wins and every later one is
 // refused.
+//
+// The first account needs no email address. With none given it is the built-in administrator: username
+// "admin", which its holder can change later, and the password they choose (owner, 2026-11-27).
 
 // DefaultOrganization names the installation's organization when the claim does not.
 const DefaultOrganization = "Operations"
+
+// DefaultOwnerUsername and DefaultOwnerName are the first account's when the claim gives no email
+// address and no name.
+const (
+	DefaultOwnerUsername = "admin"
+	DefaultOwnerName     = "Administrator"
+)
 
 // FirstOwnerInput is the person claiming the installation, and what they call it.
 type FirstOwnerInput struct {
@@ -65,8 +75,15 @@ func (s *Service) ClaimInstallation(ctx context.Context, in FirstOwnerInput, c C
 	if in.Organization == "" {
 		in.Organization = DefaultOrganization
 	}
-	address, emailErr := mail.ParseAddress(in.Email)
-	if emailErr != nil || address.Address != in.Email || len(in.Name) < 1 || len(in.Name) > 120 ||
+	if in.Name == "" {
+		in.Name = DefaultOwnerName
+	}
+	emailOK := in.Email == ""
+	if !emailOK {
+		address, err := mail.ParseAddress(in.Email)
+		emailOK = err == nil && address.Address == in.Email
+	}
+	if !emailOK || len(in.Name) > 120 ||
 		len(in.Organization) < 2 || len(in.Organization) > 120 || (in.Username != "" && !validUsername(in.Username)) {
 		return User{}, nil, ErrSetupInput
 	}
@@ -95,6 +112,7 @@ func (s *Service) ClaimInstallation(ctx context.Context, in FirstOwnerInput, c C
 	if ownerExists {
 		return User{}, nil, ErrOwnerExists
 	}
+	// An account with no email address is stored with an empty one, which matches no sign-in.
 	var taken bool
 	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM identity_users WHERE email=$1)`, in.Email).Scan(&taken); err != nil {
 		return User{}, nil, err
@@ -106,7 +124,7 @@ func (s *Service) ClaimInstallation(ctx context.Context, in FirstOwnerInput, c C
 	if err != nil {
 		return User{}, nil, err
 	}
-	user, err := insertUser(ctx, tx, in.Email, in.Name, "owner", true)
+	user, err := insertUser(ctx, tx, in.Email, in.Name, "owner", in.Email != "")
 	if err != nil {
 		return User{}, nil, err
 	}
@@ -141,10 +159,13 @@ func (s *Service) ClaimInstallation(ctx context.Context, in FirstOwnerInput, c C
 	return user, codes, nil
 }
 
-// freeUsername is the asked-for username, or one made from the email address, with a number added when
-// an existing account (such as a development sign-in) already has it.
+// freeUsername is the asked-for username, or one made from the email address, or "admin" with neither,
+// with a number added when an existing account (such as a development sign-in) already has it.
 func freeUsername(ctx context.Context, tx pgx.Tx, asked, email string) (string, error) {
 	base := asked
+	if base == "" && email == "" {
+		base = DefaultOwnerUsername
+	}
 	if base == "" {
 		base = usernameFor(email)
 	}

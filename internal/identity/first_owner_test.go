@@ -67,3 +67,24 @@ func TestUsernameFor(t *testing.T) {
 		}
 	}
 }
+
+// The first account needs only a password: with no email address, name or username it is the built-in
+// administrator "admin", who signs in with that username and can take another later.
+func TestClaimInstallationBuiltInAdmin(t *testing.T) {
+	s, _ := testService(t)
+	ctx := context.Background()
+	u, codes, err := s.ClaimInstallation(ctx, FirstOwnerInput{Password: "a long test password"}, Claim{Via: "browser", Recovery: true})
+	if err != nil || u.Role != "owner" || u.Username != DefaultOwnerUsername || u.Email != "" || u.Name != DefaultOwnerName || len(codes) != 8 {
+		t.Fatal(err, u, len(codes))
+	}
+	if got, err := s.AuthenticatePassword(ctx, "admin", "a long test password", "test"); err != nil || got.ID != u.ID {
+		t.Fatal("admin cannot sign in", err)
+	}
+	// An empty identifier never reaches the account that has no email address.
+	if _, err := s.AuthenticatePassword(ctx, "", "a long test password", "test"); err == nil {
+		t.Fatal("an empty identifier signed in")
+	}
+	if _, _, err := s.ClaimInstallation(ctx, FirstOwnerInput{Password: "a long test password"}, Claim{Via: "browser"}); !errors.Is(err, ErrOwnerExists) {
+		t.Fatal("a second claim was accepted", err)
+	}
+}

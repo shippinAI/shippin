@@ -32,7 +32,7 @@ var (
 	ErrConflict   = errors.New("account is already linked")
 	ErrNotFound   = errors.New("not found")
 	ErrScope      = errors.New("missing scope")
-	ErrSetupInput = errors.New("provide a valid email, username, owner name and internal organization name")
+	ErrSetupInput = errors.New("check the username, and the email address, name and organization if you gave them")
 )
 
 // Sender delivers one plain message. SMTP and the disposable file sink both implement it.

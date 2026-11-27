@@ -110,7 +110,7 @@ incus config device add <vm> panel proxy nat=true listen=tcp:<host address>:443 
 
 There is no setup code (REL-03). After the installer's health check passes, the panel is either already owned or waiting for its owner:
 
-- **Open it and create the owner account.** With no owner named, the first person to open `https://<console host>` gets **Create the owner account**: their name, email, password and the organization's name. They are signed in and shown eight recovery codes once. The first claim wins; anyone after that is sent to sign in.
+- **Open it and set the administrator password.** With no owner named, the first person to open `https://<console host>` chooses a password for the built-in administrator account. Its username is `admin` unless they type another, it needs no email address, and it can be renamed later. Name, email address and organization are set in the panel afterwards. They are signed in and shown eight recovery codes once. The first claim wins; anyone after that is sent to sign in.
 - **Or name the owner up front,** and nobody has to open the panel to finish. The panel creates that owner the first time it starts:
   - the installer: `install.sh --owner-email you@example.com --owner-password-file /root/owner-password [--owner-name "Your Name"]`. It copies the password file to `/etc/shippin/owner-password`, readable by root only, and removes that copy once the owner exists;
   - Compose or any environment: `SHIPPIN_OWNER_EMAIL`, with `SHIPPIN_OWNER_PASSWORD` or `SHIPPIN_OWNER_PASSWORD_FILE`, and optionally `SHIPPIN_OWNER_NAME`, `SHIPPIN_OWNER_USERNAME` and `SHIPPIN_ORGANIZATION`.
