@@ -166,7 +166,8 @@ type Config struct {
 	BuildSections
 }
 
-// Catalog turns on selling hosting from this panel: customers, plans and the service catalog.
+// Catalog turns on selling hosting from this panel: tenants, customers, sign-ups, plans and runner sizes.
+// It is off unless an installation sets it (SHIPPIN_CATALOG_ENABLED); a self-hosted panel has no customers.
 type Catalog struct {
 	Enabled bool `json:"enabled"`
 }

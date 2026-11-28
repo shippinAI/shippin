@@ -11,6 +11,7 @@ export default {
       icon: Building2,
       hue: "var(--color-primary)",
       cap: "tenants.read",
+      feature: "catalog",
     },
   ],
 } satisfies PageMeta;

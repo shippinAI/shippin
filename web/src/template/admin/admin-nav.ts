@@ -9,6 +9,7 @@ export type AdminGroup = NavSection & { items: NavItem[] };
 const sections: NavSection[] = [
   { id: "admin.start", label: "Start" },
   { id: "admin.infrastructure", label: "Infrastructure" },
+  { id: "admin.workloads", label: "Workloads" },
   { id: "admin.platform", label: "Platform" },
   { id: "admin.people", label: "People" },
   { id: "admin.customers", label: "Customers" },

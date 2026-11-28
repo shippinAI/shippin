@@ -5,13 +5,12 @@ export default {
   nav: [
     {
       id: "admin.services",
-      section: "admin.customers",
+      section: "admin.workloads",
       order: 50,
       label: "Service catalog",
       icon: Blocks,
       hue: "var(--color-hue-data)",
       cap: "catalog.plans.read",
-      feature: "catalog",
     },
   ],
 } satisfies PageMeta;

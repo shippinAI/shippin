@@ -5,7 +5,7 @@ export default {
   nav: [
     {
       id: "admin.templates",
-      section: "admin.customers",
+      section: "admin.workloads",
       order: 80,
       label: "Templates",
       icon: LayoutTemplate,

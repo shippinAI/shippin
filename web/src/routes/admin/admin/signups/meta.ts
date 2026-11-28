@@ -11,6 +11,7 @@ export default {
       icon: UserPlus,
       hue: "var(--color-primary)",
       cap: "customers.read|acquisition.read|platform.settings.write",
+      feature: "catalog",
     },
   ],
 } satisfies PageMeta;

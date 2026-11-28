@@ -5,7 +5,7 @@ export default {
   nav: [
     {
       id: "admin.workspaces",
-      section: "admin.customers",
+      section: "admin.workloads",
       order: 70,
       label: "Workspaces",
       icon: Boxes,

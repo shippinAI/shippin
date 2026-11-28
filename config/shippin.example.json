@@ -26,7 +26,7 @@
   "probes": [],
   "probe_concurrency": 8,
   "catalog": {
-    "enabled": true
+    "enabled": false
   },
   "plan_name": "Founder",
   "workspaces": {
