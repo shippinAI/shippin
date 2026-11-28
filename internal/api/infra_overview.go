@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"slices"
@@ -319,7 +320,8 @@ func (a *API) probeNode(ctx context.Context, ep servers.Endpoint) infraNode {
 	n.HealthCheckedAt, n.HealthLatencyMs = &checked, &latency
 	if err != nil {
 		n.HealthState = "down"
-		n.Error = "Provider API check failed."
+		n.Error = "Provider API check failed: " + hv.Reason(err) + "."
+		slog.Warn("host health check failed", "server", ep.ID, "kind", ep.Kind, "err", err)
 		if a.recordServerHealth(ctx, ep, n.HealthState, checked, &latency, "", n.Error) {
 			n.HealthState, n.Online = "unknown", false
 		}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -443,7 +444,8 @@ func (a *API) infraHealth(w http.ResponseWriter, r *http.Request, _ *caller) {
 	state := "operational"
 	detail := ""
 	if err != nil {
-		state, detail = "down", "Provider API check failed."
+		state, detail = "down", "Provider API check failed: "+hv.Reason(err)+"."
+		slog.Warn("host health check failed", "server", ep.ID, "kind", ep.Kind, "err", err)
 	} else if !h.Online {
 		state, detail = "down", "Provider API did not report online."
 	}
